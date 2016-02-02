@@ -1,8 +1,10 @@
 #! -*- coding: utf-8 -*-
 
 import click
+import numpy as np
 
 from code_generation import code_generator
+from model_handling import model
 
 @click.group()
 def code_generation():
@@ -23,6 +25,27 @@ def HyperCube_generate_gll_basis(dimension, polynomial_order):
         code_generator.tensorized_basis_2D(int(polynomial_order))
     else:
         pass
+
+@click.group()
+def model_handling():
+    """Test."""
+    pass
+
+@model_handling.command()
+@click.option('--input_file', help='Exodus file to add parameter to', type=click.Path(readable=True), required=True)
+@click.option('--name', help='Name of parameter.', default='Velocity')
+@click.option('--value', help='Value of constant parameter.', default=4.0)
+@click.option('--output_file', help='Exodus file to to', default=None)
+def add_constant_material_parameter(input_file, name, value, output_file):
+    '''Test.'''
+
+    working_model = model.ExodusModel(exodus_file=input_file)
+    working_model.readFromExodus()
+
+    parameter = np.ones(working_model.number_of_nodes) * value
+    working_model.addMaterialParameter(name.lower(), parameter)
+
+    working_model.write(output_file)
 
 
 @click.group()

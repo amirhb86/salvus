@@ -12,6 +12,7 @@
 #include <vector>
 #include <Eigen/Dense>
 #include "../Options.h"
+#include "../Model/ExodusModel.h"
 
 class Element {
 
@@ -46,11 +47,12 @@ public:
     void registerMesh(DM &distributed_mesh);
 
     // Pure virtual methods.
+    virtual void readOperators() = 0;
     virtual void registerFieldVectors() = 0;
     virtual void attachVertexCoordinates() = 0;
     virtual void attachIntegrationPoints() = 0;
     virtual void constructStiffnessMatrix() = 0;
-    virtual void interpolateMaterialProperties() = 0;
+    virtual void interpolateMaterialProperties(ExodusModel &model) = 0;
 
 
     // Integer setattr.

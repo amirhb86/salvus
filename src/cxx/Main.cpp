@@ -49,8 +49,11 @@ int main(int argc, char *argv[]) {
     PetscInt element_number = 0;
     for (auto &element: elements) {
         element->SetLocalElementNumber(element_number++);
+        element->readOperators();
         element->attachVertexCoordinates();
         element->attachIntegrationPoints();
+        element->interpolateMaterialProperties(model);
+        break;
     }
 
 
@@ -62,9 +65,6 @@ int main(int argc, char *argv[]) {
         break;
     }
 
-//
-////    Solver *solver = Solver::factory("time_domain");
-////    std::cout << "Hello world." << std::endl;
-//
+
     PetscFinalize();
 }

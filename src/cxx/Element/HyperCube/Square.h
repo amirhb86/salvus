@@ -6,6 +6,8 @@
 #define SALVUS_HYPERCUBE_H
 
 #include "../Element.h"
+#include "../../Model/ExodusModel.h"
+
 extern "C" {
 #include "Square/Autogen/order4_square.h"
 };
@@ -35,27 +37,25 @@ extern "C" {
 
 class Square : public Element {
 
-    PetscReal n0(const PetscReal &eps, const PetscReal &eta);
-    PetscReal n1(const PetscReal &eps, const PetscReal &eta);
-    PetscReal n2(const PetscReal &eps, const PetscReal &eta);
-    PetscReal n3(const PetscReal &eps, const PetscReal &eta);
+    static PetscReal n0(const PetscReal eps, const PetscReal eta);
+    static PetscReal n1(const PetscReal eps, const PetscReal eta);
+    static PetscReal n2(const PetscReal eps, const PetscReal eta);
+    static PetscReal n3(const PetscReal eps, const PetscReal eta);
 
-    PetscReal dn0deps(const PetscReal &eta);
-    PetscReal dn1deps(const PetscReal &eta);
-    PetscReal dn2deps(const PetscReal &eta);
-    PetscReal dn3deps(const PetscReal &eta);
+    static PetscReal dn0deps(const PetscReal eta);
+    static PetscReal dn1deps(const PetscReal eta);
+    static PetscReal dn2deps(const PetscReal eta);
+    static PetscReal dn3deps(const PetscReal eta);
 
-    PetscReal dn0deta(const PetscReal &eps);
-    PetscReal dn1deta(const PetscReal &eps);
-    PetscReal dn2deta(const PetscReal &eps);
-    PetscReal dn3deta(const PetscReal &eps);
+    static PetscReal dn0deta(const PetscReal eps);
+    static PetscReal dn1deta(const PetscReal eps);
+    static PetscReal dn2deta(const PetscReal eps);
+    static PetscReal dn3deta(const PetscReal eps);
 
     std::vector<PetscReal> mIntegrationPoints;
 
     // Fixed size eigen matrices for speed
-    Eigen::Matrix<double,2,2> mJacobianBuffer;
     Eigen::Matrix<double,2,4> mVertexCoordinates;
-    Eigen::Matrix<double,2,4> mJacobianMultiplier;
 
 protected:
 
@@ -65,10 +65,11 @@ protected:
     std::vector<PetscReal> mIntegrationCoordinatesEps;
     std::vector<PetscReal> mIntegrationCoordinatesEta;
 
-    // Local methods.
-    void updateJacobian(PetscReal eps, PetscReal eta);
-
 public:
+
+    // Local methods.
+    Eigen::Matrix<double,2,2> jacobianAtPoint(PetscReal eps, PetscReal eta);
+    Eigen::Vector4d interpolateShapeFunctions(PetscReal eps, PetscReal eta);
 
     // Utility methods.
     virtual Element* clone() const = 0;
@@ -78,9 +79,13 @@ public:
     virtual void attachIntegrationPoints();
 
     // Pure virtual methods.
+    virtual void readOperators() = 0;
     virtual void registerFieldVectors() = 0;
     virtual void constructStiffnessMatrix() = 0;
-    virtual void interpolateMaterialProperties() = 0;
+    virtual void interpolateMaterialProperties(ExodusModel &model) = 0;
+
+    // Getattrs.
+    Eigen::Matrix<double,2,4> VertexCoordinates() { return mVertexCoordinates; }
 
 };
 

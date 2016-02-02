@@ -10,6 +10,7 @@
 #include "../../Element.h"
 #include "../../../Options.h"
 #include "../Square.h"
+#include "../../../Model/ExodusModel.h"
 
 class SquareAcousticOrderFour: public Square {
 
@@ -21,15 +22,21 @@ class SquareAcousticOrderFour: public Square {
     Vec mAccelerationGlobal;
     Vec mVelocityGlobal;
 
+    Eigen::VectorXd mMaterialVelocity;
+    Eigen::VectorXd mMaterialDensity;
+
+    Eigen::MatrixXd mGradientOperator;
+
 public:
 
     SquareAcousticOrderFour(Options options);
 
     virtual Element *clone() const { return new SquareAcousticOrderFour(*this); }
 
+    virtual void readOperators();
     virtual void registerFieldVectors();
     virtual void constructStiffnessMatrix();
-    virtual void interpolateMaterialProperties();
+    virtual void interpolateMaterialProperties(ExodusModel &model);
 
 };
 

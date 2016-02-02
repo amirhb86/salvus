@@ -35,6 +35,7 @@ class ExodusModel {
     std::vector<double> mNodalX;
     std::vector<double> mNodalY;
     std::vector<double> mNodalZ;
+    std::vector<double> mNodalVariables;
 
     std::vector<std::string> mNodalVariableNames;
 
@@ -48,6 +49,8 @@ public:
 
     ExodusModel(Options options);
     void initializeParallel();
+    PetscReal getMaterialParameterAtPoint(const std::vector<double> point,
+                                          const std::string parameter_name);
 
 };
 
