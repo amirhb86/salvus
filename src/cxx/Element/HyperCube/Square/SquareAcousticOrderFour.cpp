@@ -4,17 +4,17 @@
 
 #include <petscdm.h>
 #include <iostream>
-#include "SquareAcousticOrderFour.h"]
+#include "SquareAcousticOrderFour.h"
 #include "Autogen/order4_square.h"
 
 SquareAcousticOrderFour::SquareAcousticOrderFour(Options options) {
 
     // Basic properties.
+    mNumberVertex = 4;
+    mNumberDimensions = 2;
     mElementShape = options.ElementShape();
     mPhysicsSystem = options.PhysicsSystem();
     mPolynomialOrder = options.PolynomialOrder();
-    mNumberDimensions = 2;
-    mNumberVertex = 4;
 
     // Gll points.
     mNumberDofVertex = 1;
@@ -25,8 +25,25 @@ SquareAcousticOrderFour::SquareAcousticOrderFour(Options options) {
     mNumberIntegrationPointsEta = 5;
     mNumberIntegrationPoints = 25;
 
+    // Integration points.
     mIntegrationCoordinatesEps = {-1.0, -0.6546536707, 0.0, 0.6546536707, 1.0};
     mIntegrationCoordinatesEta = {-1.0, -0.6546536707, 0.0, 0.6546536707, 1.0};
+
+    mIntegrationWeightsEta.resize(mNumberIntegrationPointsEta);
+    mIntegrationWeightsEps.resize(mNumberIntegrationPointsEps);
+    mIntegrationWeightsEps << 0.1, 0.5444444444, 0.7111111111, 0.5444444444, 0.1;
+    mIntegrationWeightsEta << 0.1, 0.5444444444, 0.7111111111, 0.5444444444, 0.1;
+
+    // Allocate element matrices.
+    mElementDisplacement.resize(mNumberIntegrationPoints);
+
+    // Parameter mapping.
+    mClosureMapping = {
+            6, 13, 22, 3, 15,
+            7, 16, 23, 2, 20,
+            8, 17, 19, 1, 24,
+            11, 18, 14, 5, 4,
+            12, 21, 9, 10, 0};
 
 }
 
@@ -55,20 +72,55 @@ void SquareAcousticOrderFour::registerFieldVectors() {
 
 void SquareAcousticOrderFour::constructStiffnessMatrix() {
 
-    double determinant_jacobian;
-    Eigen::Matrix<double,2,2> jacobian, inverse_jacobian;
-    for (auto eta: mIntegrationCoordinatesEta) {
-        for (auto eps: mIntegrationCoordinatesEps) {
+    // Test
+    for (int i = 0; i < mNumberIntegrationPoints; i++) { mElementDisplacement(i) = mIntegrationCoordinatesEta[i%5]; }
+
+    int itr = 0;
+    Eigen::VectorXd divergence(mNumberIntegrationPoints);
+    Eigen::Matrix<double,2,1> strain;
+    Eigen::Matrix<double,2,1> test_function_gradient;
+    Eigen::Matrix<double,2,2> inverse_Jacobian;
+
+    for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
+        for (auto eps_index = 0; eps_index < mNumberIntegrationPointsEps; eps_index++) {
+
+            // Eps and eta coordinates.
+            double eta = mIntegrationCoordinatesEta[eta_index];
+            double eps = mIntegrationCoordinatesEps[eps_index];
 
             // Get and invert Jacobian.
-            jacobian = jacobianAtPoint(eps, eta);
-            inverse_jacobian = jacobian.inverse();
-            determinant_jacobian = jacobian.determinant();
+            inverse_Jacobian = jacobianAtPoint(eps, eta).inverse();
 
+            // Calculate strain.
+            strain(0) = mGradientOperator.row(eps_index).dot(epsVectorStride(mElementDisplacement, eta_index));
+            strain(1) = mGradientOperator.row(eta_index).dot(etaVectorStride(mElementDisplacement, eta_index));
+            strain = inverse_Jacobian * strain;
+
+            // Calculate test function derivatives.
+            test_function_gradient(0) = mGradientOperator.row(eps_index).sum();
+            test_function_gradient(1) = mGradientOperator.row(eta_index).sum();
+            test_function_gradient = inverse_Jacobian * test_function_gradient;
+
+            // Get material parameters at this node.
+            double velocity = interpolateShapeFunctions(eps, eta).dot(mMaterialVelocityAtVertices);
+            divergence(itr) = test_function_gradient.dot(strain);
+            itr++;
 
         }
     }
 
+    itr = 0;
+    for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
+        for (auto eps_index = 0; eps_index < mNumberIntegrationPointsEps; eps_index++) {
+
+            double eps = mIntegrationCoordinatesEps[eps_index];
+            double eta = mIntegrationCoordinatesEps[eta_index];
+            mElementDisplacement(itr) = jacobianAtPoint(eps, eta).determinant() *
+                    (mIntegrationWeightsEps.dot(epsVectorStride(divergence, eps_index)) +
+                     mIntegrationWeightsEta.dot(etaVectorStride(divergence, eps_index)));
+            itr++;
+        }
+    }
 
 }
 
@@ -76,24 +128,12 @@ void SquareAcousticOrderFour::interpolateMaterialProperties(ExodusModel &model) 
 
     // TODO. Test that this function results in a linear interpolation.
 
-    mMaterialDensity.resize(mNumberIntegrationPoints);
-    mMaterialVelocity.resize(mNumberIntegrationPoints);
 
-    Eigen::Vector4d velocity_at_nodes;
     Eigen::Matrix<double,2,4> vertex_coordinates = VertexCoordinates();
     for (auto i = 0; i < mNumberVertex; i++) {
-        velocity_at_nodes(i) = model.getMaterialParameterAtPoint({vertex_coordinates(0, i), vertex_coordinates(1, i)},
-                                                                 "velocity");
-    }
-
-    int i = 0;
-    for (auto eta: mIntegrationCoordinatesEta) {
-        for (auto eps: mIntegrationCoordinatesEps) {
-            Eigen::Vector4d coefficients = interpolateShapeFunctions(eps, eta);
-            mMaterialVelocity(i) = coefficients.dot(velocity_at_nodes);
-            i++;
-        }
-
+        mMaterialVelocityAtVertices(i) = model.getMaterialParameterAtPoint({vertex_coordinates(0, i),
+                                                                            vertex_coordinates(1, i)},
+                                                                            "velocity");
     }
 
 }
@@ -123,5 +163,4 @@ void SquareAcousticOrderFour::readOperators() {
         mGradientOperator.row(i) = test.col(0);
         i++;
     }
-    std::cout << mGradientOperator << std::endl;
 }

@@ -103,6 +103,8 @@ PetscReal Square::dn3deta(const PetscReal eps) {
 
 }
 
+
+
 Eigen::Matrix<double,2,2> Square::jacobianAtPoint(PetscReal eps, PetscReal eta) {
 
     // Set local values.
@@ -128,5 +130,23 @@ Eigen::Vector4d Square::interpolateShapeFunctions(PetscReal eps, PetscReal eta) 
     coefficients(2) = n2(eps, eta);
     coefficients(3) = n3(eps, eta);
     return coefficients;
+
+}
+
+Eigen::Map<Eigen::VectorXd> Square::epsVectorStride(
+        Eigen::VectorXd &function, int &eta_index) {
+    return Eigen::Map<Eigen::VectorXd> (
+
+            function.data() + eta_index * mNumberIntegrationPointsEta,
+            mNumberIntegrationPointsEps);
+
+}
+
+Eigen::Map<Eigen::VectorXd, 0, Eigen::InnerStride<>> Square::etaVectorStride(
+        Eigen::VectorXd &function, int &eta_index) {
+
+    return Eigen::Map<Eigen::VectorXd, 0, Eigen::InnerStride<>> (
+            function.data() + eta_index, mNumberIntegrationPointsEta,
+            Eigen::InnerStride<> (mNumberIntegrationPointsEps));
 
 }

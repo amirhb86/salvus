@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
         break;
     }
 
-
+    if (MPI::COMM_WORLD.Get_rank()== 0)
     while (true) {
         for (auto &element: elements) {
             element->constructStiffnessMatrix();

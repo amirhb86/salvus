@@ -65,11 +65,20 @@ protected:
     std::vector<PetscReal> mIntegrationCoordinatesEps;
     std::vector<PetscReal> mIntegrationCoordinatesEta;
 
+    Eigen::VectorXd mIntegrationWeightsEps;
+    Eigen::VectorXd mIntegrationWeightsEta;
+    Eigen::MatrixXd mGradientOperator;
+
 public:
 
     // Local methods.
     Eigen::Matrix<double,2,2> jacobianAtPoint(PetscReal eps, PetscReal eta);
     Eigen::Vector4d interpolateShapeFunctions(PetscReal eps, PetscReal eta);
+
+    Eigen::Map<Eigen::VectorXd> epsVectorStride(
+            Eigen::VectorXd &function, int &eta_index);
+    Eigen::Map<Eigen::VectorXd, 0, Eigen::InnerStride<>> etaVectorStride(
+            Eigen::VectorXd &function, int &eta_index);
 
     // Utility methods.
     virtual Element* clone() const = 0;

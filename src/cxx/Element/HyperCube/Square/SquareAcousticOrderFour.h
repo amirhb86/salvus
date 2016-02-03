@@ -22,10 +22,13 @@ class SquareAcousticOrderFour: public Square {
     Vec mAccelerationGlobal;
     Vec mVelocityGlobal;
 
-    Eigen::VectorXd mMaterialVelocity;
-    Eigen::VectorXd mMaterialDensity;
+    std::vector<int> mClosureMapping;
 
-    Eigen::MatrixXd mGradientOperator;
+    Eigen::Vector4d mMaterialVelocityAtVertices;
+    Eigen::Vector4d mMaterialDensityAtVertices;
+
+    Eigen::VectorXd mElementDisplacement;
+    Eigen::MatrixXd mElementDisplacementGradient;
 
 public:
 
