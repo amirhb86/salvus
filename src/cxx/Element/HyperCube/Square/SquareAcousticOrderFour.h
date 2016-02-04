@@ -36,6 +36,11 @@ public:
 
     virtual Element *clone() const { return new SquareAcousticOrderFour(*this); }
 
+    virtual void scatterPartitionFieldsToDistributedEnd();
+    virtual void scatterPartitionFieldsToDistributedBegin();
+    virtual void gatherDistributedFieldsToPartition();
+    virtual void gatherPartitionFieldsToElement();
+    virtual void scatterElementFieldsToPartition();
     virtual void readOperators();
     virtual void registerFieldVectors();
     virtual void constructStiffnessMatrix();

@@ -33,9 +33,10 @@ Element *Element::factory(Options options) {
 
 }
 
-void Element::registerMesh(DM &distributed_mesh) {
+void Element::registerMesh(DM &distributed_mesh, PetscSection &section) {
 
     mDistributedMesh = distributed_mesh;
+    mMeshSection = section;
 
 }
 

@@ -4,6 +4,8 @@
 
 #include <petscdm.h>
 #include <iostream>
+#include <petscdmplex.h>
+#include <openmpi/ompi/mpi/cxx/mpicxx.h>
 #include "SquareAcousticOrderFour.h"
 #include "Autogen/order4_square.h"
 
@@ -60,7 +62,7 @@ void SquareAcousticOrderFour::registerFieldVectors() {
     DMCreateGlobalVector(mDistributedMesh, &mDisplacementGlobal);
     DMCreateGlobalVector(mDistributedMesh, &mAccelerationGlobal);
     DMCreateGlobalVector(mDistributedMesh, &mVelocityGlobal);
-    VecSet(mDisplacementGlobal, zero);
+    VecSet(mDisplacementGlobal, MPI::COMM_WORLD.Get_rank());
     VecSet(mAccelerationGlobal, zero);
     VecSet(mVelocityGlobal, zero);
 
@@ -163,4 +165,40 @@ void SquareAcousticOrderFour::readOperators() {
         mGradientOperator.row(i) = test.col(0);
         i++;
     }
+}
+
+void SquareAcousticOrderFour::gatherPartitionFieldsToElement() {
+
+    auto itr = 0;
+    PetscScalar *val = NULL;
+    DMPlexVecGetClosure(mDistributedMesh, mMeshSection, mDisplacementLocal, LocalElementNumber(), NULL, &val);
+    for (auto &i: mClosureMapping) { mElementDisplacement(i) = val[itr]; itr++; }
+    DMPlexVecRestoreClosure(mDistributedMesh, mMeshSection, mDisplacementLocal, LocalElementNumber(), NULL, &val);
+
+}
+
+void SquareAcousticOrderFour::scatterElementFieldsToPartition() {
+
+    DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mDisplacementLocal, LocalElementNumber(),
+                        mElementDisplacement.data(), ADD_VALUES);
+
+}
+
+void SquareAcousticOrderFour::gatherDistributedFieldsToPartition() {
+
+    DMGlobalToLocalBegin(mDistributedMesh, mDisplacementGlobal, INSERT_VALUES, mDisplacementLocal);
+    DMGlobalToLocalEnd(mDistributedMesh, mDisplacementGlobal, INSERT_VALUES, mDisplacementLocal);
+
+}
+
+void SquareAcousticOrderFour::scatterPartitionFieldsToDistributedBegin() {
+
+    DMLocalToGlobalBegin(mDistributedMesh, mDisplacementLocal, ADD_VALUES, mDisplacementGlobal);
+
+}
+
+void SquareAcousticOrderFour::scatterPartitionFieldsToDistributedEnd() {
+
+    DMLocalToGlobalEnd(mDistributedMesh, mDisplacementLocal, ADD_VALUES, mDisplacementGlobal);
+
 }

@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
                          reference_element->NumberDimensions());
 
     // Now that the mesh is constructed, register it with the reference element.
-    reference_element->registerMesh(mesh->DistributedMesh());
+    reference_element->registerMesh(mesh->DistributedMesh(), mesh->MeshSection());
     reference_element->registerFieldVectors();
 
     // Clone a list of all local elements.
@@ -53,15 +53,17 @@ int main(int argc, char *argv[]) {
         element->attachVertexCoordinates();
         element->attachIntegrationPoints();
         element->interpolateMaterialProperties(model);
-        break;
     }
 
-    if (MPI::COMM_WORLD.Get_rank()== 0)
     while (true) {
+        reference_element->gatherDistributedFieldsToPartition();
         for (auto &element: elements) {
+            element->gatherPartitionFieldsToElement();
             element->constructStiffnessMatrix();
-            break;
+            element->scatterElementFieldsToPartition();
         }
+        reference_element->scatterPartitionFieldsToDistributedBegin();
+        reference_element->scatterPartitionFieldsToDistributedEnd();
         break;
     }
 

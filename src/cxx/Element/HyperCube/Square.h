@@ -88,6 +88,11 @@ public:
     virtual void attachIntegrationPoints();
 
     // Pure virtual methods.
+    virtual void scatterPartitionFieldsToDistributedBegin() = 0;
+    virtual void gatherDistributedFieldsToPartition() = 0;
+    virtual void gatherPartitionFieldsToElement() = 0;
+    virtual void scatterPartitionFieldsToDistributedEnd() = 0;
+    virtual void scatterElementFieldsToPartition() = 0;
     virtual void readOperators() = 0;
     virtual void registerFieldVectors() = 0;
     virtual void constructStiffnessMatrix() = 0;

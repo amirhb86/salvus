@@ -35,6 +35,7 @@ protected:
     std::string mPhysicsSystem;
 
     DM mDistributedMesh;
+    PetscSection mMeshSection;
 
 public:
 
@@ -44,10 +45,15 @@ public:
     void printInfoToScreen() const;
 
     // Generic methods.
-    void registerMesh(DM &distributed_mesh);
+    void registerMesh(DM &distributed_mesh, PetscSection &section);
 
     // Pure virtual methods.
+    virtual void gatherDistributedFieldsToPartition() = 0;
+    virtual void gatherPartitionFieldsToElement() = 0;
     virtual void readOperators() = 0;
+    virtual void scatterElementFieldsToPartition() = 0;
+    virtual void scatterPartitionFieldsToDistributedBegin() = 0;
+    virtual void scatterPartitionFieldsToDistributedEnd() = 0;
     virtual void registerFieldVectors() = 0;
     virtual void attachVertexCoordinates() = 0;
     virtual void attachIntegrationPoints() = 0;

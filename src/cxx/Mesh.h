@@ -10,6 +10,7 @@
 #include <string>
 #include <petscdmtypes.h>
 #include <vector>
+#include <petscistypes.h>
 #include "Options.h"
 
 class Mesh {
@@ -20,6 +21,8 @@ class Mesh {
     std::string mExodusFileName;
 
     DM mDistributedMesh;
+    PetscSection mMeshSection;
+
 
 public:
 
@@ -37,6 +40,7 @@ public:
 
     // Distributed mesh getattr.
     inline DM &DistributedMesh() { return mDistributedMesh; }
+    inline PetscSection &MeshSection() { return mMeshSection; }
 
 
 

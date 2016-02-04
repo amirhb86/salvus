@@ -71,10 +71,9 @@ void Mesh::setupGlobalDof(PetscInt number_dof_vertex, PetscInt number_dof_edge, 
     if (mNumberDimensions == 3) { number_dof_per_element[3] = number_dof_volume; }
 
     // Setup the global and local (distributed) degrees of freedom.
-    PetscSection section;
     DMPlexCreateSection(mDistributedMesh, mNumberDimensions, number_fields, &number_components,
-                        number_dof_per_element, 0, NULL, NULL, NULL, NULL, &section);
-    DMSetDefaultSection(mDistributedMesh, section);
+                        number_dof_per_element, 0, NULL, NULL, NULL, NULL, &mMeshSection);
+    DMSetDefaultSection(mDistributedMesh, mMeshSection);
 
 }
 
