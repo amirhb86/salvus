@@ -55,6 +55,7 @@ class Square : public Element {
     std::vector<PetscReal> mIntegrationPoints;
 
     // Fixed size eigen matrices for speed
+    bool mCheckHull(double x, double z);
     Eigen::Matrix<double,2,4> mVertexCoordinates;
 
 protected:
@@ -72,6 +73,7 @@ protected:
 public:
 
     // Local methods.
+    Eigen::Vector4d __interpolateMaterialProperties(ExodusModel &model, std::string parameter_name);
     Eigen::Matrix<double,2,2> jacobianAtPoint(PetscReal eps, PetscReal eta);
     Eigen::Vector4d interpolateShapeFunctions(PetscReal eps, PetscReal eta);
 
@@ -86,16 +88,17 @@ public:
     // Superclass methods
     virtual void attachVertexCoordinates();
     virtual void attachIntegrationPoints();
+    virtual void attachSource(std::vector<Source*> sources);
 
     // Pure virtual methods.
-    virtual void scatterPartitionFieldsToDistributedBegin() = 0;
-    virtual void gatherDistributedFieldsToPartition() = 0;
-    virtual void gatherPartitionFieldsToElement() = 0;
-    virtual void scatterPartitionFieldsToDistributedEnd() = 0;
-    virtual void scatterElementFieldsToPartition() = 0;
     virtual void readOperators() = 0;
     virtual void registerFieldVectors() = 0;
     virtual void constructStiffnessMatrix() = 0;
+    virtual void gatherPartitionFieldsToElement() = 0;
+    virtual void scatterElementFieldsToPartition() = 0;
+    virtual void gatherDistributedFieldsToPartition() = 0;
+    virtual void scatterPartitionFieldsToDistributedEnd() = 0;
+    virtual void scatterPartitionFieldsToDistributedBegin() = 0;
     virtual void interpolateMaterialProperties(ExodusModel &model) = 0;
 
     // Getattrs.

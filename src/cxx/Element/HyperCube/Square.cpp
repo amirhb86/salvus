@@ -5,7 +5,6 @@
 #include <iostream>
 #include <petscdm.h>
 #include <petscdmplex.h>
-#include <assert.h>
 #include <openmpi/ompi/mpi/cxx/mpicxx.h>
 #include "Square.h"
 
@@ -103,8 +102,6 @@ PetscReal Square::dn3deta(const PetscReal eps) {
 
 }
 
-
-
 Eigen::Matrix<double,2,2> Square::jacobianAtPoint(PetscReal eps, PetscReal eta) {
 
     // Set local values.
@@ -148,5 +145,49 @@ Eigen::Map<Eigen::VectorXd, 0, Eigen::InnerStride<>> Square::etaVectorStride(
     return Eigen::Map<Eigen::VectorXd, 0, Eigen::InnerStride<>> (
             function.data() + eta_index, mNumberIntegrationPointsEta,
             Eigen::InnerStride<> (mNumberIntegrationPointsEps));
+
+}
+
+Eigen::Vector4d Square::__interpolateMaterialProperties(ExodusModel &model, std::string parameter_name) {
+
+    Eigen::Vector4d material_at_vertices(mNumberVertex);
+    for (auto i = 0; i < mNumberVertex; i++) {
+        material_at_vertices(i) = model.getMaterialParameterAtPoint({mVertexCoordinates(0, i),
+                                                                     mVertexCoordinates(1, i)},
+                                                                    parameter_name);
+    }
+    return material_at_vertices;
+
+}
+
+void Square::attachSource(std::vector<Source*> sources) {
+
+    for (auto &source: sources) {
+        if (mCheckHull(source->LocationX(), source->LocationZ())) {
+            std::cout << "HEY!" << std::endl;
+            mSources.push_back(source);
+        }
+    }
+
+}
+
+bool Square::mCheckHull(double x, double z) {
+
+    int n_neg = 0;
+    int n_pos = 0;
+    Eigen::Vector2d test_point; test_point << x, z;
+    for (auto i = 0; i < mNumberVertex; i++) {
+        Eigen::Vector2d p0 = mVertexCoordinates.col((i + 0) % mNumberVertex);
+        Eigen::Vector2d p1 = mVertexCoordinates.col((i + 1) % mNumberVertex);
+        std::cout << p1 << std::endl;
+        Eigen::Vector2d v_seg = p1 - p0;
+        Eigen::Vector2d p_seg = test_point - p0;
+        double x_0 = v_seg(0) * p_seg(1) - v_seg(1) * p_seg(0);
+        if (x_0 <= 0) n_neg++;
+        if (x_0 >= 0) n_pos++;
+    }
+    std::cout << n_neg << ' ' << n_pos << std::endl;
+
+    return n_neg == mNumberVertex || n_pos == mNumberVertex ? true : false;
 
 }

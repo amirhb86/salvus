@@ -38,6 +38,6 @@ add_executable(salvus
         src/cxx/Element/HyperCube/Square/SquareAcousticOrderFour.cpp
         src/cxx/Element/HyperCube/Square/Autogen/order4_square.c
         src/cxx/Model/ExodusModel.cpp
-        src/cxx/kdtree.c)
+        src/cxx/kdtree.c src/cxx/Source.cpp src/cxx/Source.h)
 
 target_link_libraries(salvus petsc exodus netcdf)

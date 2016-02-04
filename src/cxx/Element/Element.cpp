@@ -4,6 +4,7 @@
 
 #include <openmpi/ompi/mpi/cxx/mpicxx.h>
 #include <petscdm.h>
+#include <petscdmplex.h>
 #include "../Utilities.h"
 #include "../Options.h"
 
@@ -56,3 +57,36 @@ void Element::printInfoToScreen() const {
 //    for (auto &point: mIntegrationPoints) { std::cout << point << std::endl; }
 
 }
+
+void Element::__gatherDistributedFieldsToPartition(Vec &local_field_vec, Vec &global_field_vec) {
+
+    DMGlobalToLocalBegin(mDistributedMesh, global_field_vec, INSERT_VALUES, local_field_vec);
+    DMGlobalToLocalEnd(mDistributedMesh, global_field_vec, INSERT_VALUES, local_field_vec);
+
+}
+
+void Element::__gatherPartitionFieldsToElement(Vec &local_field_vec,
+                                               Eigen::VectorXd &element_field_vec,
+                                               std::vector<int> &closure_mapping) {
+
+    int itr = 0;
+    PetscScalar  *val = NULL;
+    DMPlexVecGetClosure(mDistributedMesh, mMeshSection, local_field_vec, mLocalElementNumber, NULL, &val);
+    for (auto &i: closure_mapping) { element_field_vec(i) = val[itr]; itr++; }
+    DMPlexVecRestoreClosure(mDistributedMesh, mMeshSection, local_field_vec, mLocalElementNumber, NULL, &val);
+
+}
+
+void Element::__scatterElementFieldsToPartition(Vec &local_field_vec, const Eigen::VectorXd &element_field_vec) {
+    DMPlexVecSetClosure(mDistributedMesh, mMeshSection, local_field_vec, mLocalElementNumber,
+                        element_field_vec.data(), ADD_VALUES);
+}
+
+void Element::__scatterPartitionFieldsToDistributedBegin(Vec &local_field_vec, Vec &global_field_vec) {
+    DMLocalToGlobalBegin(mDistributedMesh, local_field_vec, ADD_VALUES, global_field_vec);
+}
+
+void Element::__scatterPartitionFieldsToDistributedEnd(Vec &local_field_vec, Vec &global_field_vec) {
+    DMLocalToGlobalEnd(mDistributedMesh, local_field_vec, ADD_VALUES, global_field_vec);
+}
+

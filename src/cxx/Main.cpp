@@ -8,6 +8,7 @@
 #include "Utilities.h"
 #include "Element/HyperCube/Square/SquareAcousticOrderFour.h"
 #include "Model/ExodusModel.h"
+#include "Source.h"
 
 static constexpr char help[] = "Welcome to salvus.";
 
@@ -26,6 +27,9 @@ int main(int argc, char *argv[]) {
     // Get model.
     ExodusModel model(options);
     model.initializeParallel();
+
+    // Get source.
+    std::vector<Source*> sources = Source::factory(options);
 
     // Setup reference element.
     Element *reference_element = Element::factory(options);
@@ -52,6 +56,7 @@ int main(int argc, char *argv[]) {
         element->readOperators();
         element->attachVertexCoordinates();
         element->attachIntegrationPoints();
+        element->attachSource(sources);
         element->interpolateMaterialProperties(model);
     }
 
@@ -66,7 +71,6 @@ int main(int argc, char *argv[]) {
         reference_element->scatterPartitionFieldsToDistributedEnd();
         break;
     }
-
 
     PetscFinalize();
 }

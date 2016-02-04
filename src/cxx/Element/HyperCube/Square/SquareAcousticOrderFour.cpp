@@ -62,7 +62,7 @@ void SquareAcousticOrderFour::registerFieldVectors() {
     DMCreateGlobalVector(mDistributedMesh, &mDisplacementGlobal);
     DMCreateGlobalVector(mDistributedMesh, &mAccelerationGlobal);
     DMCreateGlobalVector(mDistributedMesh, &mVelocityGlobal);
-    VecSet(mDisplacementGlobal, MPI::COMM_WORLD.Get_rank());
+    VecSet(mDisplacementGlobal, zero);
     VecSet(mAccelerationGlobal, zero);
     VecSet(mVelocityGlobal, zero);
 
@@ -128,15 +128,7 @@ void SquareAcousticOrderFour::constructStiffnessMatrix() {
 
 void SquareAcousticOrderFour::interpolateMaterialProperties(ExodusModel &model) {
 
-    // TODO. Test that this function results in a linear interpolation.
-
-
-    Eigen::Matrix<double,2,4> vertex_coordinates = VertexCoordinates();
-    for (auto i = 0; i < mNumberVertex; i++) {
-        mMaterialVelocityAtVertices(i) = model.getMaterialParameterAtPoint({vertex_coordinates(0, i),
-                                                                            vertex_coordinates(1, i)},
-                                                                            "velocity");
-    }
+    mMaterialVelocityAtVertices = __interpolateMaterialProperties(model, "velocity");
 
 }
 
@@ -168,37 +160,21 @@ void SquareAcousticOrderFour::readOperators() {
 }
 
 void SquareAcousticOrderFour::gatherPartitionFieldsToElement() {
-
-    auto itr = 0;
-    PetscScalar *val = NULL;
-    DMPlexVecGetClosure(mDistributedMesh, mMeshSection, mDisplacementLocal, LocalElementNumber(), NULL, &val);
-    for (auto &i: mClosureMapping) { mElementDisplacement(i) = val[itr]; itr++; }
-    DMPlexVecRestoreClosure(mDistributedMesh, mMeshSection, mDisplacementLocal, LocalElementNumber(), NULL, &val);
-
+    __gatherPartitionFieldsToElement(mDisplacementLocal, mElementDisplacement, mClosureMapping);
 }
 
 void SquareAcousticOrderFour::scatterElementFieldsToPartition() {
-
-    DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mDisplacementLocal, LocalElementNumber(),
-                        mElementDisplacement.data(), ADD_VALUES);
-
+    __scatterElementFieldsToPartition(mDisplacementLocal, mElementDisplacement);
 }
 
 void SquareAcousticOrderFour::gatherDistributedFieldsToPartition() {
-
-    DMGlobalToLocalBegin(mDistributedMesh, mDisplacementGlobal, INSERT_VALUES, mDisplacementLocal);
-    DMGlobalToLocalEnd(mDistributedMesh, mDisplacementGlobal, INSERT_VALUES, mDisplacementLocal);
-
+    __gatherDistributedFieldsToPartition(mDisplacementLocal, mDisplacementGlobal);
 }
 
 void SquareAcousticOrderFour::scatterPartitionFieldsToDistributedBegin() {
-
-    DMLocalToGlobalBegin(mDistributedMesh, mDisplacementLocal, ADD_VALUES, mDisplacementGlobal);
-
+    __scatterPartitionFieldsToDistributedBegin(mDisplacementLocal, mDisplacementGlobal);
 }
 
 void SquareAcousticOrderFour::scatterPartitionFieldsToDistributedEnd() {
-
-    DMLocalToGlobalEnd(mDistributedMesh, mDisplacementLocal, ADD_VALUES, mDisplacementGlobal);
-
+    __scatterPartitionFieldsToDistributedEnd(mDisplacementLocal, mDisplacementGlobal);
 }
