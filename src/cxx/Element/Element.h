@@ -19,10 +19,15 @@ class Element {
 
 private:
 
+    bool mContainsSource;
+    std::string mElementShape;
+    std::string mPhysicsSystem;
+    PetscInt mNumberVertex;
     PetscInt mLocalElementNumber;
 
 protected:
 
+    double mTime;
     PetscInt mPolynomialOrder;
     PetscInt mNumberDimensions;
     PetscInt mNumberDofVertex;
@@ -30,10 +35,7 @@ protected:
     PetscInt mNumberDofFace;
     PetscInt mNumberDofVolume;
     PetscInt mNumberIntegrationPoints;
-    PetscInt mNumberVertex;
 
-    std::string mElementShape;
-    std::string mPhysicsSystem;
     std::vector<Source*> mSources;
 
     DM mDistributedMesh;
@@ -54,8 +56,8 @@ public:
     void __gatherPartitionFieldsToElement(Vec &local_field_vec,
                                           Eigen::VectorXd &element_field_vec,
                                           std::vector<int> &closure_mapping);
-    void __scatterElementFieldsToPartition(Vec &local_field_vec,
-                                           const Eigen::VectorXd &element_field_vec);
+    void __scatterElementFieldsToPartition(Vec &local_field_vec, const Eigen::VectorXd &element_field_vec,
+                                               std::vector<int> &closure_mapping);
     void __scatterPartitionFieldsToDistributedEnd(Vec &local_field_vec, Vec &global_field_vec);
     void __scatterPartitionFieldsToDistributedBegin(Vec &local_field_vec, Vec &global_field_vec);
 
@@ -75,8 +77,16 @@ public:
 
     // Integer setattr.
     inline void SetLocalElementNumber(PetscInt number) { mLocalElementNumber = number; }
+    inline void SetContainsSource(const bool contains_source) { mContainsSource = contains_source; }
+    inline void SetElementShape(const std::string element_shape) { mElementShape = element_shape; }
+    inline void SetPhysicsSystem(const std::string physics_system) { mPhysicsSystem = physics_system; }
+    inline void SetPolynomialOrder(const int polynomial_order) { mPolynomialOrder = polynomial_order; }
+    inline void SetNumberVertex(const int number_vertex) { mNumberVertex = number_vertex; }
+    inline void SetNumberDimensions(const int number_dimensions) { mNumberDimensions = number_dimensions; }
 
     // Integer geters.
+    inline bool ContainsSource() const { return mContainsSource; }
+    inline PetscInt NumberVertex() const { return mNumberVertex; }
     inline PetscInt NumberDimensions() const { return mNumberDimensions; }
     inline PetscInt NumberDofVertex() const { return mNumberDofVertex; }
     inline PetscInt NumberDofEdge() const { return mNumberDofEdge; }

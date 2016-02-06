@@ -11,12 +11,14 @@
 
 SquareAcousticOrderFour::SquareAcousticOrderFour(Options options) {
 
+
     // Basic properties.
-    mNumberVertex = 4;
-    mNumberDimensions = 2;
-    mElementShape = options.ElementShape();
-    mPhysicsSystem = options.PhysicsSystem();
-    mPolynomialOrder = options.PolynomialOrder();
+    SetNumberVertex(4);
+    SetNumberDimensions(2);
+    SetElementShape(options.ElementShape());
+    SetPhysicsSystem(options.PhysicsSystem());
+    SetPolynomialOrder(options.PolynomialOrder());
+    SetContainsSource(false);
 
     // Gll points.
     mNumberDofVertex = 1;
@@ -37,7 +39,9 @@ SquareAcousticOrderFour::SquareAcousticOrderFour(Options options) {
     mIntegrationWeightsEta << 0.1, 0.5444444444, 0.7111111111, 0.5444444444, 0.1;
 
     // Allocate element matrices.
-    mElementDisplacement.resize(mNumberIntegrationPoints);
+    mElementForce.setZero(mNumberIntegrationPoints);
+    mElementDisplacement.setZero(mNumberIntegrationPoints);
+    mIntegratedStiffnessMatrix.setZero(mNumberIntegrationPoints);
 
     // Parameter mapping.
     mClosureMapping = {
@@ -52,6 +56,7 @@ SquareAcousticOrderFour::SquareAcousticOrderFour(Options options) {
 void SquareAcousticOrderFour::registerFieldVectors() {
 
     PetscReal zero = 0;
+    DMCreateLocalVector(mDistributedMesh, &mElementalForceLocal);
     DMCreateLocalVector(mDistributedMesh, &mDisplacementLocal);
     DMCreateLocalVector(mDistributedMesh, &mAccelerationLocal);
     DMCreateLocalVector(mDistributedMesh, &mVelocityLocal);
@@ -59,6 +64,7 @@ void SquareAcousticOrderFour::registerFieldVectors() {
     VecSet(mAccelerationLocal, zero);
     VecSet(mVelocityLocal, zero);
 
+    DMCreateGlobalVector(mDistributedMesh, &mElementalForceGlobal);
     DMCreateGlobalVector(mDistributedMesh, &mDisplacementGlobal);
     DMCreateGlobalVector(mDistributedMesh, &mAccelerationGlobal);
     DMCreateGlobalVector(mDistributedMesh, &mVelocityGlobal);
@@ -79,6 +85,7 @@ void SquareAcousticOrderFour::constructStiffnessMatrix() {
 
     int itr = 0;
     Eigen::VectorXd divergence(mNumberIntegrationPoints);
+    Eigen::VectorXd external_forcing(mNumberIntegrationPoints);
     Eigen::Matrix<double,2,1> strain;
     Eigen::Matrix<double,2,1> test_function_gradient;
     Eigen::Matrix<double,2,2> inverse_Jacobian;
@@ -105,7 +112,7 @@ void SquareAcousticOrderFour::constructStiffnessMatrix() {
 
             // Get material parameters at this node.
             double velocity = interpolateShapeFunctions(eps, eta).dot(mMaterialVelocityAtVertices);
-            divergence(itr) = test_function_gradient.dot(strain);
+            divergence(itr) = velocity * test_function_gradient.dot(strain);
             itr++;
 
         }
@@ -117,12 +124,24 @@ void SquareAcousticOrderFour::constructStiffnessMatrix() {
 
             double eps = mIntegrationCoordinatesEps[eps_index];
             double eta = mIntegrationCoordinatesEps[eta_index];
-            mElementDisplacement(itr) = jacobianAtPoint(eps, eta).determinant() *
-                    (mIntegrationWeightsEps.dot(epsVectorStride(divergence, eps_index)) +
+            double determinant = jacobianAtPoint(eps, eta).determinant();
+
+            mIntegratedStiffnessMatrix(itr) = determinant *
+                    (Square::mIntegrationWeightsEps.dot(epsVectorStride(divergence, eps_index)) +
                      mIntegrationWeightsEta.dot(etaVectorStride(divergence, eps_index)));
+
+            for (auto &source: mSources) {
+                external_forcing(itr) += evaluateShapeFunctions(
+                        source->ReferenceLocationEps(), source->ReferenceLocationEta(), itr) /
+                                         (Square::mIntegrationWeightsEps(eps_index) * mIntegrationWeightsEta(eta_index) *
+                        determinant) * source->fire(mTime);
+            }
+
             itr++;
         }
     }
+
+    mElementForce = external_forcing - mIntegratedStiffnessMatrix;
 
 }
 
@@ -164,7 +183,7 @@ void SquareAcousticOrderFour::gatherPartitionFieldsToElement() {
 }
 
 void SquareAcousticOrderFour::scatterElementFieldsToPartition() {
-    __scatterElementFieldsToPartition(mDisplacementLocal, mElementDisplacement);
+    __scatterElementFieldsToPartition(mElementalForceLocal, mElementForce, mClosureMapping);
 }
 
 void SquareAcousticOrderFour::gatherDistributedFieldsToPartition() {
@@ -172,9 +191,24 @@ void SquareAcousticOrderFour::gatherDistributedFieldsToPartition() {
 }
 
 void SquareAcousticOrderFour::scatterPartitionFieldsToDistributedBegin() {
-    __scatterPartitionFieldsToDistributedBegin(mDisplacementLocal, mDisplacementGlobal);
+    __scatterPartitionFieldsToDistributedBegin(mElementalForceLocal, mElementalForceGlobal);
 }
 
 void SquareAcousticOrderFour::scatterPartitionFieldsToDistributedEnd() {
-    __scatterPartitionFieldsToDistributedEnd(mDisplacementLocal, mDisplacementGlobal);
+    __scatterPartitionFieldsToDistributedEnd(mElementalForceLocal, mElementalForceGlobal);
 }
+
+double SquareAcousticOrderFour::evaluateShapeFunctions(const double &eps, const double &eta, const int &itr) {
+
+    Eigen::VectorXd test(mNumberIntegrationPoints);
+    interpolate_order4_square(eps, mIntegrationCoordinatesEps[0],
+                              mIntegrationCoordinatesEps[1], mIntegrationCoordinatesEps[2],
+                              mIntegrationCoordinatesEps[3], mIntegrationCoordinatesEps[4], eta,
+                              mIntegrationCoordinatesEta[0], mIntegrationCoordinatesEta[1],
+                              mIntegrationCoordinatesEta[2], mIntegrationCoordinatesEta[3],
+                              mIntegrationCoordinatesEta[4], test.data());
+
+    return test(itr);
+
+}
+

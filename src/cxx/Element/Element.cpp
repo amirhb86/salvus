@@ -77,7 +77,11 @@ void Element::__gatherPartitionFieldsToElement(Vec &local_field_vec,
 
 }
 
-void Element::__scatterElementFieldsToPartition(Vec &local_field_vec, const Eigen::VectorXd &element_field_vec) {
+void Element::__scatterElementFieldsToPartition(Vec &local_field_vec, const Eigen::VectorXd &element_field_vec,
+                                                std::vector<int> &closure_mapping) {
+    int itr = 0;
+    Eigen::VectorXd reordered_element_field_vec(mNumberIntegrationPoints);
+    for (auto &i: closure_mapping) { reordered_element_field_vec[itr] = element_field_vec(i); itr++; }
     DMPlexVecSetClosure(mDistributedMesh, mMeshSection, local_field_vec, mLocalElementNumber,
                         element_field_vec.data(), ADD_VALUES);
 }

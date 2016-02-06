@@ -14,10 +14,12 @@
 
 class SquareAcousticOrderFour: public Square {
 
+    Vec mElementalForceLocal;
     Vec mDisplacementLocal;
     Vec mAccelerationLocal;
     Vec mVelocityLocal;
 
+    Vec mElementalForceGlobal;
     Vec mDisplacementGlobal;
     Vec mAccelerationGlobal;
     Vec mVelocityGlobal;
@@ -27,8 +29,12 @@ class SquareAcousticOrderFour: public Square {
     Eigen::Vector4d mMaterialVelocityAtVertices;
     Eigen::Vector4d mMaterialDensityAtVertices;
 
+    Eigen::VectorXd mElementForce;
     Eigen::VectorXd mElementDisplacement;
+    Eigen::VectorXd mIntegratedStiffnessMatrix;
     Eigen::MatrixXd mElementDisplacementGradient;
+
+    double evaluateShapeFunctions(const double &eps, const double &eta, const int &itr);
 
 public:
 

@@ -58,6 +58,9 @@ class Square : public Element {
     bool mCheckHull(double x, double z);
     Eigen::Matrix<double,2,4> mVertexCoordinates;
 
+    Eigen::Vector2d inverseCoordinateTransform(const double &x_real, const double &z_real,
+                                               double eps, double eta);
+
 protected:
 
     PetscInt mNumberIntegrationPointsEps;
@@ -73,6 +76,7 @@ protected:
 public:
 
     // Local methods.
+//    static Eigen::VectorXd
     Eigen::Vector4d __interpolateMaterialProperties(ExodusModel &model, std::string parameter_name);
     Eigen::Matrix<double,2,2> jacobianAtPoint(PetscReal eps, PetscReal eta);
     Eigen::Vector4d interpolateShapeFunctions(PetscReal eps, PetscReal eta);

@@ -28,11 +28,18 @@ std::vector<Source *> Source::factory(Options options) {
 
 Ricker::Ricker(Options options, int number) {
 
-    SetLocationX(options.SourceLocationX()[number]);
-    SetLocationY(options.SourceLocationY()[number]);
-    SetLocationZ(options.SourceLocationZ()[number]);
+    SetPhysicalLocationX(options.SourceLocationX()[number]);
+    SetPhysicalLocationY(options.SourceLocationY()[number]);
+    SetPhysicalLocationZ(options.SourceLocationZ()[number]);
 
     mTimeDelay = options.SourceRickerTimeDelay()[number];
     mAmplitude = options.SourceRickerAmplitude()[number];
     mCenterFreq = options.SourceRickerCenterFreq()[number];
+}
+
+double Ricker::fire(const double &time) {
+
+    double factor = M_PI * M_PI * mCenterFreq * mCenterFreq * (time - mTimeDelay) * (time - mTimeDelay);
+    return mAmplitude * (1 - 2 * factor * exp(-1 * factor));
+
 }

@@ -10,21 +10,35 @@
 
 class Source {
 
-    double mLocationX;
-    double mLocationY;
-    double mLocationZ;
+    double mPhysicalLocationX;
+    double mPhysicalLocationY;
+    double mPhysicalLocationZ;
+
+    double mReferenceLocationEps;
+    double mReferenceLocationYname;
+    double mReferenceLocationEta;
 
 public:
 
     static std::vector<Source*> factory(Options options);
 
-    inline void SetLocationX(double location_x) { mLocationX = location_x; }
-    inline void SetLocationY(double location_y) { mLocationY = location_y; }
-    inline void SetLocationZ(double location_z) { mLocationZ = location_z; }
+    inline void SetPhysicalLocationX(double location_x) { mPhysicalLocationX = location_x; }
+    inline void SetPhysicalLocationY(double location_y) { mPhysicalLocationY = location_y; }
+    inline void SetPhysicalLocationZ(double location_z) { mPhysicalLocationZ = location_z; }
 
-    inline double LocationX() { return mLocationX; }
-    inline double LocationY() { return mLocationY; }
-    inline double LocationZ() { return mLocationZ; }
+    inline void setReferenceLocationEps(double location_eps) { mReferenceLocationEps = location_eps; }
+    inline void setReferenceLocationYname(double location_yname) { mReferenceLocationYname = location_yname; }
+    inline void setReferenceLocationEta(double location_eta) { mReferenceLocationEta = location_eta; }
+
+    inline double PhysicalLocationX() { return mPhysicalLocationX; }
+    inline double PhysicalLocationY() { return mPhysicalLocationY; }
+    inline double PhysicalLocationZ() { return mPhysicalLocationZ; }
+
+    inline double ReferenceLocationEps() { return mReferenceLocationEps; }
+    inline double ReferenceLocationYname() { return mReferenceLocationYname; }
+    inline double ReferenceLocationEta() { return mReferenceLocationEta; }
+
+    virtual double fire(const double &time) = 0;
 
 };
 
@@ -37,6 +51,7 @@ class Ricker: public Source {
 public:
 
     Ricker(Options options, int number);
+    double fire(const double &time);
 
 };
 

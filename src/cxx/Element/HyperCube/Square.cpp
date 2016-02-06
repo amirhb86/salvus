@@ -6,6 +6,7 @@
 #include <petscdm.h>
 #include <petscdmplex.h>
 #include <openmpi/ompi/mpi/cxx/mpicxx.h>
+#include "Square/Autogen/order4_square.h"
 #include "Square.h"
 
 void Square::attachVertexCoordinates() {
@@ -26,12 +27,14 @@ void Square::attachVertexCoordinates() {
     // Reorder to desired vertex ordering.
     std::vector<double> vertex_coordinates_ordered ;
     std::vector<PetscInt> mapping_to_reference_element {6, 7, 0, 1, 4, 5, 2, 3};
-    for (int i = 0; i < mNumberVertex; i++) {
+    for (int i = 0; i < NumberVertex(); i++) {
         mVertexCoordinates(0,i) = coordinates_element[mapping_to_reference_element[mNumberDimensions*i+0]];
         mVertexCoordinates(1,i) = coordinates_element[mapping_to_reference_element[mNumberDimensions*i+1]];
     }
 
 }
+
+
 
 void Square::attachIntegrationPoints() {
 
@@ -150,8 +153,8 @@ Eigen::Map<Eigen::VectorXd, 0, Eigen::InnerStride<>> Square::etaVectorStride(
 
 Eigen::Vector4d Square::__interpolateMaterialProperties(ExodusModel &model, std::string parameter_name) {
 
-    Eigen::Vector4d material_at_vertices(mNumberVertex);
-    for (auto i = 0; i < mNumberVertex; i++) {
+    Eigen::Vector4d material_at_vertices(NumberVertex());
+    for (auto i = 0; i < NumberVertex(); i++) {
         material_at_vertices(i) = model.getMaterialParameterAtPoint({mVertexCoordinates(0, i),
                                                                      mVertexCoordinates(1, i)},
                                                                     parameter_name);
@@ -163,31 +166,70 @@ Eigen::Vector4d Square::__interpolateMaterialProperties(ExodusModel &model, std:
 void Square::attachSource(std::vector<Source*> sources) {
 
     for (auto &source: sources) {
-        if (mCheckHull(source->LocationX(), source->LocationZ())) {
-            std::cout << "HEY!" << std::endl;
+        if (mCheckHull(source->PhysicalLocationX(), source->PhysicalLocationZ())) {
+            Eigen::Vector2d reference_location = inverseCoordinateTransform(source->PhysicalLocationX(),
+                                                                            source->PhysicalLocationZ(),
+                                                                            0.0, 0.0);
+            source->setReferenceLocationEps(reference_location(0));
+            source->setReferenceLocationEta(reference_location(1));
             mSources.push_back(source);
+            SetContainsSource(true);
         }
     }
 
 }
 
 bool Square::mCheckHull(double x, double z) {
-
     int n_neg = 0;
     int n_pos = 0;
+    std::vector<int> edge_mapping {0, 1, 3, 2, 0};
     Eigen::Vector2d test_point; test_point << x, z;
-    for (auto i = 0; i < mNumberVertex; i++) {
-        Eigen::Vector2d p0 = mVertexCoordinates.col((i + 0) % mNumberVertex);
-        Eigen::Vector2d p1 = mVertexCoordinates.col((i + 1) % mNumberVertex);
-        std::cout << p1 << std::endl;
+    for (auto i = 0; i < NumberVertex(); i++) {
+        Eigen::Vector2d p0 = mVertexCoordinates.col(edge_mapping[i+0]);
+        Eigen::Vector2d p1 = mVertexCoordinates.col(edge_mapping[i+1]);
         Eigen::Vector2d v_seg = p1 - p0;
         Eigen::Vector2d p_seg = test_point - p0;
         double x_0 = v_seg(0) * p_seg(1) - v_seg(1) * p_seg(0);
-        if (x_0 <= 0) n_neg++;
-        if (x_0 >= 0) n_pos++;
+        if (x_0 <= 0) {
+            n_neg++;
+        } else {
+            n_pos++;
+        }
     }
-    std::cout << n_neg << ' ' << n_pos << std::endl;
+    return n_neg == NumberVertex() || n_pos == NumberVertex();
+}
 
-    return n_neg == mNumberVertex || n_pos == mNumberVertex ? true : false;
+Eigen::Vector2d Square::inverseCoordinateTransform(const double &x_real, const double &z_real,
+                                                   double eps, double eta) {
+
+    double tol = 1e-6;
+    Eigen::Vector2d solution;
+    solution << eps, eta;
+    while (true) {
+
+        eps = solution(0);
+        eta = solution(1);
+        Eigen::Vector4d shape_functions, dNdEps, dNdEta;
+        shape_functions << n0(eps, eta), n1(eps, eta), n2(eps, eta), n3(eps, eta);
+        dNdEps << dn0deps(eta), dn1deps(eta), dn2deps(eta), dn3deps(eta);
+        dNdEta << dn0deta(eps), dn1deta(eps), dn2deta(eps), dn3deta(eps);
+
+        Eigen::Matrix2d jacobian;
+        jacobian << -1 * dNdEps.dot(mVertexCoordinates.row(0)), -1 * dNdEta.dot(mVertexCoordinates.row(0)),
+                    -1 * dNdEps.dot(mVertexCoordinates.row(1)), -1 * dNdEta.dot(mVertexCoordinates.row(1));
+
+        Eigen::Vector2d objective_function;
+        objective_function << x_real - shape_functions.dot(mVertexCoordinates.row(0)),
+                              z_real - shape_functions.dot(mVertexCoordinates.row(1));
+
+
+        if ((objective_function.array().abs() < tol).all()) {
+            return solution;
+        } else {
+            solution -= (jacobian.inverse() * objective_function);
+        }
+
+    }
 
 }
+

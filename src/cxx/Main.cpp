@@ -66,11 +66,13 @@ int main(int argc, char *argv[]) {
             element->gatherPartitionFieldsToElement();
             element->constructStiffnessMatrix();
             element->scatterElementFieldsToPartition();
+//            break;
         }
         reference_element->scatterPartitionFieldsToDistributedBegin();
         reference_element->scatterPartitionFieldsToDistributedEnd();
         break;
     }
+
 
     PetscFinalize();
 }
