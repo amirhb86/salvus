@@ -9,7 +9,7 @@
 #include "../Options.h"
 
 #include "Element.h"
-#include "HyperCube/Square/SquareAcousticOrderFour.h"
+#include "HyperCube/Square/Acoustic.h"
 
 
 Element *Element::factory(Options options) {
@@ -21,7 +21,7 @@ Element *Element::factory(Options options) {
         if (element_shape == "square") {
             if (physics_system == "acoustic") {
                 if (polynomial_order == 4) {
-                    return new SquareAcousticOrderFour(options);
+                    return new Acoustic(options);
                 }
             }
         }
@@ -33,6 +33,8 @@ Element *Element::factory(Options options) {
     }
 
 }
+
+
 
 void Element::registerMesh(DM &distributed_mesh, PetscSection &section) {
 
@@ -58,39 +60,40 @@ void Element::printInfoToScreen() const {
 
 }
 
-void Element::__gatherDistributedFieldsToPartition(Vec &local_field_vec, Vec &global_field_vec) {
+Eigen::VectorXd Element::GllPointsForOrder(const int order) {
 
-    DMGlobalToLocalBegin(mDistributedMesh, global_field_vec, INSERT_VALUES, local_field_vec);
-    DMGlobalToLocalEnd(mDistributedMesh, global_field_vec, INSERT_VALUES, local_field_vec);
+    Eigen::VectorXd gll_points;
+    if (order == 4) {
+        gll_points.resize(5);
+        gll_points << -1.0, -0.6546536707, 0.0, 0.6546536707, 1.0;
+    }
 
-}
-
-void Element::__gatherPartitionFieldsToElement(Vec &local_field_vec,
-                                               Eigen::VectorXd &element_field_vec,
-                                               std::vector<int> &closure_mapping) {
-
-    int itr = 0;
-    PetscScalar  *val = NULL;
-    DMPlexVecGetClosure(mDistributedMesh, mMeshSection, local_field_vec, mLocalElementNumber, NULL, &val);
-    for (auto &i: closure_mapping) { element_field_vec(i) = val[itr]; itr++; }
-    DMPlexVecRestoreClosure(mDistributedMesh, mMeshSection, local_field_vec, mLocalElementNumber, NULL, &val);
+    return gll_points;
 
 }
 
-void Element::__scatterElementFieldsToPartition(Vec &local_field_vec, const Eigen::VectorXd &element_field_vec,
-                                                std::vector<int> &closure_mapping) {
-    int itr = 0;
-    Eigen::VectorXd reordered_element_field_vec(mNumberIntegrationPoints);
-    for (auto &i: closure_mapping) { reordered_element_field_vec[itr] = element_field_vec(i); itr++; }
-    DMPlexVecSetClosure(mDistributedMesh, mMeshSection, local_field_vec, mLocalElementNumber,
-                        element_field_vec.data(), ADD_VALUES);
+Eigen::VectorXd Element::GllIntegrationWeightForOrder(const int order) {
+
+    Eigen::VectorXd integration_weights;
+    if (order == 4) {
+        integration_weights.resize(5);
+        integration_weights << 0.1, 0.5444444444, 0.7111111111, 0.5444444444, 0.1;
+    }
+
+    return integration_weights;
+
 }
 
-void Element::__scatterPartitionFieldsToDistributedBegin(Vec &local_field_vec, Vec &global_field_vec) {
-    DMLocalToGlobalBegin(mDistributedMesh, local_field_vec, ADD_VALUES, global_field_vec);
-}
+Eigen::VectorXi Element::ClosureMapping(const int order, const int dimension) {
 
-void Element::__scatterPartitionFieldsToDistributedEnd(Vec &local_field_vec, Vec &global_field_vec) {
-    DMLocalToGlobalEnd(mDistributedMesh, local_field_vec, ADD_VALUES, global_field_vec);
-}
+    Eigen::VectorXi closure_mapping;
+    if (dimension == 2) {
+        if (order == 4) {
+            closure_mapping.resize(25);
+            closure_mapping << 6, 13, 22, 3, 15, 7, 16, 23, 2, 20, 8, 17,
+                    19, 1, 24, 11, 18, 14, 5, 4, 12, 21, 9, 10, 0;
+        }
+    }
 
+    return closure_mapping;
+}

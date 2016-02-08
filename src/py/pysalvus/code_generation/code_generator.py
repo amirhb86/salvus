@@ -3,6 +3,11 @@ import sympy as sym
 from sympy.physics.quantum import TensorProduct
 from sympy.utilities.codegen import CCodeGen
 
+def gll_coordinates(order):
+
+    if order == 4 :
+        return [-1.0, -0.6546536707, 0.0, 0.6546536707, 1.0]
+
 
 def generating_polynomial_lagrange(N, coordinate, gll_points):
     """Symbolically calculates the generating polynomial for a lagrange polynomial of a given order.
@@ -51,6 +56,9 @@ def tensorized_basis_2D(order):
 
     # Get tensorized basis.
     basis = TensorProduct(generator_eta, generator_eps)
+    basis = basis.subs([(v, c) for v, c in zip(eps_gll, gll_coordinates(order))])
+    basis = basis.subs([(v, c) for v, c in zip(eta_gll, gll_coordinates(order))])
+    sym.pprint(basis)
 
     # Get gradient of basis functions.
     basis_gradient_eps = sym.Matrix([sym.diff(i, eps) for i in basis])

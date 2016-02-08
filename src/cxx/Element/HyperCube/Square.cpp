@@ -6,8 +6,21 @@
 #include <petscdm.h>
 #include <petscdmplex.h>
 #include <openmpi/ompi/mpi/cxx/mpicxx.h>
-#include "Square/Autogen/order4_square.h"
 #include "Square.h"
+#include "Square/Autogen/order4_square.h"
+
+PetscReal Square::n0(const PetscReal eps, const PetscReal eta) { return 0.25 * (1.0 - eps) * (1.0 - eta); }
+PetscReal Square::n1(const PetscReal eps, const PetscReal eta) { return 0.25 * (1.0 + eps) * (1.0 - eta); }
+PetscReal Square::n2(const PetscReal eps, const PetscReal eta) { return 0.25 * (1.0 - eps) * (1.0 + eta); }
+PetscReal Square::n3(const PetscReal eps, const PetscReal eta) { return 0.25 * (1.0 + eps) * (1.0 + eta); }
+PetscReal Square::dn0deps(const PetscReal eta) { return (-1) * (1 - eta) / 4.0; }
+PetscReal Square::dn1deps(const PetscReal eta) { return (+1) * (1 - eta) / 4.0; }
+PetscReal Square::dn2deps(const PetscReal eta) { return (-1) * (1 + eta) / 4.0; }
+PetscReal Square::dn3deps(const PetscReal eta) { return (+1) * (1 + eta) / 4.0; }
+PetscReal Square::dn0deta(const PetscReal eps) { return (1 - eps) * -1.0 / 4.0; }
+PetscReal Square::dn1deta(const PetscReal eps) { return (1 + eps) * -1.0 / 4.0; }
+PetscReal Square::dn2deta(const PetscReal eps) { return (1 - eps) * 1.0 / 4.0; }
+PetscReal Square::dn3deta(const PetscReal eps) { return (1 + eps) * 1.0 / 4.0; }
 
 void Square::attachVertexCoordinates() {
 
@@ -34,8 +47,6 @@ void Square::attachVertexCoordinates() {
 
 }
 
-
-
 void Square::attachIntegrationPoints() {
 
     assert(NumberIntegrationPoints() == mNumberIntegrationPointsEps*mNumberIntegrationPointsEta);
@@ -43,66 +54,18 @@ void Square::attachIntegrationPoints() {
     int point = 0;
     std::vector<PetscReal> ni(mVertexCoordinates.size());
     mIntegrationPoints.resize(mNumberIntegrationPoints * mNumberDimensions);
-    for (auto eta: mIntegrationCoordinatesEta) {
-        for (auto eps: mIntegrationCoordinatesEps) {
+    for (auto i = 0; i < mNumberIntegrationPointsEta; i++) {
+        for (auto j = 0; j < mNumberIntegrationPointsEps; j++) {
 
-            Eigen::Vector4d coefficients = interpolateShapeFunctions(eps, eta);
+            double eps = mIntegrationCoordinatesEps(j);
+            double eta = mIntegrationCoordinatesEta(i);
 
-            mIntegrationPoints[point + 0] += coefficients.dot(mVertexCoordinates.row(0));
-            mIntegrationPoints[point + 1] += coefficients.dot(mVertexCoordinates.row(1));
+            mIntegrationPoints[point + 0] += interpolateShapeFunctions(eps, eta).dot(mVertexCoordinates.row(0));
+            mIntegrationPoints[point + 1] += interpolateShapeFunctions(eps, eta).dot(mVertexCoordinates.row(1));
             point += mNumberDimensions;
 
         }
     }
-}
-
-PetscReal Square::n0(const PetscReal eps, const PetscReal eta) {
-    return 0.25 * (1.0 - eps) * (1.0 - eta);
-}
-
-PetscReal Square::n1(const PetscReal eps, const PetscReal eta) {
-    return 0.25 * (1.0 + eps) * (1.0 - eta);
-}
-
-PetscReal Square::n2(const PetscReal eps, const PetscReal eta) {
-    return 0.25 * (1.0 - eps) * (1.0 + eta);
-}
-
-PetscReal Square::n3(const PetscReal eps, const PetscReal eta) {
-    return 0.25 * (1.0 + eps) * (1.0 + eta);
-}
-
-PetscReal Square::dn0deps(const PetscReal eta) {
-    return (-1) * (1 - eta) / 4.0;
-}
-
-PetscReal Square::dn1deps(const PetscReal eta) {
-    return (+1) * (1 - eta) / 4.0;
-}
-
-PetscReal Square::dn2deps(const PetscReal eta) {
-    return (-1) * (1 + eta) / 4.0;
-}
-
-PetscReal Square::dn3deps(const PetscReal eta) {
-    return (+1) * (1 + eta) / 4.0;
-}
-
-PetscReal Square::dn0deta(const PetscReal eps) {
-    return (1 - eps) * -1.0 / 4.0;
-}
-
-PetscReal Square::dn1deta(const PetscReal eps) {
-    return (1 + eps) * -1.0 / 4.0;
-}
-
-PetscReal Square::dn2deta(const PetscReal eps) {
-    return (1 - eps) * 1.0 / 4.0;
-}
-
-PetscReal Square::dn3deta(const PetscReal eps) {
-    return (1 + eps) * 1.0 / 4.0;
-
 }
 
 Eigen::Matrix<double,2,2> Square::jacobianAtPoint(PetscReal eps, PetscReal eta) {
@@ -154,6 +117,14 @@ Eigen::Map<Eigen::VectorXd, 0, Eigen::InnerStride<>> Square::etaVectorStride(
 Eigen::Vector4d Square::__interpolateMaterialProperties(ExodusModel &model, std::string parameter_name) {
 
     Eigen::Vector4d material_at_vertices(NumberVertex());
+
+    // THIS IS STUPID JUST BECAUSE DENSITY IS NOT IN THE EXODUS FILE YET.
+    if (parameter_name == "density") {
+        material_at_vertices.setConstant(3.0);
+        return material_at_vertices;
+    }
+
+
     for (auto i = 0; i < NumberVertex(); i++) {
         material_at_vertices(i) = model.getMaterialParameterAtPoint({mVertexCoordinates(0, i),
                                                                      mVertexCoordinates(1, i)},
@@ -203,25 +174,23 @@ Eigen::Vector2d Square::inverseCoordinateTransform(const double &x_real, const d
                                                    double eps, double eta) {
 
     double tol = 1e-6;
-    Eigen::Vector2d solution;
-    solution << eps, eta;
+    Eigen::Vector2d solution {eps, eta};
     while (true) {
 
         eps = solution(0);
         eta = solution(1);
-        Eigen::Vector4d shape_functions, dNdEps, dNdEta;
-        shape_functions << n0(eps, eta), n1(eps, eta), n2(eps, eta), n3(eps, eta);
-        dNdEps << dn0deps(eta), dn1deps(eta), dn2deps(eta), dn3deps(eta);
-        dNdEta << dn0deta(eps), dn1deta(eps), dn2deta(eps), dn3deta(eps);
 
         Eigen::Matrix2d jacobian;
-        jacobian << -1 * dNdEps.dot(mVertexCoordinates.row(0)), -1 * dNdEta.dot(mVertexCoordinates.row(0)),
-                    -1 * dNdEps.dot(mVertexCoordinates.row(1)), -1 * dNdEta.dot(mVertexCoordinates.row(1));
+        Eigen::Vector4d shape_functions {n0(eps, eta), n1(eps, eta), n2(eps, eta), n3(eps, eta)};
+        Eigen::Vector4d dNdEps {dn0deps(eta), dn1deps(eta), dn2deps(eta), dn3deps(eta)};
+        Eigen::Vector4d dNdEta {dn0deta(eps), dn1deta(eps), dn2deta(eps), dn3deta(eps)};
+        Eigen::Vector2d objective_function {x_real - shape_functions.dot(mVertexCoordinates.row(0)),
+                                            z_real - shape_functions.dot(mVertexCoordinates.row(1))};
 
-        Eigen::Vector2d objective_function;
-        objective_function << x_real - shape_functions.dot(mVertexCoordinates.row(0)),
-                              z_real - shape_functions.dot(mVertexCoordinates.row(1));
-
+        jacobian << -1 * dNdEps.dot(mVertexCoordinates.row(0)),
+                    -1 * dNdEta.dot(mVertexCoordinates.row(0)),
+                    -1 * dNdEps.dot(mVertexCoordinates.row(1)),
+                    -1 * dNdEta.dot(mVertexCoordinates.row(1));
 
         if ((objective_function.array().abs() < tol).all()) {
             return solution;
@@ -233,3 +202,17 @@ Eigen::Vector2d Square::inverseCoordinateTransform(const double &x_real, const d
 
 }
 
+void Square::readOperators() {
+
+    int i = 0;
+    double eta = mIntegrationCoordinatesEta[0];
+    mGradientOperator.resize(mNumberIntegrationPointsEta, mNumberIntegrationPointsEps);
+    Eigen::MatrixXd test(mNumberIntegrationPointsEta, mNumberIntegrationPointsEps);
+    for (auto i=0; i < mNumberIntegrationPointsEps; i++) {
+        double eps = mIntegrationCoordinatesEps[i];
+        interpolate_eps_derivative_order4_square(eps, eta, test.data());
+        mGradientOperator.row(i) = test.col(0);
+        i++;
+    }
+
+}

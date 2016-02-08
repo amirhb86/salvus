@@ -10,10 +10,10 @@
 #ifndef PROJECT__ORDER4_SQUARE__H
 #define PROJECT__ORDER4_SQUARE__H
 
-void interpolate_order4_square(double epsilon, double epsilon_0, double epsilon_1, double epsilon_2, double epsilon_3, double epsilon_4, double eta, double eta_0, double eta_1, double eta_2, double eta_3, double eta_4, double *out_580370535498373978);
-void interpolate_eps_derivative_order4_square(double epsilon, double epsilon_0, double epsilon_1, double epsilon_2, double epsilon_3, double epsilon_4, double eta, double eta_0, double eta_1, double eta_2, double eta_3, double eta_4, double *out_3983009295471637335);
-void interpolate_eta_derivative_order4_square(double epsilon, double epsilon_0, double epsilon_1, double epsilon_2, double epsilon_3, double epsilon_4, double eta, double eta_0, double eta_1, double eta_2, double eta_3, double eta_4, double *out_4838417669231966435);
-void diagonal_mass_matrix_order4_square(double epsilon, double epsilon_0, double epsilon_1, double epsilon_2, double epsilon_3, double epsilon_4, double eta, double eta_0, double eta_1, double eta_2, double eta_3, double eta_4, double rho, double *out_1840282711509887406);
+void interpolate_order4_square(double epsilon, double eta, double *out_8367949240430896822);
+void interpolate_eps_derivative_order4_square(double epsilon, double eta, double *out_6439747130490816471);
+void interpolate_eta_derivative_order4_square(double epsilon, double eta, double *out_1290441276512305299);
+void diagonal_mass_matrix_order4_square(double epsilon, double eta, double rho, double *out_5507043301395274116);
 
 #endif
 

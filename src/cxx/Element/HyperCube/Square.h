@@ -66,17 +66,16 @@ protected:
     PetscInt mNumberIntegrationPointsEps;
     PetscInt mNumberIntegrationPointsEta;
 
-    std::vector<PetscReal> mIntegrationCoordinatesEps;
-    std::vector<PetscReal> mIntegrationCoordinatesEta;
-
+    Eigen::VectorXd mIntegrationCoordinatesEps;
+    Eigen::VectorXd mIntegrationCoordinatesEta;
     Eigen::VectorXd mIntegrationWeightsEps;
     Eigen::VectorXd mIntegrationWeightsEta;
+
     Eigen::MatrixXd mGradientOperator;
 
 public:
 
     // Local methods.
-//    static Eigen::VectorXd
     Eigen::Vector4d __interpolateMaterialProperties(ExodusModel &model, std::string parameter_name);
     Eigen::Matrix<double,2,2> jacobianAtPoint(PetscReal eps, PetscReal eta);
     Eigen::Vector4d interpolateShapeFunctions(PetscReal eps, PetscReal eta);
@@ -90,19 +89,14 @@ public:
     virtual Element* clone() const = 0;
 
     // Superclass methods
+    virtual void readOperators();
     virtual void attachVertexCoordinates();
     virtual void attachIntegrationPoints();
     virtual void attachSource(std::vector<Source*> sources);
 
     // Pure virtual methods.
-    virtual void readOperators() = 0;
-    virtual void registerFieldVectors() = 0;
-    virtual void constructStiffnessMatrix() = 0;
-    virtual void gatherPartitionFieldsToElement() = 0;
-    virtual void scatterElementFieldsToPartition() = 0;
-    virtual void gatherDistributedFieldsToPartition() = 0;
-    virtual void scatterPartitionFieldsToDistributedEnd() = 0;
-    virtual void scatterPartitionFieldsToDistributedBegin() = 0;
+    virtual void registerFieldVectors(Mesh *mesh) = 0;
+    virtual void constructStiffnessMatrix(Mesh *mesh) = 0;
     virtual void interpolateMaterialProperties(ExodusModel &model) = 0;
 
     // Getattrs.

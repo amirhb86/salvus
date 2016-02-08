@@ -11,7 +11,17 @@
 #include <petscdmtypes.h>
 #include <vector>
 #include <petscistypes.h>
+#include <petscvec.h>
+#include <Eigen/Dense>
 #include "Options.h"
+
+struct vec_struct {
+
+    bool check_in, check_out;
+    std::string name;
+    Vec field_globals, field_locals;
+
+};
 
 class Mesh {
 
@@ -23,6 +33,16 @@ class Mesh {
     DM mDistributedMesh;
     PetscSection mMeshSection;
 
+protected:
+
+    Vec mMassMatrix;
+    std::map<std::string,vec_struct> mFields;
+    std::vector<Vec> mFieldVectorGlobals;
+    std::vector<Vec> mFieldVectorLocals;
+    std::vector<bool> mFieldVectorCheckin;
+    std::vector<bool> mFieldVectorCheckout;
+    std::vector<std::string> mFieldVectorNames;
+    std::vector<std::string> mCheckedOutFields;
 
 public:
 
@@ -33,30 +53,37 @@ public:
                         PetscInt number_dof_face, PetscInt number_dof_volume,
                         PetscInt number_dimensions);
 
-    std::vector<PetscReal> ElementVertices(const PetscInt element_number);
+    void registerFieldVector(const std::string &name, const bool &check_out, const bool &check_in);
+
+    void checkOutFields();
+    void checkInFieldsEnd();
+    void checkInFieldsBegin();
+
+    void getFieldOnElement(Eigen::VectorXd &field, Eigen::VectorXi &closure, const std::string &name,
+                           const int &element_number);
+    void setFieldOnElement(const Eigen::VectorXd &field, Eigen::VectorXi &closure, const std::string &name,
+                           const int &element_number);
+
 
     // Integer getattr.
     inline PetscInt NumberElementsLocal() { return mNumberElementsLocal; }
+
+    virtual void advanceField() = 0;
 
     // Distributed mesh getattr.
     inline DM &DistributedMesh() { return mDistributedMesh; }
     inline PetscSection &MeshSection() { return mMeshSection; }
 
-
-
 };
 
-class Exodus : public Mesh {
+class ScalarNewmark : public Mesh {
 
+    Vec acceleration_;
 
 public:
 
+    virtual void advanceField();
 
 };
-
-class Simple : public Mesh {
-
-};
-
 
 #endif //SALVUS_MESH_H

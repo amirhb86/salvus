@@ -6,7 +6,7 @@
 
 #include "Element/Element.h"
 #include "Utilities.h"
-#include "Element/HyperCube/Square/SquareAcousticOrderFour.h"
+#include "Element/HyperCube/Square/Acoustic.h"
 #include "Model/ExodusModel.h"
 #include "Source.h"
 
@@ -28,6 +28,9 @@ int main(int argc, char *argv[]) {
     ExodusModel model(options);
     model.initializeParallel();
 
+    // Get timestepper.
+    TimeStepper *time_stepper = new TimeStepper;
+
     // Get source.
     std::vector<Source*> sources = Source::factory(options);
 
@@ -39,9 +42,11 @@ int main(int argc, char *argv[]) {
                          reference_element->NumberDofVolume(),
                          reference_element->NumberDimensions());
 
+    time_stepper->registerMesh(mesh->DistributedMesh(), mesh->MeshSection());
+
     // Now that the mesh is constructed, register it with the reference element.
     reference_element->registerMesh(mesh->DistributedMesh(), mesh->MeshSection());
-    reference_element->registerFieldVectors();
+    reference_element->registerFieldVectors(mesh);
 
     // Clone a list of all local elements.
     std::vector<Element *> elements;
@@ -53,23 +58,20 @@ int main(int argc, char *argv[]) {
     PetscInt element_number = 0;
     for (auto &element: elements) {
         element->SetLocalElementNumber(element_number++);
-        element->readOperators();
         element->attachVertexCoordinates();
         element->attachIntegrationPoints();
         element->attachSource(sources);
         element->interpolateMaterialProperties(model);
+        element->readOperators();
     }
 
+
     while (true) {
-        reference_element->gatherDistributedFieldsToPartition();
-        for (auto &element: elements) {
-            element->gatherPartitionFieldsToElement();
-            element->constructStiffnessMatrix();
-            element->scatterElementFieldsToPartition();
-//            break;
-        }
-        reference_element->scatterPartitionFieldsToDistributedBegin();
-        reference_element->scatterPartitionFieldsToDistributedEnd();
+        mesh->checkOutFields();
+        for (auto &element: elements) { element->constructStiffnessMatrix(mesh); }
+        mesh->checkInFieldsBegin();
+        mesh->checkInFieldsEnd();
+        mesh->advanceField();
         break;
     }
 
