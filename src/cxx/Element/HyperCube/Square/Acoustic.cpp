@@ -8,7 +8,6 @@
 #include <openmpi/ompi/mpi/cxx/mpicxx.h>
 #include "Acoustic.h"
 #include "Autogen/order4_square.h"
-#include "../../../TimeStepper.h"
 
 Acoustic::Acoustic(Options options) {
 
@@ -114,7 +113,8 @@ void Acoustic::constructStiffnessMatrix(Mesh *mesh) {
                 external_forcing(itr) += evaluateShapeFunctions(
                         source->ReferenceLocationEps(), source->ReferenceLocationEta(), itr) /
                                          (Square::mIntegrationWeightsEps(eps_index) *
-                                                 mIntegrationWeightsEta(eta_index) * determinant) * source->fire(mTime);
+                                                 mIntegrationWeightsEta(eta_index) * determinant) *
+                        source->fire(mTime);
             }
 
             itr++;

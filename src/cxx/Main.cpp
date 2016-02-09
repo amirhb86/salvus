@@ -28,9 +28,6 @@ int main(int argc, char *argv[]) {
     ExodusModel model(options);
     model.initializeParallel();
 
-    // Get timestepper.
-    TimeStepper *time_stepper = new TimeStepper;
-
     // Get source.
     std::vector<Source*> sources = Source::factory(options);
 
@@ -41,8 +38,6 @@ int main(int argc, char *argv[]) {
                          reference_element->NumberDofFace(),
                          reference_element->NumberDofVolume(),
                          reference_element->NumberDimensions());
-
-    time_stepper->registerMesh(mesh->DistributedMesh(), mesh->MeshSection());
 
     // Now that the mesh is constructed, register it with the reference element.
     reference_element->registerMesh(mesh->DistributedMesh(), mesh->MeshSection());

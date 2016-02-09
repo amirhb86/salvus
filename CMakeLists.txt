@@ -39,7 +39,6 @@ add_executable(salvus
         src/cxx/Model/ExodusModel.cpp
         src/cxx/kdtree.c
         src/cxx/Source.cpp
-        src/cxx/TimeStepper.cpp
         src/cxx/Element/HyperCube/Square/Autogen/order4_square.c
         )
 

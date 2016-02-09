@@ -14,7 +14,6 @@
 #include "../Options.h"
 #include "../Model/ExodusModel.h"
 #include "../Source.h"
-#include "../TimeStepper.h"
 #include "../Mesh.h"
 
 class Element {
@@ -46,9 +45,9 @@ protected:
 
 public:
 
-    static Eigen::VectorXi ClosureMapping(const int order, const int dimension);
     static Eigen::VectorXd GllPointsForOrder(const int order);
     static Eigen::VectorXd GllIntegrationWeightForOrder(const int order);
+    static Eigen::VectorXi ClosureMapping(const int order, const int dimension);
 
     // Utility methods.
     static Element *factory(Options options);
