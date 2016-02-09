@@ -5,7 +5,7 @@
 #ifndef SALVUS_MESH_H
 #define SALVUS_MESH_H
 
-
+#include <map>
 #include <iosfwd>
 #include <string>
 #include <petscdmtypes.h>
@@ -14,6 +14,7 @@
 #include <petscvec.h>
 #include <Eigen/Dense>
 #include "Options.h"
+#include "Utilities.h"
 
 struct vec_struct {
 
@@ -25,8 +26,8 @@ struct vec_struct {
 
 class Mesh {
 
-    PetscInt mNumberElementsLocal;
-    PetscInt mNumberDimensions;
+    int mNumberElementsLocal;
+    int mNumberDimensions;
 
     std::string mExodusFileName;
 
@@ -36,13 +37,9 @@ class Mesh {
 protected:
 
     Vec mMassMatrix;
-    std::map<std::string,vec_struct> mFields;
-    std::vector<Vec> mFieldVectorGlobals;
-    std::vector<Vec> mFieldVectorLocals;
-    std::vector<bool> mFieldVectorCheckin;
-    std::vector<bool> mFieldVectorCheckout;
-    std::vector<std::string> mFieldVectorNames;
-    std::vector<std::string> mCheckedOutFields;
+    std::map<int,vec_struct> mFields;
+    std::vector<int> mFieldVectorCheckin;
+    std::vector<int> mFieldVectorCheckout;
 
 public:
 
@@ -53,22 +50,24 @@ public:
                         PetscInt number_dof_face, PetscInt number_dof_volume,
                         PetscInt number_dimensions);
 
-    void registerFieldVector(const std::string &name, const bool &check_out, const bool &check_in);
+    void registerFieldVectors(const int &num, const bool &check_out, const bool &check_in,
+                              const std::string &name);
 
     void checkOutFields();
     void checkInFieldsEnd();
     void checkInFieldsBegin();
 
-    void getFieldOnElement(Eigen::VectorXd &field, Eigen::VectorXi &closure, const std::string &name,
-                           const int &element_number);
-    void setFieldOnElement(const Eigen::VectorXd &field, Eigen::VectorXi &closure, const std::string &name,
-                           const int &element_number);
+    Eigen::VectorXd getFieldOnElement(const int &field_num, const int &element_number,
+                                            const Eigen::VectorXi &closure);
+    void setFieldOnElement(const int &field_num, const int &element_number,
+                           const Eigen::VectorXi &closure, const Eigen::VectorXd &field);
 
 
     // Integer getattr.
     inline PetscInt NumberElementsLocal() { return mNumberElementsLocal; }
 
     virtual void advanceField() = 0;
+    virtual void registerFields() = 0;
 
     // Distributed mesh getattr.
     inline DM &DistributedMesh() { return mDistributedMesh; }
@@ -81,6 +80,16 @@ class ScalarNewmark : public Mesh {
     Vec acceleration_;
 
 public:
+
+    virtual void registerFields() {
+
+        registerFieldVectors((int) AcousticFields::acceleration_, false, false, "acceleration_");
+        registerFieldVectors((int) AcousticFields::acceleration, false, false, "acceleration");
+        registerFieldVectors((int) AcousticFields::displacement, true, false, "displacement");
+        registerFieldVectors((int) AcousticFields::velocity, false, false, "velocity");
+        registerFieldVectors((int) AcousticFields::force, false, true, "force");
+
+    }
 
     virtual void advanceField();
 

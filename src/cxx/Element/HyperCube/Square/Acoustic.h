@@ -10,18 +10,21 @@
 #include "../../../Options.h"
 #include "../Square.h"
 #include "../../../Model/ExodusModel.h"
+#include "../../../Utilities.h"
 
 class Acoustic : public Square {
+
+    AcousticFields mFields;
 
     Eigen::Vector4d mMaterialVelocityAtVertices;
     Eigen::Vector4d mMaterialDensityAtVertices;
 
-    Eigen::VectorXd mElementForce;
+    Eigen::VectorXd mElementStress;
+    Eigen::VectorXd mIntegratedSource;
     Eigen::VectorXd mElementDisplacement;
     Eigen::VectorXd mIntegratedStiffnessMatrix;
-    Eigen::MatrixXd mElementStrain;
 
-    double evaluateShapeFunctions(const double &eps, const double &eta, const int &itr);
+    Eigen::MatrixXd mElementStrain;
 
 public:
 
@@ -29,8 +32,11 @@ public:
 
     virtual Acoustic *clone() const { return new Acoustic(*this); }
 
-    virtual void registerFieldVectors(Mesh *mesh);
-    virtual void constructStiffnessMatrix(Mesh *mesh);
+    virtual void checkInField(Mesh *mesh);
+    virtual void checkOutFields(Mesh *mesh);
+    virtual void computeSourceTerm();
+    virtual void computeSurfaceTerm();
+    virtual void computeStiffnessTerm();
     virtual void interpolateMaterialProperties(ExodusModel &model);
 
 };

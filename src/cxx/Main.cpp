@@ -4,7 +4,6 @@
 #include <petscsys.h>
 #include "Mesh.h"
 
-#include "Element/Element.h"
 #include "Utilities.h"
 #include "Element/HyperCube/Square/Acoustic.h"
 #include "Model/ExodusModel.h"
@@ -32,13 +31,11 @@ int main(int argc, char *argv[]) {
     std::vector<Source*> sources = Source::factory(options);
 
     // Setup reference element.
-    Square *reference_element = new Acoustic(options); //Element::factory(options);
+    Square *reference_element = new Acoustic(options);
     mesh->setupGlobalDof(reference_element->NumberDofVertex(), reference_element->NumberDofEdge(),
                          reference_element->NumberDofFace(), reference_element->NumberDofVolume(),
                          reference_element->NumberDimensions());
 
-    // Now that the mesh is constructed, register it with the reference element.
-    reference_element->registerFieldVectors(mesh);
 
     // Clone a list of all local elements.
     std::vector<Square *> elements;
@@ -55,14 +52,20 @@ int main(int argc, char *argv[]) {
     }
 
 
+    mesh->registerFields();
     while (true) {
-
         mesh->checkOutFields();
-        for (auto &element: elements) { element->constructStiffnessMatrix(mesh); }
-
+        for (auto &element: elements) {
+            element->checkOutFields(mesh);
+            element->computeStiffnessTerm();
+            element->computeSourceTerm();
+            element->computeSurfaceTerm();
+            element->checkInField(mesh);
+        }
         mesh->checkInFieldsBegin();
         mesh->checkInFieldsEnd();
         mesh->advanceField();
+        std::cout << "LOOP" << std::endl;
         break;
     }
 

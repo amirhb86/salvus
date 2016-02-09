@@ -2,42 +2,27 @@
 // Created by Michael Afanasiev on 2016-01-30.
 //
 
-#include <petscdm.h>
-#include <iostream>
-#include <petscdmplex.h>
-#include <openmpi/ompi/mpi/cxx/mpicxx.h>
 #include "Acoustic.h"
-#include "Autogen/order4_square.h"
 
 Acoustic::Acoustic(Options options): Square(options) {
 
-    // Allocate element matrices.
-    mElementForce.setZero(mNumberIntegrationPoints);
-    mElementStrain.setZero(2, mNumberIntegrationPoints);
+    // Allocate element vectors.
+    mElementStress.setZero(mNumberIntegrationPoints);
+    mIntegratedSource.setZero(mNumberIntegrationPoints);
     mElementDisplacement.setZero(mNumberIntegrationPoints);
     mIntegratedStiffnessMatrix.setZero(mNumberIntegrationPoints);
 
-}
-
-
-void Acoustic::registerFieldVectors(Mesh *mesh) {
-
-    mesh->registerFieldVector("displacement", true, false);
-    mesh->registerFieldVector("acceleration", false, false);
-    mesh->registerFieldVector("velocity", false, false);
-    mesh->registerFieldVector("force", false, true);
+    // Strain matrix.
+    mElementStrain.setZero(2, mNumberIntegrationPoints);
 
 }
 
-void Acoustic::constructStiffnessMatrix(Mesh *mesh) {
+void Acoustic::computeStiffnessTerm() {
 
     // Test
     for (int i = 0; i < mNumberIntegrationPoints; i++) { mElementDisplacement(i) = mIntegrationCoordinatesEta[i%5]; }
 
-    mesh->getFieldOnElement(mElementDisplacement, mClosureMapping, "displacement", mElementNumber);
-
     int itr = 0;
-    Eigen::VectorXd divergence(mNumberIntegrationPoints);
     Eigen::VectorXd external_forcing(mNumberIntegrationPoints);
     Eigen::Matrix<double,2,1> test_function_gradient;
     Eigen::Matrix<double,2,2> inverse_Jacobian;
@@ -65,7 +50,7 @@ void Acoustic::constructStiffnessMatrix(Mesh *mesh) {
 
             // Get material parameters at this node.
             double velocity = interpolateShapeFunctions(eps, eta).dot(mMaterialVelocityAtVertices);
-            divergence(itr) = velocity * test_function_gradient.dot(mElementStrain.col(itr));
+            mElementStress(itr) = velocity * test_function_gradient.dot(mElementStrain.col(itr));
             itr++;
 
         }
@@ -77,26 +62,13 @@ void Acoustic::constructStiffnessMatrix(Mesh *mesh) {
 
             double eps = mIntegrationCoordinatesEps[eps_index];
             double eta = mIntegrationCoordinatesEps[eta_index];
-            double determinant = jacobianAtPoint(eps, eta).determinant();
-
-            mIntegratedStiffnessMatrix(itr) = determinant *
-                    (Square::mIntegrationWeightsEps.dot(epsVectorStride(divergence, eps_index)) +
-                     mIntegrationWeightsEta.dot(etaVectorStride(divergence, eps_index)));
-
-            for (auto &source: mSources) {
-                external_forcing(itr) += evaluateShapeFunctions(
-                        source->ReferenceLocationEps(), source->ReferenceLocationEta(), itr) /
-                                         (Square::mIntegrationWeightsEps(eps_index) *
-                                                 mIntegrationWeightsEta(eta_index) * determinant) *
-                        source->fire(mTime);
-            }
+            mIntegratedStiffnessMatrix(itr) = jacobianAtPoint(eps, eta).determinant() *
+                    (Square::mIntegrationWeightsEps.dot(epsVectorStride(mElementStress, eps_index)) +
+                     mIntegrationWeightsEta.dot(etaVectorStride(mElementStress, eps_index)));
 
             itr++;
         }
     }
-
-    mElementForce = external_forcing - mIntegratedStiffnessMatrix;
-    mesh->setFieldOnElement(mElementForce, mClosureMapping, "force", mElementNumber);
 
 }
 
@@ -107,11 +79,40 @@ void Acoustic::interpolateMaterialProperties(ExodusModel &model) {
 
 }
 
-double Acoustic::evaluateShapeFunctions(const double &eps, const double &eta, const int &itr) {
+void Acoustic::computeSourceTerm() {
 
-    Eigen::VectorXd test(mNumberIntegrationPoints);
-    interpolate_order4_square(eps, eta, test.data());
+    if (! mSources.size()) { mIntegratedSource.setZero(); return; }
 
-    return test(itr);
+    for (auto &source: mSources) {
+        interpolate_order4_square(source->ReferenceLocationEps(), source->ReferenceLocationEta(),
+                                  mIntegratedSource.data());
+        for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
+            for (auto eps_index = 0; eps_index < mNumberIntegrationPointsEps; eps_index++) {
+                double eps = mIntegrationCoordinatesEps[eps_index];
+                double eta = mIntegrationCoordinatesEta[eta_index];
+                mIntegratedSource[eps_index + eta_index*mNumberIntegrationPointsEps] /=
+                        (mIntegrationWeightsEps(eps_index) * mIntegrationWeightsEta(eta_index) *
+                        jacobianAtPoint(eps, eta).determinant()) * source->fire(mTime);
+            }
+        }
+    }
+}
+
+void Acoustic::checkOutFields(Mesh *mesh) {
+
+    mElementDisplacement = mesh->getFieldOnElement(
+            (int) AcousticFields::displacement , mElementNumber, mClosureMapping);
+
+}
+
+void Acoustic::checkInField(Mesh *mesh) {
+
+    mesh->setFieldOnElement((int) AcousticFields::force, mElementNumber, mClosureMapping, mElementDisplacement);
+
+}
+
+void Acoustic::computeSurfaceTerm() {
+
+
 
 }

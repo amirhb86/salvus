@@ -20,6 +20,8 @@ namespace utilities {
 
 }
 
-enum class AcousticFields {displacement, velocity, acceleration};
+enum class AcousticFields {
+    displacement = 0, velocity = 1, acceleration = 2, force = 3, acceleration_ = 4
+};
 
 #endif //SALVUS_UTILITIES_H

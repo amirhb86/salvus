@@ -78,7 +78,8 @@ void Mesh::setupGlobalDof(int number_dof_vertex, int number_dof_edge, int number
 
 }
 
-void Mesh::registerFieldVector(const std::string &name, const bool &check_out, const bool &check_in) {
+void Mesh::registerFieldVectors(const int &num, const bool &check_out, const bool &check_in,
+                                const std::string &name) {
 
     Vec field_vector_local;
     Vec field_vector_global;
@@ -89,80 +90,61 @@ void Mesh::registerFieldVector(const std::string &name, const bool &check_out, c
     VecSet(field_vector_local, zero);
     PetscObjectSetName((PetscObject) field_vector_global, name.c_str());
 
+    if (check_in) { mFieldVectorCheckin.push_back(num); }
+    if (check_out) { mFieldVectorCheckout.push_back(num); }
+
     vec_struct registrar;
     registrar.name = name;
     registrar.check_in = check_in;
     registrar.check_out = check_out;
     registrar.field_locals = field_vector_local;
     registrar.field_globals = field_vector_global;
-    mFields[name] = registrar;
-//
-//    mFieldVectorNames.push_back(name);
-//    mFieldVectorCheckin.push_back(check_in);
-//    mFieldVectorCheckout.push_back(check_out);
-//    mFieldVectorLocals.push_back(field_vector_local);
-//    mFieldVectorGlobals.push_back(field_vector_global);
+    mFields[num] = registrar;
 
 }
 
 void Mesh::checkOutFields() {
 
-    for (auto i = 0; i < mFieldVectorNames.size(); i++) {
-        if (mFieldVectorCheckout[i]) {
-            DMGlobalToLocalBegin(mDistributedMesh, mFieldVectorGlobals[i],
-                                 INSERT_VALUES, mFieldVectorLocals[i]);
-        }
+    for (auto &reg: mFieldVectorCheckout) {
+        DMGlobalToLocalBegin(mDistributedMesh, mFields[reg].field_globals, INSERT_VALUES,
+                             mFields[reg].field_locals);
     }
 
-    for (auto i = 0; i < mFieldVectorNames.size(); i++) {
-        if (mFieldVectorCheckout[i]) {
-            DMGlobalToLocalEnd(mDistributedMesh, mFieldVectorGlobals[i],
-                               INSERT_VALUES, mFieldVectorLocals[i]);
-            mCheckedOutFields.push_back(mFieldVectorNames[i]);
-        }
+    for (auto &reg: mFieldVectorCheckout) {
+        DMGlobalToLocalEnd(mDistributedMesh, mFields[reg].field_globals, INSERT_VALUES,
+                           mFields[reg].field_locals);
     }
 
 }
 
-void Mesh::getFieldOnElement(Eigen::VectorXd &field, Eigen::VectorXi &closure, const std::string &name,
-                             const int &element_number) {
+Eigen::VectorXd Mesh::getFieldOnElement(const int &field_num, const int &element_number,
+                                        const Eigen::VectorXi &closure) {
 
-    int itr = 0;
     PetscScalar *val = NULL;
-    for (auto i = 0; i < mFieldVectorNames.size(); i++) {
-        if (mFieldVectorNames[i] == name) {
-            DMPlexVecGetClosure(mDistributedMesh, mMeshSection, mFieldVectorLocals[i], element_number, NULL, &val);
-            for (auto j = 0; j < closure.size(); j++) { field(closure(j)) = val[j]; }
-            DMPlexVecRestoreClosure(mDistributedMesh, mMeshSection, mFieldVectorLocals[i], element_number, NULL, &val);
-            break;
-        }
-
-    }
+    Eigen::VectorXd field(closure.size());
+    DMPlexVecGetClosure(mDistributedMesh, mMeshSection, mFields[field_num].field_locals,
+                        element_number, NULL, &val);
+    for (auto j = 0; j < closure.size(); j++) { field(closure(j)) = val[j]; }
+    DMPlexVecRestoreClosure(mDistributedMesh, mMeshSection, mFields[field_num].field_locals,
+                            element_number, NULL, &val);
+    return field;
 
 }
 
-void Mesh::setFieldOnElement(const Eigen::VectorXd &field, Eigen::VectorXi &closure, const std::string &name,
-                             const int &element_number) {
+void Mesh::setFieldOnElement(const int &field_num, const int &element_number,
+                             const Eigen::VectorXi &closure, const Eigen::VectorXd &field) {
 
-    int itr = 0;
     Eigen::VectorXd val(closure.size());
-    for (auto i = 0; i < mFieldVectorNames.size(); i++) {
-        if (mFieldVectorNames[i] == name) {
-            for (auto j = 0; j < closure.size(); j++) { val(j) = field(closure(j)); }
-            DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFieldVectorLocals[i], element_number, val.data(),
-                                ADD_VALUES);
-            break;
-        }
-    }
+    for (auto j = 0; j < closure.size(); j++) { val(j) = field(closure(j)); }
+    DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[field_num].field_locals,
+                        element_number, val.data(), ADD_VALUES);
 
 }
 
 void Mesh::checkInFieldsBegin() {
 
-    for (auto i = 0; i < mFieldVectorNames.size(); i++) {
-        if (mFieldVectorCheckin[i]) {
-            DMLocalToGlobalBegin(mDistributedMesh, mFieldVectorLocals[i], ADD_VALUES, mFieldVectorGlobals[i]);
-        }
+    for (auto reg: mFieldVectorCheckin) {
+        DMLocalToGlobalBegin(mDistributedMesh, mFields[reg].field_locals, ADD_VALUES, mFields[reg].field_globals);
     }
 
 }
@@ -170,29 +152,33 @@ void Mesh::checkInFieldsBegin() {
 
 void Mesh::checkInFieldsEnd() {
 
-    for (auto i = 0; i < mFieldVectorNames.size(); i++) {
-        if (mFieldVectorCheckin[i]) {
-            DMLocalToGlobalEnd(mDistributedMesh, mFieldVectorLocals[i], ADD_VALUES, mFieldVectorGlobals[i]);
-        }
+    for (auto reg: mFieldVectorCheckin) {
+        DMLocalToGlobalEnd(mDistributedMesh, mFields[reg].field_locals, ADD_VALUES, mFields[reg].field_globals);
     }
-
 
 }
 
 void ScalarNewmark::advanceField() {
 
+    int acceleration_ = (int) AcousticFields::acceleration_;
+    int acceleration = (int) AcousticFields::acceleration;
+    int displacement = (int) AcousticFields::displacement;
+    int velocity = (int) AcousticFields::velocity;
+    int force = (int) AcousticFields::force;
+
     double dt = 1.0;
     double pre_factor_acceleration = 1.0;
     double pre_factor_displacement = 1.0;
 
-//    VecPointwiseMult(mMassMatrix, mFields["acceleration"].field_globals, mFields["force"].field_globals);
-//
-//    VecAXPBYPCZ(mFields["velocity"].field_globals, pre_factor_acceleration, pre_factor_acceleration, 1.0,
-//                mFields["acceleration"].field_globals, mFields["acceleration_"].field_globals);
-//
-    VecAXPBYPCZ(mFields["displacement"].field_globals, dt, pre_factor_displacement, 1.0,
-                mFields["velocity"].field_globals, mFields["acceleration"].field_globals);
-//
-//    VecCopy(mFields["acceleration"].field_globals, mFields["acceleration_"].field_globals);
+//    VecPointwiseMult(mMassMatrix, mFields[acceleration].field_globals,
+//                     mFields[force].field_globals);
+
+    VecAXPBYPCZ(mFields[velocity].field_globals, pre_factor_acceleration, pre_factor_acceleration, 1.0,
+                mFields[acceleration].field_globals, mFields[acceleration_].field_globals);
+
+    VecAXPBYPCZ(mFields[displacement].field_globals, dt, pre_factor_displacement, 1.0,
+                mFields[velocity].field_globals, mFields[acceleration].field_globals);
+
+    VecCopy(mFields[acceleration].field_globals, mFields[acceleration_].field_globals);
 
 }

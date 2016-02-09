@@ -9,7 +9,22 @@
 #include "Square.h"
 #include "Square/Autogen/order4_square.h"
 
-int Square::element_increment = 0;
+int Square::mNumberDofVertex;
+int Square::mNumberDofEdge;
+int Square::mNumberDofFace;
+int Square::mNumberDofVolume;
+int Square::mNumberIntegrationPointsEps;
+int Square::mNumberIntegrationPointsEta;
+int Square::mNumberIntegrationPoints;
+int Square::mPolynomialOrder;
+
+Eigen::VectorXi Square::mClosureMapping;
+Eigen::MatrixXd Square::mGradientOperator;
+Eigen::VectorXd Square::mIntegrationWeightsEps;
+Eigen::VectorXd Square::mIntegrationWeightsEta;
+Eigen::VectorXd Square::mIntegrationCoordinatesEps;
+Eigen::VectorXd Square::mIntegrationCoordinatesEta;
+
 double Square::n0(const double &eps, const double &eta) { return 0.25 * (1.0 - eps) * (1.0 - eta); }
 double Square::n1(const double &eps, const double &eta) { return 0.25 * (1.0 + eps) * (1.0 - eta); }
 double Square::n2(const double &eps, const double &eta) { return 0.25 * (1.0 - eps) * (1.0 + eta); }
@@ -24,43 +39,56 @@ double Square::dn2deta(const double &eps) { return (1 - eps) * 1.0 / 4.0; }
 double Square::dn3deta(const double &eps) { return (1 + eps) * 1.0 / 4.0; }
 
 Eigen::VectorXd Square::GllPointsForOrder(const int order) {
-
-    Eigen::VectorXd gll_points;
+    Eigen::VectorXd gll_points(order+1);
     if (order == 4) {
-        gll_points.resize(5);
         gll_points << -1.0, -0.6546536707, 0.0, 0.6546536707, 1.0;
     }
-
     return gll_points;
-
 }
 
 Eigen::VectorXd Square::GllIntegrationWeightForOrder(const int order) {
-
-    Eigen::VectorXd integration_weights;
+    Eigen::VectorXd integration_weights(order+1);
     if (order == 4) {
-        integration_weights.resize(5);
         integration_weights << 0.1, 0.5444444444, 0.7111111111, 0.5444444444, 0.1;
     }
-
     return integration_weights;
-
 }
 
 Eigen::VectorXi Square::ClosureMapping(const int order, const int dimension) {
-
-    Eigen::VectorXi closure_mapping;
+    Eigen::VectorXi closure_mapping((order+1)*(order+1));
     if (dimension == 2) {
         if (order == 4) {
-            closure_mapping.resize(25);
             closure_mapping << 6, 13, 22, 3, 15, 7, 16, 23, 2, 20, 8, 17,
                     19, 1, 24, 11, 18, 14, 5, 4, 12, 21, 9, 10, 0;
         }
     }
-
     return closure_mapping;
 }
 
+
+Eigen::Map<Eigen::VectorXd> Square::epsVectorStride(Eigen::VectorXd &function,
+                                                    const int &eta_index) {
+    return Eigen::Map<Eigen::VectorXd> (
+            function.data() + eta_index * mNumberIntegrationPointsEta,
+            mNumberIntegrationPointsEps);
+}
+
+Eigen::Map<Eigen::VectorXd, 0, Eigen::InnerStride<>> Square::etaVectorStride(Eigen::VectorXd &function,
+                                                                             const int &eta_index) {
+    return Eigen::Map<Eigen::VectorXd, 0, Eigen::InnerStride<>> (
+            function.data() + eta_index, mNumberIntegrationPointsEta,
+            Eigen::InnerStride<> (mNumberIntegrationPointsEps));
+}
+
+
+Eigen::Vector4d Square::interpolateShapeFunctions(const double &eps, const double &eta) {
+    Eigen::Vector4d coefficients;
+    coefficients(0) = n0(eps, eta);
+    coefficients(1) = n1(eps, eta);
+    coefficients(2) = n2(eps, eta);
+    coefficients(3) = n3(eps, eta);
+    return coefficients;
+}
 
 void Square::attachVertexCoordinates(DM &distributed_mesh) {
 
@@ -88,8 +116,6 @@ void Square::attachVertexCoordinates(DM &distributed_mesh) {
 }
 
 Eigen::Matrix<double,2,2> Square::jacobianAtPoint(PetscReal eps, PetscReal eta) {
-
-    // Set local values.
     Eigen::Matrix<double,2,4> jacobian_multiplier;
     jacobian_multiplier(0,0) = dn0deps(eta);
     jacobian_multiplier(0,1) = dn1deps(eta);
@@ -99,37 +125,7 @@ Eigen::Matrix<double,2,2> Square::jacobianAtPoint(PetscReal eps, PetscReal eta) 
     jacobian_multiplier(1,1) = dn1deta(eps);
     jacobian_multiplier(1,2) = dn2deta(eps);
     jacobian_multiplier(1,3) = dn3deta(eps);
-
     return jacobian_multiplier * mVertexCoordinates.transpose();
-
-}
-
-Eigen::Vector4d Square::interpolateShapeFunctions(PetscReal eps, PetscReal eta) {
-
-    Eigen::Vector4d coefficients;
-    coefficients(0) = n0(eps, eta);
-    coefficients(1) = n1(eps, eta);
-    coefficients(2) = n2(eps, eta);
-    coefficients(3) = n3(eps, eta);
-    return coefficients;
-
-}
-
-Eigen::Map<Eigen::VectorXd> Square::epsVectorStride(Eigen::VectorXd &function,
-                                                    const int &eta_index) {
-    return Eigen::Map<Eigen::VectorXd> (
-            function.data() + eta_index * mNumberIntegrationPointsEta,
-            mNumberIntegrationPointsEps);
-
-}
-
-Eigen::Map<Eigen::VectorXd, 0, Eigen::InnerStride<>> Square::etaVectorStride(Eigen::VectorXd &function,
-                                                                             const int &eta_index) {
-
-    return Eigen::Map<Eigen::VectorXd, 0, Eigen::InnerStride<>> (
-            function.data() + eta_index, mNumberIntegrationPointsEta,
-            Eigen::InnerStride<> (mNumberIntegrationPointsEps));
-
 }
 
 Eigen::Vector4d Square::__interpolateMaterialProperties(ExodusModel &model, std::string parameter_name) {
@@ -161,7 +157,6 @@ void Square::attachSource(std::vector<Source*> sources) {
             source->setReferenceLocationEps(reference_location(0));
             source->setReferenceLocationEta(reference_location(1));
             mSources.push_back(source);
-            mContainsSource = true;
         }
     }
 
@@ -237,7 +232,6 @@ void Square::readOperators() {
 Square::Square(Options options) {
 
     // Basic properties.
-    mContainsSource = false;
     mPolynomialOrder = options.PolynomialOrder();
 
     // Gll points.

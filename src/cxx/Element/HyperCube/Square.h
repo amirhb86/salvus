@@ -38,8 +38,7 @@ extern "C" {
 
 class Square {
 
-    static int element_increment;
-
+    // Static functions which only required the reference element.
     static double n0(const double &eps, const double &eta);
     static double n1(const double &eps, const double &eta);
     static double n2(const double &eps, const double &eta);
@@ -55,6 +54,7 @@ class Square {
     static double dn2deta(const PetscReal &eps);
     static double dn3deta(const PetscReal &eps);
 
+    // Functions which require element data, but do not depend on physical systems.
     bool mCheckHull(double x, double z);
     Eigen::Vector2d inverseCoordinateTransform(const double &x_real, const double &z_real,
                                                double eps, double eta);
@@ -64,33 +64,31 @@ protected:
     static const int mNumberVertex = 4;
     static const int mNumberDimensions = 2;
 
-    bool mContainsSource;
+    // Functions which the derived class absolutely needs, but only depends on the reference element.
+    static Eigen::Vector4d interpolateShapeFunctions(const double &eps, const double &eta);
+    static Eigen::VectorXi mClosureMapping;
+    static Eigen::MatrixXd mGradientOperator;
+    static Eigen::VectorXd mIntegrationWeightsEps;
+    static Eigen::VectorXd mIntegrationWeightsEta;
+    static Eigen::VectorXd mIntegrationCoordinatesEps;
+    static Eigen::VectorXd mIntegrationCoordinatesEta;
+    static int mNumberDofVertex, mNumberDofEdge, mNumberDofFace, mNumberDofVolume;
+    static int mNumberIntegrationPointsEps, mNumberIntegrationPointsEta, mNumberIntegrationPoints, mPolynomialOrder;
+    static Eigen::Map<Eigen::VectorXd> epsVectorStride(
+            Eigen::VectorXd &function, const int &eta_index);
+    static Eigen::Map<Eigen::VectorXd, 0, Eigen::InnerStride<>> etaVectorStride(
+            Eigen::VectorXd &function, const int &eta_index);
 
     int mElementNumber;
-    int mNumberDofVertex, mNumberDofEdge, mNumberDofFace, mNumberDofVolume;
-    int mNumberIntegrationPointsEps, mNumberIntegrationPointsEta, mNumberIntegrationPoints, mPolynomialOrder;
-
     double mTime;
 
     std::vector<Source*> mSources;
-    Eigen::VectorXi mClosureMapping;
-    Eigen::MatrixXd mGradientOperator;
-    Eigen::VectorXd mIntegrationWeightsEps;
-    Eigen::VectorXd mIntegrationWeightsEta;
-    Eigen::VectorXd mIntegrationCoordinatesEps;
-    Eigen::VectorXd mIntegrationCoordinatesEta;
     Eigen::Matrix<double,2,4> mVertexCoordinates;
 
     Eigen::Matrix<double,2,2> jacobianAtPoint(PetscReal eps, PetscReal eta);
-    Eigen::Vector4d interpolateShapeFunctions(PetscReal eps, PetscReal eta);
 
     Eigen::Vector4d __interpolateMaterialProperties(ExodusModel &model,
                                                     std::string parameter_name);
-
-    Eigen::Map<Eigen::VectorXd> epsVectorStride(
-            Eigen::VectorXd &function, const int &eta_index);
-    Eigen::Map<Eigen::VectorXd, 0, Eigen::InnerStride<>> etaVectorStride(
-            Eigen::VectorXd &function, const int &eta_index);
 
 
 public:
@@ -117,8 +115,11 @@ public:
     int NumberDimensions() const { return mNumberDimensions; }
 
     // Pure virtual methods.
-    virtual void registerFieldVectors(Mesh *mesh) = 0;
-    virtual void constructStiffnessMatrix(Mesh *mesh) = 0;
+    virtual void checkInField(Mesh *mesh) = 0;
+    virtual void checkOutFields(Mesh *mesh) = 0;
+    virtual void computeSourceTerm() = 0;
+    virtual void computeSurfaceTerm() = 0;
+    virtual void computeStiffnessTerm() = 0;
     virtual void interpolateMaterialProperties(ExodusModel &model) = 0;
 
 };
