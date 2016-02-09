@@ -33,7 +33,7 @@ add_executable(salvus
         src/cxx/Mesh.cpp
         src/cxx/Utilities.cpp
         src/cxx/Options.cpp
-        src/cxx/Element/Element.cpp
+#        src/cxx/Element/Element.cpp
         src/cxx/Element/HyperCube/Square.cpp
         src/cxx/Element/HyperCube/Square/Acoustic.cpp
         src/cxx/Model/ExodusModel.cpp

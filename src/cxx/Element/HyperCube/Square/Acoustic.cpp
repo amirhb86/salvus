@@ -9,33 +9,7 @@
 #include "Acoustic.h"
 #include "Autogen/order4_square.h"
 
-Acoustic::Acoustic(Options options) {
-
-
-    // Basic properties.
-    SetNumberVertex(4);
-    SetNumberDimensions(2);
-    SetElementShape(options.ElementShape());
-    SetPhysicsSystem(options.PhysicsSystem());
-    SetPolynomialOrder(options.PolynomialOrder());
-    SetContainsSource(false);
-
-    // Gll points.
-    mNumberDofVolume = 0;
-    mNumberDofVertex = 1;
-    mNumberDofEdge = mPolynomialOrder - 1;
-    mNumberDofFace = (mPolynomialOrder - 1) * (mPolynomialOrder - 1);
-
-    // Integration points.
-    mIntegrationCoordinatesEps = Element::GllPointsForOrder(options.PolynomialOrder());
-    mIntegrationCoordinatesEta = Element::GllPointsForOrder(options.PolynomialOrder());
-    mIntegrationWeightsEps = Element::GllIntegrationWeightForOrder(options.PolynomialOrder());
-    mIntegrationWeightsEta = Element::GllIntegrationWeightForOrder(options.PolynomialOrder());
-    mClosureMapping = Element::ClosureMapping(options.PolynomialOrder(), NumberDimensions());
-
-    mNumberIntegrationPointsEps = mIntegrationCoordinatesEps.size();
-    mNumberIntegrationPointsEta = mIntegrationCoordinatesEta.size();
-    mNumberIntegrationPoints = mNumberIntegrationPointsEps * mNumberIntegrationPointsEta;
+Acoustic::Acoustic(Options options): Square(options) {
 
     // Allocate element matrices.
     mElementForce.setZero(mNumberIntegrationPoints);
@@ -60,7 +34,7 @@ void Acoustic::constructStiffnessMatrix(Mesh *mesh) {
     // Test
     for (int i = 0; i < mNumberIntegrationPoints; i++) { mElementDisplacement(i) = mIntegrationCoordinatesEta[i%5]; }
 
-    mesh->getFieldOnElement(mElementDisplacement, mClosureMapping, "displacement", LocalElementNumber());
+    mesh->getFieldOnElement(mElementDisplacement, mClosureMapping, "displacement", mElementNumber);
 
     int itr = 0;
     Eigen::VectorXd divergence(mNumberIntegrationPoints);
@@ -122,7 +96,7 @@ void Acoustic::constructStiffnessMatrix(Mesh *mesh) {
     }
 
     mElementForce = external_forcing - mIntegratedStiffnessMatrix;
-    mesh->setFieldOnElement(mElementForce, mClosureMapping, "force", LocalElementNumber());
+    mesh->setFieldOnElement(mElementForce, mClosureMapping, "force", mElementNumber);
 
 }
 

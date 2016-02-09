@@ -54,16 +54,16 @@ void Mesh::read(Options options) {
 
 }
 
-void Mesh::setupGlobalDof(PetscInt number_dof_vertex, PetscInt number_dof_edge, PetscInt number_dof_face,
-                          PetscInt number_dof_volume, PetscInt number_dimensions) {
+void Mesh::setupGlobalDof(int number_dof_vertex, int number_dof_edge, int number_dof_face,
+                          int number_dof_volume, int number_dimensions) {
 
     // Ensure that the mesh and the elements are at least the same dimension.
     assert(number_dimensions == mNumberDimensions);
 
     // Only define 1 field here because we're taking care of multiple fields manually.
-    PetscInt number_fields = 1;
-    PetscInt number_components = 1;
-    PetscInt number_dof_per_element[mNumberDimensions + 1];
+    int number_fields = 1;
+    int number_components = 1;
+    int number_dof_per_element[mNumberDimensions + 1];
 
     // Number of dof on vertex, edge, face, volume.
     number_dof_per_element[0] = number_dof_vertex;

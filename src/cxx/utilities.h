@@ -20,4 +20,6 @@ namespace utilities {
 
 }
 
+enum class AcousticFields {displacement, velocity, acceleration};
+
 #endif //SALVUS_UTILITIES_H

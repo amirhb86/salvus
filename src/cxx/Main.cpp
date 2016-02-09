@@ -32,29 +32,23 @@ int main(int argc, char *argv[]) {
     std::vector<Source*> sources = Source::factory(options);
 
     // Setup reference element.
-    Element *reference_element = Element::factory(options);
-    mesh->setupGlobalDof(reference_element->NumberDofVertex(),
-                         reference_element->NumberDofEdge(),
-                         reference_element->NumberDofFace(),
-                         reference_element->NumberDofVolume(),
+    Square *reference_element = new Acoustic(options); //Element::factory(options);
+    mesh->setupGlobalDof(reference_element->NumberDofVertex(), reference_element->NumberDofEdge(),
+                         reference_element->NumberDofFace(), reference_element->NumberDofVolume(),
                          reference_element->NumberDimensions());
 
     // Now that the mesh is constructed, register it with the reference element.
-    reference_element->registerMesh(mesh->DistributedMesh(), mesh->MeshSection());
     reference_element->registerFieldVectors(mesh);
 
     // Clone a list of all local elements.
-    std::vector<Element *> elements;
-    for (auto i = 0; i < mesh->NumberElementsLocal(); i++) {
-        elements.push_back(reference_element->clone());
-    }
+    std::vector<Square *> elements;
+    for (auto i = 0; i < mesh->NumberElementsLocal(); i++) { elements.push_back(reference_element->clone()); }
 
     // Now things that only local elements are allowed to do.
-    PetscInt element_number = 0;
+    int element_number = 0;
     for (auto &element: elements) {
         element->SetLocalElementNumber(element_number++);
-        element->attachVertexCoordinates();
-        element->attachIntegrationPoints();
+        element->attachVertexCoordinates(mesh->DistributedMesh());
         element->attachSource(sources);
         element->interpolateMaterialProperties(model);
         element->readOperators();
@@ -62,8 +56,10 @@ int main(int argc, char *argv[]) {
 
 
     while (true) {
+
         mesh->checkOutFields();
         for (auto &element: elements) { element->constructStiffnessMatrix(mesh); }
+
         mesh->checkInFieldsBegin();
         mesh->checkInFieldsEnd();
         mesh->advanceField();

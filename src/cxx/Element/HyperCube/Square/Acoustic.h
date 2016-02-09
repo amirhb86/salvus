@@ -7,7 +7,6 @@
 
 
 #include <petscvec.h>
-#include "../../Element.h"
 #include "../../../Options.h"
 #include "../Square.h"
 #include "../../../Model/ExodusModel.h"
@@ -28,7 +27,7 @@ public:
 
     Acoustic(Options options);
 
-    virtual Element *clone() const { return new Acoustic(*this); }
+    virtual Acoustic *clone() const { return new Acoustic(*this); }
 
     virtual void registerFieldVectors(Mesh *mesh);
     virtual void constructStiffnessMatrix(Mesh *mesh);

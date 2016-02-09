@@ -9,63 +9,82 @@
 #include "Square.h"
 #include "Square/Autogen/order4_square.h"
 
-PetscReal Square::n0(const PetscReal eps, const PetscReal eta) { return 0.25 * (1.0 - eps) * (1.0 - eta); }
-PetscReal Square::n1(const PetscReal eps, const PetscReal eta) { return 0.25 * (1.0 + eps) * (1.0 - eta); }
-PetscReal Square::n2(const PetscReal eps, const PetscReal eta) { return 0.25 * (1.0 - eps) * (1.0 + eta); }
-PetscReal Square::n3(const PetscReal eps, const PetscReal eta) { return 0.25 * (1.0 + eps) * (1.0 + eta); }
-PetscReal Square::dn0deps(const PetscReal eta) { return (-1) * (1 - eta) / 4.0; }
-PetscReal Square::dn1deps(const PetscReal eta) { return (+1) * (1 - eta) / 4.0; }
-PetscReal Square::dn2deps(const PetscReal eta) { return (-1) * (1 + eta) / 4.0; }
-PetscReal Square::dn3deps(const PetscReal eta) { return (+1) * (1 + eta) / 4.0; }
-PetscReal Square::dn0deta(const PetscReal eps) { return (1 - eps) * -1.0 / 4.0; }
-PetscReal Square::dn1deta(const PetscReal eps) { return (1 + eps) * -1.0 / 4.0; }
-PetscReal Square::dn2deta(const PetscReal eps) { return (1 - eps) * 1.0 / 4.0; }
-PetscReal Square::dn3deta(const PetscReal eps) { return (1 + eps) * 1.0 / 4.0; }
+int Square::element_increment = 0;
+double Square::n0(const double &eps, const double &eta) { return 0.25 * (1.0 - eps) * (1.0 - eta); }
+double Square::n1(const double &eps, const double &eta) { return 0.25 * (1.0 + eps) * (1.0 - eta); }
+double Square::n2(const double &eps, const double &eta) { return 0.25 * (1.0 - eps) * (1.0 + eta); }
+double Square::n3(const double &eps, const double &eta) { return 0.25 * (1.0 + eps) * (1.0 + eta); }
+double Square::dn0deps(const double &eta) { return (-1) * (1 - eta) / 4.0; }
+double Square::dn1deps(const double &eta) { return (+1) * (1 - eta) / 4.0; }
+double Square::dn2deps(const double &eta) { return (-1) * (1 + eta) / 4.0; }
+double Square::dn3deps(const double &eta) { return (+1) * (1 + eta) / 4.0; }
+double Square::dn0deta(const double &eps) { return (1 - eps) * -1.0 / 4.0; }
+double Square::dn1deta(const double &eps) { return (1 + eps) * -1.0 / 4.0; }
+double Square::dn2deta(const double &eps) { return (1 - eps) * 1.0 / 4.0; }
+double Square::dn3deta(const double &eps) { return (1 + eps) * 1.0 / 4.0; }
 
-void Square::attachVertexCoordinates() {
+Eigen::VectorXd Square::GllPointsForOrder(const int order) {
+
+    Eigen::VectorXd gll_points;
+    if (order == 4) {
+        gll_points.resize(5);
+        gll_points << -1.0, -0.6546536707, 0.0, 0.6546536707, 1.0;
+    }
+
+    return gll_points;
+
+}
+
+Eigen::VectorXd Square::GllIntegrationWeightForOrder(const int order) {
+
+    Eigen::VectorXd integration_weights;
+    if (order == 4) {
+        integration_weights.resize(5);
+        integration_weights << 0.1, 0.5444444444, 0.7111111111, 0.5444444444, 0.1;
+    }
+
+    return integration_weights;
+
+}
+
+Eigen::VectorXi Square::ClosureMapping(const int order, const int dimension) {
+
+    Eigen::VectorXi closure_mapping;
+    if (dimension == 2) {
+        if (order == 4) {
+            closure_mapping.resize(25);
+            closure_mapping << 6, 13, 22, 3, 15, 7, 16, 23, 2, 20, 8, 17,
+                    19, 1, 24, 11, 18, 14, 5, 4, 12, 21, 9, 10, 0;
+        }
+    }
+
+    return closure_mapping;
+}
+
+
+void Square::attachVertexCoordinates(DM &distributed_mesh) {
 
     Vec coordinates_local;
     PetscInt coordinate_buffer_size;
     PetscSection coordinate_section;
     PetscReal *coordinates_buffer = NULL;
 
-    DMGetCoordinatesLocal(mDistributedMesh, &coordinates_local);
-    DMGetCoordinateSection(mDistributedMesh, &coordinate_section);
-    DMPlexVecGetClosure(mDistributedMesh, coordinate_section, coordinates_local, LocalElementNumber(),
+    DMGetCoordinatesLocal(distributed_mesh, &coordinates_local);
+    DMGetCoordinateSection(distributed_mesh, &coordinate_section);
+    DMPlexVecGetClosure(distributed_mesh, coordinate_section, coordinates_local, mElementNumber,
                         &coordinate_buffer_size, &coordinates_buffer);
     std::vector<PetscReal> coordinates_element(coordinates_buffer, coordinates_buffer+coordinate_buffer_size);
-    DMPlexVecRestoreClosure(mDistributedMesh, coordinate_section, coordinates_local, LocalElementNumber(),
+    DMPlexVecRestoreClosure(distributed_mesh, coordinate_section, coordinates_local, mElementNumber,
                             &coordinate_buffer_size, &coordinates_buffer);
 
     // Reorder to desired vertex ordering.
     std::vector<double> vertex_coordinates_ordered ;
     std::vector<PetscInt> mapping_to_reference_element {6, 7, 0, 1, 4, 5, 2, 3};
-    for (int i = 0; i < NumberVertex(); i++) {
+    for (int i = 0; i < mNumberVertex; i++) {
         mVertexCoordinates(0,i) = coordinates_element[mapping_to_reference_element[mNumberDimensions*i+0]];
         mVertexCoordinates(1,i) = coordinates_element[mapping_to_reference_element[mNumberDimensions*i+1]];
     }
 
-}
-
-void Square::attachIntegrationPoints() {
-
-    assert(NumberIntegrationPoints() == mNumberIntegrationPointsEps*mNumberIntegrationPointsEta);
-
-    int point = 0;
-    std::vector<PetscReal> ni(mVertexCoordinates.size());
-    mIntegrationPoints.resize(mNumberIntegrationPoints * mNumberDimensions);
-    for (auto i = 0; i < mNumberIntegrationPointsEta; i++) {
-        for (auto j = 0; j < mNumberIntegrationPointsEps; j++) {
-
-            double eps = mIntegrationCoordinatesEps(j);
-            double eta = mIntegrationCoordinatesEta(i);
-
-            mIntegrationPoints[point + 0] += interpolateShapeFunctions(eps, eta).dot(mVertexCoordinates.row(0));
-            mIntegrationPoints[point + 1] += interpolateShapeFunctions(eps, eta).dot(mVertexCoordinates.row(1));
-            point += mNumberDimensions;
-
-        }
-    }
 }
 
 Eigen::Matrix<double,2,2> Square::jacobianAtPoint(PetscReal eps, PetscReal eta) {
@@ -96,17 +115,16 @@ Eigen::Vector4d Square::interpolateShapeFunctions(PetscReal eps, PetscReal eta) 
 
 }
 
-Eigen::Map<Eigen::VectorXd> Square::epsVectorStride(
-        Eigen::VectorXd &function, int &eta_index) {
+Eigen::Map<Eigen::VectorXd> Square::epsVectorStride(Eigen::VectorXd &function,
+                                                    const int &eta_index) {
     return Eigen::Map<Eigen::VectorXd> (
-
             function.data() + eta_index * mNumberIntegrationPointsEta,
             mNumberIntegrationPointsEps);
 
 }
 
-Eigen::Map<Eigen::VectorXd, 0, Eigen::InnerStride<>> Square::etaVectorStride(
-        Eigen::VectorXd &function, int &eta_index) {
+Eigen::Map<Eigen::VectorXd, 0, Eigen::InnerStride<>> Square::etaVectorStride(Eigen::VectorXd &function,
+                                                                             const int &eta_index) {
 
     return Eigen::Map<Eigen::VectorXd, 0, Eigen::InnerStride<>> (
             function.data() + eta_index, mNumberIntegrationPointsEta,
@@ -116,7 +134,7 @@ Eigen::Map<Eigen::VectorXd, 0, Eigen::InnerStride<>> Square::etaVectorStride(
 
 Eigen::Vector4d Square::__interpolateMaterialProperties(ExodusModel &model, std::string parameter_name) {
 
-    Eigen::Vector4d material_at_vertices(NumberVertex());
+    Eigen::Vector4d material_at_vertices(mNumberVertex);
 
     // THIS IS STUPID JUST BECAUSE DENSITY IS NOT IN THE EXODUS FILE YET.
     if (parameter_name == "density") {
@@ -124,8 +142,7 @@ Eigen::Vector4d Square::__interpolateMaterialProperties(ExodusModel &model, std:
         return material_at_vertices;
     }
 
-
-    for (auto i = 0; i < NumberVertex(); i++) {
+    for (auto i = 0; i < mNumberVertex; i++) {
         material_at_vertices(i) = model.getMaterialParameterAtPoint({mVertexCoordinates(0, i),
                                                                      mVertexCoordinates(1, i)},
                                                                     parameter_name);
@@ -144,7 +161,7 @@ void Square::attachSource(std::vector<Source*> sources) {
             source->setReferenceLocationEps(reference_location(0));
             source->setReferenceLocationEta(reference_location(1));
             mSources.push_back(source);
-            SetContainsSource(true);
+            mContainsSource = true;
         }
     }
 
@@ -155,7 +172,7 @@ bool Square::mCheckHull(double x, double z) {
     int n_pos = 0;
     std::vector<int> edge_mapping {0, 1, 3, 2, 0};
     Eigen::Vector2d test_point; test_point << x, z;
-    for (auto i = 0; i < NumberVertex(); i++) {
+    for (auto i = 0; i < mNumberVertex; i++) {
         Eigen::Vector2d p0 = mVertexCoordinates.col(edge_mapping[i+0]);
         Eigen::Vector2d p1 = mVertexCoordinates.col(edge_mapping[i+1]);
         Eigen::Vector2d v_seg = p1 - p0;
@@ -167,7 +184,7 @@ bool Square::mCheckHull(double x, double z) {
             n_pos++;
         }
     }
-    return n_neg == NumberVertex() || n_pos == NumberVertex();
+    return n_neg == mNumberVertex || n_pos == mNumberVertex;
 }
 
 Eigen::Vector2d Square::inverseCoordinateTransform(const double &x_real, const double &z_real,
@@ -214,5 +231,31 @@ void Square::readOperators() {
         mGradientOperator.row(i) = test.col(0);
         i++;
     }
+
+}
+
+Square::Square(Options options) {
+
+    // Basic properties.
+    mContainsSource = false;
+    mPolynomialOrder = options.PolynomialOrder();
+
+    // Gll points.
+    mNumberDofVolume = 0;
+    mNumberDofVertex = 1;
+    mNumberDofEdge = mPolynomialOrder - 1;
+    mNumberDofFace = (mPolynomialOrder - 1) * (mPolynomialOrder - 1);
+
+    // Integration points.
+    mIntegrationCoordinatesEps = Square::GllPointsForOrder(options.PolynomialOrder());
+    mIntegrationCoordinatesEta = Square::GllPointsForOrder(options.PolynomialOrder());
+    mIntegrationWeightsEps = Square::GllIntegrationWeightForOrder(options.PolynomialOrder());
+    mIntegrationWeightsEta = Square::GllIntegrationWeightForOrder(options.PolynomialOrder());
+    mClosureMapping = Square::ClosureMapping(options.PolynomialOrder(),mNumberDimensions);
+
+    // Save number of integration points.
+    mNumberIntegrationPointsEps = mIntegrationCoordinatesEps.size();
+    mNumberIntegrationPointsEta = mIntegrationCoordinatesEta.size();
+    mNumberIntegrationPoints = mNumberIntegrationPointsEps * mNumberIntegrationPointsEta;
 
 }
