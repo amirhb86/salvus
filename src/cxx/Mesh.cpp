@@ -3,6 +3,7 @@
 //
 
 #include <mpi.h>
+#include <petscviewerhdf5.h>
 #include <assert.h>
 #include <petscao.h>
 #include "Mesh.h"
@@ -88,6 +89,7 @@ void Mesh::registerFieldVectors(const int &num, const bool &check_out, const boo
 
     double zero = 0.0;
     VecSet(field_vector_local, zero);
+    VecSet(field_vector_global, zero);
     PetscObjectSetName((PetscObject) field_vector_global, name.c_str());
 
     if (check_in) { mFieldVectorCheckin.push_back(num); }
@@ -135,6 +137,9 @@ void Mesh::setFieldOnElement(const int &field_num, const int &element_number,
                              const Eigen::VectorXi &closure, const Eigen::VectorXd &field) {
 
     Eigen::VectorXd val(closure.size());
+    double vecmax;
+    VecMax(mFields[field_num].field_locals, NULL, &vecmax);
+
     for (auto j = 0; j < closure.size(); j++) { val(j) = field(closure(j)); }
     DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[field_num].field_locals,
                         element_number, val.data(), ADD_VALUES);
@@ -144,6 +149,8 @@ void Mesh::setFieldOnElement(const int &field_num, const int &element_number,
 void Mesh::checkInFieldsBegin() {
 
     for (auto reg: mFieldVectorCheckin) {
+        double vecmax;
+        VecMax(mFields[reg].field_locals, NULL, &vecmax);
         DMLocalToGlobalBegin(mDistributedMesh, mFields[reg].field_locals, ADD_VALUES, mFields[reg].field_globals);
     }
 
@@ -158,20 +165,24 @@ void Mesh::checkInFieldsEnd() {
 
 }
 
+void Mesh::checkInMassMatrix() {
+
+    int index = -1;
+    DMLocalToGlobalBegin(mDistributedMesh, mFields[index].field_locals, ADD_VALUES, mFields[index].field_globals);
+    DMLocalToGlobalEnd(mDistributedMesh, mFields[index].field_locals, ADD_VALUES, mFields[index].field_globals);
+
+}
+
 void ScalarNewmark::advanceField() {
 
     int acceleration_ = (int) AcousticFields::acceleration_;
     int acceleration = (int) AcousticFields::acceleration;
     int displacement = (int) AcousticFields::displacement;
     int velocity = (int) AcousticFields::velocity;
-    int force = (int) AcousticFields::force;
 
-    double dt = 1.0;
-    double pre_factor_acceleration = 1.0;
-    double pre_factor_displacement = 1.0;
-
-//    VecPointwiseMult(mMassMatrix, mFields[acceleration].field_globals,
-//                     mFields[force].field_globals);
+    double dt = 1e-3;
+    double pre_factor_acceleration = (1.0/2.0) * dt;
+    double pre_factor_displacement = (1.0/2.0) * (dt * dt);
 
     VecAXPBYPCZ(mFields[velocity].field_globals, pre_factor_acceleration, pre_factor_acceleration, 1.0,
                 mFields[acceleration].field_globals, mFields[acceleration_].field_globals);
@@ -180,5 +191,67 @@ void ScalarNewmark::advanceField() {
                 mFields[velocity].field_globals, mFields[acceleration].field_globals);
 
     VecCopy(mFields[acceleration].field_globals, mFields[acceleration_].field_globals);
+
+    double maxval;
+    VecMax(mFields[displacement].field_globals, NULL, &maxval);
+//    std::cout << "MAX DISPLACEMENT: " << maxval << std::endl;
+    VecMin(mFields[displacement].field_globals, NULL, &maxval);
+//    std::cout << "MIN DISPLACEMENT: " << maxval << std::endl;
+
+
+}
+
+void ScalarNewmark::applyInverseMassMatrix() {
+
+    int mass_matrix_inverse = (int) AcousticFields::mass_matrix_inverse;
+    int acceleration = (int) AcousticFields::acceleration;
+    int mass_matrix = (int) AcousticFields::mass_matrix;
+    int force = (int) AcousticFields::force;
+
+    if (mFields.find(mass_matrix_inverse) == mFields.end()){
+        registerFieldVectors(mass_matrix_inverse, false, false, "mass_matrix_inverse");
+        VecCopy(mFields[mass_matrix].field_globals, mFields[mass_matrix_inverse].field_globals);
+        VecReciprocal(mFields[mass_matrix_inverse].field_globals);
+    }
+
+    VecPointwiseMult(mFields[acceleration].field_globals, mFields[mass_matrix_inverse].field_globals,
+                     mFields[force].field_globals);
+
+}
+
+void Mesh::zeroFields() {
+
+    double zero = 0.0;
+    for (auto reg: mFieldVectorCheckin) {
+        VecSet(mFields[reg].field_locals, zero);
+        VecSet(mFields[reg].field_globals, zero);
+    }
+
+}
+
+void Mesh::setUpMovie() {
+
+    mTime = 0;
+    mViewer = nullptr;
+    std::string file_name = "/Users/michaelafanasiev/Desktop/movie.h5";
+    PetscViewerHDF5Open(PETSC_COMM_WORLD, file_name.c_str(), FILE_MODE_WRITE, &mViewer);
+    PetscViewerHDF5PushGroup(mViewer, "/");
+    DMView(mDistributedMesh, mViewer);
+
+}
+
+void Mesh::saveFrame() {
+
+    DMSetOutputSequenceNumber(mDistributedMesh, mTime, mTime);
+    VecView(mFields[(int) AcousticFields::displacement].field_globals, mViewer);
+//    VecView(mFields[-1].field_globals, mViewer);
+    mTime += 1;
+
+}
+
+void Mesh::finalizeMovie() {
+
+    PetscViewerHDF5PopGroup(mViewer);
+    PetscViewerDestroy(&mViewer);
 
 }

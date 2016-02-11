@@ -28,6 +28,7 @@ class Mesh {
 
     int mNumberElementsLocal;
     int mNumberDimensions;
+    int mTime;
 
     std::string mExodusFileName;
 
@@ -41,6 +42,8 @@ protected:
     std::vector<int> mFieldVectorCheckin;
     std::vector<int> mFieldVectorCheckout;
 
+    PetscViewer mViewer;
+
 public:
 
     static Mesh *factory(Options options);
@@ -52,10 +55,11 @@ public:
 
     void registerFieldVectors(const int &num, const bool &check_out, const bool &check_in,
                               const std::string &name);
-
     void checkOutFields();
     void checkInFieldsEnd();
     void checkInFieldsBegin();
+    void checkInMassMatrix();
+
 
     Eigen::VectorXd getFieldOnElement(const int &field_num, const int &element_number,
                                             const Eigen::VectorXi &closure);
@@ -66,8 +70,13 @@ public:
     // Integer getattr.
     inline PetscInt NumberElementsLocal() { return mNumberElementsLocal; }
 
+    void setUpMovie();
+    void saveFrame();
+    void finalizeMovie();
+    void zeroFields();
     virtual void advanceField() = 0;
     virtual void registerFields() = 0;
+    virtual void applyInverseMassMatrix() = 0;
 
     // Distributed mesh getattr.
     inline DM &DistributedMesh() { return mDistributedMesh; }
@@ -88,10 +97,12 @@ public:
         registerFieldVectors((int) AcousticFields::displacement, true, false, "displacement");
         registerFieldVectors((int) AcousticFields::velocity, false, false, "velocity");
         registerFieldVectors((int) AcousticFields::force, false, true, "force");
+        registerFieldVectors((int) AcousticFields::mass_matrix, false, false, "mass_matrix");
 
     }
 
     virtual void advanceField();
+    virtual void applyInverseMassMatrix();
 
 };
 

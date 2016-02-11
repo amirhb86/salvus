@@ -19,11 +19,11 @@ class Acoustic : public Square {
     Eigen::Vector4d mMaterialVelocityAtVertices;
     Eigen::Vector4d mMaterialDensityAtVertices;
 
-    Eigen::VectorXd mElementStress;
     Eigen::VectorXd mIntegratedSource;
     Eigen::VectorXd mElementDisplacement;
     Eigen::VectorXd mIntegratedStiffnessMatrix;
 
+    Eigen::MatrixXd mElementStress;
     Eigen::MatrixXd mElementStrain;
 
 public:
@@ -36,6 +36,7 @@ public:
     virtual void checkOutFields(Mesh *mesh);
     virtual void computeSourceTerm();
     virtual void computeSurfaceTerm();
+    virtual void assembleMassMatrix();
     virtual void computeStiffnessTerm();
     virtual void interpolateMaterialProperties(ExodusModel &model);
 

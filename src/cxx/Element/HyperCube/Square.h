@@ -74,15 +74,16 @@ protected:
     static Eigen::VectorXd mIntegrationCoordinatesEta;
     static int mNumberDofVertex, mNumberDofEdge, mNumberDofFace, mNumberDofVolume;
     static int mNumberIntegrationPointsEps, mNumberIntegrationPointsEta, mNumberIntegrationPoints, mPolynomialOrder;
-    static Eigen::Map<Eigen::VectorXd> epsVectorStride(
-            Eigen::VectorXd &function, const int &eta_index);
-    static Eigen::Map<Eigen::VectorXd, 0, Eigen::InnerStride<>> etaVectorStride(
-            Eigen::VectorXd &function, const int &eta_index);
+    static Eigen::Map<const Eigen::VectorXd> epsVectorStride(
+            const Eigen::VectorXd &function, const int &eta_index);
+    static Eigen::Map<const Eigen::VectorXd, 0, Eigen::InnerStride<>> etaVectorStride(
+            const Eigen::VectorXd &function, const int &eta_index);
 
     int mElementNumber;
     double mTime;
 
     std::vector<Source*> mSources;
+    Eigen::VectorXd mMassMatrix;
     Eigen::Matrix<double,2,4> mVertexCoordinates;
 
     Eigen::Matrix<double,2,2> jacobianAtPoint(PetscReal eps, PetscReal eta);
@@ -100,12 +101,14 @@ public:
     static Eigen::VectorXd GllIntegrationWeightForOrder(const int order);
     static Eigen::VectorXi ClosureMapping(const int order, const int dimension);
 
+    void scatterMassMatrix(Mesh *mesh);
     void readOperators();
     void attachVertexCoordinates(DM &distributed_mesh);
-    virtual void attachSource(std::vector<Source*> sources);
+    void attachSource(std::vector<Source*> sources);
 
     // Attribute sets.
     void SetLocalElementNumber(const int &element_number) { mElementNumber = element_number; }
+    void SetTime(const double &time) { mTime = time; }
 
     // Attribute gets.
     int NumberDofEdge() const { return mNumberDofEdge; }
@@ -117,9 +120,12 @@ public:
     // Pure virtual methods.
     virtual void checkInField(Mesh *mesh) = 0;
     virtual void checkOutFields(Mesh *mesh) = 0;
+
     virtual void computeSourceTerm() = 0;
     virtual void computeSurfaceTerm() = 0;
     virtual void computeStiffnessTerm() = 0;
+
+    virtual void assembleMassMatrix() = 0;
     virtual void interpolateMaterialProperties(ExodusModel &model) = 0;
 
 };

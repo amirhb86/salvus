@@ -3,27 +3,32 @@
 //
 
 #include "Acoustic.h"
+#include "Autogen/order4_square.h"
 
 Acoustic::Acoustic(Options options): Square(options) {
 
     // Allocate element vectors.
-    mElementStress.setZero(mNumberIntegrationPoints);
+    mMassMatrix.setZero(mNumberIntegrationPoints);
     mIntegratedSource.setZero(mNumberIntegrationPoints);
     mElementDisplacement.setZero(mNumberIntegrationPoints);
     mIntegratedStiffnessMatrix.setZero(mNumberIntegrationPoints);
 
     // Strain matrix.
     mElementStrain.setZero(2, mNumberIntegrationPoints);
+    mElementStress.setZero(2, mNumberIntegrationPoints);
 
 }
 
 void Acoustic::computeStiffnessTerm() {
 
     // Test
-    for (int i = 0; i < mNumberIntegrationPoints; i++) { mElementDisplacement(i) = mIntegrationCoordinatesEta[i%5]; }
+//    int j = 0;
+//    for (auto i = 0; i < mElementDisplacement.size(); i++) { if (!(i%5) && i>0) j++; mElementDisplacement[i] = mIntegrationCoordinatesEps[j]; }
 
     int itr = 0;
-    Eigen::VectorXd external_forcing(mNumberIntegrationPoints);
+    Eigen::VectorXd jacobian_determinant(mNumberIntegrationPoints);
+    Eigen::Vector2d epsStrain;
+    Eigen::Vector2d etaStrain;
     Eigen::Matrix<double,2,1> test_function_gradient;
     Eigen::Matrix<double,2,2> inverse_Jacobian;
     for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
@@ -34,23 +39,20 @@ void Acoustic::computeStiffnessTerm() {
             double eps = mIntegrationCoordinatesEps[eps_index];
 
             // Get and invert Jacobian.
+            jacobian_determinant(itr) = jacobianAtPoint(eps, eta).determinant();
             inverse_Jacobian = jacobianAtPoint(eps, eta).inverse();
 
             // Calculate strain. Save for kernel calculations.
+//            epsStrain()
             mElementStrain(0,itr) = mGradientOperator.row(eps_index).dot(
                     epsVectorStride(mElementDisplacement, eta_index));
             mElementStrain(1,itr) = mGradientOperator.row(eta_index).dot(
                     etaVectorStride(mElementDisplacement, eta_index));
             mElementStrain.col(itr) = inverse_Jacobian * mElementStrain.col(itr);
 
-            // Calculate test function derivatives.
-            test_function_gradient(0) = mGradientOperator.row(eps_index).sum();
-            test_function_gradient(1) = mGradientOperator.row(eta_index).sum();
-            test_function_gradient = inverse_Jacobian * test_function_gradient;
-
             // Get material parameters at this node.
             double velocity = interpolateShapeFunctions(eps, eta).dot(mMaterialVelocityAtVertices);
-            mElementStress(itr) = velocity * test_function_gradient.dot(mElementStrain.col(itr));
+            mElementStress.col(itr) = mElementStrain.col(itr) * velocity;
             itr++;
 
         }
@@ -62,13 +64,24 @@ void Acoustic::computeStiffnessTerm() {
 
             double eps = mIntegrationCoordinatesEps[eps_index];
             double eta = mIntegrationCoordinatesEps[eta_index];
-            mIntegratedStiffnessMatrix(itr) = jacobianAtPoint(eps, eta).determinant() *
-                    (Square::mIntegrationWeightsEps.dot(epsVectorStride(mElementStress, eps_index)) +
-                     mIntegrationWeightsEta.dot(etaVectorStride(mElementStress, eps_index)));
+
+            Eigen::VectorXd jac_stride_eps = epsVectorStride(jacobian_determinant, eta_index);
+            Eigen::VectorXd str_stride_eps = epsVectorStride(mElementStress.row(0), eta_index);
+            Eigen::VectorXd deriv_eps = mGradientOperator.col(eps_index);
+
+            Eigen::VectorXd jac_stride_eta = etaVectorStride(jacobian_determinant, eta_index);
+            Eigen::VectorXd str_stride_eta = etaVectorStride(mElementStress.row(1), eta_index);
+            Eigen::VectorXd deriv_eta = mGradientOperator.col(eta_index);
+
+            mIntegratedStiffnessMatrix(itr) = mIntegrationWeightsEta[eta_index] * mIntegrationWeightsEps.dot(
+                            (jac_stride_eps.array() * str_stride_eps.array() * deriv_eps.array()).matrix()) +
+                    mIntegrationWeightsEps[eps_index] * mIntegrationWeightsEta.dot(
+                            (jac_stride_eta.array() * str_stride_eta.array() * deriv_eta.array()).matrix());
 
             itr++;
         }
     }
+
 
 }
 
@@ -81,21 +94,30 @@ void Acoustic::interpolateMaterialProperties(ExodusModel &model) {
 
 void Acoustic::computeSourceTerm() {
 
-    if (! mSources.size()) { mIntegratedSource.setZero(); return; }
+    // Check that this integrates to the value of the source (delta function).
 
+    mIntegratedSource.setZero();
+    if (! mSources.size()) { return; }
+
+    Eigen::VectorXd current_source(mNumberIntegrationPoints);
     for (auto &source: mSources) {
         interpolate_order4_square(source->ReferenceLocationEps(), source->ReferenceLocationEta(),
-                                  mIntegratedSource.data());
+                                  current_source.data());
         for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
             for (auto eps_index = 0; eps_index < mNumberIntegrationPointsEps; eps_index++) {
                 double eps = mIntegrationCoordinatesEps[eps_index];
                 double eta = mIntegrationCoordinatesEta[eta_index];
-                mIntegratedSource[eps_index + eta_index*mNumberIntegrationPointsEps] /=
-                        (mIntegrationWeightsEps(eps_index) * mIntegrationWeightsEta(eta_index) *
-                        jacobianAtPoint(eps, eta).determinant()) * source->fire(mTime);
+                current_source[eps_index + eta_index*mNumberIntegrationPointsEps] /=
+                        (mIntegrationWeightsEps(eps_index) * mIntegrationWeightsEta(eta_index)) *
+                        jacobianAtPoint(eps, eta).determinant();
             }
         }
+
+        current_source *= source->fire(mTime);
+        mIntegratedSource(12) = source->fire(mTime);//current_source;
+        std::cout << "SOURCE " << mIntegratedSource.maxCoeff() << std::endl;
     }
+
 }
 
 void Acoustic::checkOutFields(Mesh *mesh) {
@@ -107,12 +129,34 @@ void Acoustic::checkOutFields(Mesh *mesh) {
 
 void Acoustic::checkInField(Mesh *mesh) {
 
-    mesh->setFieldOnElement((int) AcousticFields::force, mElementNumber, mClosureMapping, mElementDisplacement);
+    mesh->setFieldOnElement((int) AcousticFields::force, mElementNumber, mClosureMapping,
+                            mIntegratedSource - mIntegratedStiffnessMatrix);
 
 }
 
 void Acoustic::computeSurfaceTerm() {
 
+    if (MPI::COMM_WORLD.Get_rank()) return;
+    Eigen::VectorXd test(25);
+    interpolate_order4_square(-0.4, -0.7, test.data());
+    interpolate_eta_derivative_order4_square(0.7, 0.4, test.data());
 
+}
+
+void Acoustic::assembleMassMatrix() {
+
+    Eigen::VectorXd tmp(mNumberIntegrationPoints);
+    double density = mMaterialDensityAtVertices.mean();
+    for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
+        for (auto eps_index = 0; eps_index < mNumberIntegrationPointsEps; eps_index++) {
+
+            double eps = mIntegrationCoordinatesEps[eps_index];
+            double eta = mIntegrationCoordinatesEta[eta_index];
+            diagonal_mass_matrix_order4_square(eps, eta, density, tmp.data());
+            mMassMatrix += tmp * mIntegrationWeightsEps[eps_index] * mIntegrationWeightsEta[eta_index] *
+                    jacobianAtPoint(eps, eta).determinant();
+
+        }
+    }
 
 }

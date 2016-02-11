@@ -9,6 +9,9 @@
 #include "Square.h"
 #include "Square/Autogen/order4_square.h"
 
+/*
+ * STATIC FUNCTIONS WHICH ARE ONLY ON THE REFERENCE ELEMENT.
+ */
 int Square::mNumberDofVertex;
 int Square::mNumberDofEdge;
 int Square::mNumberDofFace;
@@ -58,24 +61,25 @@ Eigen::VectorXi Square::ClosureMapping(const int order, const int dimension) {
     Eigen::VectorXi closure_mapping((order+1)*(order+1));
     if (dimension == 2) {
         if (order == 4) {
-            closure_mapping << 6, 13, 22, 3, 15, 7, 16, 23, 2, 20, 8, 17,
-                    19, 1, 24, 11, 18, 14, 5, 4, 12, 21, 9, 10, 0;
+            closure_mapping << 6, 7, 8, 11, 12, 13, 16, 17, 18, 1, 2, 3,
+                    9, 14, 19, 23, 22, 21, 15, 10, 5, 0, 4, 24, 20;
+//            closure_mapping << 8, 13, 18, 7, 12, 17, 6, 11, 16, 9, 14, 19, 23, 22, 21, 15, 10, 5, 1, 2, 3, 4, 24, 20, 0;
         }
     }
     return closure_mapping;
 }
 
 
-Eigen::Map<Eigen::VectorXd> Square::epsVectorStride(Eigen::VectorXd &function,
+Eigen::Map<const Eigen::VectorXd> Square::epsVectorStride(const Eigen::VectorXd &function,
                                                     const int &eta_index) {
-    return Eigen::Map<Eigen::VectorXd> (
+    return Eigen::Map<const Eigen::VectorXd> (
             function.data() + eta_index * mNumberIntegrationPointsEta,
             mNumberIntegrationPointsEps);
 }
 
-Eigen::Map<Eigen::VectorXd, 0, Eigen::InnerStride<>> Square::etaVectorStride(Eigen::VectorXd &function,
-                                                                             const int &eta_index) {
-    return Eigen::Map<Eigen::VectorXd, 0, Eigen::InnerStride<>> (
+Eigen::Map<const Eigen::VectorXd, 0, Eigen::InnerStride<>> Square::etaVectorStride(const Eigen::VectorXd &function,
+                                                                                   const int &eta_index) {
+    return Eigen::Map<const Eigen::VectorXd, 0, Eigen::InnerStride<>> (
             function.data() + eta_index, mNumberIntegrationPointsEta,
             Eigen::InnerStride<> (mNumberIntegrationPointsEps));
 }
@@ -224,7 +228,6 @@ void Square::readOperators() {
         double eps = mIntegrationCoordinatesEps[i];
         interpolate_eps_derivative_order4_square(eps, eta, test.data());
         mGradientOperator.row(i) = test.col(0);
-        i++;
     }
 
 }
@@ -251,5 +254,12 @@ Square::Square(Options options) {
     mNumberIntegrationPointsEps = mIntegrationCoordinatesEps.size();
     mNumberIntegrationPointsEta = mIntegrationCoordinatesEta.size();
     mNumberIntegrationPoints = mNumberIntegrationPointsEps * mNumberIntegrationPointsEta;
+
+}
+
+void Square::scatterMassMatrix(Mesh *mesh) {
+
+    mesh->setFieldOnElement((int) AcousticFields::mass_matrix, mElementNumber, mClosureMapping,
+                            mMassMatrix);
 
 }

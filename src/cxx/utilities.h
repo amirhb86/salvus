@@ -21,7 +21,8 @@ namespace utilities {
 }
 
 enum class AcousticFields {
-    displacement = 0, velocity = 1, acceleration = 2, force = 3, acceleration_ = 4
+    displacement = 0, velocity = 1, acceleration = 2, force = 3, acceleration_ = 4, mass_matrix = -1,
+    mass_matrix_inverse = -2
 };
 
 #endif //SALVUS_UTILITIES_H

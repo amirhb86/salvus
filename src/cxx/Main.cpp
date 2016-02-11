@@ -32,9 +32,12 @@ int main(int argc, char *argv[]) {
 
     // Setup reference element.
     Square *reference_element = new Acoustic(options);
+
     mesh->setupGlobalDof(reference_element->NumberDofVertex(), reference_element->NumberDofEdge(),
                          reference_element->NumberDofFace(), reference_element->NumberDofVolume(),
                          reference_element->NumberDimensions());
+    mesh->registerFields();
+
 
 
     // Clone a list of all local elements.
@@ -49,26 +52,46 @@ int main(int argc, char *argv[]) {
         element->attachSource(sources);
         element->interpolateMaterialProperties(model);
         element->readOperators();
+        element->assembleMassMatrix();
+        element->scatterMassMatrix(mesh);
     }
 
+    mesh->checkInMassMatrix();
+    mesh->setUpMovie();
 
-    mesh->registerFields();
-    while (true) {
+    double time = 0;
+    double timestep = 1e-3;
+    while (time < 2.0) {
+
+        // Pull down fields from global dof.
         mesh->checkOutFields();
+        mesh->zeroFields();
+
+        // Compute element-wise terms.
         for (auto &element: elements) {
+            element->SetTime(time);
             element->checkOutFields(mesh);
             element->computeStiffnessTerm();
             element->computeSourceTerm();
             element->computeSurfaceTerm();
             element->checkInField(mesh);
         }
+
+        // Sum fields back into global dof.
         mesh->checkInFieldsBegin();
         mesh->checkInFieldsEnd();
+
+        // Invert mass matrix and take time step.
+        mesh->applyInverseMassMatrix();
         mesh->advanceField();
-        std::cout << "LOOP" << std::endl;
-        break;
+        mesh->saveFrame();
+
+        time += timestep;
+        if (!MPI::COMM_WORLD.Get_rank()) std::cout << time << std::endl;
+//        break;
     }
 
 
+    mesh->finalizeMovie();
     PetscFinalize();
 }

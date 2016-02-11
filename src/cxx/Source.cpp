@@ -40,6 +40,6 @@ Ricker::Ricker(Options options, int number) {
 double Ricker::fire(const double &time) {
 
     double factor = M_PI * M_PI * mCenterFreq * mCenterFreq * (time - mTimeDelay) * (time - mTimeDelay);
-    return mAmplitude * (1 - 2 * factor * exp(-1 * factor));
+    return mAmplitude * ((1 - 2 * factor) * exp(-1 * factor));
 
 }
