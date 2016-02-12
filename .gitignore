@@ -1,5 +1,12 @@
 # cmake
 CMakeLists.txt
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+
+# binary
+salvus
 
 # Compiled Object files
 *.slo

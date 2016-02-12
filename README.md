@@ -11,7 +11,7 @@ $ ./configure --prefix=/opt/petsc --download-exodusii --download-netcdf --downlo
 ```
 
 At the end of each command it tells you to run some other command. Do that
-until its done with everything.
+until it is done with everything.
 
 You also need to install version 3 of the `eigen` library:
 
@@ -20,7 +20,7 @@ $ brew install eigen          # OSX
 $ sudo apg-get install eigen  # Ubuntu
 ```
 
-Then copy the `CMakeLists.txt.TEMPLATE` file.
+Then copy the `CMakeLists.txt.TEMPLATE` file
 
 ```bash
 cp CMakeLists.txt.TEMPLATE CMakeLists.txt
