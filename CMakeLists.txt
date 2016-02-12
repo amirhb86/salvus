@@ -5,10 +5,10 @@ project(salvus)
 # Set all necessary variables here.
 # Please only try to edit in this block. If something is
 # missing add it.
-SET(CMAKE_C_COMPILER /usr/local/bin/mpicc)
-SET(CMAKE_CXX_COMPILER /usr/local/bin/mpicxx)
+SET(CMAKE_C_COMPILER /usr/bin/mpicc)
+SET(CMAKE_CXX_COMPILER /usr/bin/mpicxx)
 SET(PETSC_DIR /opt/petsc)
-SET(EIGEN_INCLUDE /usr/local/include/eigen3)
+SET(EIGEN_INCLUDE /usr/include/eigen3)
 ###############################################
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3")
@@ -17,6 +17,8 @@ find_package(MPI REQUIRED)
 include_directories(${MPI_INCLUDE_PATH})
 
 link_directories(${PETSC_DIR}/lib)
+
+FILE(GLOB QuadAutoGen src/cxx/Element/HyperCube/Square/Autogen/*.c)
 
 include_directories(
         ${PETSC_DIR}/include/
@@ -43,7 +45,7 @@ add_executable(salvus
         src/cxx/Model/ExodusModel.cpp
         src/cxx/kdtree.c
         src/cxx/Source.cpp
-        src/cxx/Element/HyperCube/Square/Autogen/order4_square.c
+        ${QuadAutoGen}
         )
 
 target_link_libraries(salvus petsc exodus netcdf)
