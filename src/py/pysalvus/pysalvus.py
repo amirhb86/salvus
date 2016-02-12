@@ -9,9 +9,19 @@ from model_handling import model
 
 
 @click.group()
+def cli():
+    """
+    pysalvus
+    """
+    pass
+
+
+@cli.group()
 def code_generation():
-    """Test."""
-    raise NotImplementedError
+    """
+    Test.
+    """
+    pass
 
 
 @code_generation.command()
@@ -19,7 +29,7 @@ def code_generation():
               help='Dimension of element.')
 @click.option('--polynomial_order', required=True,
               help='Lagrange polynomial order.')
-def HyperCube_generate_gll_basis(dimension, polynomial_order):
+def hyperCube_generate_gll_basis(dimension, polynomial_order):
     """
     Autogenerate the appropriate code for a tensorized gll basis on a 2D/3D
     hypercube element.
@@ -33,12 +43,12 @@ def HyperCube_generate_gll_basis(dimension, polynomial_order):
         raise NotImplementedError
 
 
-@click.group()
+@cli.group()
 def model_handling():
     """
     Test.
     """
-    raise NotImplementedError
+    pass
 
 
 @model_handling.command()
@@ -60,17 +70,21 @@ def add_constant_material_parameter(input_file, name, value, output_file):
     working_model.write(output_file)
 
 
-@click.group()
+@cli.group()
 def solver_operation():
     """
     Test.
     """
-    raise NotImplementedError
+    pass
 
 
-@click.group()
+@cli.group()
 def optimization_tools():
     """
     Test.
     """
-    raise NotImplementedError
+    pass
+
+
+if __name__ == "__main__":
+    cli()
