@@ -1,21 +1,26 @@
-cmake_minimum_required(VERSION 3.2.2)
+cmake_minimum_required(VERSION 3.0.0)
 project(salvus)
+
+###############################################
+# Set all necessary variables here.
+# Please only try to edit in this block. If something is
+# missing add it.
+SET(CMAKE_C_COMPILER /usr/local/bin/mpicc)
+SET(CMAKE_CXX_COMPILER /usr/local/bin/mpicxx)
+SET(PETSC_DIR /opt/petsc)
+SET(EIGEN_INCLUDE /usr/local/include/eigen3)
+###############################################
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3")
 
 find_package(MPI REQUIRED)
 include_directories(${MPI_INCLUDE_PATH})
-SET(CMAKE_C_COMPILER /usr/local/bin/mpicc)
-SET(CMAKE_CXX_COMPILER /usr/local/bin/mpicxx)
 
-SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake-modules")
-
-SET(PETSC_DIR PATH)
-find_package(PETSc REQUIRED CXX)
-include_directories("${PETSC_DIR}/include")
 link_directories(${PETSC_DIR}/lib)
 
 include_directories(
-        /usr/local/include/eigen3
+        ${PETSC_DIR}/include/
+        ${EIGEN_INCLUDE}
         cxx
         cxx/Element
         cxx/Element/HyperCube
@@ -33,7 +38,6 @@ add_executable(salvus
         src/cxx/Mesh.cpp
         src/cxx/Utilities.cpp
         src/cxx/Options.cpp
-#        src/cxx/Element/Element.cpp
         src/cxx/Element/HyperCube/Square.cpp
         src/cxx/Element/HyperCube/Square/Acoustic.cpp
         src/cxx/Model/ExodusModel.cpp
