@@ -46,3 +46,7 @@ Finally compile `salvus` with
 $ cmake .
 $ make -j4
 ```
+
+### Running it
+
+We aim to collect a number of examples including all required data here: https://github.com/SalvusHub/salvus_data
