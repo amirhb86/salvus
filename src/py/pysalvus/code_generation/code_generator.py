@@ -2,11 +2,8 @@ import os
 import sympy as sym
 from sympy.physics.quantum import TensorProduct
 from sympy.utilities.codegen import CCodeGen
-
-def gll_coordinates(order):
-
-    if order == 4 :
-        return [-1.0, -0.6546536707, 0.0, 0.6546536707, 1.0]
+from quadrature_points_weights import \
+    gauss_lobatto_legendre_quadruature_points_weights
 
 
 def generating_polynomial_lagrange(N, coordinate, gll_points):
@@ -56,8 +53,9 @@ def tensorized_basis_2D(order):
 
     # Get tensorized basis.
     basis = TensorProduct(generator_eta, generator_eps)
-    basis = basis.subs([(v, c) for v, c in zip(eps_gll, gll_coordinates(order))])
-    basis = basis.subs([(v, c) for v, c in zip(eta_gll, gll_coordinates(order))])
+    gll_coordinates, _ = gauss_lobatto_legendre_quadruature_points_weights(order + 1)
+    basis = basis.subs([(v, c) for v, c in zip(eps_gll, gll_coordinates)])
+    basis = basis.subs([(v, c) for v, c in zip(eta_gll, gll_coordinates)])
     sym.pprint(basis)
 
     # Get gradient of basis functions.
