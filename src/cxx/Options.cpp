@@ -11,6 +11,16 @@ void Options::setOptions() {
 
     PetscInt int_buffer;
     PetscBool parameter_set;
+    double real_buffer;
+
+
+    PetscOptionsGetReal(NULL, "--duration", &real_buffer, &parameter_set);
+    if (parameter_set) { mDuration = real_buffer; }
+
+    PetscOptionsGetReal(NULL, "--time_step", &real_buffer, &parameter_set);
+    if (parameter_set) { mTimeStep = real_buffer; }
+
+    // String options.
     char char_buffer[PETSC_MAX_PATH_LEN];
 
     PetscOptionsGetString(NULL, "--exodus_file_name", char_buffer, PETSC_MAX_PATH_LEN,

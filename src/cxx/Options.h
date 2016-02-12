@@ -16,6 +16,12 @@ class Options {
     PetscInt mNumberSources;
     PetscInt mPolynomialOrder;
 
+    // Double options.
+    // Simulation duration
+    double mDuration;
+    // Time step.
+    double mTimeStep;
+
     // String options.
     std::string mMeshType;
     std::string mExodusMeshFile;
@@ -37,11 +43,15 @@ public:
 
     void setOptions();
 
-    // Integer geters
+    // Integer getters
     inline PetscInt PolynomialOrder() { return mPolynomialOrder; }
     inline PetscInt NumberSources() { return mNumberSources; }
 
-    // String geters
+    // Double getters
+    inline double Duration() { return mDuration; }
+    inline double TimeStep() { return mTimeStep; }
+
+    // String getters
     inline std::string PhysicsSystem() { return mPhysicsSystem; }
     inline std::string ExodusMeshFile() { return mExodusMeshFile; }
     inline std::string MeshType() { return mMeshType; }
@@ -50,7 +60,7 @@ public:
     inline std::string SourceType() { return mSourceType; }
     inline std::string OutputMovieFile() { return mOutputMovieFile; }
 
-    // Vector getattrs.
+    // Vector getters
     inline std::vector<double> SourceLocationX() { return mSourceLocationX; }
     inline std::vector<double> SourceLocationY() { return mSourceLocationY; }
     inline std::vector<double> SourceLocationZ() { return mSourceLocationZ; }

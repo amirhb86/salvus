@@ -60,8 +60,8 @@ int main(int argc, char *argv[]) {
     mesh->setUpMovie(options.OutputMovieFile());
 
     double time = 0;
-    double timestep = 1e-3;
-    while (time < 2.0) {
+    double timestep = options.TimeStep();
+    while (time < options.Duration()) {
 
         // Pull down fields from global dof.
         mesh->checkOutFields();
