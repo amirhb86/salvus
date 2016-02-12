@@ -7,7 +7,7 @@
 #include "Utilities.h"
 
 
-void Options::setOptions() {
+PetscErrorCode Options::setOptions() {
 
     PetscInt int_buffer;
     PetscBool parameter_set;
@@ -16,9 +16,11 @@ void Options::setOptions() {
 
     PetscOptionsGetReal(NULL, "--duration", &real_buffer, &parameter_set);
     if (parameter_set) { mDuration = real_buffer; }
+    else { SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER, "Duration must be given via --duration");}
 
     PetscOptionsGetReal(NULL, "--time_step", &real_buffer, &parameter_set);
     if (parameter_set) { mTimeStep = real_buffer; }
+    else { SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER, "Time step must be given via --time_step");}
 
     // String options.
     char char_buffer[PETSC_MAX_PATH_LEN];
@@ -73,4 +75,6 @@ void Options::setOptions() {
     PetscOptionsGetScalarArray(NULL, "--ricker_time_delay", mSourceRickerTimeDelay.data(), &mNumberSources, NULL);
     PetscOptionsGetScalarArray(NULL, "--ricker_center_freq", mSourceRickerCenterFreq.data(), &mNumberSources, NULL);
 
+    // No error
+    return 0;
 }

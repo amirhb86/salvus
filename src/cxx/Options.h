@@ -41,7 +41,7 @@ class Options {
 
 public:
 
-    void setOptions();
+    PetscErrorCode setOptions();
 
     // Integer getters
     inline PetscInt PolynomialOrder() { return mPolynomialOrder; }
