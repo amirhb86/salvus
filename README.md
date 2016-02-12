@@ -13,11 +13,11 @@ $ ./configure --prefix=/opt/petsc --download-exodusii --download-netcdf --downlo
 At the end of each command it tells you to run some other command. Do that
 until it is done with everything.
 
-You also need to install version 3 of the `eigen` library:
+You also need to install version 3 of the `eigen` library and `cmake`:
 
 ```bash
-$ brew install eigen          # OSX
-$ sudo apg-get install eigen  # Ubuntu
+$ brew install eigen cmake          # OSX
+$ sudo apg-get install eigen cmake  # Ubuntu
 ```
 
 Then copy the `CMakeLists.txt.TEMPLATE` file
