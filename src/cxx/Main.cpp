@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
     }
 
     mesh->checkInMassMatrix();
-    mesh->setUpMovie();
+    mesh->setUpMovie(options.OutputMovieFile());
 
     double time = 0;
     double timestep = 1e-3;

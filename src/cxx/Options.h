@@ -23,6 +23,8 @@ class Options {
     std::string mPhysicsSystem;
     std::string mExodusModelFile;
     std::string mSourceType;
+    // Determines the output name of the movie.
+    std::string mOutputMovieFile;
 
     std::vector<double> mSourceLocationX;
     std::vector<double> mSourceLocationY;
@@ -46,6 +48,7 @@ public:
     inline std::string ElementShape() { return mElementShape; }
     inline std::string ExodusModelFile() { return mExodusModelFile; }
     inline std::string SourceType() { return mSourceType; }
+    inline std::string OutputMovieFile() { return mOutputMovieFile; }
 
     // Vector getattrs.
     inline std::vector<double> SourceLocationX() { return mSourceLocationX; }

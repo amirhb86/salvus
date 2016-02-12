@@ -70,7 +70,7 @@ public:
     // Integer getattr.
     inline PetscInt NumberElementsLocal() { return mNumberElementsLocal; }
 
-    void setUpMovie();
+    void setUpMovie(const std::string &movie_filename);
     void saveFrame();
     void finalizeMovie();
     void zeroFields();

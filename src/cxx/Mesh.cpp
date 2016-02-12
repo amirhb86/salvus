@@ -229,12 +229,10 @@ void Mesh::zeroFields() {
 
 }
 
-void Mesh::setUpMovie() {
-
+void Mesh::setUpMovie(const std::string &movie_filename) {
     mTime = 0;
     mViewer = nullptr;
-    std::string file_name = "/Users/michaelafanasiev/Desktop/movie.h5";
-    PetscViewerHDF5Open(PETSC_COMM_WORLD, file_name.c_str(), FILE_MODE_WRITE, &mViewer);
+    PetscViewerHDF5Open(PETSC_COMM_WORLD, movie_filename.c_str(), FILE_MODE_WRITE, &mViewer);
     PetscViewerHDF5PushGroup(mViewer, "/");
     DMView(mDistributedMesh, mViewer);
 
