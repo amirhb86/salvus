@@ -7,13 +7,13 @@
  ******************************************************************************/
 
 
-#ifndef PROJECT__ORDER4_SQUARE__H
-#define PROJECT__ORDER4_SQUARE__H
+#ifndef PROJECT__ORDER9_SQUARE__H
+#define PROJECT__ORDER9_SQUARE__H
 
-void interpolate_order4_square(double epsilon, double eta, double *out_5590410397267881018);
-void interpolate_eps_derivative_order4_square(double epsilon, double eta, double *out_9048464668387216643);
-void interpolate_eta_derivative_order4_square(double epsilon, double eta, double *out_6330729362090964521);
-void diagonal_mass_matrix_order4_square(double epsilon, double eta, double rho, double *out_6889885888746620662);
+void interpolate_order9_square(double epsilon, double eta, double *out_5708876025817303321);
+void interpolate_eps_derivative_order9_square(double epsilon, double eta, double *out_7338201687422862883);
+void interpolate_eta_derivative_order9_square(double epsilon, double eta, double *out_7489494862605754493);
+void diagonal_mass_matrix_order9_square(double epsilon, double eta, double rho, double *out_1354651876489653791);
 
 #endif
 
