@@ -5,7 +5,7 @@
 #include "Mesh.h"
 
 #include "Utilities.h"
-#include "Element/HyperCube/Square/Acoustic.h"
+#include "Element/HyperCube/Quad/Acoustic.h"
 #include "Model/ExodusModel.h"
 #include "Source.h"
 
@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
     std::vector<Source*> sources = Source::factory(options);
 
     // Setup reference element.
-    Square *reference_element = new Acoustic(options);
+    Quad *reference_element = new Acoustic(options);
 
     mesh->setupGlobalDof(reference_element->NumberDofVertex(), reference_element->NumberDofEdge(),
                          reference_element->NumberDofFace(), reference_element->NumberDofVolume(),
@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
 
 
     // Clone a list of all local elements.
-    std::vector<Square *> elements;
+    std::vector<Quad *> elements;
     for (auto i = 0; i < mesh->NumberElementsLocal(); i++) { elements.push_back(reference_element->clone()); }
 
     // Now things that only local elements are allowed to do.

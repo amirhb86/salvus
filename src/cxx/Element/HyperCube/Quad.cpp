@@ -6,42 +6,42 @@
 #include <petscdm.h>
 #include <petscdmplex.h>
 #include <openmpi/ompi/mpi/cxx/mpicxx.h>
-#include "Square.h"
-#include "Square/Autogen/order4_square.h"
+#include "Quad.h"
+#include "Quad/Autogen/order4_square.h"
 
 /*
  * STATIC FUNCTIONS WHICH ARE ONLY ON THE REFERENCE ELEMENT.
  */
-int Square::mNumberDofVertex;
-int Square::mNumberDofEdge;
-int Square::mNumberDofFace;
-int Square::mNumberDofVolume;
-int Square::mNumberIntegrationPointsEps;
-int Square::mNumberIntegrationPointsEta;
-int Square::mNumberIntegrationPoints;
-int Square::mPolynomialOrder;
+int Quad::mNumberDofVertex;
+int Quad::mNumberDofEdge;
+int Quad::mNumberDofFace;
+int Quad::mNumberDofVolume;
+int Quad::mNumberIntegrationPointsEps;
+int Quad::mNumberIntegrationPointsEta;
+int Quad::mNumberIntegrationPoints;
+int Quad::mPolynomialOrder;
 
-Eigen::VectorXi Square::mClosureMapping;
-Eigen::MatrixXd Square::mGradientOperator;
-Eigen::VectorXd Square::mIntegrationWeightsEps;
-Eigen::VectorXd Square::mIntegrationWeightsEta;
-Eigen::VectorXd Square::mIntegrationCoordinatesEps;
-Eigen::VectorXd Square::mIntegrationCoordinatesEta;
+Eigen::VectorXi Quad::mClosureMapping;
+Eigen::MatrixXd Quad::mGradientOperator;
+Eigen::VectorXd Quad::mIntegrationWeightsEps;
+Eigen::VectorXd Quad::mIntegrationWeightsEta;
+Eigen::VectorXd Quad::mIntegrationCoordinatesEps;
+Eigen::VectorXd Quad::mIntegrationCoordinatesEta;
 
-double Square::n0(const double &eps, const double &eta) { return 0.25 * (1.0 - eps) * (1.0 - eta); }
-double Square::n1(const double &eps, const double &eta) { return 0.25 * (1.0 + eps) * (1.0 - eta); }
-double Square::n2(const double &eps, const double &eta) { return 0.25 * (1.0 - eps) * (1.0 + eta); }
-double Square::n3(const double &eps, const double &eta) { return 0.25 * (1.0 + eps) * (1.0 + eta); }
-double Square::dn0deps(const double &eta) { return (-1) * (1 - eta) / 4.0; }
-double Square::dn1deps(const double &eta) { return (+1) * (1 - eta) / 4.0; }
-double Square::dn2deps(const double &eta) { return (-1) * (1 + eta) / 4.0; }
-double Square::dn3deps(const double &eta) { return (+1) * (1 + eta) / 4.0; }
-double Square::dn0deta(const double &eps) { return (1 - eps) * -1.0 / 4.0; }
-double Square::dn1deta(const double &eps) { return (1 + eps) * -1.0 / 4.0; }
-double Square::dn2deta(const double &eps) { return (1 - eps) * 1.0 / 4.0; }
-double Square::dn3deta(const double &eps) { return (1 + eps) * 1.0 / 4.0; }
+double Quad::n0(const double &eps, const double &eta) { return 0.25 * (1.0 - eps) * (1.0 - eta); }
+double Quad::n1(const double &eps, const double &eta) { return 0.25 * (1.0 + eps) * (1.0 - eta); }
+double Quad::n2(const double &eps, const double &eta) { return 0.25 * (1.0 - eps) * (1.0 + eta); }
+double Quad::n3(const double &eps, const double &eta) { return 0.25 * (1.0 + eps) * (1.0 + eta); }
+double Quad::dn0deps(const double &eta) { return (-1) * (1 - eta) / 4.0; }
+double Quad::dn1deps(const double &eta) { return (+1) * (1 - eta) / 4.0; }
+double Quad::dn2deps(const double &eta) { return (-1) * (1 + eta) / 4.0; }
+double Quad::dn3deps(const double &eta) { return (+1) * (1 + eta) / 4.0; }
+double Quad::dn0deta(const double &eps) { return (1 - eps) * -1.0 / 4.0; }
+double Quad::dn1deta(const double &eps) { return (1 + eps) * -1.0 / 4.0; }
+double Quad::dn2deta(const double &eps) { return (1 - eps) * 1.0 / 4.0; }
+double Quad::dn3deta(const double &eps) { return (1 + eps) * 1.0 / 4.0; }
 
-Eigen::VectorXd Square::GllPointsForOrder(const int order) {
+Eigen::VectorXd Quad::GllPointsForOrder(const int order) {
     Eigen::VectorXd gll_points(order+1);
     if (order == 4) {
         gll_points << -1.0, -0.6546536707, 0.0, 0.6546536707, 1.0;
@@ -49,7 +49,7 @@ Eigen::VectorXd Square::GllPointsForOrder(const int order) {
     return gll_points;
 }
 
-Eigen::VectorXd Square::GllIntegrationWeightForOrder(const int order) {
+Eigen::VectorXd Quad::GllIntegrationWeightForOrder(const int order) {
     Eigen::VectorXd integration_weights(order+1);
     if (order == 4) {
         integration_weights << 0.1, 0.5444444444, 0.7111111111, 0.5444444444, 0.1;
@@ -57,7 +57,7 @@ Eigen::VectorXd Square::GllIntegrationWeightForOrder(const int order) {
     return integration_weights;
 }
 
-Eigen::VectorXi Square::ClosureMapping(const int order, const int dimension) {
+Eigen::VectorXi Quad::ClosureMapping(const int order, const int dimension) {
     Eigen::VectorXi closure_mapping((order+1)*(order+1));
     if (dimension == 2) {
         if (order == 4) {
@@ -70,22 +70,22 @@ Eigen::VectorXi Square::ClosureMapping(const int order, const int dimension) {
 }
 
 
-Eigen::Map<const Eigen::VectorXd> Square::epsVectorStride(const Eigen::VectorXd &function,
-                                                    const int &eta_index) {
+Eigen::Map<const Eigen::VectorXd> Quad::epsVectorStride(const Eigen::VectorXd &function,
+                                                        const int &eta_index) {
     return Eigen::Map<const Eigen::VectorXd> (
             function.data() + eta_index * mNumberIntegrationPointsEta,
             mNumberIntegrationPointsEps);
 }
 
-Eigen::Map<const Eigen::VectorXd, 0, Eigen::InnerStride<>> Square::etaVectorStride(const Eigen::VectorXd &function,
-                                                                                   const int &eta_index) {
+Eigen::Map<const Eigen::VectorXd, 0, Eigen::InnerStride<>> Quad::etaVectorStride(const Eigen::VectorXd &function,
+                                                                                 const int &eta_index) {
     return Eigen::Map<const Eigen::VectorXd, 0, Eigen::InnerStride<>> (
             function.data() + eta_index, mNumberIntegrationPointsEta,
             Eigen::InnerStride<> (mNumberIntegrationPointsEps));
 }
 
 
-Eigen::Vector4d Square::interpolateShapeFunctions(const double &eps, const double &eta) {
+Eigen::Vector4d Quad::interpolateShapeFunctions(const double &eps, const double &eta) {
     Eigen::Vector4d coefficients;
     coefficients(0) = n0(eps, eta);
     coefficients(1) = n1(eps, eta);
@@ -94,7 +94,7 @@ Eigen::Vector4d Square::interpolateShapeFunctions(const double &eps, const doubl
     return coefficients;
 }
 
-void Square::attachVertexCoordinates(DM &distributed_mesh) {
+void Quad::attachVertexCoordinates(DM &distributed_mesh) {
 
     Vec coordinates_local;
     PetscInt coordinate_buffer_size;
@@ -119,7 +119,7 @@ void Square::attachVertexCoordinates(DM &distributed_mesh) {
 
 }
 
-Eigen::Matrix<double,2,2> Square::jacobianAtPoint(PetscReal eps, PetscReal eta) {
+Eigen::Matrix<double,2,2> Quad::jacobianAtPoint(PetscReal eps, PetscReal eta) {
     Eigen::Matrix<double,2,4> jacobian_multiplier;
     jacobian_multiplier(0,0) = dn0deps(eta);
     jacobian_multiplier(0,1) = dn1deps(eta);
@@ -132,7 +132,7 @@ Eigen::Matrix<double,2,2> Square::jacobianAtPoint(PetscReal eps, PetscReal eta) 
     return jacobian_multiplier * mVertexCoordinates.transpose();
 }
 
-Eigen::Vector4d Square::__interpolateMaterialProperties(ExodusModel &model, std::string parameter_name) {
+Eigen::Vector4d Quad::__interpolateMaterialProperties(ExodusModel &model, std::string parameter_name) {
 
     Eigen::Vector4d material_at_vertices(mNumberVertex);
 
@@ -151,7 +151,7 @@ Eigen::Vector4d Square::__interpolateMaterialProperties(ExodusModel &model, std:
 
 }
 
-void Square::attachSource(std::vector<Source*> sources) {
+void Quad::attachSource(std::vector<Source*> sources) {
 
     for (auto &source: sources) {
         if (mCheckHull(source->PhysicalLocationX(), source->PhysicalLocationZ())) {
@@ -166,7 +166,7 @@ void Square::attachSource(std::vector<Source*> sources) {
 
 }
 
-bool Square::mCheckHull(double x, double z) {
+bool Quad::mCheckHull(double x, double z) {
     int n_neg = 0;
     int n_pos = 0;
     std::vector<int> edge_mapping {0, 1, 3, 2, 0};
@@ -186,8 +186,8 @@ bool Square::mCheckHull(double x, double z) {
     return n_neg == mNumberVertex || n_pos == mNumberVertex;
 }
 
-Eigen::Vector2d Square::inverseCoordinateTransform(const double &x_real, const double &z_real,
-                                                   double eps, double eta) {
+Eigen::Vector2d Quad::inverseCoordinateTransform(const double &x_real, const double &z_real,
+                                                 double eps, double eta) {
 
     double tol = 1e-6;
     Eigen::Vector2d solution {eps, eta};
@@ -218,7 +218,7 @@ Eigen::Vector2d Square::inverseCoordinateTransform(const double &x_real, const d
 
 }
 
-void Square::readOperators() {
+void Quad::readOperators() {
 
     int i = 0;
     double eta = mIntegrationCoordinatesEta[0];
@@ -232,7 +232,7 @@ void Square::readOperators() {
 
 }
 
-Square::Square(Options options) {
+Quad::Quad(Options options) {
 
     // Basic properties.
     mPolynomialOrder = options.PolynomialOrder();
@@ -244,11 +244,11 @@ Square::Square(Options options) {
     mNumberDofFace = (mPolynomialOrder - 1) * (mPolynomialOrder - 1);
 
     // Integration points.
-    mIntegrationCoordinatesEps = Square::GllPointsForOrder(options.PolynomialOrder());
-    mIntegrationCoordinatesEta = Square::GllPointsForOrder(options.PolynomialOrder());
-    mIntegrationWeightsEps = Square::GllIntegrationWeightForOrder(options.PolynomialOrder());
-    mIntegrationWeightsEta = Square::GllIntegrationWeightForOrder(options.PolynomialOrder());
-    mClosureMapping = Square::ClosureMapping(options.PolynomialOrder(),mNumberDimensions);
+    mIntegrationCoordinatesEps = Quad::GllPointsForOrder(options.PolynomialOrder());
+    mIntegrationCoordinatesEta = Quad::GllPointsForOrder(options.PolynomialOrder());
+    mIntegrationWeightsEps = Quad::GllIntegrationWeightForOrder(options.PolynomialOrder());
+    mIntegrationWeightsEta = Quad::GllIntegrationWeightForOrder(options.PolynomialOrder());
+    mClosureMapping = Quad::ClosureMapping(options.PolynomialOrder(), mNumberDimensions);
 
     // Save number of integration points.
     mNumberIntegrationPointsEps = mIntegrationCoordinatesEps.size();
@@ -257,7 +257,7 @@ Square::Square(Options options) {
 
 }
 
-void Square::scatterMassMatrix(Mesh *mesh) {
+void Quad::scatterMassMatrix(Mesh *mesh) {
 
     mesh->setFieldOnElement((int) AcousticFields::mass_matrix, mElementNumber, mClosureMapping,
                             mMassMatrix);

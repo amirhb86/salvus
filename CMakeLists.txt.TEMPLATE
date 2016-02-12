@@ -8,17 +8,17 @@ project(salvus)
 SET(CMAKE_C_COMPILER /usr/bin/mpicc)
 SET(CMAKE_CXX_COMPILER /usr/bin/mpicxx)
 SET(PETSC_DIR /opt/petsc)
-SET(EIGEN_INCLUDE /usr/include/eigen3)
+SET(EIGEN_INCLUDE /usr/local/include/eigen3)
 ###############################################
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 find_package(MPI REQUIRED)
 include_directories(${MPI_INCLUDE_PATH})
 
 link_directories(${PETSC_DIR}/lib)
 
-FILE(GLOB QuadAutoGen src/cxx/Element/HyperCube/Square/Autogen/*.c)
+FILE(GLOB QuadAutoGen src/cxx/Element/HyperCube/Quad/Autogen/*.c)
 
 include_directories(
         ${PETSC_DIR}/include/
@@ -26,8 +26,8 @@ include_directories(
         cxx
         cxx/Element
         cxx/Element/HyperCube
-        cxx/Element/HyperCube/Square
-        cxx/Element/HyperCube/Square/Autogen
+        cxx/Element/HyperCube/Quad
+        cxx/Element/HyperCube/Quad/Autogen
         cxx/Element/HyperCube/Cube
         cxx/Element/Simplex
         cxx/Element/Simplex/Triangle
@@ -40,8 +40,8 @@ add_executable(salvus
         src/cxx/Mesh.cpp
         src/cxx/Utilities.cpp
         src/cxx/Options.cpp
-        src/cxx/Element/HyperCube/Square.cpp
-        src/cxx/Element/HyperCube/Square/Acoustic.cpp
+        src/cxx/Element/HyperCube/Quad.cpp
+        src/cxx/Element/HyperCube/Quad/Acoustic.cpp
         src/cxx/Model/ExodusModel.cpp
         src/cxx/kdtree.c
         src/cxx/Source.cpp

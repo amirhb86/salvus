@@ -8,11 +8,11 @@
 
 #include <petscvec.h>
 #include "../../../Options.h"
-#include "../Square.h"
+#include "../Quad.h"
 #include "../../../Model/ExodusModel.h"
 #include "../../../Utilities.h"
 
-class Acoustic : public Square {
+class Acoustic : public Quad {
 
     AcousticFields mFields;
 

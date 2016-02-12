@@ -5,7 +5,7 @@
 #include "Acoustic.h"
 #include "Autogen/order4_square.h"
 
-Acoustic::Acoustic(Options options): Square(options) {
+Acoustic::Acoustic(Options options): Quad(options) {
 
     // Allocate element vectors.
     mMassMatrix.setZero(mNumberIntegrationPoints);

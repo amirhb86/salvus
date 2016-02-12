@@ -11,7 +11,7 @@
 #include "../../Mesh.h"
 
 extern "C" {
-#include "Square/Autogen/order4_square.h"
+#include "Quad/Autogen/order4_square.h"
 };
 
 /*
@@ -36,7 +36,7 @@ extern "C" {
  *   |______> (eps)
 */
 
-class Square {
+class Quad {
 
     // Static functions which only required the reference element.
     static double n0(const double &eps, const double &eta);
@@ -94,8 +94,8 @@ protected:
 
 public:
 
-    Square(Options options);
-    virtual Square* clone() const = 0;
+    Quad(Options options);
+    virtual Quad * clone() const = 0;
 
     static Eigen::VectorXd GllPointsForOrder(const int order);
     static Eigen::VectorXd GllIntegrationWeightForOrder(const int order);
