@@ -192,13 +192,6 @@ void ScalarNewmark::advanceField() {
 
     VecCopy(mFields[acceleration].field_globals, mFields[acceleration_].field_globals);
 
-    double maxval;
-    VecMax(mFields[displacement].field_globals, NULL, &maxval);
-//    std::cout << "MAX DISPLACEMENT: " << maxval << std::endl;
-    VecMin(mFields[displacement].field_globals, NULL, &maxval);
-//    std::cout << "MIN DISPLACEMENT: " << maxval << std::endl;
-
-
 }
 
 void ScalarNewmark::applyInverseMassMatrix() {

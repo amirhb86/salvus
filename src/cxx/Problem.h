@@ -9,11 +9,11 @@
 #include <iosfwd>
 #include <string>
 
-class Solver {
+class Problem {
 
 public:
 
-    static Solver *factory(std::string solver_type);
+    static Problem *factory(std::string solver_type);
 
     virtual void initialize() = 0;
     virtual void solve() = 0;
@@ -21,7 +21,7 @@ public:
 
 };
 
-class TimeDomain : public Solver {
+class TimeDomain : public Problem {
 
 public:
 
@@ -30,7 +30,7 @@ public:
 
 };
 
-class FrequencyDomain : public Solver {
+class FrequencyDomain : public Problem {
 
 public:
 
