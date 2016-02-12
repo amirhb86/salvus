@@ -7,7 +7,7 @@
 #include <petscdmplex.h>
 #include <openmpi/ompi/mpi/cxx/mpicxx.h>
 #include "Quad.h"
-#include "Quad/Autogen/order4_square.h"
+#include "Quad/Autogen/quad_autogen.h"
 
 /*
  * STATIC FUNCTIONS WHICH ARE ONLY ON THE REFERENCE ELEMENT.

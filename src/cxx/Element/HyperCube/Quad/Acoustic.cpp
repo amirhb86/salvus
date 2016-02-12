@@ -3,7 +3,6 @@
 //
 
 #include "Acoustic.h"
-#include "Autogen/order4_square.h"
 
 Acoustic::Acoustic(Options options): Quad(options) {
 
