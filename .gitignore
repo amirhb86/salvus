@@ -1,3 +1,6 @@
+# Templates
+*.TEMPLATE
+
 # Compiled Object files
 *.slo
 *.lo
