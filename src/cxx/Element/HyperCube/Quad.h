@@ -106,8 +106,14 @@ public:
     void attachVertexCoordinates(DM &distributed_mesh);
     void attachSource(std::vector<Source*> sources);
 
-    // Attribute sets.
+    /**
+     * Simple function to set the (remembered) element number.
+     */
     void SetLocalElementNumber(const int &element_number) { mElementNumber = element_number; }
+
+    /**
+     * Sets the current simulation time. This is used internally, for example, by any sources residing on the element.
+     */
     void SetTime(const double &time) { mTime = time; }
 
     // Attribute gets.
