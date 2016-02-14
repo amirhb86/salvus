@@ -8,6 +8,7 @@
 #include "Element/HyperCube/Quad/Acoustic.h"
 #include "Model/ExodusModel.h"
 #include "Source.h"
+#include "Problem.h"
 
 static constexpr char help[] = "Welcome to salvus.";
 
@@ -24,74 +25,79 @@ int main(int argc, char *argv[]) {
     mesh->read(options);
 
     // Get model.
-    ExodusModel model(options);
-    model.initializeParallel();
+    ExodusModel *model = new ExodusModel(options);
+    model->initializeParallel();
 
-    // Get source.
+    // Get sources.
     std::vector<Source*> sources = Source::factory(options);
 
     // Setup reference element.
     Quad *reference_element = new Acoustic(options);
 
-    mesh->setupGlobalDof(reference_element->NumberDofVertex(), reference_element->NumberDofEdge(),
-                         reference_element->NumberDofFace(), reference_element->NumberDofVolume(),
-                         reference_element->NumberDimensions());
-    mesh->registerFields();
+    // Use above elements to define the problem.
+    Problem *problem = Problem::factory("time_domain");
+    problem->initialize(mesh, model, reference_element);
+    std::cout << "BEGIN." << std::endl;
 
-
-
-    // Clone a list of all local elements.
-    std::vector<Quad *> elements;
-    for (auto i = 0; i < mesh->NumberElementsLocal(); i++) { elements.push_back(reference_element->clone()); }
-
-    // Now things that only local elements are allowed to do.
-    int element_number = 0;
-    for (auto &element: elements) {
-        element->SetLocalElementNumber(element_number++);
-        element->attachVertexCoordinates(mesh->DistributedMesh());
-        element->attachSource(sources);
-        element->interpolateMaterialProperties(model);
-        element->readOperators();
-        element->assembleMassMatrix();
-        element->scatterMassMatrix(mesh);
-    }
-
-    mesh->checkInMassMatrix();
-    mesh->setUpMovie();
-
-    double time = 0;
-    double timestep = 1e-3;
-    while (time < 2.0) {
-
-        // Pull down fields from global dof.
-        mesh->checkOutFields();
-        mesh->zeroFields();
-
-        // Compute element-wise terms.
-        for (auto &element: elements) {
-            element->SetTime(time);
-            element->checkOutFields(mesh);
-            element->computeStiffnessTerm();
-            element->computeSourceTerm();
-            element->computeSurfaceTerm();
-            element->checkInField(mesh);
-        }
-
-        // Sum fields back into global dof.
-        mesh->checkInFieldsBegin();
-        mesh->checkInFieldsEnd();
-
-        // Invert mass matrix and take time step.
-        mesh->applyInverseMassMatrix();
-        mesh->advanceField();
-        mesh->saveFrame();
-
-        time += timestep;
-        if (!MPI::COMM_WORLD.Get_rank()) std::cout << time << std::endl;
-//        break;
-    }
-
-
-    mesh->finalizeMovie();
+//    mesh->setupGlobalDof(reference_element->NumberDofVertex(), reference_element->NumberDofEdge(),
+//                         reference_element->NumberDofFace(), reference_element->NumberDofVolume(),
+//                         reference_element->NumberDimensions());
+//    mesh->registerFields();
+//
+//
+//
+//    // Clone a list of all local elements.
+//    std::vector<Quad *> elements;
+//    for (auto i = 0; i < mesh->NumberElementsLocal(); i++) { elements.push_back(reference_element->clone()); }
+//
+//    // Now things that only local elements are allowed to do.
+//    int element_number = 0;
+//    for (auto &element: elements) {
+//        element->SetLocalElementNumber(element_number++);
+//        element->attachVertexCoordinates(mesh->DistributedMesh());
+//        element->attachSource(sources);
+//        element->interpolateMaterialProperties(model);
+//        element->readOperators();
+//        element->assembleMassMatrix();
+//        element->scatterMassMatrix(mesh);
+//    }
+//
+//    mesh->checkInMassMatrix();
+//    mesh->setUpMovie();
+//
+//    double time = 0;
+//    double timestep = 1e-3;
+//    while (time < 2.0) {
+//
+//        // Pull down fields from global dof.
+//        mesh->checkOutFields();
+//        mesh->zeroFields();
+//
+//        // Compute element-wise terms.
+//        for (auto &element: elements) {
+//            element->SetTime(time);
+//            element->checkOutFields(mesh);
+//            element->computeStiffnessTerm();
+//            element->computeSourceTerm();
+//            element->computeSurfaceTerm();
+//            element->checkInField(mesh);
+//        }
+//
+//        // Sum fields back into global dof.
+//        mesh->checkInFieldsBegin();
+//        mesh->checkInFieldsEnd();
+//
+//        // Invert mass matrix and take time step.
+//        mesh->applyInverseMassMatrix();
+//        mesh->advanceField();
+//        mesh->saveFrame();
+//
+//        time += timestep;
+//        if (!MPI::COMM_WORLD.Get_rank()) std::cout << time << std::endl;
+////        break;
+//    }
+//
+//
+//    mesh->finalizeMovie();
     PetscFinalize();
 }
