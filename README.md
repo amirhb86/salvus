@@ -3,7 +3,7 @@ Ask not what your spectral element wave propagator can do for you, but what you 
 
 ## Installation
 
-Download PETSc from http://www.mcs.anl.gov/petsc/download/, unpack it, and install it with all the required libraries. Adjust the `prefix` to where you want it installed.
+Download PETSc (at least 3.6.x) from http://www.mcs.anl.gov/petsc/download/, unpack it, and install it with all the required libraries. Adjust the `prefix` to where you want it installed.
 
 
 ```bash
@@ -13,11 +13,19 @@ $ ./configure --prefix=/opt/petsc --download-exodusii --download-netcdf --downlo
 At the end of each command it tells you to run some other command. Do that
 until it is done with everything.
 
-You also need to install version 3 of the `eigen` library and `cmake`:
+You also need to install version 3.x of the `eigen` library and version 3.x of `cmake`:
 
 ```bash
 $ brew install eigen cmake          # OSX
-$ sudo apt-get install libeigen3-dev cmake  # Ubuntu
+```
+
+and on Ubuntu 14.04 (which doesn't include cmake 3.x natively)
+
+``` bash
+$ sudo apt-get install libeigen3-dev 
+$ sudo add-apt-repository ppa:george-edison55/cmake-3.x
+$ sudo apt-get update
+$ sudo apt-get install cmake
 ```
 
 Then copy the `CMakeLists.txt.TEMPLATE` file
@@ -40,10 +48,17 @@ SET(EIGEN_INCLUDE /usr/include/eigen3)
 ###############################################
 ```
 
+It is a good idea to do an "out of source build" to keep the `salvus` directory clean of build artifacts.
+
+``` bash
+mkdir build
+cd build
+cmake ../
+```
+
 Finally compile `salvus` with
 
 ```bash
-$ cmake .
 $ make -j4
 ```
 
