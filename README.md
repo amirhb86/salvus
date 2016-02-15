@@ -17,7 +17,7 @@ You also need to install version 3 of the `eigen` library and `cmake`:
 
 ```bash
 $ brew install eigen cmake          # OSX
-$ sudo apg-get install eigen cmake  # Ubuntu
+$ sudo apt-get install libeigen3-dev cmake  # Ubuntu
 ```
 
 Then copy the `CMakeLists.txt.TEMPLATE` file
