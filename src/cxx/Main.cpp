@@ -38,6 +38,6 @@ int main(int argc, char *argv[]) {
     Problem *problem = Problem::factory("time_domain");
     problem->initialize(mesh, model, reference_element);
     problem->solve();
-    
+
     PetscFinalize();
 }
