@@ -36,7 +36,7 @@ include_directories(
 
 add_executable(salvus
         src/cxx/Main.cpp
-        src/cxx/Solver.cpp
+        src/cxx/Problem.cpp
         src/cxx/Mesh.cpp
         src/cxx/Utilities.cpp
         src/cxx/Options.cpp

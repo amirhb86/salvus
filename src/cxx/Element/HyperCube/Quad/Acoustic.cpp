@@ -84,7 +84,7 @@ void Acoustic::computeStiffnessTerm() {
 
 }
 
-void Acoustic::interpolateMaterialProperties(ExodusModel &model) {
+void Acoustic::interpolateMaterialProperties(ExodusModel *model) {
 
     mMaterialVelocityAtVertices = __interpolateMaterialProperties(model, "velocity");
     mMaterialDensityAtVertices = __interpolateMaterialProperties(model, "density");
@@ -119,18 +119,13 @@ void Acoustic::computeSourceTerm() {
 
 }
 
-void Acoustic::checkOutFields(Mesh *mesh) {
-
-    mElementDisplacement = mesh->getFieldOnElement(
-            (int) AcousticFields::displacement , mElementNumber, mClosureMapping);
-
+void Acoustic::checkOutField(Mesh *mesh) {
+    mElementDisplacement = mesh->getFieldOnElement("displacement", mElementNumber, mClosureMapping);
 }
 
 void Acoustic::checkInField(Mesh *mesh) {
-
-    mesh->setFieldOnElement((int) AcousticFields::force, mElementNumber, mClosureMapping,
+    mesh->setFieldOnElement("force", mElementNumber, mClosureMapping,
                             mIntegratedSource - mIntegratedStiffnessMatrix);
-
 }
 
 void Acoustic::computeSurfaceTerm() {
