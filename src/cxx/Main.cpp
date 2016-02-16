@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
 
     PetscInitialize(&argc, &argv, NULL, help);
 
-    // Get command line options.
+    // Get command line options. DUMB THING IN NEED TO DO
     Options options;
     options.setOptions();
 
