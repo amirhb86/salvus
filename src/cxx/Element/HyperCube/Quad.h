@@ -106,7 +106,8 @@ public:
     void readOperators();
     void attachVertexCoordinates(DM &distributed_mesh);
     void attachSource(std::vector<Source*> sources);
-    void attachIntegrationPoints();
+    
+    void attachNodalPoints();
     
     // Attribute sets.
     void SetLocalElementNumber(const int &element_number) { mElementNumber = element_number; }

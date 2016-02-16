@@ -264,7 +264,8 @@ void Quad::scatterMassMatrix(Mesh *mesh) {
 
 }
 
-void  Quad::attachIntegrationPoints() {
+e// global x-z points on all nodes
+void  Quad::attachNodalPoints() {
 		
   assert(mNumberIntegrationPoints == mNumberIntegrationPointsEps*mNumberIntegrationPointsEta);
 	
@@ -284,5 +285,7 @@ void  Quad::attachIntegrationPoints() {
       mIntegrationPoints(i,j) += interpolateShapeFunctions(eps, eta).dot(mVertexCoordinates.row(1));
 	
     }
-  }	
+  }
+  
+  
 }
