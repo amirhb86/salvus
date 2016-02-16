@@ -158,11 +158,6 @@ void Mesh::checkInFieldEnd(const std::string &name) {
 
 void ScalarNewmark::advanceField() {
 
-    int acceleration_ = (int) AcousticFields::acceleration_;
-    int acceleration = (int) AcousticFields::acceleration;
-    int displacement = (int) AcousticFields::displacement;
-    int velocity = (int) AcousticFields::velocity;
-
     double dt = 1e-3;
     double pre_factor_acceleration = (1.0/2.0) * dt;
     double pre_factor_displacement = (1.0/2.0) * (dt * dt);
