@@ -34,6 +34,7 @@ private:
 
     ScalarNewmark *mMesh;
     Quad *mReferenceQuad;
+    std::vector<Quad *> mElements;
 
 public:
 

@@ -132,7 +132,7 @@ Eigen::Matrix<double,2,2> Quad::jacobianAtPoint(PetscReal eps, PetscReal eta) {
     return jacobian_multiplier * mVertexCoordinates.transpose();
 }
 
-Eigen::Vector4d Quad::__interpolateMaterialProperties(ExodusModel &model, std::string parameter_name) {
+Eigen::Vector4d Quad::__interpolateMaterialProperties(ExodusModel *model, std::string parameter_name) {
 
     Eigen::Vector4d material_at_vertices(mNumberVertex);
 
@@ -143,7 +143,7 @@ Eigen::Vector4d Quad::__interpolateMaterialProperties(ExodusModel &model, std::s
     }
 
     for (auto i = 0; i < mNumberVertex; i++) {
-        material_at_vertices(i) = model.getMaterialParameterAtPoint({mVertexCoordinates(0, i),
+        material_at_vertices(i) = model->getMaterialParameterAtPoint({mVertexCoordinates(0, i),
                                                                      mVertexCoordinates(1, i)},
                                                                     parameter_name);
     }
@@ -258,8 +258,5 @@ Quad::Quad(Options options) {
 }
 
 void Quad::scatterMassMatrix(Mesh *mesh) {
-
-    mesh->setFieldOnElement((int) AcousticFields::mass_matrix, mElementNumber, mClosureMapping,
-                            mMassMatrix);
-
+    mesh->setFieldOnElement("mass_matrix", mElementNumber, mClosureMapping, mMassMatrix);
 }

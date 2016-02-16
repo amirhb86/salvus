@@ -88,7 +88,7 @@ protected:
 
     Eigen::Matrix<double,2,2> jacobianAtPoint(PetscReal eps, PetscReal eta);
 
-    Eigen::Vector4d __interpolateMaterialProperties(ExodusModel &model,
+    Eigen::Vector4d __interpolateMaterialProperties(ExodusModel *model,
                                                     std::string parameter_name);
 
 
@@ -125,14 +125,14 @@ public:
 
     // Pure virtual methods.
     virtual void checkInField(Mesh *mesh) = 0;
-    virtual void checkOutFields(Mesh *mesh) = 0;
+    virtual void checkOutField(Mesh *mesh) = 0;
 
     virtual void computeSourceTerm() = 0;
     virtual void computeSurfaceTerm() = 0;
     virtual void computeStiffnessTerm() = 0;
 
     virtual void assembleMassMatrix() = 0;
-    virtual void interpolateMaterialProperties(ExodusModel &model) = 0;
+    virtual void interpolateMaterialProperties(ExodusModel *model) = 0;
 
 };
 

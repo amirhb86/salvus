@@ -79,8 +79,7 @@ void Mesh::setupGlobalDof(int number_dof_vertex, int number_dof_edge, int number
 
 }
 
-void Mesh::registerFieldVectors(const int &num, const bool &check_out, const bool &check_in,
-                                const std::string &name) {
+void Mesh::registerFieldVectors(const std::string &name) {
 
     Vec field_vector_local;
     Vec field_vector_global;
@@ -92,85 +91,69 @@ void Mesh::registerFieldVectors(const int &num, const bool &check_out, const boo
     VecSet(field_vector_global, zero);
     PetscObjectSetName((PetscObject) field_vector_global, name.c_str());
 
-    if (check_in) { mFieldVectorCheckin.push_back(num); }
-    if (check_out) { mFieldVectorCheckout.push_back(num); }
-
     vec_struct registrar;
     registrar.name = name;
-    registrar.check_in = check_in;
-    registrar.check_out = check_out;
-    registrar.field_locals = field_vector_local;
-    registrar.field_globals = field_vector_global;
-    mFields[num] = registrar;
+    registrar.loc = field_vector_local;
+    registrar.glb = field_vector_global;
+    mFields[name] = registrar;
 
 }
 
-void Mesh::checkOutFields() {
+void Mesh::checkOutField(const std::string &name) {
 
-    for (auto &reg: mFieldVectorCheckout) {
-        DMGlobalToLocalBegin(mDistributedMesh, mFields[reg].field_globals, INSERT_VALUES,
-                             mFields[reg].field_locals);
-    }
+    assert(mFields.find(name) != mFields.end());
 
-    for (auto &reg: mFieldVectorCheckout) {
-        DMGlobalToLocalEnd(mDistributedMesh, mFields[reg].field_globals, INSERT_VALUES,
-                           mFields[reg].field_locals);
-    }
+    // Begin the MPI broadcast global -> local.
+    DMGlobalToLocalBegin(mDistributedMesh, mFields[name].glb, INSERT_VALUES,
+                         mFields[name].loc);
+
+    // End the MPI broadcast global -> local.
+    DMGlobalToLocalEnd(mDistributedMesh, mFields[name].glb, INSERT_VALUES,
+                       mFields[name].loc);
 
 }
 
-Eigen::VectorXd Mesh::getFieldOnElement(const int &field_num, const int &element_number,
+Eigen::VectorXd Mesh::getFieldOnElement(const std::string &name, const int &element_number,
                                         const Eigen::VectorXi &closure) {
 
     PetscScalar *val = NULL;
     Eigen::VectorXd field(closure.size());
-    DMPlexVecGetClosure(mDistributedMesh, mMeshSection, mFields[field_num].field_locals,
+    DMPlexVecGetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
                         element_number, NULL, &val);
     for (auto j = 0; j < closure.size(); j++) { field(closure(j)) = val[j]; }
-    DMPlexVecRestoreClosure(mDistributedMesh, mMeshSection, mFields[field_num].field_locals,
+    DMPlexVecRestoreClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
                             element_number, NULL, &val);
     return field;
 
 }
 
-void Mesh::setFieldOnElement(const int &field_num, const int &element_number,
+void Mesh::setFieldOnElement(const std::string &name, const int &element_number,
                              const Eigen::VectorXi &closure, const Eigen::VectorXd &field) {
 
     Eigen::VectorXd val(closure.size());
-    double vecmax;
-    VecMax(mFields[field_num].field_locals, NULL, &vecmax);
-
     for (auto j = 0; j < closure.size(); j++) { val(j) = field(closure(j)); }
-    DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[field_num].field_locals,
+    DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
                         element_number, val.data(), ADD_VALUES);
 
 }
 
-void Mesh::checkInFieldsBegin() {
+void Mesh::checkInFieldBegin(const std::string &name) {
 
-    for (auto reg: mFieldVectorCheckin) {
-        double vecmax;
-        VecMax(mFields[reg].field_locals, NULL, &vecmax);
-        DMLocalToGlobalBegin(mDistributedMesh, mFields[reg].field_locals, ADD_VALUES, mFields[reg].field_globals);
-    }
+    // Make sure the field exists in our dictionary.
+    assert(mFields.find(name) != mFields.end());
 
+    // Begin MPI broadcast local -> global.
+    DMLocalToGlobalBegin(mDistributedMesh, mFields[name].loc, ADD_VALUES, mFields[name].glb);
 }
 
 
-void Mesh::checkInFieldsEnd() {
+void Mesh::checkInFieldEnd(const std::string &name) {
 
-    for (auto reg: mFieldVectorCheckin) {
-        DMLocalToGlobalEnd(mDistributedMesh, mFields[reg].field_locals, ADD_VALUES, mFields[reg].field_globals);
-    }
+    // Make sure the field exists in our dictionary.
+    assert(mFields.find(name) != mFields.end());
 
-}
-
-void Mesh::checkInMassMatrix() {
-
-    int index = -1;
-    DMLocalToGlobalBegin(mDistributedMesh, mFields[index].field_locals, ADD_VALUES, mFields[index].field_globals);
-    DMLocalToGlobalEnd(mDistributedMesh, mFields[index].field_locals, ADD_VALUES, mFields[index].field_globals);
-
+    // Begin MPI broadcast local -> global.
+    DMLocalToGlobalEnd(mDistributedMesh, mFields[name].loc, ADD_VALUES, mFields[name].glb);
 }
 
 void ScalarNewmark::advanceField() {
@@ -184,42 +167,33 @@ void ScalarNewmark::advanceField() {
     double pre_factor_acceleration = (1.0/2.0) * dt;
     double pre_factor_displacement = (1.0/2.0) * (dt * dt);
 
-    VecAXPBYPCZ(mFields[velocity].field_globals, pre_factor_acceleration, pre_factor_acceleration, 1.0,
-                mFields[acceleration].field_globals, mFields[acceleration_].field_globals);
+    VecAXPBYPCZ(mFields["velocity"].glb, pre_factor_acceleration, pre_factor_acceleration, 1.0,
+                mFields["acceleration"].glb, mFields["acceleration_"].glb);
 
-    VecAXPBYPCZ(mFields[displacement].field_globals, dt, pre_factor_displacement, 1.0,
-                mFields[velocity].field_globals, mFields[acceleration].field_globals);
+    VecAXPBYPCZ(mFields["displacement"].glb, dt, pre_factor_displacement, 1.0,
+                mFields["velocity"].glb, mFields["acceleration"].glb);
 
-    VecCopy(mFields[acceleration].field_globals, mFields[acceleration_].field_globals);
+    VecCopy(mFields["acceleration"].glb, mFields["acceleration_"].glb);
 
 }
 
 void ScalarNewmark::applyInverseMassMatrix() {
 
-    int mass_matrix_inverse = (int) AcousticFields::mass_matrix_inverse;
-    int acceleration = (int) AcousticFields::acceleration;
-    int mass_matrix = (int) AcousticFields::mass_matrix;
-    int force = (int) AcousticFields::force;
-
-    if (mFields.find(mass_matrix_inverse) == mFields.end()){
-        registerFieldVectors(mass_matrix_inverse, false, false, "mass_matrix_inverse");
-        VecCopy(mFields[mass_matrix].field_globals, mFields[mass_matrix_inverse].field_globals);
-        VecReciprocal(mFields[mass_matrix_inverse].field_globals);
+    if (mFields.find("mass_matrix_inverse") == mFields.end()){
+        registerFieldVectors("mass_matrix_inverse");
+        VecCopy(mFields["mass_matrix"].glb, mFields["mass_matrix_inverse"].glb);
+        VecReciprocal(mFields["mass_matrix_inverse"].glb);
     }
 
-    VecPointwiseMult(mFields[acceleration].field_globals, mFields[mass_matrix_inverse].field_globals,
-                     mFields[force].field_globals);
+    VecPointwiseMult(mFields["acceleration"].glb, mFields["mass_matrix_inverse"].glb,
+                     mFields["force"].glb);
 
 }
 
-void Mesh::zeroFields() {
-
+void Mesh::zeroFields(const std::string &name) {
     double zero = 0.0;
-    for (auto reg: mFieldVectorCheckin) {
-        VecSet(mFields[reg].field_locals, zero);
-        VecSet(mFields[reg].field_globals, zero);
-    }
-
+    VecSet(mFields[name].loc, zero);
+    VecSet(mFields[name].glb, zero);
 }
 
 void Mesh::setUpMovie() {
@@ -236,8 +210,7 @@ void Mesh::setUpMovie() {
 void Mesh::saveFrame() {
 
     DMSetOutputSequenceNumber(mDistributedMesh, mTime, mTime);
-    VecView(mFields[(int) AcousticFields::displacement].field_globals, mViewer);
-//    VecView(mFields[-1].field_globals, mViewer);
+    VecView(mFields["displacement"].glb, mViewer);
     mTime += 1;
 
 }
