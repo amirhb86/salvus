@@ -15,7 +15,7 @@ extern "C" {
 };
 
 /*
- * Base class of an abstract four node square. The reference element is set up as below.
+ * Base class of an abstract four node quadrilateral. The reference element is set up as below.
  *
  * (n2)______________(n3)
  * |                    |
@@ -72,6 +72,7 @@ protected:
     static Eigen::VectorXd mIntegrationWeightsEta;
     static Eigen::VectorXd mIntegrationCoordinatesEps;
     static Eigen::VectorXd mIntegrationCoordinatesEta;
+    Eigen::MatrixXd mIntegrationPoints;
     static int mNumberDofVertex, mNumberDofEdge, mNumberDofFace, mNumberDofVolume;
     static int mNumberIntegrationPointsEps, mNumberIntegrationPointsEta, mNumberIntegrationPoints, mPolynomialOrder;
     static Eigen::Map<const Eigen::VectorXd> epsVectorStride(
@@ -105,7 +106,8 @@ public:
     void readOperators();
     void attachVertexCoordinates(DM &distributed_mesh);
     void attachSource(std::vector<Source*> sources);
-
+    void attachIntegrationPoints();
+    
     // Attribute sets.
     void SetLocalElementNumber(const int &element_number) { mElementNumber = element_number; }
     void SetTime(const double &time) { mTime = time; }

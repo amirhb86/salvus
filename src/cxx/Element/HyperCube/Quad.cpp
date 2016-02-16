@@ -263,3 +263,26 @@ void Quad::scatterMassMatrix(Mesh *mesh) {
                             mMassMatrix);
 
 }
+
+void  Quad::attachIntegrationPoints() {
+		
+  assert(mNumberIntegrationPoints == mNumberIntegrationPointsEps*mNumberIntegrationPointsEta);
+	
+  int point = 0;
+	
+  std::vector<PetscReal> ni(mVertexCoordinates.size());
+	
+  mIntegrationPoints.resize(mNumberIntegrationPointsEps,mNumberIntegrationPointsEta);
+	
+  for (auto i = 0; i < mNumberIntegrationPointsEta; i++) {	
+    for (auto j = 0; j < mNumberIntegrationPointsEps; j++) {
+	
+      double eps = mIntegrationCoordinatesEps(j);
+      double eta = mIntegrationCoordinatesEta(i);
+		
+      mIntegrationPoints(i,j) += interpolateShapeFunctions(eps, eta).dot(mVertexCoordinates.row(0));      
+      mIntegrationPoints(i,j) += interpolateShapeFunctions(eps, eta).dot(mVertexCoordinates.row(1));
+	
+    }
+  }	
+}
