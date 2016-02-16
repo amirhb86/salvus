@@ -20,7 +20,7 @@ Problem *Problem::factory(std::string solver_type) {
     }
 }
 
-void TimeDomain::initialize(Mesh *mesh, ExodusModel *model, Quad *quad) {
+void TimeDomain::initialize(Mesh *mesh, ExodusModel *model, Quad *quad, Options options) {
 
     // Perform dynamic casts to ensure types are appropriate.
     mMesh = dynamic_cast<ScalarNewmark*> (mesh);
@@ -54,13 +54,17 @@ void TimeDomain::initialize(Mesh *mesh, ExodusModel *model, Quad *quad) {
     mesh->checkInFieldBegin("mass_matrix");
     mesh->checkInFieldEnd("mass_matrix");
 
+    // Set up options.
+    mMesh->setUpMovie(options.OutputMovieFile());
+    mSimulationDuration = options.Duration();
+    mTimeStep = options.TimeStep();
+
 }
 
 void TimeDomain::solve() {
 
     double time = 0;
-    double timestep = 1e-3;
-    while (time < 2.0) {
+    while (time < mSimulationDuration) {
 
         // Pull down the displacement (pressure) from the global dof.
         mMesh->checkOutField("displacement");
@@ -96,11 +100,15 @@ void TimeDomain::solve() {
         mMesh->applyInverseMassMatrix();
         mMesh->advanceField();
 
+        // Save to file.
+        mMesh->saveFrame();
+
         std::cout << time << std::endl;
-        time += timestep;
+        time += mTimeStep;
 
     }
 
+    mMesh->finalizeMovie();
 
 }
 

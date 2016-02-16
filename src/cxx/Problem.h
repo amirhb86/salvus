@@ -23,7 +23,7 @@ public:
     static Problem *factory(std::string solver_type);
 
     virtual void solve() = 0;
-    virtual void initialize(Mesh *mesh, ExodusModel *model, Quad *quad) = 0;
+    virtual void initialize(Mesh *mesh, ExodusModel *model, Quad *quad, Options options) = 0;
 
 
 };
@@ -36,10 +36,14 @@ private:
     Quad *mReferenceQuad;
     std::vector<Quad *> mElements;
 
+    double mSimulationDuration;
+    double mTimeStep;
+
+
 public:
 
     virtual void solve();
-    virtual void initialize(Mesh *mesh, ExodusModel *model, Quad *quad);
+    virtual void initialize(Mesh *mesh, ExodusModel *model, Quad *quad, Options options);
 
 };
 

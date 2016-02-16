@@ -13,7 +13,6 @@ PetscErrorCode Options::setOptions() {
     PetscBool parameter_set;
     double real_buffer;
 
-
     PetscOptionsGetReal(NULL, "--duration", &real_buffer, &parameter_set);
     if (parameter_set) { mDuration = real_buffer; }
     else { SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER, "Duration must be given via --duration");}
@@ -22,7 +21,7 @@ PetscErrorCode Options::setOptions() {
     if (parameter_set) { mTimeStep = real_buffer; }
     else { SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER, "Time step must be given via --time_step");}
 
-    // String options.
+    // String options.O
     char char_buffer[PETSC_MAX_PATH_LEN];
 
     PetscOptionsGetString(NULL, "--exodus_file_name", char_buffer, PETSC_MAX_PATH_LEN,

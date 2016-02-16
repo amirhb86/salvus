@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
 
     // Use above elements to define the problem.
     Problem *problem = Problem::factory("time_domain");
-    problem->initialize(mesh, model, reference_element);
+    problem->initialize(mesh, model, reference_element, options);
     problem->solve();
 
     PetscFinalize();

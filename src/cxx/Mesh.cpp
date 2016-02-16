@@ -18,7 +18,7 @@ Mesh *Mesh::factory(Options options) {
         if (mesh_type == "newmark") {
             return new ScalarNewmark;
         } else {
-            throw std::runtime_error("Runtime Error: Mesh type + " + mesh_type + " not supported");
+            throw std::runtime_error("Runtime Error: Mesh type " + mesh_type + " not supported");
         }
     } catch (std::exception &e) {
         utilities::print_from_root_mpi(e.what());
@@ -197,7 +197,6 @@ void Mesh::setUpMovie(const std::string &movie_filename) {
     PetscViewerHDF5Open(PETSC_COMM_WORLD, movie_filename.c_str(), FILE_MODE_WRITE, &mViewer);
     PetscViewerHDF5PushGroup(mViewer, "/");
     DMView(mDistributedMesh, mViewer);
-
 }
 
 void Mesh::saveFrame() {
