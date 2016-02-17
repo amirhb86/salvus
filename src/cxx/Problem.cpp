@@ -24,7 +24,7 @@ Problem *Problem::factory(std::string solver_type) {
 void TimeDomain::initialize(Mesh *mesh, ExodusModel *model, Quad *quad, Options options) {
 
     // Perform dynamic casts to ensure types are appropriate.
-    mMesh = dynamic_cast<ScalarNewmark*> (mesh);
+    mMesh = dynamic_cast<ScalarNewmark2D *> (mesh);
     mReferenceQuad = dynamic_cast<Quad*> (quad);
 
     // Attach element to mesh.

@@ -42,7 +42,7 @@ class TimeDomain : public Problem {
 
 private:
 
-    ScalarNewmark *mMesh;
+    ScalarNewmark2D *mMesh;
     Quad *mReferenceQuad;
     std::vector<Quad *> mElements;
 

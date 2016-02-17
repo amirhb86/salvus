@@ -16,7 +16,7 @@ Mesh *Mesh::factory(Options options) {
     std::string mesh_type(options.MeshType());
     try {
         if (mesh_type == "newmark") {
-            return new ScalarNewmark;
+            return new ScalarNewmark2D;
         } else {
             throw std::runtime_error("Runtime Error: Mesh type " + mesh_type + " not supported");
         }
@@ -244,7 +244,7 @@ void Mesh::finalizeMovie() {
 
 }
 
-void ScalarNewmark::advanceField() {
+void ScalarNewmark2D::advanceField() {
 
     double dt = 1e-3;
     double pre_factor_acceleration = (1.0/2.0) * dt;
@@ -260,7 +260,7 @@ void ScalarNewmark::advanceField() {
 
 }
 
-void ScalarNewmark::applyInverseMassMatrix() {
+void ScalarNewmark2D::applyInverseMassMatrix() {
 
     if (mFields.find("mass_matrix_inverse") == mFields.end()){
         registerFieldVectors("mass_matrix_inverse");
