@@ -6,6 +6,7 @@
 #include <petscdm.h>
 #include <petscdmplex.h>
 #include <openmpi/ompi/mpi/cxx/mpicxx.h>
+#include <tuple>
 #include "Quad.h"
 #include "Quad/Autogen/quad_autogen.h"
 
@@ -220,7 +221,6 @@ Eigen::Vector2d Quad::inverseCoordinateTransform(const double &x_real, const dou
 
 void Quad::readOperators() {
 
-    int i = 0;
     double eta = mIntegrationCoordinatesEta[0];
     mGradientOperator.resize(mNumberIntegrationPointsEta, mNumberIntegrationPointsEps);
     Eigen::MatrixXd test(mNumberIntegrationPointsEta, mNumberIntegrationPointsEps);
@@ -257,12 +257,50 @@ Quad::Quad(Options options) {
 
 }
 
-void Quad::scatterMassMatrix(Mesh *mesh) {
-    mesh->setFieldOnElement("mass_matrix", mElementNumber, mClosureMapping, mMassMatrix);
+// complete assembly between common nodes
+// void Quad::assembleMassMatrix(Mesh *mesh) {
+//     mesh->setFieldOnElement("mass_matrix", mElementNumber, mClosureMapping, mMassMatrix);
+// }
+
+// global x-z points on all nodes
+std::tuple<Eigen::VectorXd,Eigen::VectorXd> Quad::buildNodalPoints(Mesh* mesh) {
+		
+  assert(mNumberIntegrationPoints == mNumberIntegrationPointsEps*mNumberIntegrationPointsEta);
+	
+  std::vector<PetscReal> ni(mVertexCoordinates.size());
+	
+  Eigen::VectorXd nodalPoints_x(mNumberIntegrationPoints);
+  Eigen::VectorXd nodalPoints_z(mNumberIntegrationPoints);
+
+  int idx=0;
+  for(auto i = 0; i < mNumberIntegrationPointsEta; i++) {	
+      for(auto j = 0; j < mNumberIntegrationPointsEps; j++) {
+	
+          double eps = mIntegrationCoordinatesEps(j);
+          double eta = mIntegrationCoordinatesEta(i);
+		
+          nodalPoints_x(idx) += interpolateShapeFunctions(eps, eta).dot(mVertexCoordinates.row(0));      
+          nodalPoints_z(idx) += interpolateShapeFunctions(eps, eta).dot(mVertexCoordinates.row(1));
+          idx++;
+	
+      }
+  }
+  // push nodal locations to shared dofs
+  mesh->setFieldFromElement("nodes_x", mElementNumber, mClosureMapping, nodalPoints_x);
+  mesh->setFieldFromElement("nodes_z", mElementNumber, mClosureMapping, nodalPoints_z);
+
+  return std::make_tuple(nodalPoints_x,nodalPoints_z);
+    
 }
 
 Eigen::MatrixXd Quad::checkOutField(Mesh *mesh, const std::string name) {
 
     return mesh->getFieldOnElement(name, mElementNumber, mClosureMapping);
+
+}
+
+void Quad::checkInFieldElement(Mesh *mesh, Eigen::VectorXd &field, const std::string name) {
+
+    mesh->setFieldOnElement(name, mElementNumber, mClosureMapping, field);
 
 }

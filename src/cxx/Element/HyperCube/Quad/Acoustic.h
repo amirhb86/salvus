@@ -31,12 +31,15 @@ public:
     virtual Acoustic *clone() const { return new Acoustic(*this); }
 
     virtual void checkInField(Mesh *mesh);
-    virtual void computeSourceTerm();
+    virtual void checkOutField(Mesh *mesh);
+    virtual Eigen::MatrixXd computeSourceTerm();
     virtual void computeSurfaceTerm();
-    virtual void assembleMassMatrix();
+    virtual void assembleElementMassMatrix(Mesh *mesh);
     virtual Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement);
     virtual void interpolateMaterialProperties(ExodusModel *model);
 
+    virtual void setInitialCondition(Mesh* mesh, Eigen::VectorXd& pts_x, Eigen::VectorXd& pts_z);
+    
 };
 
 

@@ -15,7 +15,7 @@ extern "C" {
 };
 
 /*
- * Base class of an abstract four node square. The reference element is set up as below.
+ * Base class of an abstract four node quadrilateral. The reference element is set up as below.
  *
  * (n2)______________(n3)
  * |                    |
@@ -72,6 +72,7 @@ protected:
     static Eigen::VectorXd mIntegrationWeightsEta;
     static Eigen::VectorXd mIntegrationCoordinatesEps;
     static Eigen::VectorXd mIntegrationCoordinatesEta;
+    Eigen::MatrixXd mIntegrationPoints;
     static int mNumberDofVertex, mNumberDofEdge, mNumberDofFace, mNumberDofVolume;
     static int mNumberIntegrationPointsEps, mNumberIntegrationPointsEta, mNumberIntegrationPoints, mPolynomialOrder;
     static Eigen::Map<const Eigen::VectorXd> epsVectorStride(
@@ -101,10 +102,12 @@ public:
     static Eigen::VectorXd GllIntegrationWeightForOrder(const int order);
     static Eigen::VectorXi ClosureMapping(const int order, const int dimension);
 
-    void scatterMassMatrix(Mesh *mesh);
+    
     void readOperators();
     void attachVertexCoordinates(DM &distributed_mesh);
     void attachSource(std::vector<Source*> sources);
+
+    std::tuple<Eigen::VectorXd,Eigen::VectorXd> buildNodalPoints(Mesh* mesh);
 
     /**
      * Simple function to set the (remembered) element number.
@@ -123,18 +126,22 @@ public:
     int NumberDofVolume() const { return mNumberDofVolume; }
     int NumberDimensions() const { return mNumberDimensions; }
 
-    virtual Eigen::MatrixXd checkOutField(Mesh *mesh, const std::string name);
-    virtual Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement) = 0;
-
     // Pure virtual methods.
+    void checkInFieldElement(Mesh *mesh, Eigen::VectorXd& field, const std::string name);
+
+
     virtual void checkInField(Mesh *mesh) = 0;
+    virtual Eigen::MatrixXd checkOutField(Mesh *mesh, const std::string name);
 
-    virtual void computeSourceTerm() = 0;
+    virtual Eigen::MatrixXd computeSourceTerm() = 0;
     virtual void computeSurfaceTerm() = 0;
-
-    virtual void assembleMassMatrix() = 0;
+    virtual Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement) = 0;
+    virtual void assembleElementMassMatrix(Mesh *mesh) = 0;
+    
     virtual void interpolateMaterialProperties(ExodusModel *model) = 0;
 
+    virtual void setInitialCondition(Mesh* mesh, Eigen::VectorXd& pts_x, Eigen::VectorXd& pts_z) = 0;
+    // A spurious comment!
 };
 
 

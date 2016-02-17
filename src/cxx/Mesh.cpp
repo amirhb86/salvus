@@ -131,14 +131,72 @@ void Mesh::setFieldOnElement(const std::string &name, const int &element_number,
                              const Eigen::VectorXi &closure, const Eigen::VectorXd &field) {
 
     Eigen::VectorXd val(closure.size());
+    // map "our" nodal ordering back onto PETSC ordering
     for (auto j = 0; j < closure.size(); j++) { val(j) = field(closure(j)); }
     DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
                         element_number, val.data(), ADD_VALUES);
 
 }
 
+void Mesh::setFieldFromElement(const std::string &name, const int element_number,
+                               const Eigen::VectorXi &closure, const Eigen::VectorXd &field) {
+
+    Eigen::VectorXd val(closure.size());
+    // map "our" nodal ordering back onto PETSC ordering
+    for (auto j = 0; j < closure.size(); j++) { val(j) = field(closure(j)); }
+    DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
+                        element_number, val.data(), INSERT_VALUES);
+}
+
+void Mesh::addFieldFromElement(const std::string &name, const int element_number,
+                               const Eigen::VectorXi &closure, const Eigen::VectorXd &field) {
+
+    Eigen::VectorXd val(closure.size());
+    // map "our" nodal ordering back onto PETSC ordering
+    for (auto j = 0; j < closure.size(); j++) { val(j) = field(closure(j)); }
+    DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
+                        element_number, val.data(), ADD_VALUES);
+}
+
+void Mesh::assembleLocalFieldToGlobal(const std::string &name) {
+
+    assembleLocalFieldToGlobalBegin(name);
+    assembleLocalFieldToGlobalEnd(name);   
+}
+
+void Mesh::assembleLocalFieldToGlobalBegin(const std::string &name) {
+
+    // Make sure the field exists in our dictionary.
+    assert(mFields.find(name) != mFields.end());
+
+    // Begin MPI broadcast local -> global.
+    DMLocalToGlobalBegin(mDistributedMesh, mFields[name].loc, ADD_VALUES, mFields[name].glb);
+}
+
+void Mesh::assembleLocalFieldToGlobalEnd(const std::string &name) {
+
+    // Make sure the field exists in our dictionary.
+    assert(mFields.find(name) != mFields.end());
+
+    // Begin MPI broadcast local -> global.
+    DMLocalToGlobalEnd(mDistributedMesh, mFields[name].loc, ADD_VALUES, mFields[name].glb);
+}
+
+void Mesh::setLocalFieldToGlobal(const std::string &name) {
+    
+    // Make sure the field exists in our dictionary.
+    assert(mFields.find(name) != mFields.end());
+
+    // Do "communication". `INSERT_VALUE` will result in no communication
+    DMLocalToGlobalBegin(mDistributedMesh, mFields[name].loc, INSERT_VALUES, mFields[name].glb);
+    DMLocalToGlobalEnd(mDistributedMesh, mFields[name].loc, INSERT_VALUES, mFields[name].glb);
+    
+}
+
+// Depricated
 void Mesh::checkInFieldBegin(const std::string &name) {
 
+    std::cout << "WARNING: `checkInFieldBegin` To be depricated\n";
     // Make sure the field exists in our dictionary.
     assert(mFields.find(name) != mFields.end());
 
@@ -149,6 +207,7 @@ void Mesh::checkInFieldBegin(const std::string &name) {
 
 void Mesh::checkInFieldEnd(const std::string &name) {
 
+    std::cout << "WARNING: `checkInFieldEnd` To be depricated\n";
     // Make sure the field exists in our dictionary.
     assert(mFields.find(name) != mFields.end());
 

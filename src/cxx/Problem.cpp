@@ -4,6 +4,7 @@
 
 #include "Problem.h"
 
+#include <tuple>
 
 Problem *Problem::factory(std::string solver_type) {
     try {
@@ -43,16 +44,24 @@ void TimeDomain::initialize(Mesh *mesh, ExodusModel *model, Quad *quad, Options 
     int element_number = 0;
     for (auto &element: mElements) {
         element->SetLocalElementNumber(element_number);
+        element_number++;
+
         element->attachVertexCoordinates(mesh->DistributedMesh());
         element->interpolateMaterialProperties(model);
         element->readOperators();
-        element->assembleMassMatrix();
-        element->scatterMassMatrix(mesh);
+        element->assembleElementMassMatrix(mesh);
+        Eigen::VectorXd pts_x,pts_z;
+        std::tie(pts_x,pts_z) = element->buildNodalPoints(mesh);
+        element->setInitialCondition(mesh,pts_x,pts_z);
     }
 
-    // Scatter the mass matrix to the global dof.
-    mesh->checkInFieldBegin("mass_matrix");
-    mesh->checkInFieldEnd("mass_matrix");
+    // Assemble the mass matrix to the global dof.
+    mesh->assembleLocalFieldToGlobal("mass_matrix");    
+    mesh->setLocalFieldToGlobal("nodes_x");
+    mesh->setLocalFieldToGlobal("nodes_z");
+
+    // put initial condition on global dofs
+    mesh->setLocalFieldToGlobal("displacement");
 
     // Set up options.
     mMesh->setUpMovie(options.OutputMovieFile());
@@ -63,8 +72,8 @@ void TimeDomain::initialize(Mesh *mesh, ExodusModel *model, Quad *quad, Options 
 
 void TimeDomain::solve() {
 
-    Eigen::VectorXd integrated_stiffness_matrix;
-    Eigen::VectorXd displacement_on_element;
+    Eigen::VectorXd Ku;
+    Eigen::VectorXd u;
     double time = 0;
     while (time < mSimulationDuration) {
 
@@ -78,20 +87,24 @@ void TimeDomain::solve() {
             element->SetTime(time);
 
             // Check out the necessary fields on each element (i.e. displacement) from the mesh.
-            displacement_on_element = element->checkOutField(mMesh, "displacement");
+            u = element->checkOutField(mMesh, "displacement");
 
             // Compute the stiffness term (apply K, if you will).
-            integrated_stiffness_matrix = element->computeStiffnessTerm(displacement_on_element);
-
+            Ku = element->computeStiffnessTerm(u);
+           
             // Fire any sources and handle the different cases.
-            element->computeSourceTerm();
+            auto F = element->computeSourceTerm();
+
+            // combine F and K
+            Eigen::VectorXd FminusKu;
+            if (F.size() > 0) { FminusKu = F - Ku; }
+            else { FminusKu = -Ku; }
 
             // Compute any surface integral terms (i.e. if we're in a coupling layer).
-            element->computeSurfaceTerm();
-
+            // element->computeSurfaceTerm();
+            
             // Sum the element fields (i.e. forcing) back into the locally-owned section of the mesh.
-            element->checkInField(mMesh);
-
+            element->checkInFieldElement(mMesh,FminusKu,"force");
         }
 
         // Sum fields back into global dof.

@@ -15,11 +15,7 @@ void Elastic::checkInField(Mesh *mesh) {
 
 }
 
-Eigen::MatrixXd Elastic::checkOutField(Mesh *mesh, const std::string name) {
-    return Quad::checkOutField(mesh, name);
-}
-
-void Elastic::computeSourceTerm() {
+Eigen::MatrixXd Elastic::computeSourceTerm() {
 
 }
 
@@ -27,7 +23,7 @@ void Elastic::computeSurfaceTerm() {
 
 }
 
-void Elastic::assembleMassMatrix() {
+void Elastic::assembleElementMassMatrix(Mesh *mesh) {
 
 }
 
@@ -37,5 +33,9 @@ Eigen::MatrixXd Elastic::computeStiffnessTerm(const Eigen::MatrixXd &displacemen
 }
 
 void Elastic::interpolateMaterialProperties(ExodusModel *model) {
+
+}
+
+void Elastic::setInitialCondition(Mesh *mesh, Eigen::VectorXd &pts_x, Eigen::VectorXd &ptz_z) {
 
 }

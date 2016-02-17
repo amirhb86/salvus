@@ -26,6 +26,9 @@ Eigen::MatrixXd Acoustic::computeStiffnessTerm(const Eigen::MatrixXd &displaceme
     Eigen::Vector2d etaStrain;
     Eigen::Matrix<double,2,1> test_function_gradient;
     Eigen::Matrix<double,2,2> inverse_Jacobian;
+
+    Eigen::VectorXd integratedStiffnessMatrix(mNumberIntegrationPoints);
+    
     for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
         for (auto eps_index = 0; eps_index < mNumberIntegrationPointsEps; eps_index++) {
 
@@ -68,7 +71,7 @@ Eigen::MatrixXd Acoustic::computeStiffnessTerm(const Eigen::MatrixXd &displaceme
             Eigen::VectorXd str_stride_eta = etaVectorStride(mElementStress.row(1), eta_index);
             Eigen::VectorXd deriv_eta = mGradientOperator.col(eta_index);
 
-            mIntegratedStiffnessMatrix(itr) = mIntegrationWeightsEta[eta_index] * mIntegrationWeightsEps.dot(
+            integratedStiffnessMatrix(itr) = mIntegrationWeightsEta[eta_index] * mIntegrationWeightsEps.dot(
                             (jac_stride_eps.array() * str_stride_eps.array() * deriv_eps.array()).matrix()) +
                     mIntegrationWeightsEps[eps_index] * mIntegrationWeightsEta.dot(
                             (jac_stride_eta.array() * str_stride_eta.array() * deriv_eta.array()).matrix());
@@ -76,9 +79,7 @@ Eigen::MatrixXd Acoustic::computeStiffnessTerm(const Eigen::MatrixXd &displaceme
             itr++;
         }
     }
-
-    return mIntegratedStiffnessMatrix;
-
+    return integratedStiffnessMatrix;
 }
 
 void Acoustic::interpolateMaterialProperties(ExodusModel *model) {
@@ -88,37 +89,50 @@ void Acoustic::interpolateMaterialProperties(ExodusModel *model) {
 
 }
 
-void Acoustic::computeSourceTerm() {
+Eigen::MatrixXd Acoustic::computeSourceTerm() {
 
     // Check that this integrates to the value of the source (delta function).
-
+    
     mIntegratedSource.setZero();
-    if (! mSources.size()) { return; }
-
-    Eigen::VectorXd current_source(mNumberIntegrationPoints);
-    for (auto &source: mSources) {
-        interpolate_order4_square(source->ReferenceLocationEps(), source->ReferenceLocationEta(),
-                                  current_source.data());
-        for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
-            for (auto eps_index = 0; eps_index < mNumberIntegrationPointsEps; eps_index++) {
-                double eps = mIntegrationCoordinatesEps[eps_index];
-                double eta = mIntegrationCoordinatesEta[eta_index];
-                current_source[eps_index + eta_index*mNumberIntegrationPointsEps] /=
+    Eigen::VectorXd F;
+    if(mSources.size() > 0) {
+        F.resize(mIntegratedSource.size());
+        Eigen::VectorXd current_source(mNumberIntegrationPoints);
+        for (auto &source: mSources) {
+            interpolate_order4_square(source->ReferenceLocationEps(), source->ReferenceLocationEta(),
+                                      current_source.data());
+            for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
+                for (auto eps_index = 0; eps_index < mNumberIntegrationPointsEps; eps_index++) {
+                    double eps = mIntegrationCoordinatesEps[eps_index];
+                    double eta = mIntegrationCoordinatesEta[eta_index];
+                    current_source[eps_index + eta_index*mNumberIntegrationPointsEps] /=
                         (mIntegrationWeightsEps(eps_index) * mIntegrationWeightsEta(eta_index)) *
                         jacobianAtPoint(eps, eta).determinant();
+                }
             }
+
+            current_source *= source->fire(mTime);
+            // mIntegratedSource(12) = source->fire(mTime);//current_source;
+            // TODO: Why 12?
+            F(12) = source->fire(mTime);
+        
+            std::cout << "SOURCE " << mIntegratedSource.maxCoeff() << std::endl;
+            
         }
-
-        current_source *= source->fire(mTime);
-        mIntegratedSource(12) = source->fire(mTime);//current_source;
-        std::cout << "SOURCE " << mIntegratedSource.maxCoeff() << std::endl;
     }
-
+    return F;
 }
 
+void Acoustic::checkOutField(Mesh *mesh) {
+    mElementDisplacement = mesh->getFieldOnElement("displacement", mElementNumber, mClosureMapping);
+}
+
+// void Acoustic::checkInVector()
+
 void Acoustic::checkInField(Mesh *mesh) {
+    auto FminusK = mIntegratedSource - mIntegratedStiffnessMatrix;
     mesh->setFieldOnElement("force", mElementNumber, mClosureMapping,
-                            mIntegratedSource - mIntegratedStiffnessMatrix);
+                            FminusK);
 }
 
 void Acoustic::computeSurfaceTerm() {
@@ -130,20 +144,30 @@ void Acoustic::computeSurfaceTerm() {
 
 }
 
-void Acoustic::assembleMassMatrix() {
+void Acoustic::assembleElementMassMatrix(Mesh *mesh) {
 
-    Eigen::VectorXd tmp(mNumberIntegrationPoints);
+    Eigen::VectorXd elementMassMatrix(mNumberIntegrationPoints);
     double density = mMaterialDensityAtVertices.mean();
+    int i=0;
     for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
         for (auto eps_index = 0; eps_index < mNumberIntegrationPointsEps; eps_index++) {
-
             double eps = mIntegrationCoordinatesEps[eps_index];
             double eta = mIntegrationCoordinatesEta[eta_index];
-            diagonal_mass_matrix_order4_square(eps, eta, density, tmp.data());
-            mMassMatrix += tmp * mIntegrationWeightsEps[eps_index] * mIntegrationWeightsEta[eta_index] *
+            elementMassMatrix[i] = density * mIntegrationWeightsEps[eps_index] * mIntegrationWeightsEta[eta_index] *
                     jacobianAtPoint(eps, eta).determinant();
-
+            i++;
         }
     }
-
+    // assemble to shared nodes
+    mesh->addFieldFromElement("mass_matrix", mElementNumber, mClosureMapping, elementMassMatrix);
 }
+
+void Acoustic::setInitialCondition(Mesh* mesh, Eigen::VectorXd& pts_x,Eigen::VectorXd& pts_z) {
+    
+    double Lx = 10.0;
+    double Lz = 10.0;
+    const double PI = std::atan(1.0)*4.0;
+    Eigen::VectorXd un = (PI/Lx*(pts_x.array()-Lx/2.0)).sin()*(PI/Lz*(pts_z.array()-Lz/2)).sin();
+    mesh->setFieldFromElement("displacement", mElementNumber, mClosureMapping, un);
+}
+

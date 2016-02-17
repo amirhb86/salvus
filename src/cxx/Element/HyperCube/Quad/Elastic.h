@@ -29,12 +29,13 @@ public:
     virtual Elastic *clone() const { return new Elastic(*this); }
 
     virtual void checkInField(Mesh *mesh);
-    virtual Eigen::MatrixXd checkOutField(Mesh *mesh, const std::string name);
     virtual Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement);
-    virtual void computeSourceTerm();
+    virtual Eigen::MatrixXd computeSourceTerm();
     virtual void computeSurfaceTerm();
-    virtual void assembleMassMatrix();
+    virtual void assembleElementMassMatrix(Mesh *mesh);
     virtual void interpolateMaterialProperties(ExodusModel *model);
+    virtual void setInitialCondition(Mesh *mesh, Eigen::VectorXd& pts_x, Eigen::VectorXd& ptz_z);
+
 
 };
 
