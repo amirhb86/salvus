@@ -15,7 +15,7 @@ class Elastic : public Quad {
     Eigen::Vector4d mC12AtVertices;
     Eigen::Vector4d mC13AtVertices;
     Eigen::Vector4d mC21AtVertices;
-    Eigen::Vector4d mc22AtVertices;
+    Eigen::Vector4d mC22AtVertices;
     Eigen::Vector4d mC23AtVertices;
     Eigen::Vector4d mC31AtVertices;
     Eigen::Vector4d mC32AtVertices;
@@ -30,10 +30,10 @@ public:
 
     virtual void checkInField(Mesh *mesh);
     virtual Eigen::MatrixXd checkOutField(Mesh *mesh, const std::string name);
+    virtual Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement);
     virtual void computeSourceTerm();
     virtual void computeSurfaceTerm();
     virtual void assembleMassMatrix();
-    virtual Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement);
     virtual void interpolateMaterialProperties(ExodusModel *model);
 
 };
