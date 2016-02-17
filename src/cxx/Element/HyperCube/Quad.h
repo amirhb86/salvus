@@ -89,7 +89,7 @@ protected:
 
     Eigen::Matrix<double,2,2> jacobianAtPoint(PetscReal eps, PetscReal eta);
 
-    Eigen::Vector4d __interpolateMaterialProperties(ExodusModel &model,
+    Eigen::Vector4d __interpolateMaterialProperties(ExodusModel *model,
                                                     std::string parameter_name);
 
 
@@ -102,15 +102,21 @@ public:
     static Eigen::VectorXd GllIntegrationWeightForOrder(const int order);
     static Eigen::VectorXi ClosureMapping(const int order, const int dimension);
 
-    void scatterMassMatrix(Mesh *mesh);
+    
     void readOperators();
     void attachVertexCoordinates(DM &distributed_mesh);
-    void attachSource(std::vector<Source*> sources);
-    
-    void attachNodalPoints();
-    
-    // Attribute sets.
-    void SetLocalElementNumber(const int &element_number) { mElementNumber = element_number; }
+    void attachSource(std::vector<Source*> sources);    
+
+    std::tuple<Eigen::VectorXd,Eigen::VectorXd> buildNodalPoints(Mesh* mesh);
+
+    /**
+     * Simple function to set the (remembered) element number.
+     */    
+    void SetLocalElementNumber(const int element_number) { mElementNumber = element_number; }
+
+    /**
+     * Sets the current simulation time. This is used internally, for example, by any sources residing on the element.
+     */
     void SetTime(const double &time) { mTime = time; }
 
     // Attribute gets.
@@ -122,15 +128,18 @@ public:
 
     // Pure virtual methods.
     virtual void checkInField(Mesh *mesh) = 0;
-    virtual void checkOutFields(Mesh *mesh) = 0;
+    virtual void checkInFieldElement(Mesh *mesh,Eigen::VectorXd& field) = 0;
+    virtual void checkOutField(Mesh *mesh) = 0;
 
-    virtual void computeSourceTerm() = 0;
+    virtual Eigen::VectorXd computeSourceTerm() = 0;
     virtual void computeSurfaceTerm() = 0;
-    virtual void computeStiffnessTerm() = 0;
+    virtual Eigen::VectorXd computeStiffnessTerm() = 0;
+    virtual void assembleElementMassMatrix(Mesh *mesh) = 0;
+    
+    virtual void interpolateMaterialProperties(ExodusModel *model) = 0;
 
-    virtual void assembleMassMatrix() = 0;
-    virtual void interpolateMaterialProperties(ExodusModel &model) = 0;
-
+    virtual void setInitialCondition(Mesh* mesh, Eigen::VectorXd& pts_x, Eigen::VectorXd& pts_z) = 0;
+    
 };
 
 

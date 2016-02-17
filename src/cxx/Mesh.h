@@ -18,9 +18,8 @@
 
 struct vec_struct {
 
-    bool check_in, check_out;
     std::string name;
-    Vec field_globals, field_locals;
+    Vec glb, loc;
 
 };
 
@@ -38,9 +37,7 @@ class Mesh {
 protected:
 
     Vec mMassMatrix;
-    std::map<int,vec_struct> mFields;
-    std::vector<int> mFieldVectorCheckin;
-    std::vector<int> mFieldVectorCheckout;
+    std::map<std::string,vec_struct> mFields;
 
     PetscViewer mViewer;
 
@@ -53,27 +50,121 @@ public:
                         PetscInt number_dof_face, PetscInt number_dof_volume,
                         PetscInt number_dimensions);
 
-    void registerFieldVectors(const int &num, const bool &check_out, const bool &check_in,
-                              const std::string &name);
-    void checkOutFields();
-    void checkInFieldsEnd();
-    void checkInFieldsBegin();
-    void checkInMassMatrix();
+    void registerFieldVectors(const std::string &name);
 
+    /**
+     * Begins (and ends) the gloabl -> local MPI sends for a given field name. By the time this function returns, you
+     * can be confident that the MPI sends have been completed (i.e. it is blocking), and will be available to each
+     * element.
+     * @param name Name of field to checkout.
+     */
+    void checkOutField(const std::string &name);
 
-    Eigen::VectorXd getFieldOnElement(const int &field_num, const int &element_number,
-                                            const Eigen::VectorXi &closure);
-    void setFieldOnElement(const int &field_num, const int &element_number,
+    /**
+     * Does the local -> global MPI sends for a given field name. The
+     * send is performed with an sum, i.e.  the value of field on
+     * coincident GLL points are properly summed together. 
+     * @param name Name of field to assemble on global dofs.
+     */
+    void assembleLocalFieldToGlobal(const std::string &name);
+
+    /**
+     * Begins the local -> global MPI sends for a given field name. The
+     * send is performed with an sum, i.e.  the value of field on
+     * coincident GLL points are properly summed together. Note that
+     * this function is non-blocking!! This MUST be paired with an
+     * equivalent call to `assembleLocalFieldToGlobalEnd`.
+     * @param name Name of field to assemble on global dofs.
+     */
+    void assembleLocalFieldToGlobalBegin(const std::string &name);
+
+    /**
+     * Makes a processor local array "global". As a "set", does not incurr any communication.
+     * @param name Name of field to assemble on global dofs.
+     */
+    void setLocalFieldToGlobal(const std::string &name);
+    
+    /**
+     * Finishes the local -> global MPI sends for a given field name. The
+     * send is performed with an sum, i.e.  the value of field on
+     * coincident GLL points are properly summed together. This MUST be paired with an
+     * equivalent call to `assembleLocalFieldToGlobalBegin`.
+     * @param name Name of field to assemble on global dofs.
+     */
+    void assembleLocalFieldToGlobalEnd(const std::string &name);
+        
+    /**
+     * Begins the local -> global MPI sends for a given field name. The send is performed with an implied sum, i.e.
+     * the value of field on coincident GLL points are properly summed together. Note that this function is
+     * non-blocking!! This MUST be paired with an equivalent call to checkInFieldEnd.
+     * @param name Name of field to checkin.
+     */
+    void checkInFieldBegin(const std::string &name);
+
+    /**
+     * Ends the local -> global MPI send for a given field name. This function should come after an equivalent
+     * checkInFieldBegin. This method is blocking, so you can be confident that when it returns the desired field has
+     * been scattered and summed into the global (parallel) degrees of freedom.
+     * @param name Name of field to checkin.
+     */
+    void checkInFieldEnd(const std::string &name);
+
+    /**
+     * Returns an ordered vector of a field (i.e. x-displacement) on an element, via a call to DMPlexVecGetClosure.
+     * Note that a vector containing the closure mapping must also be passed in -- this should change in the future.
+     * @param [in] name Name of field.
+     * @param [in] element_number Element number (on the local processor) for which the field is requested.
+     * @param [in] closure A vector of size mNumberIntegrationPoints, which specifies the mapping from the Plex element
+     * closure to the desired gll point ordering.
+     * @ return The ordered field on an element.
+     */
+    Eigen::VectorXd getFieldOnElement(const std::string &name, const int &element_number,
+                                      const Eigen::VectorXi &closure);
+
+    /**
+     * Sums a field on an element into the degrees of freedom owned by the local processor, via a call to
+     * DMPlexVecSetClosure.
+     * @param [in] field_name Name of field.
+     * @param [in] element_number Element number (on the local processor) for which the field is requested.
+     * @param [in] closure A vector of size mNumberIntegrationPoints, which specifies the mapping from the Plex element
+     * closure to the desired gll point ordering.
+     * @param [in] field The element-ordered field (i.e. x-displacement) to sum into the mesh.
+     */
+    void setFieldOnElement(const std::string &name, const int &element_number,
                            const Eigen::VectorXi &closure, const Eigen::VectorXd &field);
 
 
+    /**
+     * Sets a field from an element into the degrees of freedom owned by the local processor, via a call to
+     * DMPlexVecSetClosure. Shared DOF should be identical, and are thus set from an arbitrary element.
+     * @param [in] field_name Name of field.
+     * @param [in] element_number Element number (on the local processor) for which the field is requested.
+     * @param [in] closure A vector of size mNumberIntegrationPoints, which specifies the mapping from the Plex element
+     * closure to the desired gll point ordering.
+     * @param [in] field The element-ordered field (i.e. x-displacement) to sum into the mesh.
+     */
+    void setFieldFromElement(const std::string &name, const int element_number,
+                             const Eigen::VectorXi &closure, const Eigen::VectorXd &field);
+    
+    /**
+     * Sums a field from an element into the degrees of freedom owned by the local processor, via a call to
+     * DMPlexVecSetClosure. Shared DOF are summed (i.e., assembled).
+     * @param [in] field_name Name of field.
+     * @param [in] element_number Element number (on the local processor) for which the field is requested.
+     * @param [in] closure A vector of size mNumberIntegrationPoints, which specifies the mapping from the Plex element
+     * closure to the desired gll point ordering.
+     * @param [in] field The element-ordered field (i.e. x-displacement) to sum into the mesh.
+     */
+    void addFieldFromElement(const std::string &name, const int element_number,
+                           const Eigen::VectorXi &closure, const Eigen::VectorXd &field);
+    
     // Integer getattr.
     inline PetscInt NumberElementsLocal() { return mNumberElementsLocal; }
 
     void setUpMovie(const std::string &movie_filename);
     void saveFrame();
     void finalizeMovie();
-    void zeroFields();
+    void zeroFields(const std::string &name);
     virtual void advanceField() = 0;
     virtual void registerFields() = 0;
     virtual void applyInverseMassMatrix() = 0;
@@ -86,19 +177,17 @@ public:
 
 class ScalarNewmark : public Mesh {
 
-    Vec acceleration_;
-
 public:
 
     virtual void registerFields() {
-
-        registerFieldVectors((int) AcousticFields::acceleration_, false, false, "acceleration_");
-        registerFieldVectors((int) AcousticFields::acceleration, false, false, "acceleration");
-        registerFieldVectors((int) AcousticFields::displacement, true, false, "displacement");
-        registerFieldVectors((int) AcousticFields::velocity, false, false, "velocity");
-        registerFieldVectors((int) AcousticFields::force, false, true, "force");
-        registerFieldVectors((int) AcousticFields::mass_matrix, false, false, "mass_matrix");
-
+        registerFieldVectors("acceleration_");
+        registerFieldVectors("acceleration");
+        registerFieldVectors("displacement");
+        registerFieldVectors("velocity");
+        registerFieldVectors("force");
+        registerFieldVectors("mass_matrix");
+        registerFieldVectors("nodes_x");
+        registerFieldVectors("nodes_z");
     }
 
     virtual void advanceField();

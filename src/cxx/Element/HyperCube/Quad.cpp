@@ -6,6 +6,7 @@
 #include <petscdm.h>
 #include <petscdmplex.h>
 #include <openmpi/ompi/mpi/cxx/mpicxx.h>
+#include <tuple>
 #include "Quad.h"
 #include "Quad/Autogen/quad_autogen.h"
 
@@ -132,7 +133,7 @@ Eigen::Matrix<double,2,2> Quad::jacobianAtPoint(PetscReal eps, PetscReal eta) {
     return jacobian_multiplier * mVertexCoordinates.transpose();
 }
 
-Eigen::Vector4d Quad::__interpolateMaterialProperties(ExodusModel &model, std::string parameter_name) {
+Eigen::Vector4d Quad::__interpolateMaterialProperties(ExodusModel *model, std::string parameter_name) {
 
     Eigen::Vector4d material_at_vertices(mNumberVertex);
 
@@ -143,7 +144,7 @@ Eigen::Vector4d Quad::__interpolateMaterialProperties(ExodusModel &model, std::s
     }
 
     for (auto i = 0; i < mNumberVertex; i++) {
-        material_at_vertices(i) = model.getMaterialParameterAtPoint({mVertexCoordinates(0, i),
+        material_at_vertices(i) = model->getMaterialParameterAtPoint({mVertexCoordinates(0, i),
                                                                      mVertexCoordinates(1, i)},
                                                                     parameter_name);
     }
@@ -220,7 +221,6 @@ Eigen::Vector2d Quad::inverseCoordinateTransform(const double &x_real, const dou
 
 void Quad::readOperators() {
 
-    int i = 0;
     double eta = mIntegrationCoordinatesEta[0];
     mGradientOperator.resize(mNumberIntegrationPointsEta, mNumberIntegrationPointsEps);
     Eigen::MatrixXd test(mNumberIntegrationPointsEta, mNumberIntegrationPointsEps);
@@ -257,35 +257,38 @@ Quad::Quad(Options options) {
 
 }
 
-void Quad::scatterMassMatrix(Mesh *mesh) {
+// complete assembly between common nodes
+// void Quad::assembleMassMatrix(Mesh *mesh) {
+//     mesh->setFieldOnElement("mass_matrix", mElementNumber, mClosureMapping, mMassMatrix);
+// }
 
-    mesh->setFieldOnElement((int) AcousticFields::mass_matrix, mElementNumber, mClosureMapping,
-                            mMassMatrix);
-
-}
-
-e// global x-z points on all nodes
-void  Quad::attachNodalPoints() {
+// global x-z points on all nodes
+std::tuple<Eigen::VectorXd,Eigen::VectorXd> Quad::buildNodalPoints(Mesh* mesh) {
 		
   assert(mNumberIntegrationPoints == mNumberIntegrationPointsEps*mNumberIntegrationPointsEta);
 	
-  int point = 0;
-	
   std::vector<PetscReal> ni(mVertexCoordinates.size());
 	
-  mIntegrationPoints.resize(mNumberIntegrationPointsEps,mNumberIntegrationPointsEta);
+  Eigen::VectorXd nodalPoints_x(mNumberIntegrationPoints);
+  Eigen::VectorXd nodalPoints_z(mNumberIntegrationPoints);
+
+  int idx=0;
+  for(auto i = 0; i < mNumberIntegrationPointsEta; i++) {	
+      for(auto j = 0; j < mNumberIntegrationPointsEps; j++) {
 	
-  for (auto i = 0; i < mNumberIntegrationPointsEta; i++) {	
-    for (auto j = 0; j < mNumberIntegrationPointsEps; j++) {
-	
-      double eps = mIntegrationCoordinatesEps(j);
-      double eta = mIntegrationCoordinatesEta(i);
+          double eps = mIntegrationCoordinatesEps(j);
+          double eta = mIntegrationCoordinatesEta(i);
 		
-      mIntegrationPoints(i,j) += interpolateShapeFunctions(eps, eta).dot(mVertexCoordinates.row(0));      
-      mIntegrationPoints(i,j) += interpolateShapeFunctions(eps, eta).dot(mVertexCoordinates.row(1));
+          nodalPoints_x(idx) += interpolateShapeFunctions(eps, eta).dot(mVertexCoordinates.row(0));      
+          nodalPoints_z(idx) += interpolateShapeFunctions(eps, eta).dot(mVertexCoordinates.row(1));
+          idx++;
 	
-    }
+      }
   }
-  
-  
+  // push nodal locations to shared dofs
+  mesh->setFieldFromElement("nodes_x", mElementNumber, mClosureMapping, nodalPoints_x);
+  mesh->setFieldFromElement("nodes_z", mElementNumber, mClosureMapping, nodalPoints_z);
+
+  return std::make_tuple(nodalPoints_x,nodalPoints_z);
+    
 }

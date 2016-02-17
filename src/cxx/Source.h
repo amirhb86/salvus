@@ -22,12 +22,34 @@ public:
 
     static std::vector<Source*> factory(Options options);
 
+    /**
+     * Set the source x coordinate in physical (model) space.
+     */
     inline void SetPhysicalLocationX(double location_x) { mPhysicalLocationX = location_x; }
+
+    /**
+     * Set the source y coordinate in physical (model) space.
+     */
     inline void SetPhysicalLocationY(double location_y) { mPhysicalLocationY = location_y; }
+
+    /**
+     * Set the source z coordinate in physical (model) space.
+     */
     inline void SetPhysicalLocationZ(double location_z) { mPhysicalLocationZ = location_z; }
 
+    /**
+     * Set the source epsilon coordinate on the reference element.
+     */
     inline void setReferenceLocationEps(double location_eps) { mReferenceLocationEps = location_eps; }
+
+    /**
+     * Set the source MAYBE WE SHOULD CHANGE COORDINATE NAMES coordinate on the reference element.
+     */
     inline void setReferenceLocationYname(double location_yname) { mReferenceLocationYname = location_yname; }
+
+    /**
+     * Set the source eta coordinate on the reference element.
+     */
     inline void setReferenceLocationEta(double location_eta) { mReferenceLocationEta = location_eta; }
 
     inline double PhysicalLocationX() { return mPhysicalLocationX; }
@@ -38,6 +60,11 @@ public:
     inline double ReferenceLocationYname() { return mReferenceLocationYname; }
     inline double ReferenceLocationEta() { return mReferenceLocationEta; }
 
+    /**
+     * Returns a value for the force, given a certain time. This needs to be implemented by each derived class. For
+     * instance, a Ricker source will need to implement the source time characeristics of a ricker source time
+     * function.
+     */
     virtual double fire(const double &time) = 0;
 
 };
