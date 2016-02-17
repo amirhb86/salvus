@@ -23,6 +23,7 @@
 #include "Utilities.h"
 #include "Element/HyperCube/Quad.h"
 #include "Mesh.h"
+#include "Element/HyperCube/Quad/Elastic.h"
 
 
 class Problem {
@@ -54,6 +55,24 @@ public:
 
     virtual void solve();
     virtual void initialize(Mesh *mesh, ExodusModel *model, Quad *quad, Options options);
+
+};
+
+class TimeDomainElastic2d: public Problem {
+
+private:
+
+    ElasticNewmark2D *mMesh;
+    Elastic *mReferenceQuad;
+    std::vector<Elastic *> mElements;
+
+    double mSimulationDuration;
+    double mTimeStep;
+
+public:
+
+    virtual void initialize(Mesh *mesh, ExodusModel *model, Quad *quad, Options options);
+
 
 };
 

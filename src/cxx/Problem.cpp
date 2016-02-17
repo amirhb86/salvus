@@ -63,6 +63,8 @@ void TimeDomain::initialize(Mesh *mesh, ExodusModel *model, Quad *quad, Options 
 
 void TimeDomain::solve() {
 
+    Eigen::VectorXd integrated_stiffness_matrix;
+    Eigen::VectorXd displacement_on_element;
     double time = 0;
     while (time < mSimulationDuration) {
 
@@ -72,14 +74,14 @@ void TimeDomain::solve() {
         // Compute element-wise terms.
         for (auto &element: mElements) {
 
-            // Check out the necessary fields on each element (i.e. displacement) from the mesh.
-            element->checkOutField(mMesh);
-
             // Set the time on the element (useful for things like source firing).
             element->SetTime(time);
 
+            // Check out the necessary fields on each element (i.e. displacement) from the mesh.
+            displacement_on_element = element->checkOutField(mMesh, "displacement");
+
             // Compute the stiffness term (apply K, if you will).
-            element->computeStiffnessTerm();
+            integrated_stiffness_matrix = element->computeStiffnessTerm(displacement_on_element);
 
             // Fire any sources and handle the different cases.
             element->computeSourceTerm();
@@ -113,3 +115,27 @@ void TimeDomain::solve() {
 }
 
 
+void TimeDomainElastic2d::initialize(Mesh *mesh, ExodusModel *model, Quad *quad, Options options) {
+
+    Eigen::MatrixXd Ku;
+    Eigen::MatrixXd displacement_on_element;    // x-displacement -> row(0), z-displacement -> row(1)
+    double time = 0;
+    while (time < mSimulationDuration) {
+
+        mMesh->checkOutField("displacement_x");
+        mMesh->checkOutField("displacement_z");
+
+        for (auto &element: mElements) {
+
+            element->SetTime(time);
+            displacement_on_element.row(0) = element->checkOutField(mMesh, "displacement_x");
+            displacement_on_element.row(1) = element->checkOutField(mMesh, "displacement_z");
+
+            Ku = element->computeStiffnessTerm(displacement_on_element);
+
+
+        }
+
+    }
+
+}

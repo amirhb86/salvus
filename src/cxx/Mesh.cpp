@@ -156,6 +156,35 @@ void Mesh::checkInFieldEnd(const std::string &name) {
     DMLocalToGlobalEnd(mDistributedMesh, mFields[name].loc, ADD_VALUES, mFields[name].glb);
 }
 
+void Mesh::zeroFields(const std::string &name) {
+    double zero = 0.0;
+    VecSet(mFields[name].loc, zero);
+    VecSet(mFields[name].glb, zero);
+}
+
+void Mesh::setUpMovie(const std::string &movie_filename) {
+    mTime = 0;
+    mViewer = nullptr;
+    PetscViewerHDF5Open(PETSC_COMM_WORLD, movie_filename.c_str(), FILE_MODE_WRITE, &mViewer);
+    PetscViewerHDF5PushGroup(mViewer, "/");
+    DMView(mDistributedMesh, mViewer);
+}
+
+void Mesh::saveFrame() {
+
+    DMSetOutputSequenceNumber(mDistributedMesh, mTime, mTime);
+    VecView(mFields["displacement"].glb, mViewer);
+    mTime += 1;
+
+}
+
+void Mesh::finalizeMovie() {
+
+    PetscViewerHDF5PopGroup(mViewer);
+    PetscViewerDestroy(&mViewer);
+
+}
+
 void ScalarNewmark::advanceField() {
 
     double dt = 1e-3;
@@ -185,31 +214,38 @@ void ScalarNewmark::applyInverseMassMatrix() {
 
 }
 
-void Mesh::zeroFields(const std::string &name) {
-    double zero = 0.0;
-    VecSet(mFields[name].loc, zero);
-    VecSet(mFields[name].glb, zero);
+void ElasticNewmark2D::advanceField() {
+
+    double dt = 1e-3;
+    double pre_factor_acceleration = (1.0/2.0) * dt;
+    double pre_factor_displacement = (1.0/2.0) * (dt * dt);
+
+    VecAXPBYPCZ(mFields["velocity_x"].glb, pre_factor_acceleration, pre_factor_acceleration, 1.0,
+                mFields["acceleration_x"].glb, mFields["acceleration_x_"].glb);
+    VecAXPBYPCZ(mFields["velocity_z"].glb, pre_factor_acceleration, pre_factor_acceleration, 1.0,
+                mFields["acceleration_z"].glb, mFields["acceleration_z_"].glb);
+
+    VecAXPBYPCZ(mFields["displacement_x"].glb, dt, pre_factor_displacement, 1.0,
+                mFields["velocity_x"].glb, mFields["acceleration_x"].glb);
+    VecAXPBYPCZ(mFields["displacement_z"].glb, dt, pre_factor_displacement, 1.0,
+                mFields["velocity_z"].glb, mFields["acceleration_z"].glb);
+
+    VecCopy(mFields["acceleration_x"].glb, mFields["acceleration_x_"].glb);
+    VecCopy(mFields["acceleration_z"].glb, mFields["acceleration_z_"].glb);
+
 }
 
-void Mesh::setUpMovie(const std::string &movie_filename) {
-    mTime = 0;
-    mViewer = nullptr;
-    PetscViewerHDF5Open(PETSC_COMM_WORLD, movie_filename.c_str(), FILE_MODE_WRITE, &mViewer);
-    PetscViewerHDF5PushGroup(mViewer, "/");
-    DMView(mDistributedMesh, mViewer);
-}
+void ElasticNewmark2D::applyInverseMassMatrix() {
 
-void Mesh::saveFrame() {
+    if (mFields.find("mass_matrix_inverse") == mFields.end()) {
+        registerFieldVectors("mass_matrix_inverse");
+        VecCopy(mFields["mass_matrix"].glb, mFields["mass_matrix_inverse"].glb);
+        VecReciprocal(mFields["mass_matrix_inverse"].glb);
+    }
 
-    DMSetOutputSequenceNumber(mDistributedMesh, mTime, mTime);
-    VecView(mFields["displacement"].glb, mViewer);
-    mTime += 1;
-
-}
-
-void Mesh::finalizeMovie() {
-
-    PetscViewerHDF5PopGroup(mViewer);
-    PetscViewerDestroy(&mViewer);
+    VecPointwiseMult(mFields["acceleration_x"].glb, mFields["mass_matrix_inverse"].glb,
+                     mFields["force_x"].glb);
+    VecPointwiseMult(mFields["acceleration_z"].glb, mFields["mass_matrix_inverse"].glb,
+                     mFields["force_z"].glb);
 
 }

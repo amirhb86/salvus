@@ -18,11 +18,7 @@ Acoustic::Acoustic(Options options): Quad(options) {
 
 }
 
-void Acoustic::computeStiffnessTerm() {
-
-    // Test
-//    int j = 0;
-//    for (auto i = 0; i < mElementDisplacement.size(); i++) { if (!(i%5) && i>0) j++; mElementDisplacement[i] = mIntegrationCoordinatesEps[j]; }
+Eigen::MatrixXd Acoustic::computeStiffnessTerm(const Eigen::MatrixXd &displacement) {
 
     int itr = 0;
     Eigen::VectorXd jacobian_determinant(mNumberIntegrationPoints);
@@ -44,9 +40,9 @@ void Acoustic::computeStiffnessTerm() {
             // Calculate strain. Save for kernel calculations.
 //            epsStrain()
             mElementStrain(0,itr) = mGradientOperator.row(eps_index).dot(
-                    epsVectorStride(mElementDisplacement, eta_index));
+                    epsVectorStride(displacement, eta_index));
             mElementStrain(1,itr) = mGradientOperator.row(eta_index).dot(
-                    etaVectorStride(mElementDisplacement, eta_index));
+                    etaVectorStride(displacement, eta_index));
             mElementStrain.col(itr) = inverse_Jacobian * mElementStrain.col(itr);
 
             // Get material parameters at this node.
@@ -81,6 +77,7 @@ void Acoustic::computeStiffnessTerm() {
         }
     }
 
+    return mIntegratedStiffnessMatrix;
 
 }
 
@@ -117,10 +114,6 @@ void Acoustic::computeSourceTerm() {
         std::cout << "SOURCE " << mIntegratedSource.maxCoeff() << std::endl;
     }
 
-}
-
-void Acoustic::checkOutField(Mesh *mesh) {
-    mElementDisplacement = mesh->getFieldOnElement("displacement", mElementNumber, mClosureMapping);
 }
 
 void Acoustic::checkInField(Mesh *mesh) {

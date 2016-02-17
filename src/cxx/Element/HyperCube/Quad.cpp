@@ -260,3 +260,9 @@ Quad::Quad(Options options) {
 void Quad::scatterMassMatrix(Mesh *mesh) {
     mesh->setFieldOnElement("mass_matrix", mElementNumber, mClosureMapping, mMassMatrix);
 }
+
+Eigen::MatrixXd Quad::checkOutField(Mesh *mesh, const std::string name) {
+
+    return mesh->getFieldOnElement(name, mElementNumber, mClosureMapping);
+
+}

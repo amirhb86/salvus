@@ -123,13 +123,14 @@ public:
     int NumberDofVolume() const { return mNumberDofVolume; }
     int NumberDimensions() const { return mNumberDimensions; }
 
+    virtual Eigen::MatrixXd checkOutField(Mesh *mesh, const std::string name);
+    virtual Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement) = 0;
+
     // Pure virtual methods.
     virtual void checkInField(Mesh *mesh) = 0;
-    virtual void checkOutField(Mesh *mesh) = 0;
 
     virtual void computeSourceTerm() = 0;
     virtual void computeSurfaceTerm() = 0;
-    virtual void computeStiffnessTerm() = 0;
 
     virtual void assembleMassMatrix() = 0;
     virtual void interpolateMaterialProperties(ExodusModel *model) = 0;

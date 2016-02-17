@@ -14,8 +14,6 @@
 
 class Acoustic : public Quad {
 
-    AcousticFields mFields;
-
     Eigen::Vector4d mMaterialVelocityAtVertices;
     Eigen::Vector4d mMaterialDensityAtVertices;
 
@@ -33,11 +31,10 @@ public:
     virtual Acoustic *clone() const { return new Acoustic(*this); }
 
     virtual void checkInField(Mesh *mesh);
-    virtual void checkOutField(Mesh *mesh);
     virtual void computeSourceTerm();
     virtual void computeSurfaceTerm();
     virtual void assembleMassMatrix();
-    virtual void computeStiffnessTerm();
+    virtual Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement);
     virtual void interpolateMaterialProperties(ExodusModel *model);
 
 };

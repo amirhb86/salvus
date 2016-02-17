@@ -50,6 +50,11 @@ public:
                         PetscInt number_dof_face, PetscInt number_dof_volume,
                         PetscInt number_dimensions);
 
+    /**
+     * Registers both the global (across parallel partition) and local (on a single parallel partition) vectors for a
+     * given name. Vector information is stored in an `std::map` under mFields, with `name` as the key.
+     * @param name Name of field to register.
+     */
     void registerFieldVectors(const std::string &name);
 
     /**
@@ -133,6 +138,30 @@ public:
 
     virtual void advanceField();
     virtual void applyInverseMassMatrix();
+
+};
+
+class ElasticNewmark2D: public Mesh {
+
+public:
+
+    virtual void registerFields() {
+        registerFieldVectors("acceleration_x_");
+        registerFieldVectors("acceleration_z_");
+        registerFieldVectors("acceleration_x");
+        registerFieldVectors("acceleration_z");
+        registerFieldVectors("displacement_x");
+        registerFieldVectors("displacement_z");
+        registerFieldVectors("velocity_x");
+        registerFieldVectors("velocity_z");
+        registerFieldVectors("force_x");
+        registerFieldVectors("force_z");
+        registerFieldVectors("mass_matrix");
+    }
+
+    virtual void advanceField();
+    virtual void applyInverseMassMatrix();
+
 
 };
 
