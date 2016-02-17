@@ -87,7 +87,7 @@ void TimeDomain::solve() {
             element->SetTime(time);
 
             // Check out the necessary fields on each element (i.e. displacement) from the mesh.
-            u = element->checkOutField(mMesh, "displacement");
+            u = element->checkOutFieldElement(mMesh, "displacement");
 
             // Compute the stiffness term (apply K, if you will).
             Ku = element->computeStiffnessTerm(u);
@@ -141,8 +141,8 @@ void TimeDomainElastic2d::initialize(Mesh *mesh, ExodusModel *model, Quad *quad,
         for (auto &element: mElements) {
 
             element->SetTime(time);
-            displacement_on_element.row(0) = element->checkOutField(mMesh, "displacement_x");
-            displacement_on_element.row(1) = element->checkOutField(mMesh, "displacement_z");
+            displacement_on_element.row(0) = element->checkOutFieldElement(mMesh, "displacement_x");
+            displacement_on_element.row(1) = element->checkOutFieldElement(mMesh, "displacement_z");
 
             Ku = element->computeStiffnessTerm(displacement_on_element);
 

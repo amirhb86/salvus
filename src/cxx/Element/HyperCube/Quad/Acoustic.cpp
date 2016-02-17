@@ -123,17 +123,7 @@ Eigen::MatrixXd Acoustic::computeSourceTerm() {
     return F;
 }
 
-void Acoustic::checkOutField(Mesh *mesh) {
-    mElementDisplacement = mesh->getFieldOnElement("displacement", mElementNumber, mClosureMapping);
-}
-
 // void Acoustic::checkInVector()
-
-void Acoustic::checkInField(Mesh *mesh) {
-    auto FminusK = mIntegratedSource - mIntegratedStiffnessMatrix;
-    mesh->setFieldOnElement("force", mElementNumber, mClosureMapping,
-                            FminusK);
-}
 
 void Acoustic::computeSurfaceTerm() {
 

@@ -118,6 +118,8 @@ public:
      * Sets the current simulation time. This is used internally, for example, by any sources residing on the element.
      */
     void SetTime(const double &time) { mTime = time; }
+    void checkInFieldElement(Mesh *mesh, Eigen::VectorXd& field, const std::string name);
+    virtual Eigen::MatrixXd checkOutFieldElement(Mesh *mesh, const std::string name);
 
     // Attribute gets.
     int NumberDofEdge() const { return mNumberDofEdge; }
@@ -127,21 +129,12 @@ public:
     int NumberDimensions() const { return mNumberDimensions; }
 
     // Pure virtual methods.
-    void checkInFieldElement(Mesh *mesh, Eigen::VectorXd& field, const std::string name);
-
-
-    virtual void checkInField(Mesh *mesh) = 0;
-    virtual Eigen::MatrixXd checkOutField(Mesh *mesh, const std::string name);
-
     virtual Eigen::MatrixXd computeSourceTerm() = 0;
-    virtual void computeSurfaceTerm() = 0;
-    virtual Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement) = 0;
     virtual void assembleElementMassMatrix(Mesh *mesh) = 0;
-    
     virtual void interpolateMaterialProperties(ExodusModel *model) = 0;
-
+    virtual Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement) = 0;
     virtual void setInitialCondition(Mesh* mesh, Eigen::VectorXd& pts_x, Eigen::VectorXd& pts_z) = 0;
-    // A spurious comment!
+
 };
 
 

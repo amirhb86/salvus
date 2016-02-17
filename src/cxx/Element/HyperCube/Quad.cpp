@@ -293,7 +293,7 @@ std::tuple<Eigen::VectorXd,Eigen::VectorXd> Quad::buildNodalPoints(Mesh* mesh) {
     
 }
 
-Eigen::MatrixXd Quad::checkOutField(Mesh *mesh, const std::string name) {
+Eigen::MatrixXd Quad::checkOutFieldElement(Mesh *mesh, const std::string name) {
 
     return mesh->getFieldOnElement(name, mElementNumber, mClosureMapping);
 
