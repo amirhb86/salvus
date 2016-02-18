@@ -56,7 +56,7 @@ void TimeDomain::initialize(Mesh *mesh, ExodusModel *model, Quad *quad, Options 
     }
 
     // Assemble the mass matrix to the global dof.
-    mesh->assembleLocalFieldToGlobal("mass_matrix");    
+    mesh->assembleField("mass_matrix");    
     mesh->setLocalFieldToGlobal("nodes_x");
     mesh->setLocalFieldToGlobal("nodes_z");
 
@@ -116,8 +116,10 @@ void TimeDomain::solve() {
         mMesh->advanceField();
 
         // Save to file.
-        mMesh->saveFrame();
-
+        mMesh->saveFrame("acceleration");
+        // mMesh->saveField("force");
+        // mMesh->saveField("acceleration");
+        
         std::cout << time << std::endl;
         time += mTimeStep;
 

@@ -99,7 +99,7 @@ public:
      * coincident GLL points are properly summed together. 
      * @param name Name of field to assemble on global dofs.
      */
-    void assembleLocalFieldToGlobal(const std::string &name);
+    void assembleField(const std::string &name);
 
     /**
      * Begins the local -> global MPI sends for a given field name. The
@@ -109,7 +109,7 @@ public:
      * equivalent call to `assembleLocalFieldToGlobalEnd`.
      * @param name Name of field to assemble on global dofs.
      */
-    void assembleLocalFieldToGlobalBegin(const std::string &name);
+    void assembleFieldBegin(const std::string &name);
 
     /**
      * Makes a processor local array "global". As a "set", does not incurr any communication.
@@ -124,7 +124,7 @@ public:
      * equivalent call to `assembleLocalFieldToGlobalBegin`.
      * @param name Name of field to assemble on global dofs.
      */
-    void assembleLocalFieldToGlobalEnd(const std::string &name);
+    void assembleFieldEnd(const std::string &name);
         
     /**
      * Begins the local -> global MPI sends for a given field name. The send is performed with an implied sum, i.e.
@@ -203,11 +203,11 @@ public:
      * TODO: Should add field name here, and interval? Do we need to support other dump options than HDF5?
      */
     void setUpMovie(const std::string &movie_filename);
-
+    
     /**
      * Commits a movie frame to disk, using the interface defined in setUpMovie.
      */
-    void saveFrame();
+    void saveFrame(const std::string &fieldname);
 
     /**
      * Needs to be called at the end of a time loop if a movie is desired.

@@ -158,13 +158,13 @@ void Mesh::addFieldFromElement(const std::string &name, const int element_number
                         element_number, val.data(), ADD_VALUES);
 }
 
-void Mesh::assembleLocalFieldToGlobal(const std::string &name) {
+void Mesh::assembleField(const std::string &name) {
 
-    assembleLocalFieldToGlobalBegin(name);
-    assembleLocalFieldToGlobalEnd(name);   
+    assembleFieldBegin(name);
+    assembleFieldEnd(name);   
 }
 
-void Mesh::assembleLocalFieldToGlobalBegin(const std::string &name) {
+void Mesh::assembleFieldBegin(const std::string &name) {
 
     // Make sure the field exists in our dictionary.
     assert(mFields.find(name) != mFields.end());
@@ -173,7 +173,7 @@ void Mesh::assembleLocalFieldToGlobalBegin(const std::string &name) {
     DMLocalToGlobalBegin(mDistributedMesh, mFields[name].loc, ADD_VALUES, mFields[name].glb);
 }
 
-void Mesh::assembleLocalFieldToGlobalEnd(const std::string &name) {
+void Mesh::assembleFieldEnd(const std::string &name) {
 
     // Make sure the field exists in our dictionary.
     assert(mFields.find(name) != mFields.end());
@@ -187,10 +187,10 @@ void Mesh::setLocalFieldToGlobal(const std::string &name) {
     // Make sure the field exists in our dictionary.
     assert(mFields.find(name) != mFields.end());
 
-    // Do "communication". `INSERT_VALUE` will result in no communication
+    // Set the global dofs from processor local values. `INSERT_VALUE`
+    // will result in no communication
     DMLocalToGlobalBegin(mDistributedMesh, mFields[name].loc, INSERT_VALUES, mFields[name].glb);
-    DMLocalToGlobalEnd(mDistributedMesh, mFields[name].loc, INSERT_VALUES, mFields[name].glb);
-    
+    DMLocalToGlobalEnd(mDistributedMesh, mFields[name].loc, INSERT_VALUES, mFields[name].glb);    
 }
 
 // Depricated
@@ -229,10 +229,10 @@ void Mesh::setUpMovie(const std::string &movie_filename) {
     DMView(mDistributedMesh, mViewer);
 }
 
-void Mesh::saveFrame() {
+void Mesh::saveFrame(const std::string &fieldname) {
 
     DMSetOutputSequenceNumber(mDistributedMesh, mTime, mTime);
-    VecView(mFields["displacement"].glb, mViewer);
+    VecView(mFields[fieldname].glb, mViewer);
     mTime += 1;
 
 }
