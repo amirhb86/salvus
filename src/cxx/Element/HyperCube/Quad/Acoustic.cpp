@@ -20,6 +20,8 @@ Acoustic::Acoustic(Options options): Quad(options) {
 
 Eigen::MatrixXd Acoustic::computeStiffnessTerm(const Eigen::MatrixXd &displacement) {
 
+//    for (auto i = 0; i < mNumberIntegrationPoints; i++) { displacement[i] = i; }
+
     int itr = 0;
     Eigen::VectorXd jacobian_determinant(mNumberIntegrationPoints);
     Eigen::Vector2d epsStrain;
@@ -40,17 +42,19 @@ Eigen::MatrixXd Acoustic::computeStiffnessTerm(const Eigen::MatrixXd &displaceme
             jacobian_determinant(itr) = jacobianAtPoint(eps, eta).determinant();
             inverse_Jacobian = jacobianAtPoint(eps, eta).inverse();
 
+
             // Calculate strain. Save for kernel calculations.
 //            epsStrain()
             mElementStrain(0,itr) = mGradientOperator.row(eps_index).dot(
                     epsVectorStride(displacement, eta_index));
             mElementStrain(1,itr) = mGradientOperator.row(eta_index).dot(
-                    etaVectorStride(displacement, eta_index));
+                    etaVectorStride(displacement, eps_index));
             mElementStrain.col(itr) = inverse_Jacobian * mElementStrain.col(itr);
 
             // Get material parameters at this node.
             double velocity = interpolateShapeFunctions(eps, eta).dot(mMaterialVelocityAtVertices);
-            mElementStress.col(itr) = mElementStrain.col(itr) * velocity;
+            mElementStress.col(itr) = mElementStrain.col(itr) * velocity * velocity ;
+
             itr++;
 
         }
@@ -67,8 +71,8 @@ Eigen::MatrixXd Acoustic::computeStiffnessTerm(const Eigen::MatrixXd &displaceme
             Eigen::VectorXd str_stride_eps = epsVectorStride(mElementStress.row(0), eta_index);
             Eigen::VectorXd deriv_eps = mGradientOperator.col(eps_index);
 
-            Eigen::VectorXd jac_stride_eta = etaVectorStride(jacobian_determinant, eta_index);
-            Eigen::VectorXd str_stride_eta = etaVectorStride(mElementStress.row(1), eta_index);
+            Eigen::VectorXd jac_stride_eta = etaVectorStride(jacobian_determinant, eps_index);
+            Eigen::VectorXd str_stride_eta = etaVectorStride(mElementStress.row(1), eps_index);
             Eigen::VectorXd deriv_eta = mGradientOperator.col(eta_index);
 
             integratedStiffnessMatrix(itr) = mIntegrationWeightsEta[eta_index] * mIntegrationWeightsEps.dot(
@@ -79,6 +83,8 @@ Eigen::MatrixXd Acoustic::computeStiffnessTerm(const Eigen::MatrixXd &displaceme
             itr++;
         }
     }
+//    if (!MPI::COMM_WORLD.Get_rank()) { std::cout << integratedStiffnessMatrix << std::endl; }
+
     return integratedStiffnessMatrix;
 }
 
@@ -94,9 +100,10 @@ Eigen::MatrixXd Acoustic::computeSourceTerm() {
     // Check that this integrates to the value of the source (delta function).
     
     mIntegratedSource.setZero();
-    Eigen::VectorXd F;
+    Eigen::VectorXd F(mNumberIntegrationPoints);
+    F.setZero();
     if(mSources.size() > 0) {
-        F.resize(mIntegratedSource.size());
+        F.setZero(mIntegratedSource.size());
         Eigen::VectorXd current_source(mNumberIntegrationPoints);
         for (auto &source: mSources) {
             interpolate_order4_square(source->ReferenceLocationEps(), source->ReferenceLocationEta(),
@@ -116,7 +123,7 @@ Eigen::MatrixXd Acoustic::computeSourceTerm() {
             // TODO: Why 12?
             F(12) = source->fire(mTime);
         
-            std::cout << "SOURCE " << mIntegratedSource.maxCoeff() << std::endl;
+            std::cout << "SOURCE " << F.maxCoeff() << std::endl;
             
         }
     }
@@ -137,7 +144,7 @@ void Acoustic::computeSurfaceTerm() {
 void Acoustic::assembleElementMassMatrix(Mesh *mesh) {
 
     Eigen::VectorXd elementMassMatrix(mNumberIntegrationPoints);
-    double density = mMaterialDensityAtVertices.mean();
+    double density = 1; //mMaterialDensityAtVertices.mean();
     int i=0;
     for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
         for (auto eps_index = 0; eps_index < mNumberIntegrationPointsEps; eps_index++) {
@@ -157,7 +164,8 @@ void Acoustic::setInitialCondition(Mesh* mesh, Eigen::VectorXd& pts_x,Eigen::Vec
     double Lx = 10.0;
     double Lz = 10.0;
     const double PI = std::atan(1.0)*4.0;
-    Eigen::VectorXd un = (PI/Lx*(pts_x.array()-Lx/2.0)).sin()*(PI/Lz*(pts_z.array()-Lz/2)).sin();
+//    Eigen::VectorXd un = (PI/Lx*(pts_x.array()-Lx/2.0)).sin()*(PI/Lz*(pts_z.array()-Lz/2)).sin();
+    Eigen::VectorXd un = (PI/Lx*(pts_x.array()-Lx/2.0)).sin();//*(PI/Lz*(pts_z.array()-Lz/2)).sin();
     mesh->setFieldFromElement("displacement", mElementNumber, mClosureMapping, un);
 }
 

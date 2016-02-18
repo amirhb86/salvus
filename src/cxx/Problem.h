@@ -24,7 +24,7 @@
 #include "Element/HyperCube/Quad.h"
 #include "Mesh.h"
 #include "Element/HyperCube/Quad/Elastic.h"
-
+#include "Source.h"
 
 class Problem {
 
@@ -71,6 +71,7 @@ private:
 
 public:
 
+    virtual void solve();
     virtual void initialize(Mesh *mesh, ExodusModel *model, Quad *quad, Options options);
 
 

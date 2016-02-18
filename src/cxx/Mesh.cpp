@@ -145,7 +145,7 @@ void Mesh::setFieldFromElement(const std::string &name, const int element_number
     // map "our" nodal ordering back onto PETSC ordering
     for (auto j = 0; j < closure.size(); j++) { val(j) = field(closure(j)); }
     DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
-                        element_number, val.data(), INSERT_VALUES);
+                        element_number, val.data(), ADD_VALUES);
 }
 
 void Mesh::addFieldFromElement(const std::string &name, const int element_number,
@@ -188,9 +188,11 @@ void Mesh::setLocalFieldToGlobal(const std::string &name) {
     assert(mFields.find(name) != mFields.end());
 
     // Do "communication". `INSERT_VALUE` will result in no communication
-    DMLocalToGlobalBegin(mDistributedMesh, mFields[name].loc, INSERT_VALUES, mFields[name].glb);
-    DMLocalToGlobalEnd(mDistributedMesh, mFields[name].loc, INSERT_VALUES, mFields[name].glb);
-    
+//    DMLocalToGlobalBegin(mDistributedMesh, mFields[name].loc, INSERT_VALUES, mFields[name].glb);
+//    DMLocalToGlobalEnd(mDistributedMesh, mFields[name].loc, INSERT_VALUES, mFields[name].glb);
+    DMLocalToGlobalBegin(mDistributedMesh, mFields[name].loc, ADD_VALUES, mFields[name].glb);
+    DMLocalToGlobalEnd(mDistributedMesh, mFields[name].loc, ADD_VALUES, mFields[name].glb);
+
 }
 
 // Depricated
@@ -229,10 +231,10 @@ void Mesh::setUpMovie(const std::string &movie_filename) {
     DMView(mDistributedMesh, mViewer);
 }
 
-void Mesh::saveFrame() {
+void Mesh::saveFrame(std::string name) {
 
     DMSetOutputSequenceNumber(mDistributedMesh, mTime, mTime);
-    VecView(mFields["displacement"].glb, mViewer);
+    VecView(mFields[name].glb, mViewer);
     mTime += 1;
 
 }
@@ -268,6 +270,9 @@ void ScalarNewmark2D::applyInverseMassMatrix() {
         VecReciprocal(mFields["mass_matrix_inverse"].glb);
     }
 
+    double maxval;
+    VecMax(mFields["force"].glb, NULL, &maxval);
+    std::cout << "MAX FORCE " << maxval << std::endl;
     VecPointwiseMult(mFields["acceleration"].glb, mFields["mass_matrix_inverse"].glb,
                      mFields["force"].glb);
 

@@ -25,6 +25,23 @@ void Elastic::computeSurfaceTerm() {
 
 void Elastic::assembleElementMassMatrix(Mesh *mesh) {
 
+    int i = 0;
+    Eigen::VectorXd elementMassMatrix(mNumberIntegrationPoints);
+    double density = mRhoAtVertices.mean();
+    for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
+        for (auto eps_index = 0; eps_index < mNumberIntegrationPointsEps; eps_index++) {
+
+            double eps = mIntegrationCoordinatesEps[eps_index];
+            double eta = mIntegrationCoordinatesEta[eta_index];
+            elementMassMatrix[i] = density * mIntegrationWeightsEps[eps_index] * mIntegrationWeightsEta[eta_index] *
+                                   jacobianAtPoint(eps, eta).determinant();
+            i++;
+
+        }
+    }
+
+    mesh->addFieldFromElement("mass_matrix", mElementNumber, mClosureMapping, elementMassMatrix);
+
 }
 
 Eigen::MatrixXd Elastic::computeStiffnessTerm(const Eigen::MatrixXd &displacement) {
@@ -66,6 +83,16 @@ Eigen::MatrixXd Elastic::computeStiffnessTerm(const Eigen::MatrixXd &displacemen
 }
 
 void Elastic::interpolateMaterialProperties(ExodusModel *model) {
+
+    mC11AtVertices = __interpolateMaterialProperties(model, "c11");
+    mC13AtVertices = __interpolateMaterialProperties(model, "c13");
+    mC15AtVertices = __interpolateMaterialProperties(model, "c15");
+    mC31AtVertices = __interpolateMaterialProperties(model, "c31");
+    mC33AtVertices = __interpolateMaterialProperties(model, "c33");
+    mC35AtVertices = __interpolateMaterialProperties(model, "c35");
+    mC15AtVertices = __interpolateMaterialProperties(model, "c15");
+    mC35AtVertices = __interpolateMaterialProperties(model, "c35");
+    mC55AtVertices = __interpolateMaterialProperties(model, "c55");
 
 }
 

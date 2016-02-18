@@ -207,7 +207,7 @@ public:
     /**
      * Commits a movie frame to disk, using the interface defined in setUpMovie.
      */
-    void saveFrame();
+    void saveFrame(std::string name);
 
     /**
      * Needs to be called at the end of a time loop if a movie is desired.

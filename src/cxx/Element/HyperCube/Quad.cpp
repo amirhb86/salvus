@@ -62,9 +62,20 @@ Eigen::VectorXi Quad::ClosureMapping(const int order, const int dimension) {
     Eigen::VectorXi closure_mapping((order+1)*(order+1));
     if (dimension == 2) {
         if (order == 4) {
-            closure_mapping << 6, 7, 8, 11, 12, 13, 16, 17, 18, 1, 2, 3,
-                    9, 14, 19, 23, 22, 21, 15, 10, 5, 0, 4, 24, 20;
-//            closure_mapping << 8, 13, 18, 7, 12, 17, 6, 11, 16, 9, 14, 19, 23, 22, 21, 15, 10, 5, 1, 2, 3, 4, 24, 20, 0;
+//            closure_mapping << 6, 7, 8, 11, 12, 13, 16, 17, 18, 1, 2, 3,
+//                    9, 14, 19, 23, 22, 21, 15, 10, 5, 0, 4, 24, 20;
+//            closure_mapping <<
+//                    8, 13, 18, 7, 12,
+//                    17, 6, 11, 16, 9,
+//                    14, 19, 23, 22, 21,
+//                    15, 10, 5, 1, 2,
+//                    3, 4, 24, 20, 0;
+            closure_mapping <<
+                6, 11, 16, 7, 12,
+                17, 8, 13, 18, 9,
+                14, 19, 23, 22, 21,
+                15, 10, 5, 1, 2,
+                3, 4, 24, 20, 0;
         }
     }
     return closure_mapping;
