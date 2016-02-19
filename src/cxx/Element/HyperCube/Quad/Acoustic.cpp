@@ -8,29 +8,26 @@ Acoustic::Acoustic(Options options): Quad(options) {
 
     // Allocate element vectors.
     mMassMatrix.setZero(mNumberIntegrationPoints);
-    mIntegratedSource.setZero(mNumberIntegrationPoints);
-    mElementDisplacement.setZero(mNumberIntegrationPoints);
-    mIntegratedStiffnessMatrix.setZero(mNumberIntegrationPoints);
 
     // Strain matrix.
     mElementStrain.setZero(2, mNumberIntegrationPoints);
-    mElementStress.setZero(2, mNumberIntegrationPoints);
 
 }
 
 Eigen::MatrixXd Acoustic::computeStiffnessTerm(const Eigen::MatrixXd &displacement) {
 
-//    for (auto i = 0; i < mNumberIntegrationPoints; i++) { displacement[i] = i; }
-
+    // Current gll point.
     int itr = 0;
-    Eigen::VectorXd jacobian_determinant(mNumberIntegrationPoints);
-    Eigen::Vector2d epsStrain;
-    Eigen::Vector2d etaStrain;
-    Eigen::Matrix<double,2,1> test_function_gradient;
-    Eigen::Matrix<double,2,2> inverse_Jacobian;
 
+    // Data structures we'll need here. Static arrays are allocated for free.
+    // TODO: Look into a better way to deal with the temporarily allocated vectors. I believe that due to
+    // TODO: RVO the integratedStiffnessMatrix should be ok, but perhaps jacobian_determinant could be handled better.
+    Eigen::Matrix<double,2,2> inverse_Jacobian;
+    Eigen::VectorXd stress(2, mNumberIntegrationPoints);
+    Eigen::VectorXd jacobian_determinant(mNumberIntegrationPoints);
     Eigen::VectorXd integratedStiffnessMatrix(mNumberIntegrationPoints);
-    
+
+    // Loop over all GLL points once to calculate the stress.
     for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
         for (auto eps_index = 0; eps_index < mNumberIntegrationPointsEps; eps_index++) {
 
@@ -42,9 +39,7 @@ Eigen::MatrixXd Acoustic::computeStiffnessTerm(const Eigen::MatrixXd &displaceme
             jacobian_determinant(itr) = jacobianAtPoint(eps, eta).determinant();
             inverse_Jacobian = jacobianAtPoint(eps, eta).inverse();
 
-
             // Calculate strain. Save for kernel calculations.
-//            epsStrain()
             mElementStrain(0,itr) = mGradientOperator.row(eps_index).dot(
                     epsVectorStride(displacement, eta_index));
             mElementStrain(1,itr) = mGradientOperator.row(eta_index).dot(
@@ -53,37 +48,38 @@ Eigen::MatrixXd Acoustic::computeStiffnessTerm(const Eigen::MatrixXd &displaceme
 
             // Get material parameters at this node.
             double velocity = interpolateShapeFunctions(eps, eta).dot(mMaterialVelocityAtVertices);
-            mElementStress.col(itr) = mElementStrain.col(itr) * velocity * velocity ;
+
+            // Stress = material parameter * strain.
+            stress.col(itr) = mElementStrain.col(itr) * velocity * velocity;
 
             itr++;
 
         }
     }
 
+    // Loop over all gll points again. Apply shape function derivative and integrate.
     itr = 0;
     for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
         for (auto eps_index = 0; eps_index < mNumberIntegrationPointsEps; eps_index++) {
 
-            double eps = mIntegrationCoordinatesEps[eps_index];
-            double eta = mIntegrationCoordinatesEps[eta_index];
+            // Eq. (35) in Komatitsch, 2002.
+            // TODO: What do you think of this? Too concise?
+            integratedStiffnessMatrix(itr) =
+                    mIntegrationWeightsEta(eta_index) *
+                    mIntegrationWeightsEps.dot((
+                            (epsVectorStride(jacobian_determinant, eta_index)).array() *
+                            (epsVectorStride(stress.row(0), eta_index)).array() *
+                            (mGradientOperator.col(eps_index)).array()).matrix()) +
 
-            Eigen::VectorXd jac_stride_eps = epsVectorStride(jacobian_determinant, eta_index);
-            Eigen::VectorXd str_stride_eps = epsVectorStride(mElementStress.row(0), eta_index);
-            Eigen::VectorXd deriv_eps = mGradientOperator.col(eps_index);
-
-            Eigen::VectorXd jac_stride_eta = etaVectorStride(jacobian_determinant, eps_index);
-            Eigen::VectorXd str_stride_eta = etaVectorStride(mElementStress.row(1), eps_index);
-            Eigen::VectorXd deriv_eta = mGradientOperator.col(eta_index);
-
-            integratedStiffnessMatrix(itr) = mIntegrationWeightsEta[eta_index] * mIntegrationWeightsEps.dot(
-                            (jac_stride_eps.array() * str_stride_eps.array() * deriv_eps.array()).matrix()) +
-                    mIntegrationWeightsEps[eps_index] * mIntegrationWeightsEta.dot(
-                            (jac_stride_eta.array() * str_stride_eta.array() * deriv_eta.array()).matrix());
+                    mIntegrationWeightsEps(eps_index) *
+                    mIntegrationWeightsEta.dot((
+                            (etaVectorStride(jacobian_determinant, eps_index)).array() *
+                            (etaVectorStride(stress.row(1), eps_index)).array() *
+                            (mGradientOperator.col(eta_index)).array()).matrix());
 
             itr++;
         }
     }
-//    if (!MPI::COMM_WORLD.Get_rank()) { std::cout << integratedStiffnessMatrix << std::endl; }
 
     return integratedStiffnessMatrix;
 }
@@ -97,60 +93,60 @@ void Acoustic::interpolateMaterialProperties(ExodusModel *model) {
 
 Eigen::MatrixXd Acoustic::computeSourceTerm() {
 
-    // Check that this integrates to the value of the source (delta function).
-    
-    mIntegratedSource.setZero();
-    Eigen::VectorXd F(mNumberIntegrationPoints);
-    F.setZero();
-    if(mSources.size() > 0) {
-        F.setZero(mIntegratedSource.size());
-        Eigen::VectorXd current_source(mNumberIntegrationPoints);
-        for (auto &source: mSources) {
-            interpolate_order4_square(source->ReferenceLocationEps(), source->ReferenceLocationEta(),
-                                      current_source.data());
-            for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
-                for (auto eps_index = 0; eps_index < mNumberIntegrationPointsEps; eps_index++) {
-                    double eps = mIntegrationCoordinatesEps[eps_index];
-                    double eta = mIntegrationCoordinatesEta[eta_index];
-                    current_source[eps_index + eta_index*mNumberIntegrationPointsEps] /=
-                        (mIntegrationWeightsEps(eps_index) * mIntegrationWeightsEta(eta_index)) *
-                        jacobianAtPoint(eps, eta).determinant();
-                }
-            }
+    // Initialize source vector (note: due to RVO I believe no memory re-allocation is occuring).
+    Eigen::VectorXd F = Eigen::VectorXd::Zero(mNumberIntegrationPoints);
 
-            current_source *= source->fire(mTime);
-            // mIntegratedSource(12) = source->fire(mTime);//current_source;
-            // TODO: Why 12?
-            F(12) = source->fire(mTime);
-        
-            std::cout << "SOURCE " << F.maxCoeff() << std::endl;
-            
+    // For all sources tagging along with this element.
+    for (auto &source: mSources) {
+
+        // TODO: May make this more efficient (i.e. allocation every loop)
+        Eigen::VectorXd current_source(mNumberIntegrationPoints);
+
+        // Evaluate shape functions at source (eps, eta). Save the lagrange coefficients in current_source.
+        interpolate_order4_square(source->ReferenceLocationEps(), source->ReferenceLocationEta(),
+                                  current_source.data());
+
+        // Loop over gll points
+        for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
+            for (auto eps_index = 0; eps_index < mNumberIntegrationPointsEps; eps_index++) {
+
+                double eps = mIntegrationCoordinatesEps[eps_index];
+                double eta = mIntegrationCoordinatesEta[eta_index];
+
+                // Calculate the coefficients needed to integrate to the delta function.
+                current_source[eps_index + eta_index*mNumberIntegrationPointsEps] /=
+                    (mIntegrationWeightsEps(eps_index) * mIntegrationWeightsEta(eta_index)) *
+                    jacobianAtPoint(eps, eta).determinant();
+
+            }
         }
+
+        // Scale by the source amplitude.
+        current_source *= source->fire(mTime);
+
+        // TODO: Add current source to F. Right now, this isn't working quite right, so I'm just putting it at
+        // a gll point.
+        F(12) += source->fire(mTime);
+
     }
+
     return F;
 }
 
-// void Acoustic::checkInVector()
-
 void Acoustic::computeSurfaceTerm() {
 
-    if (MPI::COMM_WORLD.Get_rank()) return;
-    Eigen::VectorXd test(25);
-    interpolate_order4_square(-0.4, -0.7, test.data());
-    interpolate_eta_derivative_order4_square(0.7, 0.4, test.data());
 
 }
 
 void Acoustic::assembleElementMassMatrix(Mesh *mesh) {
 
-    Eigen::VectorXd elementMassMatrix(mNumberIntegrationPoints);
-    double density = 1; //mMaterialDensityAtVertices.mean();
     int i=0;
+    Eigen::VectorXd elementMassMatrix(mNumberIntegrationPoints);
     for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
         for (auto eps_index = 0; eps_index < mNumberIntegrationPointsEps; eps_index++) {
             double eps = mIntegrationCoordinatesEps[eps_index];
             double eta = mIntegrationCoordinatesEta[eta_index];
-            elementMassMatrix[i] = density * mIntegrationWeightsEps[eps_index] * mIntegrationWeightsEta[eta_index] *
+            elementMassMatrix[i] = mIntegrationWeightsEps[eps_index] * mIntegrationWeightsEta[eta_index] *
                     jacobianAtPoint(eps, eta).determinant();
             i++;
         }

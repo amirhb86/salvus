@@ -25,6 +25,7 @@
 #include "Mesh.h"
 #include "Element/HyperCube/Quad/Elastic.h"
 #include "Source.h"
+#include "Element/HyperCube/Quad/Acoustic.h"
 
 class Problem {
 
@@ -38,13 +39,13 @@ public:
 
 };
 
-class TimeDomain : public Problem {
+class TimeDomainScalar2d : public Problem {
 
 private:
 
     ScalarNewmark2D *mMesh;
-    Quad *mReferenceQuad;
-    std::vector<Quad *> mElements;
+    Acoustic *mReferenceQuad;
+    std::vector<Acoustic *> mElements;
 
     double mSimulationDuration;
     double mTimeStep;

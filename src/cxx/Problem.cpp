@@ -3,6 +3,7 @@
 //
 
 #include "Problem.h"
+#include "Element/HyperCube/Quad/Acoustic.h"
 
 #include <tuple>
 
@@ -10,7 +11,7 @@ Problem *Problem::factory(std::string solver_type) {
     try {
 
         if (solver_type == "time_domain") {
-            return new TimeDomain;
+            return new TimeDomainScalar2d;
         } else {
             throw std::runtime_error("Runtime Error: Problem type " + solver_type + " not supported.");
         }
@@ -21,13 +22,13 @@ Problem *Problem::factory(std::string solver_type) {
     }
 }
 
-void TimeDomain::initialize(Mesh *mesh, ExodusModel *model, Quad *quad, Options options) {
+void TimeDomainScalar2d::initialize(Mesh *mesh, ExodusModel *model, Quad *quad, Options options) {
 
     std::vector<Source *> sources = Source::factory(options);
 
     // Perform dynamic casts to ensure types are appropriate.
     mMesh = dynamic_cast<ScalarNewmark2D *> (mesh);
-    mReferenceQuad = dynamic_cast<Quad*> (quad);
+    mReferenceQuad = dynamic_cast<Acoustic *> (quad);
 
     // Attach element to mesh.
     mMesh->setupGlobalDof(mReferenceQuad->NumberDofVertex(), mReferenceQuad->NumberDofEdge(),
@@ -50,7 +51,7 @@ void TimeDomain::initialize(Mesh *mesh, ExodusModel *model, Quad *quad, Options 
 
         element->attachVertexCoordinates(mesh->DistributedMesh());
         element->interpolateMaterialProperties(model);
-        element->readOperators();
+        element->readGradientOperator();
         element->assembleElementMassMatrix(mesh);
         element->attachSource(sources);
 //        Eigen::VectorXd pts_x,pts_z;
@@ -73,10 +74,13 @@ void TimeDomain::initialize(Mesh *mesh, ExodusModel *model, Quad *quad, Options 
 
 }
 
-void TimeDomain::solve() {
+void TimeDomainScalar2d::solve() {
 
-    Eigen::VectorXd Ku;
+    Eigen::VectorXd F;
     Eigen::VectorXd u;
+    Eigen::VectorXd Ku;
+    Eigen::VectorXd FminusKu;
+
     double time = 0;
     while (time < mSimulationDuration) {
 
@@ -92,26 +96,22 @@ void TimeDomain::solve() {
 
             // Check out the necessary fields on each element (i.e. displacement) from the mesh.
             u = element->checkOutFieldElement(mMesh, "displacement");
-//            u(12) = 1;
 
             // Compute the stiffness term (apply K, if you will).
             Ku = element->computeStiffnessTerm(u);
            
             // Fire any sources and handle the different cases.
-            auto F = element->computeSourceTerm();
+            F = element->computeSourceTerm();
 
-            // combine F and K
-            Eigen::VectorXd FminusKu;
-//            if (F.size() > 0) { FminusKu = F - Ku; }
-//            else { FminusKu = -Ku; }
-
+            // Compute the force balance.
             FminusKu = F - Ku;
 
             // Compute any surface integral terms (i.e. if we're in a coupling layer).
-            // element->computeSurfaceTerm();
+            element->computeSurfaceTerm();
             
             // Sum the element fields (i.e. forcing) back into the locally-owned section of the mesh.
             element->checkInFieldElement(mMesh,FminusKu,"force");
+
         }
 
 
@@ -119,12 +119,11 @@ void TimeDomain::solve() {
         mMesh->checkInFieldBegin("force");
         mMesh->checkInFieldEnd("force");
 
-        // Timestep specific things.
+        // Time step specific things.
         mMesh->applyInverseMassMatrix();
         mMesh->advanceField();
 
         // Save to file.
-//        mMesh->saveFrame("mass_matrix_inverse");
         mMesh->saveFrame("displacement");
 
         std::cout << time << std::endl;
@@ -163,7 +162,7 @@ void TimeDomainElastic2d::initialize(Mesh *mesh, ExodusModel *model, Quad *quad,
         element_number++;
         element->attachVertexCoordinates(mesh->DistributedMesh());
         element->interpolateMaterialProperties(model);
-        element->readOperators();
+        element->readGradientOperator();
         element->assembleElementMassMatrix(mesh);
     }
 
