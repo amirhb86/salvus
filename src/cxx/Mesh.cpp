@@ -17,6 +17,8 @@ Mesh *Mesh::factory(Options options) {
     try {
         if (mesh_type == "newmark") {
             return new ScalarNewmark2D;
+        } else if (mesh_type == "newmark_2d_elastic"){
+            return new ElasticNewmark2D;
         } else {
             throw std::runtime_error("Runtime Error: Mesh type " + mesh_type + " not supported");
         }
@@ -215,6 +217,7 @@ void Mesh::checkInFieldEnd(const std::string &name) {
 
     // Begin MPI broadcast local -> global.
     DMLocalToGlobalEnd(mDistributedMesh, mFields[name].loc, ADD_VALUES, mFields[name].glb);
+
 }
 
 void Mesh::zeroFields(const std::string &name) {
@@ -236,6 +239,11 @@ void Mesh::saveFrame(std::string name) {
     DMSetOutputSequenceNumber(mDistributedMesh, mTime, mTime);
     VecView(mFields[name].glb, mViewer);
     mTime += 1;
+
+//
+//    double maxval, minval;
+//    VecMax(mFields[name].glb, NULL, &maxval);
+//    std::cout << "ACCELERATION: " << maxval << std::endl;
 
 }
 
@@ -270,9 +278,6 @@ void ScalarNewmark2D::applyInverseMassMatrix() {
         VecReciprocal(mFields["mass_matrix_inverse"].glb);
     }
 
-    double maxval;
-    VecMax(mFields["force"].glb, NULL, &maxval);
-    std::cout << "MAX FORCE " << maxval << std::endl;
     VecPointwiseMult(mFields["acceleration"].glb, mFields["mass_matrix_inverse"].glb,
                      mFields["force"].glb);
 

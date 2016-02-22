@@ -32,10 +32,12 @@ int main(int argc, char *argv[]) {
     std::vector<Source*> sources = Source::factory(options);
 
     // Setup reference element.
-    Quad *reference_element = new Acoustic(options);
+//    Quad *reference_element = new Acoustic(options);
+//    Quad *reference_element = new Elastic(options);
+    Quad *reference_element = Quad::factory(options);
 
     // Use above elements to define the problem.
-    Problem *problem = Problem::factory("time_domain");
+    Problem *problem = Problem::factory(options.ProblemType());
     problem->initialize(mesh, model, reference_element, options);
     problem->solve();
 

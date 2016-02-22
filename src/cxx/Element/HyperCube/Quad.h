@@ -261,6 +261,12 @@ protected:
 public:
 
     /**
+     * Factory return the proper element physics based on the command line options.
+     * @return Some derived element class.
+     */
+    static Quad *factory(Options options);
+
+    /**
      * Constructor.
      * Sets quantities such as number of dofs, among other things, from the options class.
      * @param [in] options Populated options class.
@@ -341,7 +347,7 @@ public:
      * @param name [in] The name of the global fields where the field will be summed.
      * TODO: Make this function check if the field is valid?
      */
-    void checkInFieldElement(Mesh *mesh, Eigen::VectorXd& field, const std::string name);
+    void checkInFieldElement(Mesh *mesh, const Eigen::VectorXd &field, const std::string name);
 
     /**
      * Queries the mesh for, and returns, a field.
@@ -352,7 +358,7 @@ public:
      * @param [in] mesh Pointer to the mesh representing the current element.
      * @param [in] name Name of field to check out.
      */
-    virtual Eigen::MatrixXd checkOutFieldElement(Mesh *mesh, const std::string name);
+    virtual Eigen::VectorXd checkOutFieldElement(Mesh *mesh, const std::string name);
 
     /**
      * MAX.
@@ -365,6 +371,7 @@ public:
     int NumberDofVertex() const { return mNumberDofVertex; }
     int NumberDofVolume() const { return mNumberDofVolume; }
     int NumberDimensions() const { return mNumberDimensions; }
+    int NumberIntegrationPoints() const { return mNumberIntegrationPoints; }
 
     // Pure virtual methods.
     virtual Eigen::MatrixXd computeSourceTerm() = 0;

@@ -137,7 +137,7 @@ void ExodusModel::readNodalVariables() {
         exodusError(ex_get_nodal_var(
                             mExodusId, time_step, (i+1), mNumberVertices, buffer.data()),
                     "ex_get_nodal_var");
-        mNodalVariables.insert(mNodalVariables.begin(), buffer.begin(), buffer.end());
+        mNodalVariables.insert(mNodalVariables.end(), buffer.begin(), buffer.end());
     }
 }
 
@@ -157,6 +157,6 @@ PetscReal ExodusModel::getMaterialParameterAtPoint(const std::vector<double> poi
     int parameter_index;
     for (auto &name: mNodalVariableNames) { if (name == parameter_name) parameter_index = i; i++; }
 
-    return mNodalVariables[parameter_index * mNumberNodalVariables + spatial_index];
+    return mNodalVariables[parameter_index * mNumberVertices + spatial_index];
 
 }

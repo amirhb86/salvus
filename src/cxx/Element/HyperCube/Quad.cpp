@@ -9,6 +9,8 @@
 #include <tuple>
 #include "Quad.h"
 #include "Quad/Autogen/quad_autogen.h"
+#include "Quad/Acoustic.h"
+#include "Quad/Elastic.h"
 
 /*
  * STATIC FUNCTIONS WHICH ARE ONLY ON THE REFERENCE ELEMENT.
@@ -41,6 +43,8 @@ double Quad::dn0deta(const double &eps) { return (1 - eps) * -1.0 / 4.0; }
 double Quad::dn1deta(const double &eps) { return (1 + eps) * -1.0 / 4.0; }
 double Quad::dn2deta(const double &eps) { return (1 - eps) * 1.0 / 4.0; }
 double Quad::dn3deta(const double &eps) { return (1 + eps) * 1.0 / 4.0; }
+
+
 
 Eigen::VectorXd Quad::GllPointsForOrder(const int order) {
     Eigen::VectorXd gll_points(order+1);
@@ -296,14 +300,32 @@ std::tuple<Eigen::VectorXd,Eigen::VectorXd> Quad::buildNodalPoints(Mesh* mesh) {
     
 }
 
-Eigen::MatrixXd Quad::checkOutFieldElement(Mesh *mesh, const std::string name) {
+Eigen::VectorXd Quad::checkOutFieldElement(Mesh *mesh, const std::string name) {
 
     return mesh->getFieldOnElement(name, mElementNumber, mClosureMapping);
 
 }
 
-void Quad::checkInFieldElement(Mesh *mesh, Eigen::VectorXd &field, const std::string name) {
+void Quad::checkInFieldElement(Mesh *mesh, const Eigen::VectorXd &field, const std::string name) {
 
     mesh->setFieldOnElement(name, mElementNumber, mClosureMapping, field);
 
+}
+
+Quad *Quad::factory(Options options) {
+
+    std::string physics(options.PhysicsSystem());
+    try {
+        if (physics == "acoustic") {
+            return new Acoustic(options);
+        } else if (physics == "elastic") {
+            return new Elastic(options);
+        } else {
+            throw std::runtime_error("Runtime Error: Element physics " + physics + " not supported");
+        }
+    } catch (std::exception &e) {
+        utilities::print_from_root_mpi(e.what());
+        MPI::COMM_WORLD.Abort(-1);
+        return nullptr;
+    }
 }
