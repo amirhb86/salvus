@@ -52,6 +52,9 @@ Eigen::MatrixXd Acoustic::computeStiffnessTerm(const Eigen::MatrixXd &displaceme
             // Stress = material parameter * strain.
             stress.col(itr) = mElementStrain.col(itr) * velocity * velocity;
 
+            // Convert stress to physical co-ordinates.
+            stress.col(itr) = inverse_Jacobian * stress.col(itr);
+
             itr++;
 
         }

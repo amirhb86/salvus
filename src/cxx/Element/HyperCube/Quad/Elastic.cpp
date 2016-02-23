@@ -85,7 +85,7 @@ void Elastic::assembleElementMassMatrix(Mesh *mesh) {
 Eigen::MatrixXd Elastic::computeStiffnessTerm(const Eigen::MatrixXd &displacement) {
 
     int itr = 0;
-    Eigen::Matrix2d inverse_jacobian;
+    Eigen::Matrix2d inverse_jacobian, temp_stress;
     Eigen::VectorXd jacobian_determinant(mNumberIntegrationPoints);
     Eigen::VectorXd element_stress_xx(mNumberIntegrationPoints);
     Eigen::VectorXd element_stress_xz(mNumberIntegrationPoints);
@@ -103,12 +103,12 @@ Eigen::MatrixXd Elastic::computeStiffnessTerm(const Eigen::MatrixXd &displacemen
             inverse_jacobian = jacobianAtPoint(eps, eta).inverse();
 
             /*
-                 * | uxx   uxz  |
-                 * |            |
-                 * | uzx   uzz  |
-                 * Here the strain is calculated for each gll point. At the moment, the full strain matrix is calculated
-                 * (see above). It is stored in the pre-allocated matrix containing the strain on each element, in 2x2
-                 * blocks. This is why there's the 2*itr+0,1 below. */
+             * | uxx   uxz  |
+             * |            |
+             * | uzx   uzz  |
+             * Here the strain is calculated for each gll point. At the moment, the full strain matrix is calculated
+             * (see above). It is stored in the pre-allocated matrix containing the strain on each element, in 2x2
+             * blocks. This is why there's the 2*itr+0,1 below. */
             int rx = 0;
             int rz = 1;
             int cx = 2*itr+0;
@@ -122,6 +122,9 @@ Eigen::MatrixXd Elastic::computeStiffnessTerm(const Eigen::MatrixXd &displacemen
             mElementStrain(rz,cz) = mGradientOperator.row(eta_index).dot(
                     etaVectorStride(displacement.row(1), eps_index));
 
+            // Convert derivatives to physical co-ordinates through the jacobian.
+            mElementStrain.block<2,2>(rx,cx) = inverse_jacobian * mElementStrain.block<2,2>(rx,cx);
+
             // Get material parameters at this integration point.
             double c11 = interpolateShapeFunctions(eps, eta).dot(mC11AtVertices);
             double c13 = interpolateShapeFunctions(eps, eta).dot(mC13AtVertices);
@@ -130,13 +133,23 @@ Eigen::MatrixXd Elastic::computeStiffnessTerm(const Eigen::MatrixXd &displacemen
             double c35 = interpolateShapeFunctions(eps, eta).dot(mC35AtVertices);
             double c55 = interpolateShapeFunctions(eps, eta).dot(mC55AtVertices);
 
-            // Calculate element stress by multiplying strain through by eleastic tensor.
-            element_stress_xx(itr) = c11 * mElementStrain(rx,cx) + c13 * mElementStrain(rz,cz) +
-                    c15 * (mElementStrain(rz,cx) + mElementStrain(rx,cz));
-            element_stress_zz(itr) = c13 * mElementStrain(rx,cx) + c33 * mElementStrain(rz,cz) +
-                    c35 * (mElementStrain(rz,cx) + mElementStrain(rx,cz));
-            element_stress_xz(itr) = element_stress_zx(itr) = c15 * mElementStrain(rx,cx) +
-                    c35 * mElementStrain(rz,cz) + c55 * (mElementStrain(rz,cx) + mElementStrain(rx,cz));
+            // Calculate element stress by multiplying strain through by elastic tensor.
+            // TODO: Probably don't need this temporary object.
+            temp_stress(0,0) = c11 * mElementStrain(rx,cx) + c13 * mElementStrain(rz,cz) +
+                               c15 * (mElementStrain(rz,cx) + mElementStrain(rx,cz));
+            temp_stress(1,1) = c13 * mElementStrain(rx,cx) + c33 * mElementStrain(rz,cz) +
+                               c35 * (mElementStrain(rz,cx) + mElementStrain(rx,cz));
+            temp_stress(0,1) = temp_stress(1,0) = c15 * mElementStrain(rx,cx) +
+                                                  c35 * mElementStrain(rz,cz) +
+                                                  c55 * (mElementStrain(rz,cx) + mElementStrain(rx,cz));
+
+            // Transform stress to physical co-ordinates.
+            temp_stress = inverse_jacobian * temp_stress;
+
+            // Copy to nice stress array.
+            element_stress_xx(itr) = temp_stress(0,0);
+            element_stress_zz(itr) = temp_stress(1,1);
+            element_stress_xz(itr) = element_stress_zx(itr) = temp_stress(0,1);
 
             itr++;
 
