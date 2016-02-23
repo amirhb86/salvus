@@ -6,7 +6,7 @@
 #define SALVUS_SOURCE_H
 
 
-#include "Options.h"
+#include "../Utilities/Options.h"
 
 class Source {
 

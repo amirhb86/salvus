@@ -36,16 +36,20 @@ include_directories(
 
 add_executable(salvus
         src/cxx/Main.cpp
-        src/cxx/Problem.cpp
-        src/cxx/Mesh.cpp
-        src/cxx/Utilities.cpp
-        src/cxx/Options.cpp
+        src/cxx/Problem/Problem.cpp
+        src/cxx/Problem/TimeDomainElastic2d.cpp
+        src/cxx/Problem/TimeDomainScalar2d.cpp
+        src/cxx/Mesh/Mesh.cpp
+        src/cxx/Mesh/ElasticNewmark2D.cpp
+        src/cxx/Mesh/ScalarNewmark2D.cpp
         src/cxx/Element/HyperCube/Quad.cpp
+        src/cxx/Element/HyperCube/Quad/Elastic.cpp
         src/cxx/Element/HyperCube/Quad/Acoustic.cpp
         src/cxx/Model/ExodusModel.cpp
-        src/cxx/kdtree.c
-        src/cxx/Source.cpp
-        ${QuadAutoGen}
-        )
+        src/cxx/Utilities/Utilities.cpp
+        src/cxx/Utilities/Options.cpp
+        src/cxx/Source/Source.cpp
+        src/cxx/Utilities/kdtree.c
+        ${QuadAutoGen} )
 
 target_link_libraries(salvus petsc exodus netcdf)

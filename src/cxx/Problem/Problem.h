@@ -14,18 +14,21 @@
 #ifndef SALVUS_SOLVER_H
 #define SALVUS_SOLVER_H
 
-
 #include <ostream>
 #include <iostream>
 #include <openmpi/ompi/mpi/cxx/mpicxx.h>
 #include <iosfwd>
 #include <string>
-#include "Utilities.h"
-#include "Element/HyperCube/Quad.h"
-#include "Mesh.h"
-#include "Element/HyperCube/Quad/Elastic.h"
-#include "Source.h"
-#include "Element/HyperCube/Quad/Acoustic.h"
+#include "../Utilities/Utilities.h"
+#include "../Source/Source.h"
+
+#include "../Mesh/Mesh.h"
+#include "../Mesh/ScalarNewmark2D.h"
+#include "../Mesh/ElasticNewmark2D.h"
+
+#include "../Element/HyperCube/Quad.h"
+#include "../Element/HyperCube/Quad/Elastic.h"
+#include "../Element/HyperCube/Quad/Acoustic.h"
 
 class Problem {
 
@@ -35,45 +38,6 @@ public:
 
     virtual void solve() = 0;
     virtual void initialize(Mesh *mesh, ExodusModel *model, Quad *quad, Options options) = 0;
-
-
-};
-
-class TimeDomainScalar2d : public Problem {
-
-private:
-
-    ScalarNewmark2D *mMesh;
-    Acoustic *mReferenceQuad;
-    std::vector<Acoustic *> mElements;
-
-    double mSimulationDuration;
-    double mTimeStep;
-
-
-public:
-
-
-    virtual void solve();
-    virtual void initialize(Mesh *mesh, ExodusModel *model, Quad *quad, Options options);
-
-};
-
-class TimeDomainElastic2d: public Problem {
-
-private:
-
-    ElasticNewmark2D *mMesh;
-    Elastic *mReferenceQuad;
-    std::vector<Elastic *> mElements;
-
-    double mSimulationDuration;
-    double mTimeStep;
-
-public:
-
-    virtual void solve();
-    virtual void initialize(Mesh *mesh, ExodusModel *model, Quad *quad, Options options);
 
 
 };

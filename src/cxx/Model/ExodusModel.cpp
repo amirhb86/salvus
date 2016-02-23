@@ -2,11 +2,7 @@
 // Created by Michael Afanasiev on 2016-02-01.
 //
 
-#include <openmpi/ompi/mpi/cxx/mpicxx.h>
-#include <assert.h>
-#include "exodusII.h"
 #include "ExodusModel.h"
-#include "../Utilities.h"
 
 ExodusModel::ExodusModel(Options options) {
 

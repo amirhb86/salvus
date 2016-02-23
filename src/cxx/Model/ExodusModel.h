@@ -6,9 +6,14 @@
 #define SALVUS_EXODUSMODEL_H
 
 #include <vector>
-#include "../Options.h"
+#include <assert.h>
+#include <openmpi/ompi/mpi/cxx/mpicxx.h>
+
+#include "../Utilities/Options.h"
+#include "../Utilities/Utilities.h"
+
 extern "C" {
-#include "../kdtree.h"
+#include "../Utilities/kdtree.h"
 #include "exodusII.h"
 };
 

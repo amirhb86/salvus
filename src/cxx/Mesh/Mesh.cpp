@@ -2,14 +2,9 @@
 // Created by Michael Afanasiev on 2016-01-27.
 //
 
-#include <mpi.h>
-#include <petscviewerhdf5.h>
-#include <assert.h>
-#include <petscao.h>
 #include "Mesh.h"
-#include "Utilities.h"
-#include "petscdm.h"
-#include "petscdmplex.h"
+#include "ScalarNewmark2D.h"
+#include "ElasticNewmark2D.h"
 
 Mesh *Mesh::factory(Options options) {
 
@@ -244,67 +239,3 @@ void Mesh::finalizeMovie() {
 
 }
 
-void ScalarNewmark2D::advanceField() {
-
-    double dt = 1e-3;
-    double pre_factor_acceleration = (1.0/2.0) * dt;
-    double pre_factor_displacement = (1.0/2.0) * (dt * dt);
-
-    VecAXPBYPCZ(mFields["velocity"].glb, pre_factor_acceleration, pre_factor_acceleration, 1.0,
-                mFields["acceleration"].glb, mFields["acceleration_"].glb);
-
-    VecAXPBYPCZ(mFields["displacement"].glb, dt, pre_factor_displacement, 1.0,
-                mFields["velocity"].glb, mFields["acceleration"].glb);
-
-    VecCopy(mFields["acceleration"].glb, mFields["acceleration_"].glb);
-
-}
-
-void ScalarNewmark2D::applyInverseMassMatrix() {
-
-    if (mFields.find("mass_matrix_inverse") == mFields.end()){
-        registerFieldVectors("mass_matrix_inverse");
-        VecCopy(mFields["mass_matrix"].glb, mFields["mass_matrix_inverse"].glb);
-        VecReciprocal(mFields["mass_matrix_inverse"].glb);
-    }
-
-    VecPointwiseMult(mFields["acceleration"].glb, mFields["mass_matrix_inverse"].glb,
-                     mFields["force"].glb);
-
-}
-
-void ElasticNewmark2D::advanceField() {
-
-    double dt = 1e-3;
-    double pre_factor_acceleration = (1.0/2.0) * dt;
-    double pre_factor_displacement = (1.0/2.0) * (dt * dt);
-
-    VecAXPBYPCZ(mFields["velocity_x"].glb, pre_factor_acceleration, pre_factor_acceleration, 1.0,
-                mFields["acceleration_x"].glb, mFields["acceleration_x_"].glb);
-    VecAXPBYPCZ(mFields["velocity_z"].glb, pre_factor_acceleration, pre_factor_acceleration, 1.0,
-                mFields["acceleration_z"].glb, mFields["acceleration_z_"].glb);
-
-    VecAXPBYPCZ(mFields["displacement_x"].glb, dt, pre_factor_displacement, 1.0,
-                mFields["velocity_x"].glb, mFields["acceleration_x"].glb);
-    VecAXPBYPCZ(mFields["displacement_z"].glb, dt, pre_factor_displacement, 1.0,
-                mFields["velocity_z"].glb, mFields["acceleration_z"].glb);
-
-    VecCopy(mFields["acceleration_x"].glb, mFields["acceleration_x_"].glb);
-    VecCopy(mFields["acceleration_z"].glb, mFields["acceleration_z_"].glb);
-
-}
-
-void ElasticNewmark2D::applyInverseMassMatrix() {
-
-    if (mFields.find("mass_matrix_inverse") == mFields.end()) {
-        registerFieldVectors("mass_matrix_inverse");
-        VecCopy(mFields["mass_matrix"].glb, mFields["mass_matrix_inverse"].glb);
-        VecReciprocal(mFields["mass_matrix_inverse"].glb);
-    }
-
-    VecPointwiseMult(mFields["acceleration_x"].glb, mFields["mass_matrix_inverse"].glb,
-                     mFields["force_x"].glb);
-    VecPointwiseMult(mFields["acceleration_z"].glb, mFields["mass_matrix_inverse"].glb,
-                     mFields["force_z"].glb);
-
-}

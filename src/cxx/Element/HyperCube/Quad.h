@@ -7,8 +7,8 @@
 
 #include <Eigen/Dense>
 #include "../../Model/ExodusModel.h"
-#include "../../Source.h"
-#include "../../Mesh.h"
+#include "../../Source/Source.h"
+#include "../../Mesh/Mesh.h"
 
 extern "C" {
 #include "Quad/Autogen/order4_square.h"

@@ -8,13 +8,22 @@
 #include <map>
 #include <iosfwd>
 #include <string>
-#include <petscdmtypes.h>
 #include <vector>
-#include <petscistypes.h>
+
+#include <mpi.h>
+#include <assert.h>
+
+#include <petscdm.h>
 #include <petscvec.h>
+#include <petscdmplex.h>
+#include <petscdmtypes.h>
+#include <petscistypes.h>
+#include <petscviewerhdf5.h>
+
 #include <Eigen/Dense>
-#include "Options.h"
-#include "Utilities.h"
+
+#include "../Utilities/Options.h"
+#include "../Utilities/Utilities.h"
 
 /**
  * Struct holding the vectors representing the global DOFs.
@@ -248,50 +257,6 @@ public:
      */
     inline DM &DistributedMesh() { return mDistributedMesh; }
     inline PetscSection &MeshSection() { return mMeshSection; }
-
-};
-
-class ScalarNewmark2D : public Mesh {
-
-public:
-
-    virtual void registerFields() {
-        registerFieldVectors("acceleration_");
-        registerFieldVectors("acceleration");
-        registerFieldVectors("displacement");
-        registerFieldVectors("velocity");
-        registerFieldVectors("force");
-        registerFieldVectors("mass_matrix");
-        registerFieldVectors("nodes_x");
-        registerFieldVectors("nodes_z");
-    }
-
-    virtual void advanceField();
-    virtual void applyInverseMassMatrix();
-
-};
-
-class ElasticNewmark2D: public Mesh {
-
-public:
-
-    virtual void registerFields() {
-        registerFieldVectors("acceleration_x_");
-        registerFieldVectors("acceleration_z_");
-        registerFieldVectors("acceleration_x");
-        registerFieldVectors("acceleration_z");
-        registerFieldVectors("displacement_x");
-        registerFieldVectors("displacement_z");
-        registerFieldVectors("velocity_x");
-        registerFieldVectors("velocity_z");
-        registerFieldVectors("force_x");
-        registerFieldVectors("force_z");
-        registerFieldVectors("mass_matrix");
-    }
-
-    virtual void advanceField();
-    virtual void applyInverseMassMatrix();
-
 
 };
 

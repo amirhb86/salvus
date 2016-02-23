@@ -7,10 +7,11 @@
 
 
 #include <petscvec.h>
-#include "../../../Options.h"
+#include "../../../Utilities/Options.h"
 #include "../Quad.h"
 #include "../../../Model/ExodusModel.h"
-#include "../../../Utilities.h"
+#include "../../../Utilities/Utilities.h"
+#include "../../../Mesh/Mesh.h"
 
 class Acoustic : public Quad {
 
