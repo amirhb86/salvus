@@ -378,7 +378,6 @@ public:
     virtual void assembleElementMassMatrix(Mesh *mesh) = 0;
     virtual void interpolateMaterialProperties(ExodusModel *model) = 0;
     virtual Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement) = 0;
-    virtual void setInitialCondition(Mesh* mesh, Eigen::VectorXd& pts_x, Eigen::VectorXd& pts_z) = 0;
 
 };
 

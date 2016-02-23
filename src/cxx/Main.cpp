@@ -3,11 +3,7 @@
 #include <mpi.h>
 #include <petscsys.h>
 
-#include "Utilities/Utilities.h"
 #include "Mesh/Mesh.h"
-#include "Element/HyperCube/Quad/Acoustic.h"
-#include "Model/ExodusModel.h"
-#include "Source/Source.h"
 #include "Problem/Problem.h"
 
 static constexpr char help[] = "Welcome to salvus.";

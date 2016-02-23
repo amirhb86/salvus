@@ -32,7 +32,7 @@ public:
     virtual Eigen::MatrixXd computeSourceTerm();
     virtual Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement);
 
-    virtual void setInitialCondition(Mesh* mesh, Eigen::VectorXd& pts_x, Eigen::VectorXd& pts_z);
+    void setInitialCondition(Mesh* mesh, Eigen::VectorXd& pts_x, Eigen::VectorXd& pts_z);
 
 };
 

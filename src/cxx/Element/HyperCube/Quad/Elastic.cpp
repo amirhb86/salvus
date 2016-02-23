@@ -11,10 +11,6 @@ Elastic::Elastic(Options options): Quad(options) {
 
 }
 
-void Elastic::checkInField(Mesh *mesh) {
-
-}
-
 Eigen::MatrixXd Elastic::computeSourceTerm() {
 
     // Initialize source vector (note: due to RVO I believe no memory re-allocation is occuring).
@@ -39,13 +35,14 @@ Eigen::MatrixXd Elastic::computeSourceTerm() {
 
                 // Calculate the coefficients needed to integrate to the delta function.
                 current_source[eps_index + eta_index*mNumberIntegrationPointsEps] /=
-                        (mIntegrationWeightsEps(eps_index) * mIntegrationWeightsEta(eta_index)) *
-                        jacobianAtPoint(eps, eta).determinant();
+                        (mIntegrationWeightsEps(eps_index) * mIntegrationWeightsEta(eta_index) *
+                        jacobianAtPoint(eps, eta).determinant());
 
             }
         }
 
         // Scale by the source amplitude.
+        std::cout << current_source << std::endl;
         current_source *= source->fire(mTime);
 
         // TODO: Add current source to F. Right now, this isn't working quite right, so I'm just putting it at
@@ -212,8 +209,4 @@ void Elastic::interpolateMaterialProperties(ExodusModel *model) {
     mC15AtVertices = __interpolateMaterialProperties(model, "c15");
     mC35AtVertices = __interpolateMaterialProperties(model, "c35");
     mC55AtVertices = __interpolateMaterialProperties(model, "c55");
-}
-
-void Elastic::setInitialCondition(Mesh *mesh, Eigen::VectorXd &pts_x, Eigen::VectorXd &ptz_z) {
-
 }

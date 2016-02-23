@@ -39,7 +39,6 @@ Ricker::Ricker(Options options, int number) {
 
 double Ricker::fire(const double &time) {
 
-    std::cout << "FIRING" << std::endl;
     double factor = M_PI * M_PI * mCenterFreq * mCenterFreq * (time - mTimeDelay) * (time - mTimeDelay);
     return mAmplitude * ((1 - 2 * factor) * exp(-1 * factor));
 
