@@ -12,14 +12,15 @@
 class Elastic : public Quad {
 
     Eigen::Vector4d mC11AtVertices;
-    Eigen::Vector4d mC12AtVertices;
     Eigen::Vector4d mC13AtVertices;
-    Eigen::Vector4d mC21AtVertices;
-    Eigen::Vector4d mC22AtVertices;
-    Eigen::Vector4d mC23AtVertices;
+    Eigen::Vector4d mC15AtVertices;
     Eigen::Vector4d mC31AtVertices;
-    Eigen::Vector4d mC32AtVertices;
     Eigen::Vector4d mC33AtVertices;
+    Eigen::Vector4d mC35AtVertices;
+    Eigen::Vector4d mC51AtVertices;
+    Eigen::Vector4d mC53AtVertices;
+    Eigen::Vector4d mC55AtVertices;
+    Eigen::Vector4d mRhoAtVertices;
 
     Eigen::Matrix<double, 2, Eigen::Dynamic> mElementStrain;
 

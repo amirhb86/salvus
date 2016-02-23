@@ -13,6 +13,7 @@
 class Options {
 
     // Integer options.
+    PetscInt mDimension;
     PetscInt mNumberSources;
     PetscInt mPolynomialOrder;
 
@@ -29,6 +30,9 @@ class Options {
     std::string mPhysicsSystem;
     std::string mExodusModelFile;
     std::string mSourceType;
+    std::string mProblemType;
+    std::string mTimeStepType;
+
     // Determines the output name of the movie.
     std::string mOutputMovieFile;
 
@@ -59,6 +63,7 @@ public:
     inline std::string ExodusModelFile() { return mExodusModelFile; }
     inline std::string SourceType() { return mSourceType; }
     inline std::string OutputMovieFile() { return mOutputMovieFile; }
+    inline std::string ProblemType() { return mProblemType; }
 
     // Vector getters
     inline std::vector<double> SourceLocationX() { return mSourceLocationX; }

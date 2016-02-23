@@ -9,6 +9,8 @@ TEMP_EXODUS_FILENAME = '.tmp.exo2'
 
 class ExodusModel(object):
     def __init__(self, exodus_file):
+        self.additionalNodalParameter = []
+        self.additionalNodalParameterValues = []
         self.exodus_file = exodus_file
 
     def __repr__(self):
@@ -42,17 +44,23 @@ class ExodusModel(object):
         return TEMP_EXODUS_FILENAME
 
     def __read(self):
-        self.exodus_template = exodus.exodus(self.exodus_file, array_type='numpy')
+        exodus.copyTransfer(self.exodus_file, self.temporary_exodus_file)
+        self.__reload_from_tmp()
 
     def __reload_from_tmp(self):
-        self.exodus_template = exodus.exodus(TEMP_EXODUS_FILENAME, array_type='numpy')
+        self.exodus_template = exodus.exodus(TEMP_EXODUS_FILENAME, array_type='numpy', mode='r')
 
     def readFromExodus(self):
         self.__read()
 
     def write(self, file_name):
         if file_name:
-            tmp = self.exodus_template.copy(file_name)
+            if os.path.exists(file_name):
+                os.remove(file_name)
+            tmp = exodus.copyTransfer(TEMP_EXODUS_FILENAME, file_name,
+                                      additionalNodalVariables=self.additionalNodalParameter)
+            for name, value in zip(self.additionalNodalParameter, self.additionalNodalParameterValues):
+                tmp.put_node_variable_values(name, TIMESTEP_ZERO, value)
             tmp.close()
         else:
             os.remove(self.exodus_file)
@@ -63,9 +71,5 @@ class ExodusModel(object):
         if parameter_name in self.material_parameters:
             raise RuntimeError("Parameter already exists. Use updateMaterialParameter() to overwrite.")
         else:
-            buffer = self.exodus_template.copy(self.temporary_exodus_file)
-            buffer.set_node_variable_number(self.number_of_nodal_variables + 1)
-            buffer.put_node_variable_name(parameter_name, self.number_of_nodal_variables + 1)
-            buffer.put_node_variable_values(parameter_name, TIMESTEP_ZERO, parameter_value)
-            buffer.close()
-            self.__reload_from_tmp()
+            self.additionalNodalParameter.append(parameter_name)
+            self.additionalNodalParameterValues.append(parameter_value)

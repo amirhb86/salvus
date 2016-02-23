@@ -74,6 +74,18 @@ PetscErrorCode Options::setOptions() {
       PetscOptionsGetScalarArray(NULL, "--ricker_time_delay", mSourceRickerTimeDelay.data(), &mNumberSources, NULL);
       PetscOptionsGetScalarArray(NULL, "--ricker_center_freq", mSourceRickerCenterFreq.data(), &mNumberSources, NULL);
     }
+
+    // MAKE THESE COMMAND LINE OPTIONS EVENTUALLY.
+    mDimension = 2;
+    mTimeStepType = "newmark";
+
+    // Logic to set additional parameters.
+    if ((mPhysicsSystem == "elastic") && (mTimeStepType == "newmark") && (mDimension == 2)) {
+        mProblemType = "solver_newmark_dimension_2d_physics_elastic";
+    } else if ((mPhysicsSystem == "acoustic") && (mTimeStepType == "newmark") && (mDimension == 2)) {
+        mProblemType = "solver_newmark_dimension_2d_physics_acoustic";
+    }
+
     // No error
     return 0;
 }

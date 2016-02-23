@@ -17,6 +17,8 @@ Mesh *Mesh::factory(Options options) {
     try {
         if (mesh_type == "newmark") {
             return new ScalarNewmark2D;
+        } else if (mesh_type == "newmark_2d_elastic"){
+            return new ElasticNewmark2D;
         } else {
             throw std::runtime_error("Runtime Error: Mesh type " + mesh_type + " not supported");
         }
@@ -145,7 +147,7 @@ void Mesh::setFieldFromElement(const std::string &name, const int element_number
     // map "our" nodal ordering back onto PETSC ordering
     for (auto j = 0; j < closure.size(); j++) { val(j) = field(closure(j)); }
     DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
-                        element_number, val.data(), INSERT_VALUES);
+                        element_number, val.data(), ADD_VALUES);
 }
 
 void Mesh::addFieldFromElement(const std::string &name, const int element_number,
@@ -158,13 +160,13 @@ void Mesh::addFieldFromElement(const std::string &name, const int element_number
                         element_number, val.data(), ADD_VALUES);
 }
 
-void Mesh::assembleField(const std::string &name) {
+void Mesh::assembleLocalFieldToGlobal(const std::string &name) {
 
-    assembleFieldBegin(name);
-    assembleFieldEnd(name);   
+    assembleLocalFieldToGlobalBegin(name);
+    assembleLocalFieldToGlobalEnd(name);   
 }
 
-void Mesh::assembleFieldBegin(const std::string &name) {
+void Mesh::assembleLocalFieldToGlobalBegin(const std::string &name) {
 
     // Make sure the field exists in our dictionary.
     assert(mFields.find(name) != mFields.end());
@@ -173,7 +175,7 @@ void Mesh::assembleFieldBegin(const std::string &name) {
     DMLocalToGlobalBegin(mDistributedMesh, mFields[name].loc, ADD_VALUES, mFields[name].glb);
 }
 
-void Mesh::assembleFieldEnd(const std::string &name) {
+void Mesh::assembleLocalFieldToGlobalEnd(const std::string &name) {
 
     // Make sure the field exists in our dictionary.
     assert(mFields.find(name) != mFields.end());
@@ -187,16 +189,14 @@ void Mesh::setLocalFieldToGlobal(const std::string &name) {
     // Make sure the field exists in our dictionary.
     assert(mFields.find(name) != mFields.end());
 
-    // Set the global dofs from processor local values. `INSERT_VALUE`
-    // will result in no communication
+    // Do "communication". `INSERT_VALUE` will result in no communication
     DMLocalToGlobalBegin(mDistributedMesh, mFields[name].loc, INSERT_VALUES, mFields[name].glb);
-    DMLocalToGlobalEnd(mDistributedMesh, mFields[name].loc, INSERT_VALUES, mFields[name].glb);    
+    DMLocalToGlobalEnd(mDistributedMesh, mFields[name].loc, INSERT_VALUES, mFields[name].glb);
+
 }
 
-// Depricated
 void Mesh::checkInFieldBegin(const std::string &name) {
 
-    std::cout << "WARNING: `checkInFieldBegin` To be depricated\n";
     // Make sure the field exists in our dictionary.
     assert(mFields.find(name) != mFields.end());
 
@@ -207,12 +207,12 @@ void Mesh::checkInFieldBegin(const std::string &name) {
 
 void Mesh::checkInFieldEnd(const std::string &name) {
 
-    std::cout << "WARNING: `checkInFieldEnd` To be depricated\n";
     // Make sure the field exists in our dictionary.
     assert(mFields.find(name) != mFields.end());
 
     // Begin MPI broadcast local -> global.
     DMLocalToGlobalEnd(mDistributedMesh, mFields[name].loc, ADD_VALUES, mFields[name].glb);
+
 }
 
 void Mesh::zeroFields(const std::string &name) {
@@ -229,10 +229,10 @@ void Mesh::setUpMovie(const std::string &movie_filename) {
     DMView(mDistributedMesh, mViewer);
 }
 
-void Mesh::saveFrame(const std::string &fieldname) {
+void Mesh::saveFrame(std::string name) {
 
     DMSetOutputSequenceNumber(mDistributedMesh, mTime, mTime);
-    VecView(mFields[fieldname].glb, mViewer);
+    VecView(mFields[name].glb, mViewer);
     mTime += 1;
 
 }

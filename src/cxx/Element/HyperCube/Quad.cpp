@@ -9,6 +9,8 @@
 #include <tuple>
 #include "Quad.h"
 #include "Quad/Autogen/quad_autogen.h"
+#include "Quad/Acoustic.h"
+#include "Quad/Elastic.h"
 
 /*
  * STATIC FUNCTIONS WHICH ARE ONLY ON THE REFERENCE ELEMENT.
@@ -42,6 +44,8 @@ double Quad::dn1deta(const double &eps) { return (1 + eps) * -1.0 / 4.0; }
 double Quad::dn2deta(const double &eps) { return (1 - eps) * 1.0 / 4.0; }
 double Quad::dn3deta(const double &eps) { return (1 + eps) * 1.0 / 4.0; }
 
+
+
 Eigen::VectorXd Quad::GllPointsForOrder(const int order) {
     Eigen::VectorXd gll_points(order+1);
     if (order == 4) {
@@ -62,16 +66,12 @@ Eigen::VectorXi Quad::ClosureMapping(const int order, const int dimension) {
     Eigen::VectorXi closure_mapping((order+1)*(order+1));
     if (dimension == 2) {
         if (order == 4) {
-            // closure_mapping << 8, ;
-            // closure_mapping << 6, 7, 8, 11, 12, 13, 16, 17, 18, 1, 2, 3,
-            //         9, 14, 19, 23, 22, 21, 15, 10, 5, 0, 4, 24, 20;
             closure_mapping <<
-                8, 13, 18, 7,
-                12, 17, 6, 11,
-                16, 9, 14, 19,
-                23, 22, 21, 15,
-                10, 5, 1, 2, 3,
-                4, 24, 20, 0;
+                6, 11, 16, 7, 12,
+                17, 8, 13, 18, 9,
+                14, 19, 23, 22, 21,
+                15, 10, 5, 1, 2,
+                3, 4, 24, 20, 0;
         }
     }
     return closure_mapping;
@@ -226,7 +226,7 @@ Eigen::Vector2d Quad::inverseCoordinateTransform(const double &x_real, const dou
 
 }
 
-void Quad::readOperators() {
+void Quad::readGradientOperator() {
 
     double eta = mIntegrationCoordinatesEta[0];
     mGradientOperator.resize(mNumberIntegrationPointsEta, mNumberIntegrationPointsEps);
@@ -300,14 +300,32 @@ std::tuple<Eigen::VectorXd,Eigen::VectorXd> Quad::buildNodalPoints(Mesh* mesh) {
     
 }
 
-Eigen::MatrixXd Quad::checkOutFieldElement(Mesh *mesh, const std::string name) {
+Eigen::VectorXd Quad::checkOutFieldElement(Mesh *mesh, const std::string name) {
 
     return mesh->getFieldOnElement(name, mElementNumber, mClosureMapping);
 
 }
 
-void Quad::checkInFieldElement(Mesh *mesh, Eigen::VectorXd &field, const std::string name) {
+void Quad::checkInFieldElement(Mesh *mesh, const Eigen::VectorXd &field, const std::string name) {
 
     mesh->setFieldOnElement(name, mElementNumber, mClosureMapping, field);
 
+}
+
+Quad *Quad::factory(Options options) {
+
+    std::string physics(options.PhysicsSystem());
+    try {
+        if (physics == "acoustic") {
+            return new Acoustic(options);
+        } else if (physics == "elastic") {
+            return new Elastic(options);
+        } else {
+            throw std::runtime_error("Runtime Error: Element physics " + physics + " not supported");
+        }
+    } catch (std::exception &e) {
+        utilities::print_from_root_mpi(e.what());
+        MPI::COMM_WORLD.Abort(-1);
+        return nullptr;
+    }
 }

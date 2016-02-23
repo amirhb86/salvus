@@ -16,12 +16,6 @@ class Acoustic : public Quad {
 
     Eigen::Vector4d mMaterialVelocityAtVertices;
     Eigen::Vector4d mMaterialDensityAtVertices;
-
-    Eigen::VectorXd mIntegratedSource;
-    Eigen::VectorXd mElementDisplacement;
-    Eigen::VectorXd mIntegratedStiffnessMatrix;
-
-    Eigen::MatrixXd mElementStress;
     Eigen::MatrixXd mElementStrain;
 
 public:
