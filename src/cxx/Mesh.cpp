@@ -190,17 +190,13 @@ void Mesh::setLocalFieldToGlobal(const std::string &name) {
     assert(mFields.find(name) != mFields.end());
 
     // Do "communication". `INSERT_VALUE` will result in no communication
-//    DMLocalToGlobalBegin(mDistributedMesh, mFields[name].loc, INSERT_VALUES, mFields[name].glb);
-//    DMLocalToGlobalEnd(mDistributedMesh, mFields[name].loc, INSERT_VALUES, mFields[name].glb);
-    DMLocalToGlobalBegin(mDistributedMesh, mFields[name].loc, ADD_VALUES, mFields[name].glb);
-    DMLocalToGlobalEnd(mDistributedMesh, mFields[name].loc, ADD_VALUES, mFields[name].glb);
+    DMLocalToGlobalBegin(mDistributedMesh, mFields[name].loc, INSERT_VALUES, mFields[name].glb);
+    DMLocalToGlobalEnd(mDistributedMesh, mFields[name].loc, INSERT_VALUES, mFields[name].glb);
 
 }
 
-// Depricated
 void Mesh::checkInFieldBegin(const std::string &name) {
 
-    std::cout << "WARNING: `checkInFieldBegin` To be depricated\n";
     // Make sure the field exists in our dictionary.
     assert(mFields.find(name) != mFields.end());
 
@@ -211,7 +207,6 @@ void Mesh::checkInFieldBegin(const std::string &name) {
 
 void Mesh::checkInFieldEnd(const std::string &name) {
 
-    std::cout << "WARNING: `checkInFieldEnd` To be depricated\n";
     // Make sure the field exists in our dictionary.
     assert(mFields.find(name) != mFields.end());
 
@@ -239,11 +234,6 @@ void Mesh::saveFrame(std::string name) {
     DMSetOutputSequenceNumber(mDistributedMesh, mTime, mTime);
     VecView(mFields[name].glb, mViewer);
     mTime += 1;
-
-//
-//    double maxval, minval;
-//    VecMax(mFields[name].glb, NULL, &maxval);
-//    std::cout << "ACCELERATION: " << maxval << std::endl;
 
 }
 

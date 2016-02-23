@@ -10,7 +10,7 @@
 Problem *Problem::factory(std::string solver_type) {
     try {
 
-        if (solver_type == "time_domain") {
+        if (solver_type == "solver_newmark_dimension_2d_physics_acoustic") {
             return new TimeDomainScalar2d;
         } else if (solver_type == "solver_newmark_dimension_2d_physics_elastic") {
             return new TimeDomainElastic2d;

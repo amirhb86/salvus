@@ -23,7 +23,7 @@ Eigen::MatrixXd Acoustic::computeStiffnessTerm(const Eigen::MatrixXd &displaceme
     // TODO: Look into a better way to deal with the temporarily allocated vectors. I believe that due to
     // TODO: RVO the integratedStiffnessMatrix should be ok, but perhaps jacobian_determinant could be handled better.
     Eigen::Matrix<double,2,2> inverse_Jacobian;
-    Eigen::VectorXd stress(2, mNumberIntegrationPoints);
+    Eigen::MatrixXd stress(2, mNumberIntegrationPoints);
     Eigen::VectorXd jacobian_determinant(mNumberIntegrationPoints);
     Eigen::VectorXd integratedStiffnessMatrix(mNumberIntegrationPoints);
 
