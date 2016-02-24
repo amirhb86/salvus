@@ -323,7 +323,7 @@ void interpolate_eta_derivative_order9_square(double epsilon, double eta, double
 
 }
 
-void closure_mapping_order9_square(double *out_5891972758392547437) {
+void closure_mapping_order9_square(int *out_5891972758392547437) {
 
    out_5891972758392547437[0] = 11;
    out_5891972758392547437[1] = 21;

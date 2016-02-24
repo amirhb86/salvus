@@ -71,7 +71,7 @@ void interpolate_eta_derivative_order3_square(double epsilon, double eta, double
 
 }
 
-void closure_mapping_order3_square(double *out_3635646815119677237) {
+void closure_mapping_order3_square(int *out_3635646815119677237) {
 
    out_3635646815119677237[0] = 5;
    out_3635646815119677237[1] = 9;

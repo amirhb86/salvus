@@ -170,7 +170,7 @@ void interpolate_eta_derivative_order6_square(double epsilon, double eta, double
 
 }
 
-void closure_mapping_order6_square(double *out_2498194510658774562) {
+void closure_mapping_order6_square(int *out_2498194510658774562) {
 
    out_2498194510658774562[0] = 8;
    out_2498194510658774562[1] = 15;

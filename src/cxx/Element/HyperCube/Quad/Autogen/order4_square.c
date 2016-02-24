@@ -98,7 +98,7 @@ void interpolate_eta_derivative_order4_square(double epsilon, double eta, double
 
 }
 
-void closure_mapping_order4_square(double *out_100609879691116384) {
+void closure_mapping_order4_square(int *out_100609879691116384) {
 
    out_100609879691116384[0] = 6;
    out_100609879691116384[1] = 11;

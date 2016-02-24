@@ -131,7 +131,7 @@ void interpolate_eta_derivative_order5_square(double epsilon, double eta, double
 
 }
 
-void closure_mapping_order5_square(double *out_784235878344110125) {
+void closure_mapping_order5_square(int *out_784235878344110125) {
 
    out_784235878344110125[0] = 7;
    out_784235878344110125[1] = 13;

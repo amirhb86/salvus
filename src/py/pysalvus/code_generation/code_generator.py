@@ -1,4 +1,6 @@
 import os
+
+import io
 import sympy as sym
 from sympy.physics.quantum import TensorProduct
 from sympy.utilities.codegen import CCodeGen
@@ -105,7 +107,7 @@ def tensorized_basis_2D(order):
     basis_gradient_eta = sym.Matrix([sym.diff(i, eta) for i in basis])
 
     # Get closure mapping.
-    closure = sym.Matrix(generate_closure_mapping(order))
+    closure = sym.Matrix(generate_closure_mapping(order), dtype=int)
 
     # Write code
     routines = []
@@ -123,3 +125,13 @@ def tensorized_basis_2D(order):
         'closure_mapping_order{}_square'.format(order), closure,
         argument_sequence=None))
     autocode.write(routines, 'order{}_square'.format(order), to_files=True)
+
+    # reformat some code.
+    for code, lend in zip(['order{}_square.c', 'order{}_square.h'], [' {', ';']):
+        with io.open(code.format(order), 'rt') as fh:
+            text = fh.readlines()
+            text = [line.replace('double', 'int')if 'closure' in line else line for line in text]
+
+        with io.open(code.format(order), 'wt') as fh:
+            fh.writelines(text)
+

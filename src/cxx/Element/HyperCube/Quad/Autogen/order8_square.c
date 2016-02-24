@@ -266,7 +266,7 @@ void interpolate_eta_derivative_order8_square(double epsilon, double eta, double
 
 }
 
-void closure_mapping_order8_square(double *out_8464336012000926144) {
+void closure_mapping_order8_square(int *out_8464336012000926144) {
 
    out_8464336012000926144[0] = 10;
    out_8464336012000926144[1] = 19;

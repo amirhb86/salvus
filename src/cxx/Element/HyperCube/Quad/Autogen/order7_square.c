@@ -215,7 +215,7 @@ void interpolate_eta_derivative_order7_square(double epsilon, double eta, double
 
 }
 
-void closure_mapping_order7_square(double *out_5572373487242560147) {
+void closure_mapping_order7_square(int *out_5572373487242560147) {
 
    out_5572373487242560147[0] = 9;
    out_5572373487242560147[1] = 17;
