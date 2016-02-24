@@ -13,7 +13,7 @@
 void interpolate_order5_square(double epsilon, double eta, double *out_4953907929813173491);
 void interpolate_eps_derivative_order5_square(double epsilon, double eta, double *out_8747288793387336531);
 void interpolate_eta_derivative_order5_square(double epsilon, double eta, double *out_3919865154438395407);
-void diagonal_mass_matrix_order5_square(double epsilon, double eta, double rho, double *out_5961285153403835527);
+void closure_mapping_order5_square(double *out_784235878344110125);
 
 #endif
 

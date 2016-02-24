@@ -98,32 +98,32 @@ void interpolate_eta_derivative_order4_square(double epsilon, double eta, double
 
 }
 
-void diagonal_mass_matrix_order4_square(double epsilon, double eta, double rho, double *out_6889885888746620662) {
+void closure_mapping_order4_square(double *out_100609879691116384) {
 
-   out_6889885888746620662[0] = 0.586181640625*pow(epsilon, 2)*pow(eta, 2)*rho*pow(epsilon - 1.0, 2)*pow(epsilon - 0.654653670707977, 2)*pow(epsilon + 0.654653670707977, 2)*pow(eta - 1.0, 2)*pow(eta - 0.654653670707977, 2)*pow(eta + 0.654653670707977, 2);
-   out_6889885888746620662[1] = 3.19143337673611*pow(epsilon, 2)*pow(eta, 2)*rho*pow(epsilon - 1.0, 2)*pow(epsilon - 0.654653670707977, 2)*pow(epsilon + 1.0, 2)*pow(eta - 1.0, 2)*pow(eta - 0.654653670707977, 2)*pow(eta + 0.654653670707977, 2);
-   out_6889885888746620662[2] = 4.16840277777778*pow(eta, 2)*rho*pow(epsilon - 1.0, 2)*pow(epsilon - 0.654653670707977, 2)*pow(epsilon + 0.654653670707977, 2)*pow(epsilon + 1.0, 2)*pow(eta - 1.0, 2)*pow(eta - 0.654653670707977, 2)*pow(eta + 0.654653670707977, 2);
-   out_6889885888746620662[3] = 3.19143337673611*pow(epsilon, 2)*pow(eta, 2)*rho*pow(epsilon - 1.0, 2)*pow(epsilon + 0.654653670707977, 2)*pow(epsilon + 1.0, 2)*pow(eta - 1.0, 2)*pow(eta - 0.654653670707977, 2)*pow(eta + 0.654653670707977, 2);
-   out_6889885888746620662[4] = 0.586181640625*pow(epsilon, 2)*pow(eta, 2)*rho*pow(epsilon - 0.654653670707977, 2)*pow(epsilon + 0.654653670707977, 2)*pow(epsilon + 1.0, 2)*pow(eta - 1.0, 2)*pow(eta - 0.654653670707977, 2)*pow(eta + 0.654653670707977, 2);
-   out_6889885888746620662[5] = 3.19143337673611*pow(epsilon, 2)*pow(eta, 2)*rho*pow(epsilon - 1.0, 2)*pow(epsilon - 0.654653670707977, 2)*pow(epsilon + 0.654653670707977, 2)*pow(eta - 1.0, 2)*pow(eta - 0.654653670707977, 2)*pow(eta + 1.0, 2);
-   out_6889885888746620662[6] = 17.3755817177855*pow(epsilon, 2)*pow(eta, 2)*rho*pow(epsilon - 1.0, 2)*pow(epsilon - 0.654653670707977, 2)*pow(epsilon + 1.0, 2)*pow(eta - 1.0, 2)*pow(eta - 0.654653670707977, 2)*pow(eta + 1.0, 2);
-   out_6889885888746620662[7] = 22.694637345679*pow(eta, 2)*rho*pow(epsilon - 1.0, 2)*pow(epsilon - 0.654653670707977, 2)*pow(epsilon + 0.654653670707977, 2)*pow(epsilon + 1.0, 2)*pow(eta - 1.0, 2)*pow(eta - 0.654653670707977, 2)*pow(eta + 1.0, 2);
-   out_6889885888746620662[8] = 17.3755817177855*pow(epsilon, 2)*pow(eta, 2)*rho*pow(epsilon - 1.0, 2)*pow(epsilon + 0.654653670707977, 2)*pow(epsilon + 1.0, 2)*pow(eta - 1.0, 2)*pow(eta - 0.654653670707977, 2)*pow(eta + 1.0, 2);
-   out_6889885888746620662[9] = 3.19143337673611*pow(epsilon, 2)*pow(eta, 2)*rho*pow(epsilon - 0.654653670707977, 2)*pow(epsilon + 0.654653670707977, 2)*pow(epsilon + 1.0, 2)*pow(eta - 1.0, 2)*pow(eta - 0.654653670707977, 2)*pow(eta + 1.0, 2);
-   out_6889885888746620662[10] = 4.16840277777778*pow(epsilon, 2)*rho*pow(epsilon - 1.0, 2)*pow(epsilon - 0.654653670707977, 2)*pow(epsilon + 0.654653670707977, 2)*pow(eta - 1.0, 2)*pow(eta - 0.654653670707977, 2)*pow(eta + 0.654653670707977, 2)*pow(eta + 1.0, 2);
-   out_6889885888746620662[11] = 22.694637345679*pow(epsilon, 2)*rho*pow(epsilon - 1.0, 2)*pow(epsilon - 0.654653670707977, 2)*pow(epsilon + 1.0, 2)*pow(eta - 1.0, 2)*pow(eta - 0.654653670707977, 2)*pow(eta + 0.654653670707977, 2)*pow(eta + 1.0, 2);
-   out_6889885888746620662[12] = 29.641975308642*rho*pow(epsilon - 1.0, 2)*pow(epsilon - 0.654653670707977, 2)*pow(epsilon + 0.654653670707977, 2)*pow(epsilon + 1.0, 2)*pow(eta - 1.0, 2)*pow(eta - 0.654653670707977, 2)*pow(eta + 0.654653670707977, 2)*pow(eta + 1.0, 2);
-   out_6889885888746620662[13] = 22.694637345679*pow(epsilon, 2)*rho*pow(epsilon - 1.0, 2)*pow(epsilon + 0.654653670707977, 2)*pow(epsilon + 1.0, 2)*pow(eta - 1.0, 2)*pow(eta - 0.654653670707977, 2)*pow(eta + 0.654653670707977, 2)*pow(eta + 1.0, 2);
-   out_6889885888746620662[14] = 4.16840277777778*pow(epsilon, 2)*rho*pow(epsilon - 0.654653670707977, 2)*pow(epsilon + 0.654653670707977, 2)*pow(epsilon + 1.0, 2)*pow(eta - 1.0, 2)*pow(eta - 0.654653670707977, 2)*pow(eta + 0.654653670707977, 2)*pow(eta + 1.0, 2);
-   out_6889885888746620662[15] = 3.19143337673611*pow(epsilon, 2)*pow(eta, 2)*rho*pow(epsilon - 1.0, 2)*pow(epsilon - 0.654653670707977, 2)*pow(epsilon + 0.654653670707977, 2)*pow(eta - 1.0, 2)*pow(eta + 0.654653670707977, 2)*pow(eta + 1.0, 2);
-   out_6889885888746620662[16] = 17.3755817177855*pow(epsilon, 2)*pow(eta, 2)*rho*pow(epsilon - 1.0, 2)*pow(epsilon - 0.654653670707977, 2)*pow(epsilon + 1.0, 2)*pow(eta - 1.0, 2)*pow(eta + 0.654653670707977, 2)*pow(eta + 1.0, 2);
-   out_6889885888746620662[17] = 22.694637345679*pow(eta, 2)*rho*pow(epsilon - 1.0, 2)*pow(epsilon - 0.654653670707977, 2)*pow(epsilon + 0.654653670707977, 2)*pow(epsilon + 1.0, 2)*pow(eta - 1.0, 2)*pow(eta + 0.654653670707977, 2)*pow(eta + 1.0, 2);
-   out_6889885888746620662[18] = 17.3755817177855*pow(epsilon, 2)*pow(eta, 2)*rho*pow(epsilon - 1.0, 2)*pow(epsilon + 0.654653670707977, 2)*pow(epsilon + 1.0, 2)*pow(eta - 1.0, 2)*pow(eta + 0.654653670707977, 2)*pow(eta + 1.0, 2);
-   out_6889885888746620662[19] = 3.19143337673611*pow(epsilon, 2)*pow(eta, 2)*rho*pow(epsilon - 0.654653670707977, 2)*pow(epsilon + 0.654653670707977, 2)*pow(epsilon + 1.0, 2)*pow(eta - 1.0, 2)*pow(eta + 0.654653670707977, 2)*pow(eta + 1.0, 2);
-   out_6889885888746620662[20] = 0.586181640625*pow(epsilon, 2)*pow(eta, 2)*rho*pow(epsilon - 1.0, 2)*pow(epsilon - 0.654653670707977, 2)*pow(epsilon + 0.654653670707977, 2)*pow(eta - 0.654653670707977, 2)*pow(eta + 0.654653670707977, 2)*pow(eta + 1.0, 2);
-   out_6889885888746620662[21] = 3.19143337673611*pow(epsilon, 2)*pow(eta, 2)*rho*pow(epsilon - 1.0, 2)*pow(epsilon - 0.654653670707977, 2)*pow(epsilon + 1.0, 2)*pow(eta - 0.654653670707977, 2)*pow(eta + 0.654653670707977, 2)*pow(eta + 1.0, 2);
-   out_6889885888746620662[22] = 4.16840277777778*pow(eta, 2)*rho*pow(epsilon - 1.0, 2)*pow(epsilon - 0.654653670707977, 2)*pow(epsilon + 0.654653670707977, 2)*pow(epsilon + 1.0, 2)*pow(eta - 0.654653670707977, 2)*pow(eta + 0.654653670707977, 2)*pow(eta + 1.0, 2);
-   out_6889885888746620662[23] = 3.19143337673611*pow(epsilon, 2)*pow(eta, 2)*rho*pow(epsilon - 1.0, 2)*pow(epsilon + 0.654653670707977, 2)*pow(epsilon + 1.0, 2)*pow(eta - 0.654653670707977, 2)*pow(eta + 0.654653670707977, 2)*pow(eta + 1.0, 2);
-   out_6889885888746620662[24] = 0.586181640625*pow(epsilon, 2)*pow(eta, 2)*rho*pow(epsilon - 0.654653670707977, 2)*pow(epsilon + 0.654653670707977, 2)*pow(epsilon + 1.0, 2)*pow(eta - 0.654653670707977, 2)*pow(eta + 0.654653670707977, 2)*pow(eta + 1.0, 2);
+   out_100609879691116384[0] = 6;
+   out_100609879691116384[1] = 11;
+   out_100609879691116384[2] = 16;
+   out_100609879691116384[3] = 7;
+   out_100609879691116384[4] = 12;
+   out_100609879691116384[5] = 17;
+   out_100609879691116384[6] = 8;
+   out_100609879691116384[7] = 13;
+   out_100609879691116384[8] = 18;
+   out_100609879691116384[9] = 9;
+   out_100609879691116384[10] = 14;
+   out_100609879691116384[11] = 19;
+   out_100609879691116384[12] = 23;
+   out_100609879691116384[13] = 22;
+   out_100609879691116384[14] = 21;
+   out_100609879691116384[15] = 15;
+   out_100609879691116384[16] = 10;
+   out_100609879691116384[17] = 5;
+   out_100609879691116384[18] = 1;
+   out_100609879691116384[19] = 2;
+   out_100609879691116384[20] = 3;
+   out_100609879691116384[21] = 4;
+   out_100609879691116384[22] = 24;
+   out_100609879691116384[23] = 20;
+   out_100609879691116384[24] = 0;
 
 }
