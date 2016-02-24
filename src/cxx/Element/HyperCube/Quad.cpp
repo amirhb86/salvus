@@ -45,29 +45,80 @@ double Quad::dn2deta(const double &eps) { return (1 - eps) * 1.0 / 4.0; }
 double Quad::dn3deta(const double &eps) { return (1 + eps) * 1.0 / 4.0; }
 
 
-
 Eigen::VectorXd Quad::GllPointsForOrder(const int order) {
     Eigen::VectorXd gll_points(order+1);
-    if (order == 4) {
-        gll_points << -1.0, -0.6546536707, 0.0, 0.6546536707, 1.0;
+    if (order == 1) {
+        gll_coordinates_order1_square(gll_points.data());
+    } else if (order == 2) {
+        gll_coordinates_order2_square(gll_points.data());
+    } else if (order == 3) {
+        gll_coordinates_order3_square(gll_points.data());
+    } else if (order == 4) {
+        gll_coordinates_order4_square(gll_points.data());
+    } else if (order == 5) {
+        gll_coordinates_order5_square(gll_points.data());
+    } else if (order == 6) {
+        gll_coordinates_order6_square(gll_points.data());
+    } else if (order == 7) {
+        gll_coordinates_order7_square(gll_points.data());
+    } else if (order == 8) {
+        gll_coordinates_order8_square(gll_points.data());
+    } else if (order == 9) {
+        gll_coordinates_order9_square(gll_points.data());
+    } else if (order == 10) {
+        gll_coordinates_order10_square(gll_points.data());
     }
     return gll_points;
 }
 
 Eigen::VectorXd Quad::GllIntegrationWeightForOrder(const int order) {
     Eigen::VectorXd integration_weights(order+1);
-    if (order == 4) {
-        integration_weights << 0.1, 0.5444444444, 0.7111111111, 0.5444444444, 0.1;
+    if (order == 1) {
+        gll_weights_order1_square(integration_weights.data());
+    } else if (order == 2) {
+        gll_weights_order2_square(integration_weights.data());
+    } else if (order == 3) {
+        gll_weights_order3_square(integration_weights.data());
+    } else if (order == 4) {
+        gll_weights_order4_square(integration_weights.data());
+    } else if (order == 5) {
+        gll_weights_order5_square(integration_weights.data());
+    } else if (order == 6) {
+        gll_weights_order6_square(integration_weights.data());
+    } else if (order == 7) {
+        gll_weights_order7_square(integration_weights.data());
+    } else if (order == 8) {
+        gll_weights_order8_square(integration_weights.data());
+    } else if (order == 9) {
+        gll_weights_order9_square(integration_weights.data());
+    } else if (order == 10) {
+        gll_weights_order10_square(integration_weights.data());
     }
     return integration_weights;
 }
 
 Eigen::VectorXi Quad::ClosureMapping(const int order, const int dimension) {
     Eigen::VectorXi closure_mapping((order+1)*(order+1));
-    if (dimension == 2) {
-        if (order == 4) {
-            closure_mapping_order4_square(closure_mapping.data());
-        }
+    if (order == 1) {
+        closure_mapping_order1_square(closure_mapping.data());
+    } else if (order == 2) {
+        closure_mapping_order2_square(closure_mapping.data());
+    } else if (order == 3) {
+        closure_mapping_order3_square(closure_mapping.data());
+    } else if (order == 4) {
+        closure_mapping_order4_square(closure_mapping.data());
+    } else if (order == 5) {
+        closure_mapping_order5_square(closure_mapping.data());
+    } else if (order == 6) {
+        closure_mapping_order6_square(closure_mapping.data());
+    } else if (order == 7) {
+        closure_mapping_order7_square(closure_mapping.data());
+    } else if (order == 8) {
+        closure_mapping_order8_square(closure_mapping.data());
+    } else if (order == 9) {
+        closure_mapping_order9_square(closure_mapping.data());
+    } else if (order == 10) {
+        closure_mapping_order10_square(closure_mapping.data());
     }
     return closure_mapping;
 }
@@ -221,6 +272,7 @@ Eigen::Vector2d Quad::inverseCoordinateTransform(const double &x_real, const dou
 
 }
 
+// TODO: Maybe should be moved to the constructor and made static.
 void Quad::readGradientOperator() {
 
     double eta = mIntegrationCoordinatesEta[0];
@@ -228,7 +280,27 @@ void Quad::readGradientOperator() {
     Eigen::MatrixXd test(mNumberIntegrationPointsEta, mNumberIntegrationPointsEps);
     for (auto i=0; i < mNumberIntegrationPointsEps; i++) {
         double eps = mIntegrationCoordinatesEps[i];
-        interpolate_eps_derivative_order4_square(eps, eta, test.data());
+        if (mPolynomialOrder == 1) {
+            interpolate_eps_derivative_order1_square(eta, test.data());
+        } else if (mPolynomialOrder == 2) {
+            interpolate_eps_derivative_order2_square(eps, eta, test.data());
+        } else if (mPolynomialOrder == 3) {
+            interpolate_eps_derivative_order3_square(eps, eta, test.data());
+        } else if (mPolynomialOrder == 4) {
+            interpolate_eps_derivative_order4_square(eps, eta, test.data());
+        } else if (mPolynomialOrder == 5) {
+            interpolate_eps_derivative_order5_square(eps, eta, test.data());
+        } else if (mPolynomialOrder == 6) {
+            interpolate_eps_derivative_order6_square(eps, eta, test.data());
+        } else if (mPolynomialOrder == 7) {
+            interpolate_eps_derivative_order7_square(eps, eta, test.data());
+        } else if (mPolynomialOrder == 8) {
+            interpolate_eps_derivative_order8_square(eps, eta, test.data());
+        } else if (mPolynomialOrder == 9) {
+            interpolate_eps_derivative_order9_square(eps, eta, test.data());
+        } else if (mPolynomialOrder == 10) {
+            interpolate_eps_derivative_order10_square(eps, eta, test.data());
+        }
         mGradientOperator.row(i) = test.col(0);
     }
 

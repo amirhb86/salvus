@@ -98,7 +98,7 @@ def tensorized_basis_2D(order):
 
     # Get tensorized basis.
     basis = TensorProduct(generator_eta, generator_eps)
-    gll_coordinates, _ = gauss_lobatto_legendre_quadruature_points_weights(order + 1)
+    gll_coordinates, gll_weights = gauss_lobatto_legendre_quadruature_points_weights(order + 1)
     basis = basis.subs([(v, c) for v, c in zip(eps_gll, gll_coordinates)])
     basis = basis.subs([(v, c) for v, c in zip(eta_gll, gll_coordinates)])
 
@@ -124,13 +124,19 @@ def tensorized_basis_2D(order):
     routines.append(autocode.routine(
         'closure_mapping_order{}_square'.format(order), closure,
         argument_sequence=None))
+    routines.append(autocode.routine(
+        'gll_weights_order{}_square'.format(order), sym.Matrix(gll_weights),
+        argument_sequence=None))
+    routines.append(autocode.routine(
+        'gll_coordinates_order{}_square'.format(order), sym.Matrix(gll_coordinates),
+        argument_sequence=None))
     autocode.write(routines, 'order{}_square'.format(order), to_files=True)
 
     # reformat some code.
     for code, lend in zip(['order{}_square.c', 'order{}_square.h'], [' {', ';']):
         with io.open(code.format(order), 'rt') as fh:
             text = fh.readlines()
-            text = [line.replace('double', 'int')if 'closure' in line else line for line in text]
+            text = [line.replace('double', 'int') if 'closure' in line else line for line in text]
 
         with io.open(code.format(order), 'wt') as fh:
             fh.writelines(text)

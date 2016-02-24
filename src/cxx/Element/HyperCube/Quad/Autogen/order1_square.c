@@ -43,3 +43,17 @@ void closure_mapping_order1_square(int *out_7012053298897627347) {
    out_7012053298897627347[3] = 0;
 
 }
+
+void gll_weights_order1_square(double *out_3122137466506344549) {
+
+   out_3122137466506344549[0] = 1.0;
+   out_3122137466506344549[1] = 1.0;
+
+}
+
+void gll_coordinates_order1_square(double *out_3093496787365923720) {
+
+   out_3093496787365923720[0] = -1.0;
+   out_3093496787365923720[1] = 1.0;
+
+}

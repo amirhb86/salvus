@@ -14,6 +14,8 @@ void interpolate_order9_square(double epsilon, double eta, double *out_570887602
 void interpolate_eps_derivative_order9_square(double epsilon, double eta, double *out_7338201687422862883);
 void interpolate_eta_derivative_order9_square(double epsilon, double eta, double *out_7489494862605754493);
 void closure_mapping_order9_square(int *out_5891972758392547437);
+void gll_weights_order9_square(double *out_3469424585499671537);
+void gll_coordinates_order9_square(double *out_7097320842538396498);
 
 #endif
 

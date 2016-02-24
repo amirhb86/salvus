@@ -11,7 +11,7 @@
 #include "../../Mesh/Mesh.h"
 
 extern "C" {
-#include "Quad/Autogen/order4_square.h"
+#include "Quad/Autogen/quad_autogen.h"
 };
 
 /**
