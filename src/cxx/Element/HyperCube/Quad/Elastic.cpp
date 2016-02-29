@@ -20,11 +20,8 @@ Eigen::MatrixXd Elastic::computeSourceTerm() {
     for (auto &source: mSources) {
 
         // TODO: May make this more efficient (i.e. allocation every loop)
-        Eigen::VectorXd current_source(mNumberIntegrationPoints);
-
-        // Evaluate shape functions at source (eps, eta). Save the lagrange coefficients in current_source.
-        interpolate_order4_square(source->ReferenceLocationEps(), source->ReferenceLocationEta(),
-                                  current_source.data());
+        Eigen::VectorXd current_source = interpolateLagrangePolynomials(
+                source->ReferenceLocationEps(), source->ReferenceLocationEta(), mPolynomialOrder);
 
         // Loop over gll points
         for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
