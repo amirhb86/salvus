@@ -396,3 +396,33 @@ Quad *Quad::factory(Options options) {
         return nullptr;
     }
 }
+
+Eigen::VectorXd Quad::interpolateLagrangePolynomials(const double eps, const double eta, const int p_order) {
+
+    assert(p_order > 0 && p_order < 11);
+
+    int n_points = (p_order + 1) * (p_order + 1);
+    Eigen::VectorXd gll_coeffs(n_points);
+    if (p_order == 1) {
+        interpolate_order1_square(eps, eta, gll_coeffs.data());
+    } else if (p_order == 2) {
+        interpolate_order2_square(eps, eta, gll_coeffs.data());
+    } else if (p_order == 3) {
+        interpolate_order3_square(eps, eta, gll_coeffs.data());
+    } else if (p_order == 4) {
+        interpolate_order4_square(eps, eta, gll_coeffs.data());
+    } else if (p_order == 5) {
+        interpolate_order5_square(eps, eta, gll_coeffs.data());
+    } else if (p_order == 6) {
+        interpolate_order6_square(eps, eta, gll_coeffs.data());
+    } else if (p_order == 7) {
+        interpolate_order7_square(eps, eta, gll_coeffs.data());
+    } else if (p_order == 8) {
+        interpolate_order8_square(eps, eta, gll_coeffs.data());
+    } else if (p_order == 9) {
+        interpolate_order9_square(eps, eta, gll_coeffs.data());
+    } else if (p_order == 10) {
+        interpolate_order10_square(eps, eta, gll_coeffs.data());
+    }
+    return gll_coeffs;
+}

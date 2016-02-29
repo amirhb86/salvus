@@ -102,12 +102,10 @@ Eigen::MatrixXd Acoustic::computeSourceTerm() {
     // For all sources tagging along with this element.
     for (auto &source: mSources) {
 
-        // TODO: May make this more efficient (i.e. allocation every loop)
-        Eigen::VectorXd current_source(mNumberIntegrationPoints);
-
+        // TODO: May make this more efficient (i.e. allocation every loop)? Or are we covered by RVO?
         // Evaluate shape functions at source (eps, eta). Save the lagrange coefficients in current_source.
-        interpolate_order4_square(source->ReferenceLocationEps(), source->ReferenceLocationEta(),
-                                  current_source.data());
+        Eigen::VectorXd current_source = interpolateLagrangePolynomials(
+                source->ReferenceLocationEps(), source->ReferenceLocationEta(), mPolynomialOrder);
 
         // Loop over gll points
         for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
@@ -129,7 +127,7 @@ Eigen::MatrixXd Acoustic::computeSourceTerm() {
 
         // TODO: Add current source to F. Right now, this isn't working quite right, so I'm just putting it at
         // a gll point.
-        F(12) += source->fire(mTime);
+        F(0) += source->fire(mTime);
 
     }
 
