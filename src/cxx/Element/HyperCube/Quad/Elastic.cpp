@@ -39,12 +39,10 @@ Eigen::MatrixXd Elastic::computeSourceTerm() {
         }
 
         // Scale by the source amplitude.
-        std::cout << current_source << std::endl;
         current_source *= source->fire(mTime);
 
-        // TODO: Add current source to F. Right now, this isn't working quite right, so I'm just putting it at
-        // a gll point.
-        F(0,12) += source->fire(mTime);
+        // TODO: Right now this is hardcoded for a source in the x-direction.
+        F.row(0) = F.row(0) + current_source.transpose();
     }
 
     return F;

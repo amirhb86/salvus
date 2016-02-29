@@ -426,3 +426,19 @@ Eigen::VectorXd Quad::interpolateLagrangePolynomials(const double eps, const dou
     }
     return gll_coeffs;
 }
+
+double Quad::integrateField(const Eigen::VectorXd &field) {
+
+    double val = 0;
+    for (int i = 0; i < mNumberIntegrationPointsEta; i++) {
+        for (int j = 0; j < mNumberIntegrationPointsEps; j++) {
+
+            double eps = mIntegrationCoordinatesEps(j);
+            double eta = mIntegrationCoordinatesEta(i);
+            val += field(j+i*mNumberIntegrationPointsEps) * mIntegrationWeightsEps(j) *
+                    mIntegrationWeightsEta(i) * jacobianAtPoint(eps, eta).determinant();
+        }
+    }
+    return val;
+
+}

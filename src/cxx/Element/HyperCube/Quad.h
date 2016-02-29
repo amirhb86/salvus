@@ -266,6 +266,14 @@ protected:
     Eigen::Vector4d __interpolateMaterialProperties(ExodusModel *model,
                                                     std::string parameter_name);
 
+    /**
+     * Utility function to integrate a field over the element. This could probably be made static, but for now I'm
+     * just using it to check some values.
+     * @param [in] field The field which to integrate, defined on each of the gll points.
+     * @returns The scalar value of the field integrated over the element.
+     */
+    double integrateField(const Eigen::VectorXd &field);
+
 
 public:
 
