@@ -74,7 +74,13 @@ PetscErrorCode Options::setOptions() {
       PetscOptionsGetScalarArray(NULL, "--ricker_time_delay", mSourceRickerTimeDelay.data(), &mNumberSources, NULL);
       PetscOptionsGetScalarArray(NULL, "--ricker_center_freq", mSourceRickerCenterFreq.data(), &mNumberSources, NULL);
     }
-
+    
+    // parameters for movies (to save or not, and how often)
+    PetscOptionsGetBool(NULL, "--saveMovie", &mSaveMovie,&parameter_set);
+    if(!parameter_set) { mSaveMovie = PETSC_FALSE; }
+    PetscOptionsGetInt(NULL, "--saveFrameEvery", &mSaveFrameEvery,&parameter_set);
+    if(!parameter_set) { mSaveFrameEvery = 1; }
+    
     // MAKE THESE COMMAND LINE OPTIONS EVENTUALLY.
     mDimension = 2;
     mTimeStepType = "newmark";

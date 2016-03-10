@@ -35,6 +35,10 @@ class Options {
 
     // Determines the output name of the movie.
     std::string mOutputMovieFile;
+    // Save movie?, and how often.
+    PetscBool mSaveMovie;
+    PetscInt mSaveFrameEvery;
+    
 
     std::vector<double> mSourceLocationX;
     std::vector<double> mSourceLocationY;
@@ -47,10 +51,14 @@ public:
 
     PetscErrorCode setOptions();
 
+    // Bool getters
+    inline PetscBool SaveMovie() { return mSaveMovie; }
+    
     // Integer getters
     inline PetscInt PolynomialOrder() { return mPolynomialOrder; }
     inline PetscInt NumberSources() { return mNumberSources; }
-
+    inline PetscInt SaveFrameEvery() { return mSaveFrameEvery; }
+    
     // Double getters
     inline double Duration() { return mDuration; }
     inline double TimeStep() { return mTimeStep; }

@@ -10,6 +10,14 @@ void utilities::print_from_root_mpi(const std::string msg) {
     }
 }
 
+utilities::PrintFromRoot::PrintFromRoot() {}
+
+utilities::PrintFromRoot::~PrintFromRoot() {
+    if (MPI::COMM_WORLD.Get_rank() == 0) {        
+        std::cout << os.str() << std::endl;
+    }
+}
+
 int utilities::broadcastInt(int send_buffer) {
     int root = 0;
     int num_ints = 1;
@@ -32,6 +40,13 @@ std::vector<double> utilities::broadcastStdVecFromRoot(std::vector<double> &send
     MPI::COMM_WORLD.Bcast(receive_buffer.data(), length, MPI::DOUBLE, root);
     return receive_buffer;
 
+}
+
+std::string utilities::broadcastStringFromRoot(std::string send_str) {
+    std::vector<std::string> send_vecstr;
+    send_vecstr.push_back(send_str);
+    send_vecstr = utilities::broadcastStringVecFromFroot(send_vecstr);
+    return send_vecstr[0];
 }
 
 std::vector<std::string> utilities::broadcastStringVecFromFroot(std::vector<std::string> &send_buffer) {

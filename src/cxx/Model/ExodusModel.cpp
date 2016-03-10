@@ -13,7 +13,7 @@ ExodusModel::ExodusModel(Options options) {
 void ExodusModel::initializeParallel() {
 
     // Do all reading from exodus file on rank 0.
-    if (!MPI::COMM_WORLD.Get_rank()) {
+    if (MPI::COMM_WORLD.Get_rank() == 0) {
         getInitialization();
         readCoordinates();
         readNodalVariables();

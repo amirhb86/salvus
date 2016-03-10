@@ -170,7 +170,11 @@ protected:
     static int mNumberIntegrationPoints;        /** < Total number of integration points (e.g. 25 for a 4th order gll basis) */
     static int mPolynomialOrder;                /** < Lagrange polynomial order */
 
-    static Eigen::VectorXi mClosureMapping;             /** < Mapping from our closure numbering to PETSc's */
+    static Eigen::VectorXi mClosureMapping;             /** < Mapping from our element closure
+                                                            numbering to PETSc's */
+    static Eigen::VectorXi mFaceClosureMapping;             /** < Mapping from our face closure
+                                                                numbering to PETSc's */
+
     static Eigen::MatrixXd mGradientOperator;           /** < Derivative of shape function n (col) at pos. m (row) */
     static Eigen::VectorXd mIntegrationWeightsEps;      /** < Integration weights along epsilon direction. */
     static Eigen::VectorXd mIntegrationWeightsEta;      /** < Integration weights along eta direction. */
@@ -246,6 +250,16 @@ protected:
     Eigen::Matrix<double,2,2> jacobianAtPoint(PetscReal eps, PetscReal eta);
 
     /**
+     * 2x2 inverse Jacobian matrix at a point (eps, eta).  This method returns an Eigen::Matrix
+     * representation of the inverse Jacobian at a particular point.
+     * @param [in] eps Epsilon position on the reference element.
+     * @param [in] eta Eta position on the reference element.     
+     * @returns (inverse Jacobian matrix,determinant of that matrix) as a `std::tuple`. Tuples can be
+     * "destructured" using a `std::tie`.
+     */
+    std::tuple<Eigen::Matrix<double,2,2>,PetscReal> inverseJacobianAtPoint(PetscReal eps, PetscReal eta);
+    
+    /**
      * Attaches a material parameter to the vertices on the current element.
      * Given an exodus model object, we use a kD-tree to find the closest parameter to a vertex. In practice, this
      * closest parameter is often exactly coincident with the vertex, as we use the same exodus model for our mesh
@@ -305,6 +319,14 @@ public:
     static Eigen::VectorXi ClosureMapping(const int order, const int dimension);
 
     /**
+     * Returns the face mapping from the PETSc to Salvus closure.
+     * @param [in] order The polynomial order.
+     * @param [in] dimension Element dimension.
+     * @returns Vector containing the closure mapping (field(closure(i)) = petscField(i))
+     */
+    static Eigen::VectorXi FaceClosureMapping(const int order, const int dimension);
+    
+    /**
      * Reads the auto-generated gradient operator, and stores the result in mGradientOperator.
      */
     void readGradientOperator();
@@ -350,6 +372,16 @@ public:
     void checkInFieldElement(Mesh *mesh, const Eigen::VectorXd &field, const std::string name);
 
     /**
+     * Sets a field into the mesh (global dofs) owned by the current processor.
+     * This function sets up and calls PLEX's DMVecSetClosure for a given element. Remapping is handled implicitly.
+     * @param mesh [in] A reference to the mesh to which this element belongs.
+     * @param field [in] The values of the field on the element, in Salvus ordering.
+     * @param name [in] The name of the global fields where the field will be summed.
+     * TODO: Make this function check if the field is valid?
+     */
+    void setFieldElement(Mesh *mesh, const Eigen::VectorXd &field, const std::string name);
+    
+    /**
      * Queries the mesh for, and returns, a field.
      * This function returns a Matrix (or Vector -- a Eigen::Vector is just a special case of a matrix) from the
      * global dofs owned by the current processor. The returned field will be in Salvus ordering -- remapping is
@@ -372,6 +404,9 @@ public:
     int NumberDofVolume() const { return mNumberDofVolume; }
     int NumberDimensions() const { return mNumberDimensions; }
     int NumberIntegrationPoints() const { return mNumberIntegrationPoints; }
+
+    virtual Eigen::VectorXi GetFaceClosureMapping() { return mFaceClosureMapping; }
+    virtual Eigen::MatrixXd GetVertexCoordinates() { return mVertexCoordinates; }
 
     // Pure virtual methods.
     virtual Eigen::MatrixXd computeSourceTerm() = 0;

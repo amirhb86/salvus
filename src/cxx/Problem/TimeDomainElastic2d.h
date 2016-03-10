@@ -20,7 +20,7 @@ private:
 
 public:
 
-    virtual void solve();
+    virtual void solve(Options options);
     virtual void initialize(Mesh *mesh, ExodusModel *model, Quad *quad, Options options);
 
 

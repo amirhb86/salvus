@@ -4,9 +4,8 @@
 
 #include "ElasticNewmark2D.h"
 
-void ElasticNewmark2D::advanceField() {
+void ElasticNewmark2D::advanceField(double dt) {
 
-    double dt = 1e-3;
     double pre_factor_acceleration = (1.0/2.0) * dt;
     double pre_factor_displacement = (1.0/2.0) * (dt * dt);
 

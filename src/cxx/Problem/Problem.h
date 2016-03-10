@@ -36,7 +36,7 @@ public:
 
     static Problem *factory(std::string solver_type);
 
-    virtual void solve() = 0;
+    virtual void solve(Options options) = 0;
     virtual void initialize(Mesh *mesh, ExodusModel *model, Quad *quad, Options options) = 0;
 
 

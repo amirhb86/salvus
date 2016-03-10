@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
     // Use above elements to define the problem.
     Problem *problem = Problem::factory(options.ProblemType());
     problem->initialize(mesh, model, reference_element, options);
-    problem->solve();
+    problem->solve(options);
 
     PetscFinalize();
 }

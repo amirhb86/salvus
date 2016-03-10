@@ -25,7 +25,7 @@ public:
         registerFieldVectors("mass_matrix");
     }
 
-    virtual void advanceField();
+    virtual void advanceField(double dt);
     virtual void applyInverseMassMatrix();
 
 

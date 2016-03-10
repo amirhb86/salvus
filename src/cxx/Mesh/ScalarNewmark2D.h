@@ -15,6 +15,7 @@ public:
         registerFieldVectors("acceleration_");
         registerFieldVectors("acceleration");
         registerFieldVectors("displacement");
+        registerFieldVectors("displacement_exact");
         registerFieldVectors("velocity");
         registerFieldVectors("force");
         registerFieldVectors("mass_matrix");
@@ -22,7 +23,7 @@ public:
         registerFieldVectors("nodes_z");
     }
 
-    virtual void advanceField();
+    virtual void advanceField(double dt);
     virtual void applyInverseMassMatrix();
 
 };

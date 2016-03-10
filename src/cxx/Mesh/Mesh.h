@@ -41,7 +41,6 @@ class Mesh {
 
     int mNumberElementsLocal;       /** < Number of elements on this processor. */
     int mNumberDimensions;          /** < Number of dimensions of the mesh. */
-    int mTime;                      /** < Time step number. Could probably be handled in a smarter way */
 
     std::string mExodusFileName;    /** < Exodus file from which this mesh (skeleton) was defined. */
 
@@ -54,6 +53,17 @@ protected:
     std::map<std::string, vec_struct> mFields;  /** < Dictionary holding the fields on the global dof. */
     PetscViewer mViewer;                        /** < Holds information used to dump field values to disk. */
 
+    std::map<std::string, PetscInt> mBoundaryIds; /** < mapping between boundary name (e.g.,
+                                                    "absorbing boundary" and its associated `id` in
+                                                    the petsc side set collection) */
+    
+    std::map<int,std::map<int,std::vector<int>>> mBoundaryElementFaces; /** < list of elements on a
+                                                                           boundary and the
+                                                                           corresponding boundary
+                                                                           faces. Each boundary id
+                                                                           has its own list of
+                                                                           elements. */
+    
 public:
 
     /**
@@ -164,18 +174,42 @@ public:
                                       const Eigen::VectorXi &closure);
 
     /**
-     * Sums a field on an element into the degrees of freedom owned by the local processor, via a call to
-     * DMPlexVecSetClosure.
-     * @param [in] field_name Name of field.
+     * Returns an ordered vector of a field (i.e. x-displacement) on a face, via a call to
+     * DMPlexVecGetClosure.  Note that a vector containing the closure mapping (for the face) must
+     * also be passed in -- this should change in the future.
+     * @param [in] name Name of field.
      * @param [in] element_number Element number (on the local processor) for which the field is requested.
-     * @param [in] closure A vector of size mNumberIntegrationPoints, which specifies the mapping from the Plex element
-     * closure to the desired gll point ordering.
-     * @param [in] field The element-ordered field (i.e. x-displacement) to sum into the mesh.
+     * @param [in] closure A vector of size mNumberIntegrationPoints, which specifies the mapping
+     * from the Plex element closure to the desired gll point ordering.     
+     * @ return The ordered field on an element.
      */
-    void setFieldOnElement(const std::string &name, const int &element_number,
-                           const Eigen::VectorXi &closure, const Eigen::VectorXd &field);
+    Eigen::VectorXd getFieldOnFace(const std::string &name, const int &face_number,
+                                   const Eigen::VectorXi &closure);
+        
+    /**
+     * Sets a field from a face into the degrees of freedom owned by the local processor, via a call to
+     * DMPlexVecSetClosure. Shared DOF should be identical, and are thus set from an arbitrary element.
+     * @param [in] field_name Name of field.
+     * @param [in] face_number Face number (on the local processor) for which the field is requested.
+     * @param [in] closure A vector of size mNumberIntegrationPoints, which specifies the mapping from the Plex face
+     * closure to the desired gll point ordering.
+     * @param [in] field The element-ordered field (i.e. x-displacement) to insert into the mesh.
+     */
+    void setFieldFromFace(const std::string &name, const int face_number,
+                          const Eigen::VectorXi &face_closure, const Eigen::VectorXd &field);
 
-
+    /**
+     * Adds a field from a face into the degrees of freedom owned by the local processor, via a call to
+     * DMPlexVecSetClosure. Shared DOF are "assembled" (added), and are thus a sum from each arbitrary element.
+     * @param [in] field_name Name of field.
+     * @param [in] face_number Face number (on the local processor) for which the field is requested.
+     * @param [in] closure A vector of size mNumberIntegrationPoints, which specifies the mapping from the Plex face
+     * closure to the desired gll point ordering.
+     * @param [in] field The element-ordered field (i.e. x-displacement) to insert into the mesh.
+     */
+    void addFieldFromFace(const std::string &name, const int face_number,
+                          const Eigen::VectorXi &face_closure, const Eigen::VectorXd &field);
+    
     /**
      * Sets a field from an element into the degrees of freedom owned by the local processor, via a call to
      * DMPlexVecSetClosure. Shared DOF should be identical, and are thus set from an arbitrary element.
@@ -216,7 +250,7 @@ public:
     /**
      * Commits a movie frame to disk, using the interface defined in setUpMovie.
      */
-    void saveFrame(std::string name);
+    void saveFrame(std::string name, PetscInt timestep);
 
     /**
      * Needs to be called at the end of a time loop if a movie is desired.
@@ -230,10 +264,22 @@ public:
     void zeroFields(const std::string &name);
 
     /**
+     * Read and setup boundaries (exodus side sets). Gets list of faces from Petsc and builds
+     * corresponding list of elements, which lay on each boundary.
+     */
+    int setupBoundaries(Options options);
+
+    /**
+     * Reads boundaries (exodus side sets) from mesh file and builds appropriate boundary name to
+     * petsc id mapping.
+     */
+    int readBoundaryNames(Options options);
+    
+    /**
      * Virtual function which implements the time stepping.
      * This will change based on physics, time stepping routine, and dimension.
      */
-    virtual void advanceField() = 0;
+    virtual void advanceField(double dt) = 0;
 
     /**
      * Virtual function to register the fields on the global dofs.
@@ -257,6 +303,8 @@ public:
      */
     inline DM &DistributedMesh() { return mDistributedMesh; }
     inline PetscSection &MeshSection() { return mMeshSection; }
+    virtual std::map<std::string, PetscInt>& BoundaryIds() { return mBoundaryIds; } 
+    virtual std::map<int,std::map<int,std::vector<int>>>& BoundaryElementFaces() { return mBoundaryElementFaces; }
 
 };
 

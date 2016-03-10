@@ -4,9 +4,8 @@
 
 #include "ScalarNewmark2D.h"
 
-void ScalarNewmark2D::advanceField() {
-
-    double dt = 1e-3;
+void ScalarNewmark2D::advanceField(double dt) {
+    
     double pre_factor_acceleration = (1.0/2.0) * dt;
     double pre_factor_displacement = (1.0/2.0) * (dt * dt);
 
@@ -30,5 +29,6 @@ void ScalarNewmark2D::applyInverseMassMatrix() {
 
     VecPointwiseMult(mFields["acceleration"].glb, mFields["mass_matrix_inverse"].glb,
                      mFields["force"].glb);
+
 
 }

@@ -49,7 +49,7 @@ void TimeDomainElastic2d::initialize(Mesh *mesh, ExodusModel *model, Quad *quad,
 
 }
 
-void TimeDomainElastic2d::solve() {
+void TimeDomainElastic2d::solve(Options options) {
 
 
     Eigen::MatrixXd F;
@@ -57,6 +57,7 @@ void TimeDomainElastic2d::solve() {
     Eigen::MatrixXd FminusKu;
     Eigen::MatrixXd displacement_on_element(2, mReferenceQuad->NumberIntegrationPoints()); // x-displacement -> row(0), z-displacement -> row(1)
     double time = 0;
+    int it = 0;
     while (time < mSimulationDuration) {
 
         mMesh->checkOutField("displacement_x");
@@ -87,13 +88,13 @@ void TimeDomainElastic2d::solve() {
         mMesh->checkInFieldEnd("force_z");
 
         mMesh->applyInverseMassMatrix();
-        mMesh->advanceField();
+        mMesh->advanceField(mTimeStep);
 
-        mMesh->saveFrame("displacement_x");
+        mMesh->saveFrame("displacement_x",it);
 
         std::cout << time << std::endl;
         time += mTimeStep;
-
+        it++;
     }
 
 }

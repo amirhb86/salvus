@@ -13,7 +13,7 @@
 #include "Quad/Elastic.h"
 
 /*
- * STATIC FUNCTIONS WHICH ARE ONLY ON THE REFERENCE ELEMENT.
+ * STATIC variables WHICH ARE ONLY ON THE REFERENCE ELEMENT.
  */
 int Quad::mNumberDofVertex;
 int Quad::mNumberDofEdge;
@@ -25,6 +25,7 @@ int Quad::mNumberIntegrationPoints;
 int Quad::mPolynomialOrder;
 
 Eigen::VectorXi Quad::mClosureMapping;
+Eigen::VectorXi Quad::mFaceClosureMapping;
 Eigen::MatrixXd Quad::mGradientOperator;
 Eigen::VectorXd Quad::mIntegrationWeightsEps;
 Eigen::VectorXd Quad::mIntegrationWeightsEta;
@@ -67,14 +68,24 @@ Eigen::VectorXi Quad::ClosureMapping(const int order, const int dimension) {
     if (dimension == 2) {
         if (order == 4) {
             closure_mapping <<
-                6, 11, 16, 7, 12,
-                17, 8, 13, 18, 9,
-                14, 19, 23, 22, 21,
-                15, 10, 5, 1, 2,
-                3, 4, 24, 20, 0;
+                6, 7, 8, 11, 12, 13,
+                16, 17, 18, 1, 2, 3,
+                9, 14, 19, 23, 22, 21,
+                15, 10, 5, 0, 4, 24, 20;
         }
     }
     return closure_mapping;
+}
+
+Eigen::VectorXi Quad::FaceClosureMapping(const int order, const int dimension) {
+    Eigen::VectorXi face_closure_mapping(order+1);
+    if (dimension == 2) {
+        if (order == 4) {
+            face_closure_mapping <<
+                3, 0, 1, 2, 4;
+        }
+    }
+    return face_closure_mapping;
 }
 
 
@@ -116,13 +127,10 @@ void Quad::attachVertexCoordinates(DM &distributed_mesh) {
     std::vector<PetscReal> coordinates_element(coordinates_buffer, coordinates_buffer+coordinate_buffer_size);
     DMPlexVecRestoreClosure(distributed_mesh, coordinate_section, coordinates_local, mElementNumber,
                             &coordinate_buffer_size, &coordinates_buffer);
-
-    // Reorder to desired vertex ordering.
-    std::vector<double> vertex_coordinates_ordered ;
-    std::vector<PetscInt> mapping_to_reference_element {6, 7, 0, 1, 4, 5, 2, 3};
-    for (int i = 0; i < mNumberVertex; i++) {
-        mVertexCoordinates(0,i) = coordinates_element[mapping_to_reference_element[mNumberDimensions*i+0]];
-        mVertexCoordinates(1,i) = coordinates_element[mapping_to_reference_element[mNumberDimensions*i+1]];
+    
+    for (int i = 0; i < mNumberVertex; i++) {        
+        mVertexCoordinates(0,i) = coordinates_element[mNumberDimensions*i+0];
+        mVertexCoordinates(1,i) = coordinates_element[mNumberDimensions*i+1];
     }
 
 }
@@ -138,6 +146,53 @@ Eigen::Matrix<double,2,2> Quad::jacobianAtPoint(PetscReal eps, PetscReal eta) {
     jacobian_multiplier(1,2) = dn2deta(eps);
     jacobian_multiplier(1,3) = dn3deta(eps);
     return jacobian_multiplier * mVertexCoordinates.transpose();
+}
+
+bool testJacobian(PetscReal eps,
+                  PetscReal eta,
+                  double v1x,
+                  double v2x,
+                  double v3x,
+                  double v4x,
+                  double v1z,
+                  double v2z,
+                  double v3z,
+                  double v4z) {
+
+
+    
+}
+    
+
+std::tuple<Eigen::Matrix<double,2,2>,PetscReal> Quad::inverseJacobianAtPoint(PetscReal eps, PetscReal eta) {
+
+    double v1x = mVertexCoordinates.row(0)[0];
+    double v2x = mVertexCoordinates.row(0)[1];
+    double v3x = mVertexCoordinates.row(0)[2];
+    double v4x = mVertexCoordinates.row(0)[3];
+    double v1z = mVertexCoordinates.row(1)[0];
+    double v2z = mVertexCoordinates.row(1)[1];
+    double v3z = mVertexCoordinates.row(1)[2];
+    double v4z = mVertexCoordinates.row(1)[3];
+    
+    double r = (eps+1.0);
+    double s = (eta+1.0);
+    Eigen::Matrix<double,2,2> inverseJacobian;
+    double detJ = -r*v1x*v3z/8 + r*v1x*v4z/8 + r*v1z*v3x/8 - r*v1z*v4x/8 + r*v2x*v3z/8 - r*v2x*v4z/8 - r*v2z*v3x/8 + r*v2z*v4x/8 - s*v1x*v2z/8 + s*v1x*v3z/8 + s*v1z*v2x/8 - s*v1z*v3x/8 - s*v2x*v4z/8 + s*v2z*v4x/8 + s*v3x*v4z/8 - s*v3z*v4x/8 + v1x*v2z/4 - v1x*v4z/4 - v1z*v2x/4 + v1z*v4x/4 + v2x*v4z/4 - v2z*v4x/4;
+    
+    // J = [dx/dr, dy/dr;
+    //      dx/ds, dy/ds]
+    // J^{-1} = [dr/dx ds/dx;
+    //           dr/dz ds/dz]
+    double rx = (1/detJ)*(r*(v1z - v2z)/4 + r*(v3z - v4z)/4 - v1z/2 + v4z/2);
+    double rz = (1/detJ)*(-r*(v1x - v2x)/4 - r*(v3x - v4x)/4 + v1x/2 - v4x/2);
+    double sx = (1/detJ)*(-s*(v1z - v2z + v3z - v4z)/4 + v1z/2 - v2z/2);
+    double sz = (1/detJ)*(s*(v1x - v2x + v3x - v4x)/4 - v1x/2 + v2x/2);
+    
+    inverseJacobian << rx, sx,
+                       rz, sz;
+    
+    return std::make_tuple(inverseJacobian,detJ);
 }
 
 Eigen::Vector4d Quad::__interpolateMaterialProperties(ExodusModel *model, std::string parameter_name) {
@@ -236,7 +291,6 @@ void Quad::readGradientOperator() {
         interpolate_eps_derivative_order4_square(eps, eta, test.data());
         mGradientOperator.row(i) = test.col(0);
     }
-
 }
 
 Quad::Quad(Options options) {
@@ -256,6 +310,7 @@ Quad::Quad(Options options) {
     mIntegrationWeightsEps = Quad::GllIntegrationWeightForOrder(options.PolynomialOrder());
     mIntegrationWeightsEta = Quad::GllIntegrationWeightForOrder(options.PolynomialOrder());
     mClosureMapping = Quad::ClosureMapping(options.PolynomialOrder(), mNumberDimensions);
+    mFaceClosureMapping = Quad::FaceClosureMapping(options.PolynomialOrder(), mNumberDimensions);
 
     // Save number of integration points.
     mNumberIntegrationPointsEps = mIntegrationCoordinatesEps.size();
@@ -263,11 +318,6 @@ Quad::Quad(Options options) {
     mNumberIntegrationPoints = mNumberIntegrationPointsEps * mNumberIntegrationPointsEta;
 
 }
-
-// complete assembly between common nodes
-// void Quad::assembleMassMatrix(Mesh *mesh) {
-//     mesh->setFieldOnElement("mass_matrix", mElementNumber, mClosureMapping, mMassMatrix);
-// }
 
 // global x-z points on all nodes
 std::tuple<Eigen::VectorXd,Eigen::VectorXd> Quad::buildNodalPoints(Mesh* mesh) {
@@ -285,19 +335,33 @@ std::tuple<Eigen::VectorXd,Eigen::VectorXd> Quad::buildNodalPoints(Mesh* mesh) {
 	
           double eps = mIntegrationCoordinatesEps(j);
           double eta = mIntegrationCoordinatesEta(i);
-		
-          nodalPoints_x(idx) += interpolateShapeFunctions(eps, eta).dot(mVertexCoordinates.row(0));      
-          nodalPoints_z(idx) += interpolateShapeFunctions(eps, eta).dot(mVertexCoordinates.row(1));
+
+          // reference mapping below uses [0,1]x[0,1] reference element
+          double r = (eps+1)/2;
+          double s = (eta+1)/2;
+
+          // assumes right-hand rule vertex layout
+          double v1x = mVertexCoordinates.row(0)[0];
+          double v2x = mVertexCoordinates.row(0)[1];
+          double v3x = mVertexCoordinates.row(0)[2];
+          double v4x = mVertexCoordinates.row(0)[3];
+          double v1z = mVertexCoordinates.row(1)[0];
+          double v2z = mVertexCoordinates.row(1)[1];
+          double v3z = mVertexCoordinates.row(1)[2];
+          double v4z = mVertexCoordinates.row(1)[3];
+
+          nodalPoints_x(idx) = v1x+(v2x-v1x)*r + (v4x+(v3x-v4x)*r - v1x - (v2x-v1x)*r)*s;
+          nodalPoints_z(idx) = v1z+(v2z-v1z)*r + (v4z+(v3z-v4z)*r - v1z - (v2z-v1z)*r)*s;
+
           idx++;
-	
       }
   }
+
   // push nodal locations to shared dofs
   mesh->setFieldFromElement("nodes_x", mElementNumber, mClosureMapping, nodalPoints_x);
   mesh->setFieldFromElement("nodes_z", mElementNumber, mClosureMapping, nodalPoints_z);
 
-  return std::make_tuple(nodalPoints_x,nodalPoints_z);
-    
+  return std::make_tuple(nodalPoints_x,nodalPoints_z);    
 }
 
 Eigen::VectorXd Quad::checkOutFieldElement(Mesh *mesh, const std::string name) {
@@ -308,7 +372,13 @@ Eigen::VectorXd Quad::checkOutFieldElement(Mesh *mesh, const std::string name) {
 
 void Quad::checkInFieldElement(Mesh *mesh, const Eigen::VectorXd &field, const std::string name) {
 
-    mesh->setFieldOnElement(name, mElementNumber, mClosureMapping, field);
+    mesh->addFieldFromElement(name, mElementNumber, mClosureMapping, field);
+
+}
+
+void Quad::setFieldElement(Mesh *mesh, const Eigen::VectorXd &field, const std::string name) {
+
+    mesh->setFieldFromElement(name, mElementNumber, mClosureMapping, field);
 
 }
 
