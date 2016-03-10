@@ -6,7 +6,7 @@
 #include "Mesh/Mesh.h"
 #include "Problem/Problem.h"
 
-static constexpr char help[] = "Welcome to salvus.";
+static constexpr char help[] = "Welcome to Salvus.";
 
 int main(int argc, char *argv[]) {
 

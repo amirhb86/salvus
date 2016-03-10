@@ -167,7 +167,6 @@ void Mesh::read(Options options) {
 
     // Function variables.
     DM dm = NULL;
-    PetscInt partition_overlap = 0;
     PetscBool interpolate_edges = PETSC_TRUE;
 
     // Read exodus file.
@@ -175,10 +174,12 @@ void Mesh::read(Options options) {
 
     // May be a race condition on distribute.
     MPI::COMM_WORLD.Barrier();
-    DMPlexDistribute(dm, partition_overlap, NULL, &mDistributedMesh);
+    DMPlexDistribute(dm, 0, NULL, &mDistributedMesh);
 
     // We don't need the serial mesh anymore.
     if (mDistributedMesh) { DMDestroy(&dm); }
+    // mDistributedMesh == NULL when only 1 proc is used.
+    else { mDistributedMesh = dm; }
 
     DMGetDimension(mDistributedMesh, &mNumberDimensions);
     DMPlexGetDepthStratum(mDistributedMesh, mNumberDimensions, NULL, &mNumberElementsLocal);
@@ -208,8 +209,8 @@ void Mesh::setupGlobalDof(int number_dof_vertex, int number_dof_edge, int number
                         number_dof_per_element, 0, NULL, NULL, NULL, NULL, &mMeshSection);
     DMSetDefaultSection(mDistributedMesh, mMeshSection);
 
-    // supposed to improve performance of closure calls
-    DMPlexCreateClosureIndex(mDistributedMesh, mMeshSection);    
+    // improves performance of closure calls (for a 1.5x application perf. boost)
+    DMPlexCreateClosureIndex(mDistributedMesh, mMeshSection);
 }
 
 void Mesh::registerFieldVectors(const std::string &name) {

@@ -69,13 +69,14 @@ void TimeDomainScalar2d::solve(Options options) {
     double time = 0;
     int it=0;
     std::cout << "mSimulationDuration=" << mSimulationDuration << "\n";
+    double max_error = 0.0;
     while (time < mSimulationDuration) {
 
         // Pull down the displacement (pressure) from the global dof.
         mMesh->checkOutField("displacement");
         mMesh->zeroFields("force");
 
-        double max_error = 0.0;
+        max_error = 0.0;
         
         // Compute element-wise terms.
         for (auto &element: mElements) {
@@ -114,56 +115,8 @@ void TimeDomainScalar2d::solve(Options options) {
                        
         }
 
-        if(max_error > 5) {
-            std::cerr << "ERROR: Solution blowing up!\n";
-            exit(1);
-        }
-        
-        auto& boundaryIds = mMesh->BoundaryIds();
-        auto dirichlet_id_it = boundaryIds.find("dirichlet");
-        int myrank;
-        MPI_Comm_rank(PETSC_COMM_WORLD,&myrank);
-        // found dirichlet boundary
-        if(dirichlet_id_it != boundaryIds.end()) {
-            int dirichlet_id = (*dirichlet_id_it).second;
-            // printf("dirichlet id=%d\n",dirichlet_id);
-            
-            auto& dirichlet_elems = mMesh->BoundaryElementFaces()[dirichlet_id];
-            // printf("Size of dirichlet elems=%d\n",dirichlet_elems.size());
-            for(auto& elem_key : dirichlet_elems) {                
-                if(myrank == 0) {
-                    auto vertices = mElements[elem_key.first]->GetVertexCoordinates();                    
-
-                    // printf("elem(%d)={",elem_key.first);
-                    // for(int i=0;i<4;i++) {
-                    //     printf("(%f,%f),",vertices.row(0)[i],vertices.row(1)[i]);
-                    // }
-                    // printf("}\n");
-                    
-                }
-                for(auto& faceid : elem_key.second) {
-                    // if(myrank == 0) printf("faceid=%d\n",faceid);
-                    // auto nodes_x = mMesh->getFieldOnFace("nodes_x",faceid,
-                    //                                      mElements[elem_key.first]->GetFaceClosureMapping());
-                    // auto nodes_z = mMesh->getFieldOnFace("nodes_z",faceid,
-                    //                                      mElements[elem_key.first]->GetFaceClosureMapping());
-                    // for(int xz=0;xz<nodes_x.size();xz++) {
-                    // if(myrank == 0) printf("face pt: (%f,%f)\n",nodes_x[xz],nodes_z[xz]);
-                    // }
-                                        
-                    auto field = mMesh->getFieldOnFace("force",faceid,
-                                                       mElements[elem_key.first]->GetFaceClosureMapping());
-                    // apply 0-dirichlet condition
-                    field = 0*field;
-                    mMesh->setFieldFromFace("force",faceid,mElements[elem_key.first]->GetFaceClosureMapping(),field);
-                    
-                    
-                }
-            }
-        }
-        
-        std::cout << "Max Error: " << max_error << std::endl;
-        
+        applyDirichletBoundary(mMesh,"force",0.0);        
+                
         // Sum fields back into global dof.
         mMesh->checkInFieldBegin("force");
         mMesh->checkInFieldEnd("force");
@@ -183,13 +136,41 @@ void TimeDomainScalar2d::solve(Options options) {
             // mMesh->saveFrame("force",it);
         }        
         
-        PRINT_ROOT() << "Time(" << it << "): " << time;
+        if(it%options.SaveFrameEvery()==0) {
+            if(max_error > 5) {
+                std::cerr << "ERROR: Solution blowing up!\n";
+                exit(1);
+            }
+            PRINT_ROOT() << "Time(" << it << "): " << time;
+            std::cout << "Max Error: " << max_error << std::endl;
+        }
         
         time += mTimeStep;
         it++;
-
     }
+    PRINT_ROOT() << "Max Error @ T=end: " << max_error << std::endl;
 
     if(options.SaveMovie()) { mMesh->finalizeMovie(); }
 
+}
+
+
+void TimeDomainScalar2d::applyDirichletBoundary(Mesh *mesh,std::string fieldname, double value) {
+
+    auto& boundaryIds = mesh->BoundaryIds();
+    auto dirichlet_id_it = boundaryIds.find("dirichlet");
+    // found dirichlet boundary
+    if(dirichlet_id_it != boundaryIds.end()) {
+        int dirichlet_id = (*dirichlet_id_it).second;
+        auto& dirichlet_elems = mesh->BoundaryElementFaces()[dirichlet_id];
+        for(auto& elem_key : dirichlet_elems) {                                
+            for(auto& faceid : elem_key.second) {                                                            
+                auto field = mesh->getFieldOnFace(fieldname,faceid,
+                                                   mElements[elem_key.first]->GetFaceClosureMapping());
+                // apply dirichlet condition
+                field = 0*field.array() + value;
+                mesh->setFieldFromFace(fieldname,faceid,mElements[elem_key.first]->GetFaceClosureMapping(),field);
+            }
+        }
+    }    
 }
