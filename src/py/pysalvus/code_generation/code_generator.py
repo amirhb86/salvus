@@ -47,20 +47,21 @@ def generate_closure_mapping(N):
     The DMPlexVecGet(/Set)Closure assumes a certain ordering of the element unknowns. We want to reorder
     these unknowns into some arbitrary order, perhaps one that may be convienient for use in a tensor
     product space. This function generates the mapping to a 2-D tensorized basis as below:
-
-                       (edge_1)
+    
+                       (edge_2)
         v(n*(n+1))_________________ v((n+1)*(n+1)-1)
                   |               |
                  .|               | .
-                 .|               | .               (edge_0)
- (edge_2)        .|               | .
+                 .|               | .               (edge_1)
+ (edge_3)        .|               | .
         v(2*(n+1))|               | v(3*(n+1)-1)
                   |               |
             v(n+1)|_______________| v(2*(n+1)-1)
 
                   v0, v1, ...,   vn
 
-                       (edge_3)
+                       (edge_0)
+
 
         (j)
         ^
@@ -76,12 +77,12 @@ def generate_closure_mapping(N):
     numPerEdge = N - 1
     numPerFace = (N - 1) ** 2
 
-    vertices = [(N), (N+1)*(N+1)-1, N*(N+1), 0]
-    face = [i for j in range(1, N) for i in range((N+j)+1, (N*N+j)+1, N+1)]
-    edge_0 = range(2*(N+1)-1, (N+1)*(N+1)-1, N+1)
-    edge_1 = range((N+1)*(N+1)-2, N*(N+1), -1)
-    edge_2 = range((N-1)*(N+1), 0, -1*(N+1))
-    edge_3 = range(1, N)
+    vertices = [0, N, (N+1)*(N+1)-1, N*(N+1)]
+    face = [i for j in range(1,N) for i in range(j*(N+1)+1,j*(N+1)+N)]
+    edge_0 = range(1, N)
+    edge_1 = range(2*(N+1)-1, (N+1)*(N+1)-1, N+1)
+    edge_2 = range((N+1)*(N+1)-2, N*(N+1), -1)
+    edge_3 = range((N-1)*(N+1), 0, -1*(N+1))
 
     return face + edge_0 + edge_1 + edge_2 + edge_3 + vertices
 
