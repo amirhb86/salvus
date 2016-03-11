@@ -134,7 +134,7 @@ void Acoustic::interpolateMaterialProperties(ExodusModel *model) {
 
 }
 
-Eigen::MatrixXd Acoustic::computeSourceTerm() {
+Eigen::MatrixXd Acoustic::computeSourceTerm(double time) {
 
     // Initialize source vector (note: due to RVO I believe no memory re-allocation is occuring).
     Eigen::VectorXd F = Eigen::VectorXd::Zero(mNumberIntegrationPoints);
@@ -165,11 +165,11 @@ Eigen::MatrixXd Acoustic::computeSourceTerm() {
         }
 
         // Scale by the source amplitude.
-        current_source *= source->fire(mTime);
+        current_source *= source->fire(time);
 
         // TODO: Add current source to F. Right now, this isn't working quite right, so I'm just putting it at
         // a gll point.
-        F(12) += source->fire(mTime);
+        F(12) += source->fire(time);
 
     }
 

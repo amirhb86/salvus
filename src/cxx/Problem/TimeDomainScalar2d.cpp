@@ -81,9 +81,6 @@ void TimeDomainScalar2d::solve(Options options) {
         // Compute element-wise terms.
         for (auto &element: mElements) {
 
-            // Set the time on the element (useful for things like source firing).
-            element->SetTime(time);
-
             // Check out the necessary fields on each element (i.e. displacement) from the mesh.
             u = element->checkOutFieldElement(mMesh, "displacement");
 
@@ -100,7 +97,7 @@ void TimeDomainScalar2d::solve(Options options) {
             Ku = element->computeStiffnessTerm(u);
 
             // Fire any sources and handle the different cases.
-            F = element->computeSourceTerm();
+            F = element->computeSourceTerm(time);
 
             // Compute the force balance.
             FminusKu = F - Ku;

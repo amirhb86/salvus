@@ -45,8 +45,6 @@ double Quad::dn1deta(const double &eps) { return (1 + eps) * -1.0 / 4.0; }
 double Quad::dn2deta(const double &eps) { return (1 - eps) * 1.0 / 4.0; }
 double Quad::dn3deta(const double &eps) { return (1 + eps) * 1.0 / 4.0; }
 
-
-
 Eigen::VectorXd Quad::GllPointsForOrder(const int order) {
     Eigen::VectorXd gll_points(order+1);
     if (order == 4) {
@@ -336,11 +334,11 @@ std::tuple<Eigen::VectorXd,Eigen::VectorXd> Quad::buildNodalPoints(Mesh* mesh) {
           double eps = mIntegrationCoordinatesEps(j);
           double eta = mIntegrationCoordinatesEta(i);
 
-          // reference mapping below uses [0,1]x[0,1] reference element
+          // reference mapping below uses [0,1]x[0,1] reference square
           double r = (eps+1)/2;
           double s = (eta+1)/2;
 
-          // assumes right-hand rule vertex layout
+          // assumes right-hand rule vertex layout (same as PETSc)
           double v1x = mVertexCoordinates.row(0)[0];
           double v2x = mVertexCoordinates.row(0)[1];
           double v3x = mVertexCoordinates.row(0)[2];

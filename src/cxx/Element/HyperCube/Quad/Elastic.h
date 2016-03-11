@@ -30,7 +30,7 @@ public:
     virtual Elastic *clone() const { return new Elastic(*this); }
 
     virtual Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement);
-    virtual Eigen::MatrixXd computeSourceTerm();
+    virtual Eigen::MatrixXd computeSourceTerm(double time);
     virtual void computeSurfaceTerm();
     virtual void assembleElementMassMatrix(Mesh *mesh);
     virtual void interpolateMaterialProperties(ExodusModel *model);

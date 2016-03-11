@@ -11,7 +11,7 @@ Elastic::Elastic(Options options): Quad(options) {
 
 }
 
-Eigen::MatrixXd Elastic::computeSourceTerm() {
+Eigen::MatrixXd Elastic::computeSourceTerm(double time) {
 
     // Initialize source vector (note: due to RVO I believe no memory re-allocation is occuring).
     Eigen::MatrixXd F = Eigen::MatrixXd::Zero(2, mNumberIntegrationPoints);
@@ -43,11 +43,11 @@ Eigen::MatrixXd Elastic::computeSourceTerm() {
 
         // Scale by the source amplitude.
         std::cout << current_source << std::endl;
-        current_source *= source->fire(mTime);
+        current_source *= source->fire(time);
 
         // TODO: Add current source to F. Right now, this isn't working quite right, so I'm just putting it at
         // a gll point.
-        F(0,12) += source->fire(mTime);
+        F(0,12) += source->fire(time);
     }
 
     return F;

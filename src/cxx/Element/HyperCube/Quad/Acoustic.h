@@ -29,7 +29,7 @@ public:
     virtual void assembleElementMassMatrix(Mesh *mesh);
     virtual void interpolateMaterialProperties(ExodusModel *model);
 
-    virtual Eigen::MatrixXd computeSourceTerm();
+    virtual Eigen::MatrixXd computeSourceTerm(double time);
     virtual Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement);
 
     void setInitialCondition(Mesh* mesh, Eigen::VectorXd& pts_x, Eigen::VectorXd& pts_z);

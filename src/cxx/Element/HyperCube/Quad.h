@@ -17,7 +17,7 @@ extern "C" {
 /**
  * Base class of an abstract four node quadrilateral. The reference element is set up as below.
  *
- * (n2)______________(n3)
+ * (n3)______________(n2)
  * |                    |
  * |                    |
  * |                    |
@@ -232,8 +232,7 @@ protected:
     ***********************************************************************************/
 
     int mElementNumber; /** Element number on the local processor. */
-    double mTime;       /** Time (useful for firing sources. */
-
+    
     std::vector<Source*> mSources;  /** Vector of abstract sources belonging (spatiall) to the element */
     Eigen::VectorXd mMassMatrix;    /** Elemental mass matrix */
     Eigen::Matrix<double,2,4> mVertexCoordinates;   /** Vertex coordinates ordered as above. row(0)->x, row(1)->z */
@@ -317,7 +316,7 @@ public:
      * @returns Vector containing the closure mapping (field(closure(i)) = petscField(i))
      */
     static Eigen::VectorXi ClosureMapping(const int order, const int dimension);
-
+    
     /**
      * Returns the face mapping from the PETSc to Salvus closure.
      * @param [in] order The polynomial order.
@@ -353,14 +352,7 @@ public:
      * Simple function to set the (remembered) element number.
      */
     void SetLocalElementNumber(const int &element_number) { mElementNumber = element_number; }
-
-    /**
-     * Sets the current simulation time.
-     * This is used internally, for example, by any sources residing on the element.
-     * @param [in] time Current simulation time.
-     */
-    void SetTime(const double &time) { mTime = time; }
-
+    
     /**
      * Sums a field into the mesh (global dofs) owned by the current processor.
      * This function sets up and calls PLEX's DMVecSetClosure for a given element. Remapping is handled implicitly.
@@ -370,7 +362,7 @@ public:
      * TODO: Make this function check if the field is valid?
      */
     void checkInFieldElement(Mesh *mesh, const Eigen::VectorXd &field, const std::string name);
-
+    
     /**
      * Sets a field into the mesh (global dofs) owned by the current processor.
      * This function sets up and calls PLEX's DMVecSetClosure for a given element. Remapping is handled implicitly.
@@ -393,7 +385,8 @@ public:
     virtual Eigen::VectorXd checkOutFieldElement(Mesh *mesh, const std::string name);
 
     /**
-     * MAX.
+     * Builds nodal coordinates (x,z) on all mesh degrees of freedom.
+     * @param mesh [in] The mesh.
      */
     std::tuple<Eigen::VectorXd,Eigen::VectorXd> buildNodalPoints(Mesh* mesh);
 
@@ -409,7 +402,7 @@ public:
     virtual Eigen::MatrixXd GetVertexCoordinates() { return mVertexCoordinates; }
 
     // Pure virtual methods.
-    virtual Eigen::MatrixXd computeSourceTerm() = 0;
+    virtual Eigen::MatrixXd computeSourceTerm(double time) = 0;
     virtual void assembleElementMassMatrix(Mesh *mesh) = 0;
     virtual void interpolateMaterialProperties(ExodusModel *model) = 0;
     virtual Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement) = 0;
