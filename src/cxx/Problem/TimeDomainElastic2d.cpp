@@ -73,7 +73,6 @@ void TimeDomainElastic2d::solve(Options options) {
             F = element->computeSourceTerm(time);
             Ku = element->computeStiffnessTerm(displacement_on_element);
             FminusKu = F - Ku;
-            //            if (FminusKu.maxCoeff() > 0) { std::cout << F << std::endl; }
 
             element->checkInFieldElement(mMesh, FminusKu.row(0), "force_x");
             element->checkInFieldElement(mMesh, FminusKu.row(1), "force_z");

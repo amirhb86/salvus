@@ -1,4 +1,6 @@
 import os
+
+import io
 import sympy as sym
 from sympy.physics.quantum import TensorProduct
 from sympy.utilities.codegen import CCodeGen
@@ -11,7 +13,7 @@ def generating_polynomial_lagrange(N, coordinate, gll_points):
 
     Our HyperCube elements use N + 1 Lagrange polynomials of order N for the spatial discretisation. This function
     returns N + 1 generating polynomials, which can be used to calculate the value of a Lagrange polynomial at
-    an arbitrary location. This is particularily useful, because the full discretisation on a D dimensional element
+    an arbitrary location. This is particularly useful, because the full discretisation on a D dimensional element
     can be obtained by the tensor product these polynomials.
 
     This routine is derived on pg. 304 of Andreas' book.
@@ -39,6 +41,49 @@ def generating_polynomial_lagrange(N, coordinate, gll_points):
 
     return sym.Matrix(generators)
 
+def generate_closure_mapping(N):
+    """Generates the mapping from PETSc's element closure to one we definde.
+
+    The DMPlexVecGet(/Set)Closure assumes a certain ordering of the element unknowns. We want to reorder
+    these unknowns into some arbitrary order, perhaps one that may be convienient for use in a tensor
+    product space. This function generates the mapping to a 2-D tensorized basis as below:
+
+                       (edge_1)
+        v(n*(n+1))_________________ v((n+1)*(n+1)-1)
+                  |               |
+                 .|               | .
+                 .|               | .               (edge_0)
+ (edge_2)        .|               | .
+        v(2*(n+1))|               | v(3*(n+1)-1)
+                  |               |
+            v(n+1)|_______________| v(2*(n+1)-1)
+
+                  v0, v1, ...,   vn
+
+                       (edge_3)
+
+        (j)
+        ^
+        |
+
+        |_ _ _ > (i)
+
+    :param N: Order of Lagrange basis.
+    """
+
+    # Dofs per component.
+    numPerVertex = 1
+    numPerEdge = N - 1
+    numPerFace = (N - 1) ** 2
+
+    vertices = [(N), (N+1)*(N+1)-1, N*(N+1), 0]
+    face = [i for j in range(1, N) for i in range((N+j)+1, (N*N+j)+1, N+1)]
+    edge_0 = range(2*(N+1)-1, (N+1)*(N+1)-1, N+1)
+    edge_1 = range((N+1)*(N+1)-2, N*(N+1), -1)
+    edge_2 = range((N-1)*(N+1), 0, -1*(N+1))
+    edge_3 = range(1, N)
+
+    return face + edge_0 + edge_1 + edge_2 + edge_3 + vertices
 
 def tensorized_basis_2D(order):
 
@@ -53,18 +98,16 @@ def tensorized_basis_2D(order):
 
     # Get tensorized basis.
     basis = TensorProduct(generator_eta, generator_eps)
-    gll_coordinates, _ = gauss_lobatto_legendre_quadruature_points_weights(order + 1)
+    gll_coordinates, gll_weights = gauss_lobatto_legendre_quadruature_points_weights(order + 1)
     basis = basis.subs([(v, c) for v, c in zip(eps_gll, gll_coordinates)])
     basis = basis.subs([(v, c) for v, c in zip(eta_gll, gll_coordinates)])
-    sym.pprint(basis)
 
     # Get gradient of basis functions.
     basis_gradient_eps = sym.Matrix([sym.diff(i, eps) for i in basis])
     basis_gradient_eta = sym.Matrix([sym.diff(i, eta) for i in basis])
 
-    # Get diagonal mass matrix
-    mass_matrix = rho * basis * basis.T
-    mass_matrix_diagonal = sym.Matrix([mass_matrix[i,i] for i in range(total_integration_points)])
+    # Get closure mapping.
+    closure = sym.Matrix(generate_closure_mapping(order), dtype=int)
 
     # Write code
     routines = []
@@ -79,6 +122,22 @@ def tensorized_basis_2D(order):
         'interpolate_eta_derivative_order{}_square'.format(order), basis_gradient_eta,
         argument_sequence=None))
     routines.append(autocode.routine(
-        'diagonal_mass_matrix_order{}_square'.format(order), mass_matrix_diagonal,
+        'closure_mapping_order{}_square'.format(order), closure,
+        argument_sequence=None))
+    routines.append(autocode.routine(
+        'gll_weights_order{}_square'.format(order), sym.Matrix(gll_weights),
+        argument_sequence=None))
+    routines.append(autocode.routine(
+        'gll_coordinates_order{}_square'.format(order), sym.Matrix(gll_coordinates),
         argument_sequence=None))
     autocode.write(routines, 'order{}_square'.format(order), to_files=True)
+
+    # reformat some code.
+    for code, lend in zip(['order{}_square.c', 'order{}_square.h'], [' {', ';']):
+        with io.open(code.format(order), 'rt') as fh:
+            text = fh.readlines()
+            text = [line.replace('double', 'int') if 'closure' in line else line for line in text]
+
+        with io.open(code.format(order), 'wt') as fh:
+            fh.writelines(text)
+

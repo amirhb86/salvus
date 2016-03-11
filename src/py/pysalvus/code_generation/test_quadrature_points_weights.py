@@ -11,7 +11,7 @@ Tests for quadrature points and weights.
 """
 import numpy as np
 
-from ..quadrature_points_weights import \
+from .quadrature_points_weights import \
     gauss_lobatto_jacobi_quadruature_points_weights, \
     gauss_quadruature_points_weights, \
     gauss_lobatto_legendre_quadruature_points_weights

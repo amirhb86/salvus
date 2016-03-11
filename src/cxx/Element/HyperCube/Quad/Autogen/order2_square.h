@@ -13,7 +13,9 @@
 void interpolate_order2_square(double epsilon, double eta, double *out_5124881133433324070);
 void interpolate_eps_derivative_order2_square(double epsilon, double eta, double *out_4655011469098782191);
 void interpolate_eta_derivative_order2_square(double epsilon, double eta, double *out_9086922723928993073);
-void diagonal_mass_matrix_order2_square(double epsilon, double eta, double rho, double *out_2485680268049741632);
+void closure_mapping_order2_square(int *out_4704571147332053782);
+void gll_weights_order2_square(double *out_1923134116974207604);
+void gll_coordinates_order2_square(double *out_2127667241337835057);
 
 #endif
 

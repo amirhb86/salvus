@@ -35,11 +35,25 @@ void interpolate_eta_derivative_order1_square(double epsilon, double *out_847347
 
 }
 
-void diagonal_mass_matrix_order1_square(double epsilon, double eta, double rho, double *out_5958929685829164825) {
+void closure_mapping_order1_square(int *out_7012053298897627347) {
 
-   out_5958929685829164825[0] = 0.0625*rho*pow(epsilon - 1.0, 2)*pow(eta - 1.0, 2);
-   out_5958929685829164825[1] = 0.0625*rho*pow(epsilon + 1.0, 2)*pow(eta - 1.0, 2);
-   out_5958929685829164825[2] = 0.0625*rho*pow(epsilon - 1.0, 2)*pow(eta + 1.0, 2);
-   out_5958929685829164825[3] = 0.0625*rho*pow(epsilon + 1.0, 2)*pow(eta + 1.0, 2);
+   out_7012053298897627347[0] = 1;
+   out_7012053298897627347[1] = 3;
+   out_7012053298897627347[2] = 2;
+   out_7012053298897627347[3] = 0;
+
+}
+
+void gll_weights_order1_square(double *out_3122137466506344549) {
+
+   out_3122137466506344549[0] = 1.0;
+   out_3122137466506344549[1] = 1.0;
+
+}
+
+void gll_coordinates_order1_square(double *out_3093496787365923720) {
+
+   out_3093496787365923720[0] = -1.0;
+   out_3093496787365923720[1] = 1.0;
 
 }

@@ -50,16 +50,32 @@ void interpolate_eta_derivative_order2_square(double epsilon, double eta, double
 
 }
 
-void diagonal_mass_matrix_order2_square(double epsilon, double eta, double rho, double *out_2485680268049741632) {
+void closure_mapping_order2_square(int *out_4704571147332053782) {
 
-   out_2485680268049741632[0] = 0.0625*pow(epsilon, 2)*pow(eta, 2)*rho*pow(epsilon - 1.0, 2)*pow(eta - 1.0, 2);
-   out_2485680268049741632[1] = 0.25*pow(eta, 2)*rho*pow(epsilon - 1.0, 2)*pow(epsilon + 1.0, 2)*pow(eta - 1.0, 2);
-   out_2485680268049741632[2] = 0.0625*pow(epsilon, 2)*pow(eta, 2)*rho*pow(epsilon + 1.0, 2)*pow(eta - 1.0, 2);
-   out_2485680268049741632[3] = 0.25*pow(epsilon, 2)*rho*pow(epsilon - 1.0, 2)*pow(eta - 1.0, 2)*pow(eta + 1.0, 2);
-   out_2485680268049741632[4] = 1.0*rho*pow(epsilon - 1.0, 2)*pow(epsilon + 1.0, 2)*pow(eta - 1.0, 2)*pow(eta + 1.0, 2);
-   out_2485680268049741632[5] = 0.25*pow(epsilon, 2)*rho*pow(epsilon + 1.0, 2)*pow(eta - 1.0, 2)*pow(eta + 1.0, 2);
-   out_2485680268049741632[6] = 0.0625*pow(epsilon, 2)*pow(eta, 2)*rho*pow(epsilon - 1.0, 2)*pow(eta + 1.0, 2);
-   out_2485680268049741632[7] = 0.25*pow(eta, 2)*rho*pow(epsilon - 1.0, 2)*pow(epsilon + 1.0, 2)*pow(eta + 1.0, 2);
-   out_2485680268049741632[8] = 0.0625*pow(epsilon, 2)*pow(eta, 2)*rho*pow(epsilon + 1.0, 2)*pow(eta + 1.0, 2);
+   out_4704571147332053782[0] = 4;
+   out_4704571147332053782[1] = 5;
+   out_4704571147332053782[2] = 7;
+   out_4704571147332053782[3] = 3;
+   out_4704571147332053782[4] = 1;
+   out_4704571147332053782[5] = 2;
+   out_4704571147332053782[6] = 8;
+   out_4704571147332053782[7] = 6;
+   out_4704571147332053782[8] = 0;
+
+}
+
+void gll_weights_order2_square(double *out_1923134116974207604) {
+
+   out_1923134116974207604[0] = 0.333333333333333;
+   out_1923134116974207604[1] = 1.33333333333333;
+   out_1923134116974207604[2] = 0.333333333333333;
+
+}
+
+void gll_coordinates_order2_square(double *out_2127667241337835057) {
+
+   out_2127667241337835057[0] = -1.0;
+   out_2127667241337835057[1] = 0.0;
+   out_2127667241337835057[2] = 1.0;
 
 }
