@@ -298,32 +298,55 @@ bool Quad::mCheckHull(double x, double z) {
 Eigen::Vector2d Quad::inverseCoordinateTransform(const double &x_real, const double &z_real,
                                                  double eps, double eta) {
 
+    double v1x = mVertexCoordinates.row(0)[0];
+    double v2x = mVertexCoordinates.row(0)[1];
+    double v3x = mVertexCoordinates.row(0)[2];
+    double v4x = mVertexCoordinates.row(0)[3];
+    double v1z = mVertexCoordinates.row(1)[0];
+    double v2z = mVertexCoordinates.row(1)[1];
+    double v3z = mVertexCoordinates.row(1)[2];
+    double v4z = mVertexCoordinates.row(1)[3];
+    
+    // Using Newton iterations
+    // https://en.wikipedia.org/wiki/Newton%27s_method#Nonlinear_systems_of_equations
+    // J_F(xn)(x_{n+1} - x_n) = -F(x_n)
+    // Solve for x_{n+1}
+    // where J_F(x_n) is jacobian:
+    // https://en.wikipedia.org/wiki/Jacobian_matrix_and_determinant
     double tol = 1e-6;
+    int num_iter = 0;
     Eigen::Vector2d solution {eps, eta};
     while (true) {
 
-        eps = solution(0);
-        eta = solution(1);
+        double r = solution(0);
+        double s = solution(1);
 
         Eigen::Matrix2d jacobian;
-        Eigen::Vector4d shape_functions {n0(eps, eta), n1(eps, eta), n2(eps, eta), n3(eps, eta)};
-        Eigen::Vector4d dNdEps {dn0deps(eta), dn1deps(eta), dn2deps(eta), dn3deps(eta)};
-        Eigen::Vector4d dNdEta {dn0deta(eps), dn1deta(eps), dn2deta(eps), dn3deta(eps)};
-        Eigen::Vector2d objective_function {x_real - shape_functions.dot(mVertexCoordinates.row(0)),
-                                            z_real - shape_functions.dot(mVertexCoordinates.row(1))};
+        // mapping from reference quad [-1,1]x[-1,1] to *this* element
+        double Tx = v1x+(v2x-v1x)*(r+1)/2 + (v4x+(v3x-v4x)*(r+1)/2 - v1x - (v2x-v1x)*(r+1)/2)*(s+1)/2;
+        double Tz = v1z+(v2z-v1z)*(r+1)/2 + (v4z+(v3z-v4z)*(r+1)/2 - v1z - (v2z-v1z)*(r+1)/2)*(s+1)/2;
+        Eigen::Vector2d objective_function {x_real - Tx, z_real - Tz};
 
-        jacobian << -1 * dNdEps.dot(mVertexCoordinates.row(0)),
-                    -1 * dNdEta.dot(mVertexCoordinates.row(0)),
-                    -1 * dNdEps.dot(mVertexCoordinates.row(1)),
-                    -1 * dNdEta.dot(mVertexCoordinates.row(1));
-
+        // see element_matrices.py
+        // J = [-v1x/2 + v2x/2 + (s + 1)*(v1x/2 - v2x/2 + v3x/2 - v4x/2)/2, -v1x/2 + v4x/2 - (r + 1)*(-v1x + v2x)/4 + (r + 1)*(v3x - v4x)/4],
+        // [-v1z/2 + v2z/2 + (s + 1)*(v1z/2 - v2z/2 + v3z/2 - v4z/2)/2, -v1z/2 + v4z/2 - (r + 1)*(-v1z + v2z)/4 + (r + 1)*(v3z - v4z)/4]])
+        
+        jacobian << (-v1x/2 + v2x/2 + (s + 1)*(v1x/2 - v2x/2 + v3x/2 - v4x/2)/2), -v1x/2 + v4x/2 - (r + 1)*(-v1x + v2x)/4 + (r + 1)*(v3x - v4x)/4, -v1z/2 + v2z/2 + (s + 1)*(v1z/2 - v2z/2 + v3z/2 - v4z/2)/2, -v1z/2 + v4z/2 - (r + 1)*(-v1z + v2z)/4 + (r + 1)*(v3z - v4z)/4;
+                    
         if ((objective_function.array().abs() < tol).all()) {
             return solution;
         } else {
-            solution -= (jacobian.inverse() * objective_function);
+            solution += (jacobian.inverse() * objective_function);
         }
-
+        if(num_iter > 10) {
+            std::cerr << "inverseCoordinateTransform: TOO MANY ITERATIONS!\n";
+            exit(1);
+        }
+        num_iter++;
+        
     }
+    
+    
 
 }
 
