@@ -1,2 +1,3 @@
 doc/* linguist-documentation
 **/Autogen/* linguist-vendored
+src/cxx/Utilities/kdtree.* linguist-vendored
