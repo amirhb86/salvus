@@ -11,6 +11,7 @@
 
 class Elastic : public Quad {
 
+    static const std::vector<std::string> mElementalFields;
     Eigen::Vector4d mC11AtVertices;
     Eigen::Vector4d mC13AtVertices;
     Eigen::Vector4d mC15AtVertices;

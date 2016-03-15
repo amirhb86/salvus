@@ -38,3 +38,9 @@ void ElasticNewmark2D::applyInverseMassMatrix() {
                      mFields["force_z"].glb);
 
 }
+
+std::vector<std::string> ElasticNewmark2D::GlobalFields() const {
+
+    return {"ux", "uy", "vx", "vy", "ax", "ay", "ax_", "ay_", "m"};
+
+}

@@ -27,6 +27,7 @@ public:
 
     virtual void advanceField(double dt);
     virtual void applyInverseMassMatrix();
+    virtual std::vector<std::string> GlobalFields() const;
 
 
 };

@@ -2,6 +2,8 @@
 // Created by Michael Afanasiev on 2016-01-27.
 //
 
+#include <vector>
+#include <memory>
 #include "Mesh.h"
 #include "ScalarNewmark2D.h"
 #include "ElasticNewmark2D.h"
@@ -89,8 +91,6 @@ int Mesh::setupBoundaries(Options options) {
     
     readBoundaryNames(options);
 
-    int num_sideset_ids=-1;
-    
     // PETSc gives all side sets the label name "Face Sets" Each face
     // is then given value, which is the order found in the exodus
     // file; Ex: two boundaries "absorbing_boundaries", "free_surface"
@@ -98,64 +98,45 @@ int Mesh::setupBoundaries(Options options) {
     // free surface get value "2".
     DMLabel label;
     ierr = DMPlexGetLabel(mDistributedMesh,"Face Sets",&label);CHKERRQ(ierr);
+
     // if no side sets are present, proceed with no boundaries (naturally a free surface)
     if(label == NULL) { return 0; }
-    ierr = DMLabelGetNumValues(label, &num_sideset_ids);CHKERRQ(ierr);
-    if(num_sideset_ids == 0) {return 0;}
+    ierr = DMLabelGetNumValues(label, &mNumberSideSets);CHKERRQ(ierr);
+    if(mNumberSideSets == 0) {return 0;}
     
     IS idIS;
     const PetscInt* ids;
     ierr = DMLabelGetValueIS(label, &idIS);CHKERRQ(ierr);
     ierr = ISGetIndices(idIS, &ids);CHKERRQ(ierr);
     
-    for(int i=0;i<num_sideset_ids;i++) {
-        
+    for (int i = 0; i < mNumberSideSets; i++) {
+
         IS              pointIS;
         const PetscInt *faces;
         PetscInt        numFaces, p;
-        
+
         ierr = DMLabelGetStratumSize(label, ids[i], &numFaces);CHKERRQ(ierr);
         ierr = DMLabelGetStratumIS(label, ids[i], &pointIS);CHKERRQ(ierr);
         ierr = ISGetIndices(pointIS, &faces);CHKERRQ(ierr);
 
-        for(int p=0;p<numFaces;p++) {
+        for (int p = 0; p < numFaces; p++) {
 
             PetscInt support_size;
             const PetscInt* support;
             int face = faces[p];
-            DMPlexGetSupportSize(mDistributedMesh,face,&support_size);
-            DMPlexGetSupport(mDistributedMesh,face,&support);
-            for(int elem=0;elem<support_size;elem++) {                
+            DMPlexGetSupportSize(mDistributedMesh, face, &support_size);
+            DMPlexGetSupport(mDistributedMesh, face, &support);
+            for(int elem = 0; elem < support_size; elem++) {
                 mBoundaryElementFaces[ids[i]][support[elem]].push_back(face);
             }
-            
+
         }
         ISRestoreIndices(pointIS, &faces);
         ISDestroy(&pointIS);
     }
     ierr = ISRestoreIndices(idIS, &ids);CHKERRQ(ierr);
     ISDestroy(&idIS);
-    
-    // visualize structure
-    // for(int rank=0;rank<MPI::COMM_WORLD.Get_size();rank++) {
-    //     if(rank==MPI::COMM_WORLD.Get_rank()) {
-    //         printf("proc=%d\n",MPI::COMM_WORLD.Get_rank());
-    //         for(auto& id_key : mBoundaryElementFaces) {
-    //             int i=id_key.first;
-    //             for(auto& elem : id_key.second) {
-    //                 printf("%d:(%d:{",i,elem.first);
-    //                 for(int face=0;face<elem.second.size();face++) {                
-    //                     printf("%d,",elem.second[face]);
-    //                 }
-    //                 printf("})\n");
-    //             }
-    //         }
-    //     }
-    //     MPI::COMM_WORLD.Barrier();
-    // }
-    
-    // Set some important information.
-    
+
     PetscFunctionReturn(0);
 }
 
@@ -183,8 +164,6 @@ void Mesh::read(Options options) {
 
     DMGetDimension(mDistributedMesh, &mNumberDimensions);
     DMPlexGetDepthStratum(mDistributedMesh, mNumberDimensions, NULL, &mNumberElementsLocal);
-
-    setupBoundaries(options);
 }
 
 void Mesh::setupGlobalDof(int number_dof_vertex, int number_dof_edge, int number_dof_face,
@@ -197,8 +176,6 @@ void Mesh::setupGlobalDof(int number_dof_vertex, int number_dof_edge, int number
     int number_fields = 1;
     int number_components = 1;
     int number_dof_per_element[mNumberDimensions + 1];
-
-    std::cout << number_dof_edge << std::endl;
 
     // Number of dof on vertex, edge, face, volume.
     number_dof_per_element[0] = number_dof_vertex;
@@ -398,3 +375,15 @@ void Mesh::finalizeMovie() {
 
 }
 
+int Mesh::BoundaryElementFaces(int elm, int ss_num) {
+
+    // Make sure we're looking for a side set that actually exists.
+//    assert(mBoundaryElementFaces.find(ss_num) != mBoundaryElementFaces.end());
+
+    if (mBoundaryElementFaces[ss_num].find(elm) == mBoundaryElementFaces[ss_num].end()) {
+        return -1;
+    } else {
+        return mBoundaryElementFaces[ss_num][elm][0];
+    }
+
+}

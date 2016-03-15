@@ -241,9 +241,13 @@ protected:
 
     int mElementNumber; /** Element number on the local processor. */
     
-    std::vector<Source*> mSources;  /** Vector of abstract sources belonging (spatiall) to the element */
+    std::vector<Source*> mSources;  /** Vector of abstract sources belonging (spatial) to the element */
     Eigen::VectorXd mMassMatrix;    /** Elemental mass matrix */
     Eigen::Matrix<double,2,4> mVertexCoordinates;   /** Vertex coordinates ordered as above. row(0)->x, row(1)->z */
+    Eigen::Matrix<double,2,1> mElementCenter; /** (x, z) location of element center */
+
+    bool mOnBoundary;    /** < Whether or not the current element has a special boundary condition */
+    std::map<std::string,int> mBoundaries;  /** < Map relating the type of boundary to the Petsc edge number */
 
     /**
      * 2x2 Jacobian matrix at a point (eps, eta).
@@ -265,7 +269,7 @@ protected:
      * @returns (inverse Jacobian matrix,determinant of that matrix) as a `std::tuple`. Tuples can be
      * "destructured" using a `std::tie`.
      */
-    std::tuple<Eigen::Matrix<double,2,2>,PetscReal> inverseJacobianAtPoint(PetscReal eps, PetscReal eta);
+    std::tuple<Eigen::Matrix2d,PetscReal> inverseJacobianAtPoint(PetscReal eps, PetscReal eta);
     
     /**
      * Attaches a material parameter to the vertices on the current element.
@@ -405,7 +409,13 @@ public:
      */
     std::tuple<Eigen::VectorXd,Eigen::VectorXd> buildNodalPoints(Mesh* mesh);
 
+    /**
+     * Figure out which dofs (if any) are on the boundary.
+     */
+    void setBoundaryConditions(Mesh *mesh);
+
     // Attribute gets.
+    int Number() const { return mElementNumber; }
     int NumberDofEdge() const { return mNumberDofEdge; }
     int NumberDofFace() const { return mNumberDofFace; }
     int NumberDofVertex() const { return mNumberDofVertex; }
@@ -413,6 +423,9 @@ public:
     int NumberDimensions() const { return mNumberDimensions; }
     int NumberIntegrationPoints() const { return mNumberIntegrationPoints; }
 
+    std::map<std::string,int> Boundaries() const { return mBoundaries; }
+
+    Eigen::VectorXi ElementClosure() const { return mClosureMapping; }
     virtual Eigen::VectorXi GetFaceClosureMapping() { return mFaceClosureMapping; }
     virtual Eigen::MatrixXd GetVertexCoordinates() { return mVertexCoordinates; }
 

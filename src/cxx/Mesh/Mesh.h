@@ -41,6 +41,7 @@ class Mesh {
 
     int mNumberElementsLocal;       /** < Number of elements on this processor. */
     int mNumberDimensions;          /** < Number of dimensions of the mesh. */
+    int mNumberSideSets;            /** < Number of flagged boundaries. */
 
     std::string mExodusFileName;    /** < Exodus file from which this mesh (skeleton) was defined. */
 
@@ -298,13 +299,23 @@ public:
     virtual void applyInverseMassMatrix() = 0;
 
     /**
+     * Keeps a list of all the fields required on the global degrees of freedom.
+     */
+    virtual std::vector<std::string> GlobalFields() const = 0;
+
+
+    /**
      * Distributed mesh getattr.
      * TODO: I don't think we actually need these anymore.
      */
+    int BoundaryElementFaces(int elm, int ss_num);
+
+
     inline DM &DistributedMesh() { return mDistributedMesh; }
     inline PetscSection &MeshSection() { return mMeshSection; }
-    virtual std::map<std::string, PetscInt>& BoundaryIds() { return mBoundaryIds; } 
-    virtual std::map<int,std::map<int,std::vector<int>>>& BoundaryElementFaces() { return mBoundaryElementFaces; }
+    virtual std::map<std::string, PetscInt>& BoundaryIds() { return mBoundaryIds; }
+
+    inline int NumberSideSets() { return mNumberSideSets; }
 
 };
 

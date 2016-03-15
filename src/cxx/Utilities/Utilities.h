@@ -18,6 +18,7 @@ namespace utilities {
     void print_from_root_mpi(const std::string msg);
 
     int broadcastInt(int send_buffer);
+    std::vector<int> broadcastStdVecFromRoot(std::vector<int> &send_buffer);
     std::vector<double> broadcastStdVecFromRoot(std::vector<double> &send_buffer);
     std::string broadcastStringFromRoot(std::string send_str);
     std::vector<std::string> broadcastStringVecFromFroot(std::vector<std::string> &send_buffer);

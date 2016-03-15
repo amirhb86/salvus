@@ -4,6 +4,9 @@
 
 #include "Acoustic.h"
 
+// Elemental fields definition.
+const std::vector<std::string> mElementalFields {"u_sca"};
+
 Acoustic::Acoustic(Options options): Quad(options) {
 
     // Allocate element vectors.
@@ -71,7 +74,7 @@ Eigen::MatrixXd Acoustic::computeStiffnessTerm(const Eigen::MatrixXd &displaceme
             Eigen::Matrix<double,2,2> Jinv;
             double detJi;
             std::tie(Jinv,detJi) = inverseJacobianAtPoint(eps,eta);
-            
+
 
             // map reference gradient (lr,ls) to this element (lx,lz)
             auto lr = mGradientOperator.col(eps_index);
@@ -87,7 +90,6 @@ Eigen::MatrixXd Acoustic::computeStiffnessTerm(const Eigen::MatrixXd &displaceme
                 lz[i] = lxzi[1];
             }
             
-            // weightsum += mIntegrationWeightsEta(eta_index)*mIntegrationWeightsEps(eps_index);
             integratedStiffnessMatrix(itr) =
                 mIntegrationWeightsEta(eta_index) *
                 mIntegrationWeightsEps.dot(((epsVectorStride(detJ, eta_index)).array() *
@@ -127,10 +129,9 @@ Eigen::MatrixXd Acoustic::computeStiffnessTerm(const Eigen::MatrixXd &displaceme
     return integratedStiffnessMatrix;
 }
 
-void Acoustic::interpolateMaterialProperties(ExodusModel *model) {
+void Acoustic:: interpolateMaterialProperties(ExodusModel *model) {
 
-    mMaterialVelocityAtVertices = __interpolateMaterialProperties(model, "velocity");
-    mMaterialDensityAtVertices = __interpolateMaterialProperties(model, "density");
+    mMaterialVelocityAtVertices = __interpolateMaterialProperties(model, "VP") / 1000.;
 
 }
 
@@ -173,6 +174,7 @@ Eigen::MatrixXd Acoustic::computeSourceTerm(double time) {
 
 void Acoustic::computeSurfaceTerm() {
 
+    std::cout << mElementNumber << std::endl;
 
 }
 
@@ -192,7 +194,7 @@ void Acoustic::assembleElementMassMatrix(Mesh *mesh) {
         }
     }
     // assemble to shared nodes
-    mesh->addFieldFromElement("mass_matrix", mElementNumber, mClosureMapping, elementMassMatrix);
+    mesh->addFieldFromElement("m", mElementNumber, mClosureMapping, elementMassMatrix);
 }
 
 void Acoustic::setInitialCondition(Mesh* mesh, Eigen::VectorXd& pts_x,Eigen::VectorXd& pts_z) {

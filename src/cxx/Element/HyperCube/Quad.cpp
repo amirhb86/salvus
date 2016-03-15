@@ -179,6 +179,10 @@ void Quad::attachVertexCoordinates(DM &distributed_mesh) {
         mVertexCoordinates(1,i) = coordinates_element[mNumberDimensions*i+1];
     }
 
+    // Save element center
+    mElementCenter << mVertexCoordinates.row(0).mean(),
+            mVertexCoordinates.row(1).mean();
+
 }
 
 Eigen::Matrix<double,2,2> Quad::jacobianAtPoint(PetscReal eps, PetscReal eta) {
@@ -194,67 +198,49 @@ Eigen::Matrix<double,2,2> Quad::jacobianAtPoint(PetscReal eps, PetscReal eta) {
     return jacobian_multiplier * mVertexCoordinates.transpose();
 }
 
-bool testJacobian(PetscReal eps,
-                  PetscReal eta,
-                  double v1x,
-                  double v2x,
-                  double v3x,
-                  double v4x,
-                  double v1z,
-                  double v2z,
-                  double v3z,
-                  double v4z) {
 
+std::tuple<Eigen::Matrix2d, PetscReal> Quad::inverseJacobianAtPoint(PetscReal eps, PetscReal eta) {
 
-    
-}
-    
-
-std::tuple<Eigen::Matrix<double,2,2>,PetscReal> Quad::inverseJacobianAtPoint(PetscReal eps, PetscReal eta) {
-
-    double v1x = mVertexCoordinates.row(0)[0];
-    double v2x = mVertexCoordinates.row(0)[1];
-    double v3x = mVertexCoordinates.row(0)[2];
-    double v4x = mVertexCoordinates.row(0)[3];
-    double v1z = mVertexCoordinates.row(1)[0];
-    double v2z = mVertexCoordinates.row(1)[1];
-    double v3z = mVertexCoordinates.row(1)[2];
-    double v4z = mVertexCoordinates.row(1)[3];
+    double v1x = mVertexCoordinates(0,0);
+    double v2x = mVertexCoordinates(0,1);
+    double v3x = mVertexCoordinates(0,2);
+    double v4x = mVertexCoordinates(0,3);
+    double v1z = mVertexCoordinates(1,0);
+    double v2z = mVertexCoordinates(1,1);
+    double v3z = mVertexCoordinates(1,2);
+    double v4z = mVertexCoordinates(1,3);
     
     double r = (eps+1.0);
     double s = (eta+1.0);
-    Eigen::Matrix<double,2,2> inverseJacobian;
-    double detJ = -r*v1x*v3z/8 + r*v1x*v4z/8 + r*v1z*v3x/8 - r*v1z*v4x/8 + r*v2x*v3z/8 - r*v2x*v4z/8 - r*v2z*v3x/8 + r*v2z*v4x/8 - s*v1x*v2z/8 + s*v1x*v3z/8 + s*v1z*v2x/8 - s*v1z*v3x/8 - s*v2x*v4z/8 + s*v2z*v4x/8 + s*v3x*v4z/8 - s*v3z*v4x/8 + v1x*v2z/4 - v1x*v4z/4 - v1z*v2x/4 + v1z*v4x/4 + v2x*v4z/4 - v2z*v4x/4;
+    double detJ = -r*v1x*v3z/8 + r*v1x*v4z/8 + r*v1z*v3x/8 - r*v1z*v4x/8 + r*v2x*v3z/8 -
+            r*v2x*v4z/8 - r*v2z*v3x/8 + r*v2z*v4x/8 - s*v1x*v2z/8 + s*v1x*v3z/8 +
+            s*v1z*v2x/8 - s*v1z*v3x/8 - s*v2x*v4z/8 + s*v2z*v4x/8 + s*v3x*v4z/8 -
+            s*v3z*v4x/8 + v1x*v2z/4 - v1x*v4z/4 - v1z*v2x/4 + v1z*v4x/4 + v2x*v4z/4 -
+            v2z*v4x/4;
     
-    // J = [dx/dr, dy/dr;
-    //      dx/ds, dy/ds]
-    // J^{-1} = [dr/dx ds/dx;
-    //           dr/dz ds/dz]
+    // J        =   [dx/dr, dy/dr;
+    //               dx/ds, dy/ds]
+    // J^{-1}   =   [dr/dx ds/dx;
+    //               dr/dz ds/dz]
     double rx = (1/detJ)*(r*(v1z - v2z)/4 + r*(v3z - v4z)/4 - v1z/2 + v4z/2);
     double rz = (1/detJ)*(-r*(v1x - v2x)/4 - r*(v3x - v4x)/4 + v1x/2 - v4x/2);
     double sx = (1/detJ)*(-s*(v1z - v2z + v3z - v4z)/4 + v1z/2 - v2z/2);
     double sz = (1/detJ)*(s*(v1x - v2x + v3x - v4x)/4 - v1x/2 + v2x/2);
-    
+
+    Eigen::Matrix<double,2,2> inverseJacobian;
     inverseJacobian << rx, sx,
                        rz, sz;
     
-    return std::make_tuple(inverseJacobian,detJ);
+    return std::make_tuple(inverseJacobian, detJ);
 }
 
 Eigen::Vector4d Quad::__interpolateMaterialProperties(ExodusModel *model, std::string parameter_name) {
 
     Eigen::Vector4d material_at_vertices(mNumberVertex);
 
-    // THIS IS STUPID JUST BECAUSE DENSITY IS NOT IN THE EXODUS FILE YET.
-    if (parameter_name == "density") {
-        material_at_vertices.setConstant(3.0);
-        return material_at_vertices;
-    }
-
     for (auto i = 0; i < mNumberVertex; i++) {
-        material_at_vertices(i) = model->getMaterialParameterAtPoint({mVertexCoordinates(0, i),
-                                                                     mVertexCoordinates(1, i)},
-                                                                    parameter_name);
+        material_at_vertices(i) = model->getElementalMaterialParameterAtVertex(
+                mElementCenter, parameter_name, i);
     }
     return material_at_vertices;
 
@@ -510,5 +496,16 @@ double Quad::integrateField(const Eigen::VectorXd &field) {
         }
     }
     return val;
+
+}
+
+void Quad::setBoundaryConditions(Mesh *mesh) {
+
+    mOnBoundary = false;
+    std::vector<std::string> bound_map = {"dirchlet", "dirchlet", "dirchlet", "dirchlet"};
+    for (int i = 0; i < bound_map.size(); i++) {
+        int boundary_flag = mesh->BoundaryElementFaces(mElementNumber, (i+1));
+        if (boundary_flag != -1) { mBoundaries[bound_map[i]] = boundary_flag; mOnBoundary = true; }
+    }
 
 }

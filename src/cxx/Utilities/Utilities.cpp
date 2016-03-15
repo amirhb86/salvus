@@ -42,11 +42,21 @@ std::vector<double> utilities::broadcastStdVecFromRoot(std::vector<double> &send
 
 }
 
-std::string utilities::broadcastStringFromRoot(std::string send_str) {
-    std::vector<std::string> send_vecstr;
-    send_vecstr.push_back(send_str);
-    send_vecstr = utilities::broadcastStringVecFromFroot(send_vecstr);
-    return send_vecstr[0];
+std::vector<int> utilities::broadcastStdVecFromRoot(std::vector<int> &send_buffer) {
+
+    int root = 0;
+    int int_size = 1;
+    std::vector<int> receive_buffer;
+
+    int length;
+    if (!MPI::COMM_WORLD.Get_rank()) { length = send_buffer.size(); }
+    MPI::COMM_WORLD.Bcast(&length, int_size, MPI::INT, root);
+
+    receive_buffer.resize(length);
+    if (!MPI::COMM_WORLD.Get_rank()) { receive_buffer = send_buffer; }
+    MPI::COMM_WORLD.Bcast(receive_buffer.data(), length, MPI::INT, root);
+    return receive_buffer;
+
 }
 
 std::vector<std::string> utilities::broadcastStringVecFromFroot(std::vector<std::string> &send_buffer) {

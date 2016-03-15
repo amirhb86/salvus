@@ -91,6 +91,7 @@ PetscErrorCode Options::setOptions() {
     } else if ((mPhysicsSystem == "acoustic") && (mTimeStepType == "newmark") && (mDimension == 2)) {
         mProblemType = "solver_newmark_dimension_2d_physics_acoustic";
     }
+    mProblemType = "newmark_general";
 
     // No error
     return 0;

@@ -4,6 +4,8 @@
 
 #include "ScalarNewmark2D.h"
 
+// Required fields for timestepping.
+
 void ScalarNewmark2D::advanceField(double dt) {
     
     double pre_factor_acceleration = (1.0/2.0) * dt;
@@ -31,4 +33,8 @@ void ScalarNewmark2D::applyInverseMassMatrix() {
                      mFields["force"].glb);
 
 
+}
+
+std::vector<std::string> ScalarNewmark2D::GlobalFields() const {
+    return {"u", "v", "a", "a_", "m"};
 }

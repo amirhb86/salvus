@@ -15,8 +15,8 @@
 
 class Acoustic : public Quad {
 
+    static const std::vector<std::string> mElementalFields;
     Eigen::Vector4d mMaterialVelocityAtVertices;
-    Eigen::Vector4d mMaterialDensityAtVertices;
     Eigen::MatrixXd mElementStrain;
 
 public:

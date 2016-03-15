@@ -4,6 +4,9 @@
 
 #include "Elastic.h"
 
+// Elemental fields definition.
+const std::vector<std::string> mElementalFields {"ux", "uy"};
+
 Elastic::Elastic(Options options): Quad(options) {
 
     mMassMatrix.setZero(mNumberIntegrationPoints);
@@ -195,13 +198,17 @@ Eigen::MatrixXd Elastic::computeStiffnessTerm(const Eigen::MatrixXd &displacemen
 
 void Elastic::interpolateMaterialProperties(ExodusModel *model) {
 
-    mC11AtVertices = __interpolateMaterialProperties(model, "c11");
-    mC13AtVertices = __interpolateMaterialProperties(model, "c13");
-    mC15AtVertices = __interpolateMaterialProperties(model, "c15");
-    mC31AtVertices = __interpolateMaterialProperties(model, "c31");
-    mC33AtVertices = __interpolateMaterialProperties(model, "c33");
-    mC35AtVertices = __interpolateMaterialProperties(model, "c35");
-    mC15AtVertices = __interpolateMaterialProperties(model, "c15");
-    mC35AtVertices = __interpolateMaterialProperties(model, "c35");
-    mC55AtVertices = __interpolateMaterialProperties(model, "c55");
+    // TODO: Get a standard for the units.
+    mRhoAtVertices = __interpolateMaterialProperties(model, "RHO") / 1000.;
+    mC11AtVertices = __interpolateMaterialProperties(model, "c11") / 1e9;
+    mC13AtVertices = __interpolateMaterialProperties(model, "c13") / 1e9;
+    mC15AtVertices = __interpolateMaterialProperties(model, "c15") / 1e9;
+    mC33AtVertices = __interpolateMaterialProperties(model, "c33") / 1e9;
+    mC35AtVertices = __interpolateMaterialProperties(model, "c35") / 1e9;
+    mC55AtVertices = __interpolateMaterialProperties(model, "c55") / 1e9;
+
+    mC31AtVertices = mC13AtVertices;
+    mC51AtVertices = mC15AtVertices;
+    mC53AtVertices = mC35AtVertices;
+
 }
