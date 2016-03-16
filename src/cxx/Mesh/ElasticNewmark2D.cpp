@@ -9,38 +9,36 @@ void ElasticNewmark2D::advanceField(double dt) {
     double pre_factor_acceleration = (1.0/2.0) * dt;
     double pre_factor_displacement = (1.0/2.0) * (dt * dt);
 
-    VecAXPBYPCZ(mFields["velocity_x"].glb, pre_factor_acceleration, pre_factor_acceleration, 1.0,
-                mFields["acceleration_x"].glb, mFields["acceleration_x_"].glb);
-    VecAXPBYPCZ(mFields["velocity_z"].glb, pre_factor_acceleration, pre_factor_acceleration, 1.0,
-                mFields["acceleration_z"].glb, mFields["acceleration_z_"].glb);
+    VecAXPBYPCZ(mFields["vx"].glb, pre_factor_acceleration, pre_factor_acceleration, 1.0,
+                mFields["ax"].glb, mFields["ax_"].glb);
+    VecAXPBYPCZ(mFields["vy"].glb, pre_factor_acceleration, pre_factor_acceleration, 1.0,
+                mFields["ay"].glb, mFields["ay_"].glb);
 
-    VecAXPBYPCZ(mFields["displacement_x"].glb, dt, pre_factor_displacement, 1.0,
-                mFields["velocity_x"].glb, mFields["acceleration_x"].glb);
-    VecAXPBYPCZ(mFields["displacement_z"].glb, dt, pre_factor_displacement, 1.0,
-                mFields["velocity_z"].glb, mFields["acceleration_z"].glb);
+    VecAXPBYPCZ(mFields["ux"].glb, dt, pre_factor_displacement, 1.0,
+                mFields["vx"].glb, mFields["ax"].glb);
+    VecAXPBYPCZ(mFields["uy"].glb, dt, pre_factor_displacement, 1.0,
+                mFields["vy"].glb, mFields["ay"].glb);
 
-    VecCopy(mFields["acceleration_x"].glb, mFields["acceleration_x_"].glb);
-    VecCopy(mFields["acceleration_z"].glb, mFields["acceleration_z_"].glb);
+    VecCopy(mFields["ax"].glb, mFields["ax_"].glb);
+    VecCopy(mFields["ay"].glb, mFields["ay_"].glb);
 
 }
 
 void ElasticNewmark2D::applyInverseMassMatrix() {
 
-    if (mFields.find("mass_matrix_inverse") == mFields.end()) {
-        registerFieldVectors("mass_matrix_inverse");
-        VecCopy(mFields["mass_matrix"].glb, mFields["mass_matrix_inverse"].glb);
-        VecReciprocal(mFields["mass_matrix_inverse"].glb);
+    if (mFields.find("mi") == mFields.end()) {
+        registerFieldVectors("mi");
+        VecCopy(mFields["m"].glb, mFields["mi"].glb);
+        VecReciprocal(mFields["mi"].glb);
     }
 
-    VecPointwiseMult(mFields["acceleration_x"].glb, mFields["mass_matrix_inverse"].glb,
-                     mFields["force_x"].glb);
-    VecPointwiseMult(mFields["acceleration_z"].glb, mFields["mass_matrix_inverse"].glb,
-                     mFields["force_z"].glb);
+    VecPointwiseMult(mFields["ax"].glb, mFields["mi"].glb,
+                     mFields["ax"].glb);
+    VecPointwiseMult(mFields["ay"].glb, mFields["mi"].glb,
+                     mFields["ay"].glb);
 
 }
 
 std::vector<std::string> ElasticNewmark2D::GlobalFields() const {
-
     return {"ux", "uy", "vx", "vy", "ax", "ay", "ax_", "ay_", "m"};
-
 }

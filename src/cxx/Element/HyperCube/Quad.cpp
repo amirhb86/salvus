@@ -264,7 +264,7 @@ void Quad::attachSource(std::vector<Source*> sources) {
 bool Quad::mCheckHull(double x, double z) {
     int n_neg = 0;
     int n_pos = 0;
-    std::vector<int> edge_mapping {0, 1, 3, 2, 0};
+    std::vector<int> edge_mapping {0, 1, 2, 3, 0};
     Eigen::Vector2d test_point; test_point << x, z;
     for (auto i = 0; i < mNumberVertex; i++) {
         Eigen::Vector2d p0 = mVertexCoordinates.col(edge_mapping[i+0]);
@@ -292,9 +292,9 @@ Eigen::Vector2d Quad::inverseCoordinateTransform(const double &x_real, const dou
         eta = solution(1);
 
         Eigen::Matrix2d jacobian;
-        Eigen::Vector4d shape_functions {n0(eps, eta), n1(eps, eta), n2(eps, eta), n3(eps, eta)};
-        Eigen::Vector4d dNdEps {dn0deps(eta), dn1deps(eta), dn2deps(eta), dn3deps(eta)};
-        Eigen::Vector4d dNdEta {dn0deta(eps), dn1deta(eps), dn2deta(eps), dn3deta(eps)};
+        Eigen::Vector4d shape_functions {n0(eps, eta), n1(eps, eta), n3(eps, eta), n2(eps, eta)};
+        Eigen::Vector4d dNdEps {dn0deps(eta), dn1deps(eta), dn3deps(eta), dn2deps(eta)};
+        Eigen::Vector4d dNdEta {dn0deta(eps), dn1deta(eps), dn3deta(eps), dn2deta(eps)};
         Eigen::Vector2d objective_function {x_real - shape_functions.dot(mVertexCoordinates.row(0)),
                                             z_real - shape_functions.dot(mVertexCoordinates.row(1))};
 

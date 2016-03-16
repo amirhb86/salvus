@@ -15,7 +15,6 @@
 
 class Acoustic : public Quad {
 
-    static const std::vector<std::string> mElementalFields;
     Eigen::Vector4d mMaterialVelocityAtVertices;
     Eigen::MatrixXd mElementStrain;
 
@@ -34,6 +33,9 @@ public:
 
     void setInitialCondition(Mesh* mesh, Eigen::VectorXd& pts_x, Eigen::VectorXd& pts_z);
     Eigen::VectorXd exactSolution(Eigen::VectorXd& pts_x,Eigen::VectorXd& pts_z,double time);
+
+    virtual std::vector<std::string> PullElementalFields() const { return {"u"}; }
+    virtual std::vector<std::string> PushElementalFields() const { return {"a"}; }
 };
 
 

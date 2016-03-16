@@ -35,6 +35,8 @@ public:
     virtual void computeSurfaceTerm();
     virtual void assembleElementMassMatrix(Mesh *mesh);
     virtual void interpolateMaterialProperties(ExodusModel *model);
+    virtual std::vector<std::string> PullElementalFields() const { return {"ux", "uy"}; }
+    virtual std::vector<std::string> PushElementalFields() const { return {"ax", "ay"}; }
 
 
 };

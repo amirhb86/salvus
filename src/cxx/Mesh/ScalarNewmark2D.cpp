@@ -11,26 +11,26 @@ void ScalarNewmark2D::advanceField(double dt) {
     double pre_factor_acceleration = (1.0/2.0) * dt;
     double pre_factor_displacement = (1.0/2.0) * (dt * dt);
 
-    VecAXPBYPCZ(mFields["velocity"].glb, pre_factor_acceleration, pre_factor_acceleration, 1.0,
-                mFields["acceleration"].glb, mFields["acceleration_"].glb);
+    VecAXPBYPCZ(mFields["v"].glb, pre_factor_acceleration, pre_factor_acceleration, 1.0,
+                mFields["a"].glb, mFields["a_"].glb);
 
-    VecAXPBYPCZ(mFields["displacement"].glb, dt, pre_factor_displacement, 1.0,
-                mFields["velocity"].glb, mFields["acceleration"].glb);
+    VecAXPBYPCZ(mFields["u"].glb, dt, pre_factor_displacement, 1.0,
+                mFields["v"].glb, mFields["a"].glb);
 
-    VecCopy(mFields["acceleration"].glb, mFields["acceleration_"].glb);
+    VecCopy(mFields["a"].glb, mFields["a_"].glb);
 
 }
 
 void ScalarNewmark2D::applyInverseMassMatrix() {
 
-    if (mFields.find("mass_matrix_inverse") == mFields.end()){
-        registerFieldVectors("mass_matrix_inverse");
-        VecCopy(mFields["mass_matrix"].glb, mFields["mass_matrix_inverse"].glb);
-        VecReciprocal(mFields["mass_matrix_inverse"].glb);
+    if (mFields.find("mi") == mFields.end()){
+        registerFieldVectors("mi");
+        VecCopy(mFields["m"].glb, mFields["mi"].glb);
+        VecReciprocal(mFields["mi"].glb);
     }
 
-    VecPointwiseMult(mFields["acceleration"].glb, mFields["mass_matrix_inverse"].glb,
-                     mFields["force"].glb);
+    VecPointwiseMult(mFields["a"].glb, mFields["mi"].glb,
+                     mFields["a"].glb);
 
 
 }

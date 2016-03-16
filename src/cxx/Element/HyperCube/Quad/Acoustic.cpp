@@ -4,9 +4,6 @@
 
 #include "Acoustic.h"
 
-// Elemental fields definition.
-const std::vector<std::string> mElementalFields {"u_sca"};
-
 Acoustic::Acoustic(Options options): Quad(options) {
 
     // Allocate element vectors.
@@ -31,7 +28,7 @@ Eigen::MatrixXd Acoustic::computeStiffnessTerm(const Eigen::MatrixXd &displaceme
     Eigen::VectorXd integratedStiffnessMatrix(mNumberIntegrationPoints);
     Eigen::Matrix<double,2,2> Jinv;
     double detJi;
-    
+
     // Loop over all GLL points once to calculate the gradient of the pressure (u).
     for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
         for (auto eps_index = 0; eps_index < mNumberIntegrationPointsEps; eps_index++) {
@@ -43,13 +40,13 @@ Eigen::MatrixXd Acoustic::computeStiffnessTerm(const Eigen::MatrixXd &displaceme
             // Get Jacobian determinant and its inverse
             std::tie(Jinv,detJi) = inverseJacobianAtPoint(eps,eta);
             detJ[itr] = detJi;
-            
+
             // Calculate gradient. Save for kernel calculations.
             mElementStrain(0,itr) = mGradientOperator.row(eps_index).dot(
                     epsVectorStride(displacement, eta_index));
             mElementStrain(1,itr) = mGradientOperator.row(eta_index).dot(
                     etaVectorStride(displacement, eps_index));
-            
+
             // Get material parameters at this node.
             double velocity = interpolateShapeFunctions(eps, eta).dot(mMaterialVelocityAtVertices);
 
@@ -89,7 +86,7 @@ Eigen::MatrixXd Acoustic::computeStiffnessTerm(const Eigen::MatrixXd &displaceme
                 lx[i] = lxzi[0];
                 lz[i] = lxzi[1];
             }
-            
+
             integratedStiffnessMatrix(itr) =
                 mIntegrationWeightsEta(eta_index) *
                 mIntegrationWeightsEps.dot(((epsVectorStride(detJ, eta_index)).array() *
@@ -131,7 +128,8 @@ Eigen::MatrixXd Acoustic::computeStiffnessTerm(const Eigen::MatrixXd &displaceme
 
 void Acoustic:: interpolateMaterialProperties(ExodusModel *model) {
 
-    mMaterialVelocityAtVertices = __interpolateMaterialProperties(model, "VP") / 1000.;
+    // Vp (m/s).
+    mMaterialVelocityAtVertices = __interpolateMaterialProperties(model, "VP");
 
 }
 
@@ -155,10 +153,14 @@ Eigen::MatrixXd Acoustic::computeSourceTerm(double time) {
                 double eps = mIntegrationCoordinatesEps[eps_index];
                 double eta = mIntegrationCoordinatesEta[eta_index];
 
+                double detJ;
+                Eigen::Matrix2d Jinv;
+                std::tie(Jinv, detJ) = inverseJacobianAtPoint(eps,eta);
+
                 // Calculate the coefficients needed to integrate to the delta function.
                 current_source[eps_index + eta_index*mNumberIntegrationPointsEps] /=
-                    (mIntegrationWeightsEps(eps_index) * mIntegrationWeightsEta(eta_index) *
-                    jacobianAtPoint(eps, eta).determinant());
+                    (mIntegrationWeightsEps(eps_index) * mIntegrationWeightsEta(eta_index) * detJ);
+
 
             }
         }

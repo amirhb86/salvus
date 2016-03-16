@@ -63,6 +63,7 @@ void NewmarkGeneral::initialize(Mesh *mesh,
 
     }
 
+
     // Scatter the mass matrix to the global dofs.
     mMesh->checkInFieldBegin("m");
     mMesh->checkInFieldEnd("m");
@@ -71,6 +72,80 @@ void NewmarkGeneral::initialize(Mesh *mesh,
 
 void NewmarkGeneral::solve(Options options) {
 
-    std::cout << "SOLVE!" << std::endl;
+    // Setup values.
+    int it          = 0;
+    double time     = 0.0;
+    double timeStep = options.TimeStep();
+    double duration = options.Duration();
+    mMesh->setUpMovie(options.OutputMovieFile());
+
+    // Over-allocate matrices to avoid re-allocations.
+    int max_dims = 3;
+    int int_pnts = mReferenceQuad->NumberIntegrationPoints();
+    Eigen::MatrixXd f(int_pnts, max_dims);
+    Eigen::MatrixXd u(int_pnts, max_dims);
+    Eigen::MatrixXd ku(int_pnts, max_dims);
+    Eigen::MatrixXd fMinusKu(int_pnts, max_dims);
+
+    while (time < duration) {
+
+        // Collect all global fields to the local partitions.
+        for (auto &field : mReferenceQuad->PullElementalFields()) {
+            mMesh->checkOutField(field);
+        }
+
+        // Zero all fields to which we will sum.
+        for (auto &field : mReferenceQuad->PushElementalFields()) {
+            mMesh->zeroFields(field);
+        }
+
+        for (auto &element : mElements) {
+
+            // Get fields on element, store in successive rows.
+            int fitr = 0;
+            for (auto &field : mReferenceQuad->PullElementalFields()) {
+                u.col(fitr) = mMesh->getFieldOnElement(field, element->Number(),
+                                                       element->ElementClosure());
+                fitr++;
+            }
+
+            // Compute stiffness, only passing those rows which are occupied.
+            ku.block(0,0,int_pnts,fitr) = element->computeStiffnessTerm(
+                    u.block(0,0,int_pnts,fitr));
+
+            // Compute source term.
+            f.block(0,0,int_pnts,fitr) = element->computeSourceTerm(time);
+
+            // Compute acceleration.
+            fMinusKu.block(0,0,int_pnts,fitr) = f.block(0,0,int_pnts,fitr).array() -
+                    ku.block(0,0,int_pnts,fitr).array();
+
+            // Sum fields into local partition.
+            fitr = 0;
+            for (auto &field : mReferenceQuad->PushElementalFields()) {
+                mMesh->addFieldFromElement(field, element->Number(),
+                                           element->ElementClosure(),
+                                           fMinusKu.col(fitr));
+                fitr++;
+            }
+        }
+
+        // Sum fields into global partitions.
+        for (auto &field : mReferenceQuad->PushElementalFields()) {
+            mMesh->checkInFieldBegin(field);
+            mMesh->checkInFieldEnd(field);
+        }
+
+        // Take a time step.
+        mMesh->applyInverseMassMatrix();
+        mMesh->advanceField(timeStep);
+        mMesh->saveFrame("ux", it);
+
+        it++;
+        time += timeStep;
+        PRINT_ROOT() << "TIME: " << time;
+    }
+
+    mMesh->finalizeMovie();
 
 }

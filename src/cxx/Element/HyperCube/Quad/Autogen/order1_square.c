@@ -35,12 +35,12 @@ void interpolate_eta_derivative_order1_square(double epsilon, double *out_847347
 
 }
 
-void closure_mapping_order1_square(int *out_7012053298897627347) {
+void closure_mapping_order1_square(int *out_2820443818077165713) {
 
-   out_7012053298897627347[0] = 1;
-   out_7012053298897627347[1] = 3;
-   out_7012053298897627347[2] = 2;
-   out_7012053298897627347[3] = 0;
+   out_2820443818077165713[0] = 0;
+   out_2820443818077165713[1] = 1;
+   out_2820443818077165713[2] = 3;
+   out_2820443818077165713[3] = 2;
 
 }
 

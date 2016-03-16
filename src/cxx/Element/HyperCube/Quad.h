@@ -435,6 +435,9 @@ public:
     virtual void interpolateMaterialProperties(ExodusModel *model) = 0;
     virtual Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement) = 0;
 
+    virtual std::vector<std::string> PullElementalFields() const = 0;
+    virtual std::vector<std::string> PushElementalFields() const = 0;
+
 };
 
 
