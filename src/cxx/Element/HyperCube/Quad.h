@@ -6,9 +6,11 @@
 #define SALVUS_HYPERCUBE_H
 
 #include <Eigen/Dense>
-#include "../../Model/ExodusModel.h"
-#include "../../Source/Source.h"
-#include "../../Mesh/Mesh.h"
+
+#include <Model/ExodusModel.h>
+#include <Source/Source.h>
+#include <Mesh/Mesh.h>
+#include <Element/Element.h>
 
 extern "C" {
 #include "Quad/Autogen/quad_autogen.h"
@@ -36,7 +38,7 @@ extern "C" {
  *   |______> (eps)
 */
 
-class Quad {
+class Quad : public Element2D {
 
     /**
      * Shape function contribution from node zero.
@@ -125,57 +127,18 @@ class Quad {
      * @returns Value at (eps, eta)
      */
     static double dn3deta(const PetscReal &eps);
-
-    /**
-     * Checks whether a given point in realspace (x, z) is within the current element.
-     * A simple convex hull algorithm is implemented. Should work as long as the sides of the element are straight
-     * lines, but will likely fail for higher order shape functions.
-     * @param [in] x X-coordinate in real space.
-     * @param [in] z Z-coordinate in real space.
-     * @returns True if point is inside, False if not.
-     */
-    bool mCheckHull(double x, double z);
-
-    /**
-     * Given a point in realspace, determines the equivalent location in the reference quad.
-     * Since the shape function are bilinear, the cross terms introduce nonlinearities into the shape function
-     * interpolation. As such, we used a simple implementation of Newton's method to minimize the objective function:
-     * z = x_real - shape_functions * vertex_coordinates(eta, eps), for each coordinate, where (eps, eta) are the
-     * primal variables.
-     * @param [in] x_real X-coordinate in real space.
-     * @param [in] z_real Z-coordinate in real space.
-     * @param [in] eps An initial guess for the reference coordinate epsilon (zero should be sufficient)
-     * @param [in] eta An initial guess for the reference coordiante eta (zero should be sufficient)
-     * @return A Vector (eps, eta) containing the coordinates in the reference quad.
-     */
-    Eigen::Vector2d inverseCoordinateTransform(const double &x_real, const double &z_real,
-                                               double eps, double eta);
-
+    
 protected:
 
     /*****************************************************************************
      * STATIC MEMBERS. THESE VARIABLES AND FUNCTIONS SHOULD APPLY TO ALL ELEMENTS.
      *****************************************************************************/
 
-    static const int mNumberVertex = 4;         /** < Number of element vertices. */
-    static const int mNumberDimensions = 2;     /** < Number of element dimensions. */
-
-    static int mNumberDofVertex;                /** < Number of dofs on a vertex (e.g. 1 for 4th order gll basis) */
-    static int mNumberDofEdge;                  /** < Number of dofs on an edge (e.g. 3 for 4th order gll basis) */
-    static int mNumberDofFace;                  /** < Number of dofs on a face (eg. 9 for a 4th order gll basis) */
-    static int mNumberDofVolume;                /** < Eh mon we're in 2D don't need this */
-
+    static const int mNumberVertex = 4;         /** < Number of element vertices. */    
+    
     static int mNumberIntegrationPointsEps;     /** < Number of integration points in the epsilon direction (e.g. 5 for a 4th order gll basis) */
     static int mNumberIntegrationPointsEta;     /** < Number of integration points in the eta direction (e.g. 5 for a 4th order gll basis) */
-    static int mNumberIntegrationPoints;        /** < Total number of integration points (e.g. 25 for a 4th order gll basis) */
-    static int mPolynomialOrder;                /** < Lagrange polynomial order */
-
-    static Eigen::VectorXi mClosureMapping;             /** < Mapping from our element closure
-                                                            numbering to PETSc's */
-    static Eigen::VectorXi mFaceClosureMapping;             /** < Mapping from our face closure
-                                                                numbering to PETSc's */
-
-    static Eigen::MatrixXd mGradientOperator;           /** < Derivative of shape function n (col) at pos. m (row) */
+    
     static Eigen::VectorXd mIntegrationWeightsEps;      /** < Integration weights along epsilon direction. */
     static Eigen::VectorXd mIntegrationWeightsEta;      /** < Integration weights along eta direction. */
     static Eigen::VectorXd mIntegrationCoordinatesEps;  /** < Integration points along epsilon direction */
@@ -239,59 +202,6 @@ protected:
      * OBJECT MEMBERS. THESE VARIABLES AND FUNCTIONS SHOULD APPLY TO SPECIFIC ELEMENTS.
     ***********************************************************************************/
 
-    int mElementNumber; /** Element number on the local processor. */
-    
-    std::vector<Source*> mSources;  /** Vector of abstract sources belonging (spatial) to the element */
-    Eigen::VectorXd mMassMatrix;    /** Elemental mass matrix */
-    Eigen::Matrix<double,2,4> mVertexCoordinates;   /** Vertex coordinates ordered as above. row(0)->x, row(1)->z */
-    Eigen::Matrix<double,2,1> mElementCenter; /** (x, z) location of element center */
-
-    bool mOnBoundary;    /** < Whether or not the current element has a special boundary condition */
-    std::map<std::string,int> mBoundaries;  /** < Map relating the type of boundary to the Petsc edge number */
-
-    /**
-     * 2x2 Jacobian matrix at a point (eps, eta).
-     * This method returns an Eigen::Matrix representation of the Jacobian at a particular point. Since the return
-     * value is this Eigen object, we can perform additional tasks on the return value (such as invert, and get
-     * determinant).
-     * @param [in] eps Epsilon position on the reference element.
-     * @param [in] eta Eta position on the reference element.
-     * @returns 2x2 statically allocated Eigen matrix object.
-     */
-    Eigen::Matrix<double,2,2> jacobianAtPoint(PetscReal eps, PetscReal eta);
-
-
-    /**
-     * 2x2 inverse Jacobian matrix at a point (eps, eta).  This method returns an Eigen::Matrix
-     * representation of the inverse Jacobian at a particular point.
-     * @param [in] eps Epsilon position on the reference element.
-     * @param [in] eta Eta position on the reference element.     
-     * @returns (inverse Jacobian matrix,determinant of that matrix) as a `std::tuple`. Tuples can be
-     * "destructured" using a `std::tie`.
-     */
-    std::tuple<Eigen::Matrix2d,PetscReal> inverseJacobianAtPoint(PetscReal eps, PetscReal eta);
-    
-    /**
-     * Attaches a material parameter to the vertices on the current element.
-     * Given an exodus model object, we use a kD-tree to find the closest parameter to a vertex. In practice, this
-     * closest parameter is often exactly coincident with the vertex, as we use the same exodus model for our mesh
-     * as we do for our parameters.
-     * @param [in] model An exodus model object.
-     * @param [in] parameter_name The name of the field to be added (i.e. velocity, c11).
-     * @returns A Vector with 4-entries... one for each Element vertex, in the ordering described above.
-     */
-    Eigen::Vector4d __interpolateMaterialProperties(ExodusModel *model,
-                                                    std::string parameter_name);
-
-    /**
-     * Utility function to integrate a field over the element. This could probably be made static, but for now I'm
-     * just using it to check some values.
-     * @param [in] field The field which to integrate, defined on each of the gll points.
-     * @returns The scalar value of the field integrated over the element.
-     */
-    double integrateField(const Eigen::VectorXd &field);
-
-
 public:
 
     /**
@@ -307,22 +217,16 @@ public:
      */
     Quad(Options options);
 
+    
     /**
-     * Copy constructor.
-     * Returns a copy. Use this once the reference element is set up via the constructor, to allocate space for
-     * all the unique elements on a processor.
-     */
-    virtual Quad * clone() const = 0;
-
-    /**
-     * Returns the gll locations for a given polynomial order.
+     * Returns the quadrature locations for a given polynomial order.
      * @param [in] order The polynmomial order.
      * @returns Vector of GLL points.
      */
     static Eigen::VectorXd GllPointsForOrder(const int order);
 
     /**
-     * Returns the gll intergration weights for a polynomial order.
+     * Returns the quadrature intergration weights for a polynomial order.
      * @param [in] order The polynomial order.
      * @returns Vector of quadrature weights.
      */
@@ -335,20 +239,83 @@ public:
      * @returns Vector containing the closure mapping (field(closure(i)) = petscField(i))
      */
     static Eigen::VectorXi ClosureMapping(const int order, const int dimension);
-    
-    /**
-     * Returns the face mapping from the PETSc to Salvus closure.
-     * @param [in] order The polynomial order.
-     * @param [in] dimension Element dimension.
-     * @returns Vector containing the closure mapping (field(closure(i)) = petscField(i))
-     */
-    static Eigen::VectorXi FaceClosureMapping(const int order, const int dimension);
-    
-    /**
-     * Reads the auto-generated gradient operator, and stores the result in mGradientOperator.
-     */
-    void readGradientOperator();
 
+    // face closure not currently possible...
+    // static Eigen::VectorXi GetFaceClosureMapping() { return mFaceClosureMapping; }
+
+    /********************************************************
+     ********* Inherited methods from Element 2D ************
+     ********************************************************/
+
+    /**
+     * Checks whether a given point in realspace (x, z) is within the current element.
+     * A simple convex hull algorithm is implemented. Should work as long as the sides of the element are straight
+     * lines, but will likely fail for higher order shape functions.
+     * @param [in] x X-coordinate in real space.
+     * @param [in] z Z-coordinate in real space.
+     * @returns True if point is inside, False if not.
+     */
+    bool mCheckHull(double x, double z);
+
+    /**
+     * Given a point in realspace, determines the equivalent location in the reference element.
+     * Since the shape function are bilinear, the cross terms introduce nonlinearities into the shape function
+     * interpolation. As such, we used a simple implementation of Newton's method to minimize the objective function:
+     * z = x_real - shape_functions * vertex_coordinates(eta, eps), for each coordinate, where (eps, eta) are the
+     * primal variables.
+     * @param [in] x_real X-coordinate in real space.
+     * @param [in] z_real Z-coordinate in real space.
+     * @return A Vector (eps, eta) containing the coordinates in the reference element.
+     */
+    Eigen::Vector2d inverseCoordinateTransform(const double &x_real, const double &z_real);
+    
+    /**
+     * 2x2 Jacobian matrix at a point (eps, eta).
+     * This method returns an Eigen::Matrix representation of the Jacobian at a particular point. Since the return
+     * value is this Eigen object, we can perform additional tasks on the return value (such as invert, and get
+     * determinant).
+     * @param [in] eps Epsilon position on the reference element.
+     * @param [in] eta Eta position on the reference element.
+     * @returns 2x2 statically allocated Eigen matrix object.
+     */
+    Eigen::Matrix<double,2,2> jacobianAtPoint(PetscReal eps, PetscReal eta);
+
+    /**
+     * 2x2 inverse Jacobian matrix at a point (eps, eta).  This method returns an Eigen::Matrix
+     * representation of the inverse Jacobian at a particular point.
+     * @param [in] eps Epsilon position on the reference element.
+     * @param [in] eta Eta position on the reference element.     
+     * @returns (inverse Jacobian matrix,determinant of that matrix) as a `std::tuple`. Tuples can be
+     * "destructured" using a `std::tie`.
+     */
+    std::tuple<Eigen::Matrix2d,PetscReal> inverseJacobianAtPoint(PetscReal eps, PetscReal eta);
+
+    /**
+     * Attaches a material parameter to the vertices on the current element.
+     * Given an exodus model object, we use a kD-tree to find the closest parameter to a vertex. In practice, this
+     * closest parameter is often exactly coincident with the vertex, as we use the same exodus model for our mesh
+     * as we do for our parameters.
+     * @param [in] model An exodus model object.
+     * @param [in] parameter_name The name of the field to be added (i.e. velocity, c11).
+     * @returns A Vector with 4-entries... one for each Element vertex, in the ordering described above.
+     */
+    Eigen::Vector4d __interpolateMaterialProperties(ExodusModel *model,
+                                                            std::string parameter_name);
+
+    /**
+     * Utility function to integrate a field over the element. This could probably be made static, but for now I'm
+     * just using it to check some values.
+     * @param [in] field The field which to integrate, defined on each of the gll points.
+     * @returns The scalar value of the field integrated over the element.
+     */
+    double integrateField(const Eigen::VectorXd &field);
+
+    /**
+     * Setup the auto-generated gradient operator, and stores the result in mGradientOperator.
+     */
+    void setupGradientOperator();
+
+    
     /**
      * Queries the passed DM for the vertex coordinates of the specific element. These coordinates are saved
      * in mVertexCoordiantes.
@@ -370,7 +337,7 @@ public:
     /**
      * Simple function to set the (remembered) element number.
      */
-    void SetLocalElementNumber(const int &element_number) { mElementNumber = element_number; }
+    void SetLocalElementNumber(int element_number) { mElementNumber = element_number; }
     
     /**
      * Sums a field into the mesh (global dofs) owned by the current processor.
@@ -401,7 +368,7 @@ public:
      * @param [in] mesh Pointer to the mesh representing the current element.
      * @param [in] name Name of field to check out.
      */
-    virtual Eigen::VectorXd checkOutFieldElement(Mesh *mesh, const std::string name);
+    Eigen::VectorXd checkOutFieldElement(Mesh *mesh, const std::string name);
 
     /**
      * Builds nodal coordinates (x,z) on all mesh degrees of freedom.
@@ -414,30 +381,8 @@ public:
      */
     void setBoundaryConditions(Mesh *mesh);
 
-    // Attribute gets.
-    int Number() const { return mElementNumber; }
-    int NumberDofEdge() const { return mNumberDofEdge; }
-    int NumberDofFace() const { return mNumberDofFace; }
-    int NumberDofVertex() const { return mNumberDofVertex; }
-    int NumberDofVolume() const { return mNumberDofVolume; }
-    int NumberDimensions() const { return mNumberDimensions; }
-    int NumberIntegrationPoints() const { return mNumberIntegrationPoints; }
-
-    std::map<std::string,int> Boundaries() const { return mBoundaries; }
-
-    Eigen::VectorXi ElementClosure() const { return mClosureMapping; }
-    virtual Eigen::VectorXi GetFaceClosureMapping() { return mFaceClosureMapping; }
-    virtual Eigen::MatrixXd GetVertexCoordinates() { return mVertexCoordinates; }
-
-    // Pure virtual methods.
-    virtual Eigen::MatrixXd computeSourceTerm(double time) = 0;
-    virtual void assembleElementMassMatrix(Mesh *mesh) = 0;
-    virtual void interpolateMaterialProperties(ExodusModel *model) = 0;
-    virtual Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement) = 0;
-
-    virtual std::vector<std::string> PullElementalFields() const = 0;
-    virtual std::vector<std::string> PushElementalFields() const = 0;
-
+    
+    
 };
 
 

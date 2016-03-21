@@ -11,20 +11,6 @@ class ElasticNewmark2D: public Mesh {
 
 public:
 
-    virtual void registerFields() {
-        registerFieldVectors("acceleration_x_");
-        registerFieldVectors("acceleration_z_");
-        registerFieldVectors("acceleration_x");
-        registerFieldVectors("acceleration_z");
-        registerFieldVectors("displacement_x");
-        registerFieldVectors("displacement_z");
-        registerFieldVectors("velocity_x");
-        registerFieldVectors("velocity_z");
-        registerFieldVectors("force_x");
-        registerFieldVectors("force_z");
-        registerFieldVectors("mass_matrix");
-    }
-
     virtual void advanceField(double dt);
     virtual void applyInverseMassMatrix();
     virtual std::vector<std::string> GlobalFields() const;

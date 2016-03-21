@@ -15,18 +15,9 @@
 /*
  * STATIC variables WHICH ARE ONLY ON THE REFERENCE ELEMENT.
  */
-int Quad::mNumberDofVertex;
-int Quad::mNumberDofEdge;
-int Quad::mNumberDofFace;
-int Quad::mNumberDofVolume;
 int Quad::mNumberIntegrationPointsEps;
 int Quad::mNumberIntegrationPointsEta;
-int Quad::mNumberIntegrationPoints;
-int Quad::mPolynomialOrder;
 
-Eigen::VectorXi Quad::mClosureMapping;
-Eigen::VectorXi Quad::mFaceClosureMapping;
-Eigen::MatrixXd Quad::mGradientOperator;
 Eigen::VectorXd Quad::mIntegrationWeightsEps;
 Eigen::VectorXd Quad::mIntegrationWeightsEta;
 Eigen::VectorXd Quad::mIntegrationCoordinatesEps;
@@ -123,16 +114,16 @@ Eigen::VectorXi Quad::ClosureMapping(const int order, const int dimension) {
     return closure_mapping;
 }
 
-Eigen::VectorXi Quad::FaceClosureMapping(const int order, const int dimension) {
-    Eigen::VectorXi face_closure_mapping(order+1);
-    if (dimension == 2) {
-        if (order == 4) {
-            face_closure_mapping <<
-                3, 0, 1, 2, 4;
-        }
-    }
-    return face_closure_mapping;
-}
+// Eigen::VectorXi Quad::FaceClosureMapping(const int order, const int dimension) {
+//     Eigen::VectorXi face_closure_mapping(order+1);
+//     if (dimension == 2) {
+//         if (order == 4) {
+//             face_closure_mapping <<
+//                 3, 0, 1, 2, 4;
+//         }
+//     }
+//     return face_closure_mapping;
+// }
 
 
 Eigen::Map<const Eigen::VectorXd> Quad::epsVectorStride(const Eigen::VectorXd &function,
@@ -251,8 +242,7 @@ void Quad::attachSource(std::vector<Source*> sources) {
     for (auto &source: sources) {
         if (mCheckHull(source->PhysicalLocationX(), source->PhysicalLocationZ())) {
             Eigen::Vector2d reference_location = inverseCoordinateTransform(source->PhysicalLocationX(),
-                                                                            source->PhysicalLocationZ(),
-                                                                            0.0, 0.0);
+                                                                            source->PhysicalLocationZ());
             source->setReferenceLocationEps(reference_location(0));
             source->setReferenceLocationEta(reference_location(1));
             mSources.push_back(source);
@@ -281,40 +271,62 @@ bool Quad::mCheckHull(double x, double z) {
     return n_neg == mNumberVertex || n_pos == mNumberVertex;
 }
 
-Eigen::Vector2d Quad::inverseCoordinateTransform(const double &x_real, const double &z_real,
-                                                 double eps, double eta) {
+Eigen::Vector2d Quad::inverseCoordinateTransform(const double &x_real, const double &z_real) {
 
+    double v1x = mVertexCoordinates.row(0)[0];
+    double v2x = mVertexCoordinates.row(0)[1];
+    double v3x = mVertexCoordinates.row(0)[2];
+    double v4x = mVertexCoordinates.row(0)[3];
+    double v1z = mVertexCoordinates.row(1)[0];
+    double v2z = mVertexCoordinates.row(1)[1];
+    double v3z = mVertexCoordinates.row(1)[2];
+    double v4z = mVertexCoordinates.row(1)[3];
+    
+    // Using Newton iterations
+    // https://en.wikipedia.org/wiki/Newton%27s_method#Nonlinear_systems_of_equations
+    // J_F(xn)(x_{n+1} - x_n) = -F(x_n)
+    // Solve for x_{n+1}
+    // where J_F(x_n) is jacobian:
+    // https://en.wikipedia.org/wiki/Jacobian_matrix_and_determinant
     double tol = 1e-6;
-    Eigen::Vector2d solution {eps, eta};
+    int num_iter = 0;
+    Eigen::Vector2d solution {0.0, 0.0}; // initial guess at (0.0,0.0)
     while (true) {
 
-        eps = solution(0);
-        eta = solution(1);
+        double r = solution(0);
+        double s = solution(1);
 
         Eigen::Matrix2d jacobian;
-        Eigen::Vector4d shape_functions {n0(eps, eta), n1(eps, eta), n3(eps, eta), n2(eps, eta)};
-        Eigen::Vector4d dNdEps {dn0deps(eta), dn1deps(eta), dn3deps(eta), dn2deps(eta)};
-        Eigen::Vector4d dNdEta {dn0deta(eps), dn1deta(eps), dn3deta(eps), dn2deta(eps)};
-        Eigen::Vector2d objective_function {x_real - shape_functions.dot(mVertexCoordinates.row(0)),
-                                            z_real - shape_functions.dot(mVertexCoordinates.row(1))};
+        // mapping from reference quad [-1,1]x[-1,1] to *this* element
+        double Tx = v1x+(v2x-v1x)*(r+1)/2 + (v4x+(v3x-v4x)*(r+1)/2 - v1x - (v2x-v1x)*(r+1)/2)*(s+1)/2;
+        double Tz = v1z+(v2z-v1z)*(r+1)/2 + (v4z+(v3z-v4z)*(r+1)/2 - v1z - (v2z-v1z)*(r+1)/2)*(s+1)/2;
+        Eigen::Vector2d objective_function {x_real - Tx, z_real - Tz};
 
-        jacobian << -1 * dNdEps.dot(mVertexCoordinates.row(0)),
-                    -1 * dNdEta.dot(mVertexCoordinates.row(0)),
-                    -1 * dNdEps.dot(mVertexCoordinates.row(1)),
-                    -1 * dNdEta.dot(mVertexCoordinates.row(1));
-
+        // see element_matrices.py
+        // J = [-v1x/2 + v2x/2 + (s + 1)*(v1x/2 - v2x/2 + v3x/2 - v4x/2)/2, -v1x/2 + v4x/2 - (r + 1)*(-v1x + v2x)/4 + (r + 1)*(v3x - v4x)/4],
+        // [-v1z/2 + v2z/2 + (s + 1)*(v1z/2 - v2z/2 + v3z/2 - v4z/2)/2, -v1z/2 + v4z/2 - (r + 1)*(-v1z + v2z)/4 + (r + 1)*(v3z - v4z)/4]])
+        
+        jacobian << (-v1x/2 + v2x/2 + (s + 1)*(v1x/2 - v2x/2 + v3x/2 - v4x/2)/2), -v1x/2 + v4x/2 - (r + 1)*(-v1x + v2x)/4 + (r + 1)*(v3x - v4x)/4, -v1z/2 + v2z/2 + (s + 1)*(v1z/2 - v2z/2 + v3z/2 - v4z/2)/2, -v1z/2 + v4z/2 - (r + 1)*(-v1z + v2z)/4 + (r + 1)*(v3z - v4z)/4;
+                    
         if ((objective_function.array().abs() < tol).all()) {
             return solution;
         } else {
-            solution -= (jacobian.inverse() * objective_function);
+            solution += (jacobian.inverse() * objective_function);
         }
-
+        if(num_iter > 10) {
+            std::cerr << "inverseCoordinateTransform: TOO MANY ITERATIONS!\n";
+            exit(1);
+        }
+        num_iter++;
+        
     }
+    
+    
 
 }
 
 // TODO: Maybe should be moved to the constructor and made static.
-void Quad::readGradientOperator() {
+void Quad::setupGradientOperator() {
 
     double eta = mIntegrationCoordinatesEta[0];
     mGradientOperator.resize(mNumberIntegrationPointsEta, mNumberIntegrationPointsEps);
@@ -351,8 +363,10 @@ Quad::Quad(Options options) {
     // Basic properties.
     mPolynomialOrder = options.PolynomialOrder();
 
+    // mVertexCoordinates has 4 vertices
+    mVertexCoordinates.resize(2,mNumberVertex);
+    
     // Gll points.
-    mNumberDofVolume = 0;
     mNumberDofVertex = 1;
     mNumberDofEdge = mPolynomialOrder - 1;
     mNumberDofFace = (mPolynomialOrder - 1) * (mPolynomialOrder - 1);
@@ -363,8 +377,8 @@ Quad::Quad(Options options) {
     mIntegrationWeightsEps = Quad::GllIntegrationWeightForOrder(options.PolynomialOrder());
     mIntegrationWeightsEta = Quad::GllIntegrationWeightForOrder(options.PolynomialOrder());
     mClosureMapping = Quad::ClosureMapping(options.PolynomialOrder(), mNumberDimensions);
-    mFaceClosureMapping = Quad::FaceClosureMapping(options.PolynomialOrder(), mNumberDimensions);
-
+    // mFaceClosureMapping = Quad::FaceClosureMapping(options.PolynomialOrder(), mNumberDimensions);
+    
     // Save number of integration points.
     mNumberIntegrationPointsEps = mIntegrationCoordinatesEps.size();
     mNumberIntegrationPointsEta = mIntegrationCoordinatesEta.size();
@@ -440,7 +454,7 @@ Quad *Quad::factory(Options options) {
     std::string physics(options.PhysicsSystem());
     try {
         if (physics == "acoustic") {
-            return new Acoustic(options);
+            return new AcousticQuad(options);
         } else if (physics == "elastic") {
             return new Elastic(options);
         } else {

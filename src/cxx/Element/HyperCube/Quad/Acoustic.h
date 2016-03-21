@@ -7,35 +7,38 @@
 
 
 #include <petscvec.h>
-#include "../../../Utilities/Options.h"
-#include "../Quad.h"
-#include "../../../Model/ExodusModel.h"
-#include "../../../Utilities/Utilities.h"
-#include "../../../Mesh/Mesh.h"
+#include "Utilities/Options.h"
+#include "Element/HyperCube/Quad.h"
+#include "Model/ExodusModel.h"
+#include "Utilities/Utilities.h"
+#include "Mesh/Mesh.h"
+#include <Element/Physics.h>
 
-class Acoustic : public Quad {
+
+class AcousticQuad : public Quad {
 
     Eigen::Vector4d mMaterialVelocityAtVertices;
     Eigen::MatrixXd mElementStrain;
 
 public:
 
-    Acoustic(Options options);
+    AcousticQuad(Options options);
 
-    virtual Acoustic *clone() const { return new Acoustic(*this); }
+    AcousticQuad *clone() const { return new AcousticQuad(*this); }
 
-    virtual void computeSurfaceTerm();
-    virtual void assembleElementMassMatrix(Mesh *mesh);
-    virtual void interpolateMaterialProperties(ExodusModel *model);
+    void computeSurfaceTerm();
+    void assembleElementMassMatrix(Mesh *mesh);
+    void interpolateMaterialProperties(ExodusModel *model);
 
-    virtual Eigen::MatrixXd computeSourceTerm(double time);
-    virtual Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement);
+    Eigen::MatrixXd computeSourceTerm(double time);
+    Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement);
 
     void setInitialCondition(Mesh* mesh, Eigen::VectorXd& pts_x, Eigen::VectorXd& pts_z);
     Eigen::VectorXd exactSolution(Eigen::VectorXd& pts_x,Eigen::VectorXd& pts_z,double time);
 
-    virtual std::vector<std::string> PullElementalFields() const { return {"u"}; }
-    virtual std::vector<std::string> PushElementalFields() const { return {"a"}; }
+    std::vector<std::string> PullElementalFields() const { return {"u"}; }
+    std::vector<std::string> PushElementalFields() const { return {"a"}; }
+
 };
 
 

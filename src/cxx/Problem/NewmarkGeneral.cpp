@@ -6,19 +6,19 @@
 
 void NewmarkGeneral::initialize(Mesh *mesh,
                                 ExodusModel *model,
-                                Quad *quad,
+                                Element2D *elem,
                                 Options options) {
 
     // Save references to mesh and element base.
     mMesh = mesh;
-    mReferenceQuad = quad;
+    mReferenceElem = elem;
 
     // Attach elements to mesh.
-    mMesh->setupGlobalDof(mReferenceQuad->NumberDofVertex(),
-                          mReferenceQuad->NumberDofEdge(),
-                          mReferenceQuad->NumberDofFace(),
-                          mReferenceQuad->NumberDofVolume(),
-                          mReferenceQuad->NumberDimensions());
+    mMesh->setupGlobalDof(mReferenceElem->NumberDofVertex(),
+                          mReferenceElem->NumberDofEdge(),
+                          mReferenceElem->NumberDofFace(),
+                          0 /* zero dofvolume */,
+                          mReferenceElem->NumberDimensions());
 
     // Setup boundary conditions from options.
     mMesh->setupBoundaries(options);
@@ -30,7 +30,7 @@ void NewmarkGeneral::initialize(Mesh *mesh,
 
     // Get a list of all local elements.
     for (int i = 0; i < mMesh->NumberElementsLocal(); i++) {
-        mElements.push_back(mReferenceQuad->clone());
+        mElements.push_back(mReferenceElem->clone());
     }
 
     // Get a list of all sources.
@@ -53,7 +53,7 @@ void NewmarkGeneral::initialize(Mesh *mesh,
         element->setBoundaryConditions(mMesh);
 
         // Read auto-generated test function derivatives.
-        element->readGradientOperator();
+        element->setupGradientOperator();
 
         // Assemble the (elemental) mass matrix.
         element->assembleElementMassMatrix(mMesh);
@@ -81,7 +81,7 @@ void NewmarkGeneral::solve(Options options) {
 
     // Over-allocate matrices to avoid re-allocations.
     int max_dims = 3;
-    int int_pnts = mReferenceQuad->NumberIntegrationPoints();
+    int int_pnts = mReferenceElem->NumberIntegrationPoints();
     Eigen::MatrixXd f(int_pnts, max_dims);
     Eigen::MatrixXd u(int_pnts, max_dims);
     Eigen::MatrixXd ku(int_pnts, max_dims);
@@ -90,12 +90,12 @@ void NewmarkGeneral::solve(Options options) {
     while (time < duration) {
 
         // Collect all global fields to the local partitions.
-        for (auto &field : mReferenceQuad->PullElementalFields()) {
+        for (auto &field : mReferenceElem->PullElementalFields()) {
             mMesh->checkOutField(field);
         }
 
         // Zero all fields to which we will sum.
-        for (auto &field : mReferenceQuad->PushElementalFields()) {
+        for (auto &field : mReferenceElem->PushElementalFields()) {
             mMesh->zeroFields(field);
         }
 
@@ -103,7 +103,7 @@ void NewmarkGeneral::solve(Options options) {
 
             // Get fields on element, store in successive rows.
             int fitr = 0;
-            for (auto &field : mReferenceQuad->PullElementalFields()) {
+            for (auto &field : mReferenceElem->PullElementalFields()) {
                 u.col(fitr) = mMesh->getFieldOnElement(field, element->Number(),
                                                        element->ElementClosure());
                 fitr++;
@@ -122,7 +122,7 @@ void NewmarkGeneral::solve(Options options) {
 
             // Sum fields into local partition.
             fitr = 0;
-            for (auto &field : mReferenceQuad->PushElementalFields()) {
+            for (auto &field : mReferenceElem->PushElementalFields()) {
                 mMesh->addFieldFromElement(field, element->Number(),
                                            element->ElementClosure(),
                                            fMinusKu.col(fitr));
@@ -131,7 +131,7 @@ void NewmarkGeneral::solve(Options options) {
         }
 
         // Sum fields into global partitions.
-        for (auto &field : mReferenceQuad->PushElementalFields()) {
+        for (auto &field : mReferenceElem->PushElementalFields()) {
             mMesh->checkInFieldBegin(field);
             mMesh->checkInFieldEnd(field);
         }
@@ -139,8 +139,12 @@ void NewmarkGeneral::solve(Options options) {
         // Take a time step.
         mMesh->applyInverseMassMatrix();
         mMesh->advanceField(timeStep);
-        mMesh->saveFrame("ux", it);
-
+        
+        if(options.SaveMovie()) {
+            // GlobalFields[0] == "u" for acoustic and == "ux" for elastic
+            mMesh->saveFrame(mMesh->GlobalFields()[0], it);
+        }
+        
         it++;
         time += timeStep;
         PRINT_ROOT() << "TIME: " << time;

@@ -85,13 +85,8 @@ PetscErrorCode Options::setOptions() {
     mDimension = 2;
     mTimeStepType = "newmark";
 
-    // Logic to set additional parameters.
-    if ((mPhysicsSystem == "elastic") && (mTimeStepType == "newmark") && (mDimension == 2)) {
-        mProblemType = "solver_newmark_dimension_2d_physics_elastic";
-    } else if ((mPhysicsSystem == "acoustic") && (mTimeStepType == "newmark") && (mDimension == 2)) {
-        mProblemType = "solver_newmark_dimension_2d_physics_acoustic";
-    }
-    mProblemType = "newmark_general";
+    if(mMeshType == "newmark")
+        { mProblemType = "newmark_general"; }
 
     // No error
     return 0;

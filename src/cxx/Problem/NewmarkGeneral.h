@@ -12,13 +12,13 @@ class NewmarkGeneral: public Problem {
 private:
 
     Mesh *mMesh;
-    Quad *mReferenceQuad;
-    std::vector<Quad *> mElements;
+    Element2D *mReferenceElem;
+    std::vector<Element2D *> mElements;
 
 public:
 
     virtual void solve(Options options);
-    virtual void initialize(Mesh *mesh, ExodusModel *model, Quad *quad, Options options);
+    virtual void initialize(Mesh *mesh, ExodusModel *model, Element2D *elem, Options options);
 
 };
 

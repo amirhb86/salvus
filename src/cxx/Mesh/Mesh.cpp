@@ -226,15 +226,14 @@ void Mesh::checkOutField(const std::string &name) {
 
 }
 
-Eigen::VectorXd Mesh::getFieldOnFace(const std::string &name, const int &face_number,
-                                     const Eigen::VectorXi &closure) {
+Eigen::VectorXd Mesh::getFieldOnFace(const std::string &name, const int &face_number) {
 
     PetscScalar *val = NULL;
-    Eigen::VectorXd field(closure.size());
     PetscInt num_nodes_face = -1;
     DMPlexVecGetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
                         face_number, &num_nodes_face, &val);    
-    for (auto j = 0; j < closure.size(); j++) { field(closure(j)) = val[j]; }
+    Eigen::VectorXd field(num_nodes_face);
+    for (auto j = 0; j < num_nodes_face; j++) { field(j) = val[j]; }
     DMPlexVecRestoreClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
                             face_number, NULL, &val);
     return field;
@@ -363,7 +362,8 @@ void Mesh::setUpMovie(const std::string &movie_filename) {
 }
 
 void Mesh::saveFrame(std::string name,PetscInt timestep) {
-
+    
+    
     DMSetOutputSequenceNumber(mDistributedMesh, timestep, timestep);
     VecView(mFields[name].glb, mViewer);
 }
@@ -378,7 +378,7 @@ void Mesh::finalizeMovie() {
 int Mesh::BoundaryElementFaces(int elm, int ss_num) {
 
     // Make sure we're looking for a side set that actually exists.
-//    assert(mBoundaryElementFaces.find(ss_num) != mBoundaryElementFaces.end());
+    // assert(mBoundaryElementFaces.find(ss_num) != mBoundaryElementFaces.end());
 
     if (mBoundaryElementFaces[ss_num].find(elm) == mBoundaryElementFaces[ss_num].end()) {
         return -1;

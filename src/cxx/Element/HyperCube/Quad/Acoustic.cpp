@@ -4,7 +4,7 @@
 
 #include "Acoustic.h"
 
-Acoustic::Acoustic(Options options): Quad(options) {
+AcousticQuad::AcousticQuad(Options options): Quad(options) {
 
     // Allocate element vectors.
     mMassMatrix.setZero(mNumberIntegrationPoints);
@@ -14,7 +14,7 @@ Acoustic::Acoustic(Options options): Quad(options) {
 
 }
 
-Eigen::MatrixXd Acoustic::computeStiffnessTerm(const Eigen::MatrixXd &displacement) {
+Eigen::MatrixXd AcousticQuad::computeStiffnessTerm(const Eigen::MatrixXd &displacement) {
 
     // Current gll point.
     int itr = 0;
@@ -126,14 +126,14 @@ Eigen::MatrixXd Acoustic::computeStiffnessTerm(const Eigen::MatrixXd &displaceme
     return integratedStiffnessMatrix;
 }
 
-void Acoustic:: interpolateMaterialProperties(ExodusModel *model) {
+void AcousticQuad:: interpolateMaterialProperties(ExodusModel *model) {
 
     // Vp (m/s).
     mMaterialVelocityAtVertices = __interpolateMaterialProperties(model, "VP");
 
 }
 
-Eigen::MatrixXd Acoustic::computeSourceTerm(double time) {
+Eigen::MatrixXd AcousticQuad::computeSourceTerm(double time) {
 
     // Initialize source vector (note: due to RVO I believe no memory re-allocation is occuring).
     Eigen::VectorXd F = Eigen::VectorXd::Zero(mNumberIntegrationPoints);
@@ -174,13 +174,13 @@ Eigen::MatrixXd Acoustic::computeSourceTerm(double time) {
     return F;
 }
 
-void Acoustic::computeSurfaceTerm() {
+void AcousticQuad::computeSurfaceTerm() {
 
     std::cout << mElementNumber << std::endl;
 
 }
 
-void Acoustic::assembleElementMassMatrix(Mesh *mesh) {
+void AcousticQuad::assembleElementMassMatrix(Mesh *mesh) {
 
     int i=0;
     Eigen::Matrix<double,2,2> Jinv;
@@ -199,7 +199,7 @@ void Acoustic::assembleElementMassMatrix(Mesh *mesh) {
     mesh->addFieldFromElement("m", mElementNumber, mClosureMapping, elementMassMatrix);
 }
 
-void Acoustic::setInitialCondition(Mesh* mesh, Eigen::VectorXd& pts_x,Eigen::VectorXd& pts_z) {
+void AcousticQuad::setInitialCondition(Mesh* mesh, Eigen::VectorXd& pts_x,Eigen::VectorXd& pts_z) {
     
     double Lx = 10.0;
     double Lz = 10.0;
@@ -213,7 +213,7 @@ void Acoustic::setInitialCondition(Mesh* mesh, Eigen::VectorXd& pts_x,Eigen::Vec
     
 }
 
-Eigen::VectorXd Acoustic::exactSolution(Eigen::VectorXd& pts_x,Eigen::VectorXd& pts_z,double time) {
+Eigen::VectorXd AcousticQuad::exactSolution(Eigen::VectorXd& pts_x,Eigen::VectorXd& pts_z,double time) {
 
     const double PI = std::atan(1.0)*4.0;
     double Lx = 10.0;

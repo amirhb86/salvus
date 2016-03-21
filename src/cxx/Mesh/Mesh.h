@@ -179,13 +179,10 @@ public:
      * DMPlexVecGetClosure.  Note that a vector containing the closure mapping (for the face) must
      * also be passed in -- this should change in the future.
      * @param [in] name Name of field.
-     * @param [in] element_number Element number (on the local processor) for which the field is requested.
-     * @param [in] closure A vector of size mNumberIntegrationPoints, which specifies the mapping
-     * from the Plex element closure to the desired gll point ordering.     
+     * @param [in] element_number Element number (on the local processor) for which the field is requested.     
      * @ return The ordered field on an element.
      */
-    Eigen::VectorXd getFieldOnFace(const std::string &name, const int &face_number,
-                                   const Eigen::VectorXi &closure);
+    Eigen::VectorXd getFieldOnFace(const std::string &name, const int &face_number);
         
     /**
      * Sets a field from a face into the degrees of freedom owned by the local processor, via a call to
@@ -281,14 +278,6 @@ public:
      * This will change based on physics, time stepping routine, and dimension.
      */
     virtual void advanceField(double dt) = 0;
-
-    /**
-     * Virtual function to register the fields on the global dofs.
-     * This will change based on physics, time stepping routine, and dimension. See some of the example classes
-     * below for how this function is to be used. In a nutshell though, you will create a vec_struct, saved in the
-     * dictionary mFields, which contains a reference to both a local and global PETSc vector.
-     */
-    virtual void registerFields() = 0;
 
     /**
      * Virtual function to apply the inverse of a mass matrix.
