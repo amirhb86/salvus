@@ -23,25 +23,25 @@ FILE(GLOB QuadAutoGen src/cxx/Element/HyperCube/Quad/Autogen/*.c)
 include_directories(
         ${PETSC_DIR}/include/
         ${EIGEN_INCLUDE}
-        cxx
-        cxx/Element
-        cxx/Element/HyperCube
-        cxx/Element/HyperCube/Quad
-        cxx/Element/HyperCube/Quad/Autogen
-        cxx/Element/HyperCube/Cube
-        cxx/Element/Simplex
-        cxx/Element/Simplex/Triangle
-        cxx/Element/Simplex/Tetrahedron
-        cxx/Model)
+        src/cxx
+        src/cxx/Element
+        src/cxx/Element/HyperCube
+        src/cxx/Element/HyperCube/Quad
+        src/cxx/Element/HyperCube/Quad/Autogen
+        src/cxx/Element/HyperCube/Hex
+        src/cxx/Element/Simplex
+        src/cxx/Element/Simplex/Triangle
+        src/cxx/Element/Simplex/Tetrahedron
+        src/cxx/Model)
 
 add_executable(salvus
         src/cxx/Main.cpp
         src/cxx/Problem/Problem.cpp
-        src/cxx/Problem/TimeDomainElastic2d.cpp
-        src/cxx/Problem/TimeDomainScalar2d.cpp
+        src/cxx/Problem/NewmarkGeneral.cpp
         src/cxx/Mesh/Mesh.cpp
         src/cxx/Mesh/ElasticNewmark2D.cpp
         src/cxx/Mesh/ScalarNewmark2D.cpp
+        src/cxx/Element/Element.cpp
         src/cxx/Element/HyperCube/Quad.cpp
         src/cxx/Element/HyperCube/Quad/Elastic.cpp
         src/cxx/Element/HyperCube/Quad/Acoustic.cpp
