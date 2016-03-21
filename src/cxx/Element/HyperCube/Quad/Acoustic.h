@@ -12,7 +12,6 @@
 #include "Model/ExodusModel.h"
 #include "Utilities/Utilities.h"
 #include "Mesh/Mesh.h"
-#include <Element/Physics.h>
 
 
 class AcousticQuad : public Quad {
