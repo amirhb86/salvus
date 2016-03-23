@@ -3,7 +3,7 @@
 //
 
 #include <iostream>
-#include <openmpi/ompi/mpi/cxx/mpicxx.h>
+#include <mpi.h>
 #include <vector>
 #include "Source.h"
 

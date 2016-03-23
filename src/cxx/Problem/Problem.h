@@ -22,7 +22,7 @@
 
 #include <ostream>
 #include <iostream>
-#include <openmpi/ompi/mpi/cxx/mpicxx.h>
+#include <mpi.h>
 #include <iosfwd>
 #include <string>
 #include "../Utilities/Utilities.h"
