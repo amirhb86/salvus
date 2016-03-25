@@ -138,6 +138,8 @@ protected:
     
     static int mNumberIntegrationPointsEps;     /** < Number of integration points in the epsilon direction (e.g. 5 for a 4th order gll basis) */
     static int mNumberIntegrationPointsEta;     /** < Number of integration points in the eta direction (e.g. 5 for a 4th order gll basis) */
+
+    static Eigen::MatrixXd mGradientOperator;           /** < Derivative of shape function n (col) at pos. m (row) */
     
     static Eigen::VectorXd mIntegrationWeightsEps;      /** < Integration weights along epsilon direction. */
     static Eigen::VectorXd mIntegrationWeightsEta;      /** < Integration weights along eta direction. */
@@ -203,13 +205,7 @@ protected:
     ***********************************************************************************/
 
 public:
-
-    /**
-     * Factory return the proper element physics based on the command line options.
-     * @return Some derived element class.
-     */
-    static Quad *factory(Options options);
-
+    
     /**
      * Constructor.
      * Sets quantities such as number of dofs, among other things, from the options class.
@@ -338,51 +334,13 @@ public:
      * Simple function to set the (remembered) element number.
      */
     void SetLocalElementNumber(int element_number) { mElementNumber = element_number; }
-    
-    /**
-     * Sums a field into the mesh (global dofs) owned by the current processor.
-     * This function sets up and calls PLEX's DMVecSetClosure for a given element. Remapping is handled implicitly.
-     * @param mesh [in] A reference to the mesh to which this element belongs.
-     * @param field [in] The values of the field on the element, in Salvus ordering.
-     * @param name [in] The name of the global fields where the field will be summed.
-     * TODO: Make this function check if the field is valid?
-     */
-    void checkInFieldElement(Mesh *mesh, const Eigen::VectorXd &field, const std::string name);
-    
-    /**
-     * Sets a field into the mesh (global dofs) owned by the current processor.
-     * This function sets up and calls PLEX's DMVecSetClosure for a given element. Remapping is handled implicitly.
-     * @param mesh [in] A reference to the mesh to which this element belongs.
-     * @param field [in] The values of the field on the element, in Salvus ordering.
-     * @param name [in] The name of the global fields where the field will be summed.
-     * TODO: Make this function check if the field is valid?
-     */
-    void setFieldElement(Mesh *mesh, const Eigen::VectorXd &field, const std::string name);
-    
-    /**
-     * Queries the mesh for, and returns, a field.
-     * This function returns a Matrix (or Vector -- a Eigen::Vector is just a special case of a matrix) from the
-     * global dofs owned by the current processor. The returned field will be in Salvus ordering -- remapping is
-     * done implicitly. If the field is multi dimensional, the dimensions will be ordered as rows (i.e.
-     * row(0)->x, row(1)->z).
-     * @param [in] mesh Pointer to the mesh representing the current element.
-     * @param [in] name Name of field to check out.
-     */
-    Eigen::VectorXd checkOutFieldElement(Mesh *mesh, const std::string name);
-
+           
     /**
      * Builds nodal coordinates (x,z) on all mesh degrees of freedom.
      * @param mesh [in] The mesh.
      */
     std::tuple<Eigen::VectorXd,Eigen::VectorXd> buildNodalPoints(Mesh* mesh);
 
-    /**
-     * Figure out which dofs (if any) are on the boundary.
-     */
-    void setBoundaryConditions(Mesh *mesh);
-
-    
-    
 };
 
 

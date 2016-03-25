@@ -37,7 +37,7 @@ public:
     virtual void interpolateMaterialProperties(ExodusModel *model);
     virtual std::vector<std::string> PullElementalFields() const { return {"ux", "uy"}; }
     virtual std::vector<std::string> PushElementalFields() const { return {"ax", "ay"}; }
-
+    void prepareStiffness() { /* nothing to be done for quad */ }
 
 };
 

@@ -10,22 +10,12 @@
 class ScalarNewmark2D : public Mesh {
 
 public:
-
-    virtual void registerFields() {
-        registerFieldVectors("acceleration_");
-        registerFieldVectors("acceleration");
-        registerFieldVectors("displacement");
-        registerFieldVectors("displacement_exact");
-        registerFieldVectors("velocity");
-        registerFieldVectors("force");
-        registerFieldVectors("mass_matrix");
-        registerFieldVectors("nodes_x");
-        registerFieldVectors("nodes_z");
-    }
-
+    
+    ScalarNewmark2D() { mGlobalFields = {"u", "v", "a", "a_", "m"}; }
+    ScalarNewmark2D(std::vector<std::string> fields) {mGlobalFields = fields;}
+    
     virtual void advanceField(double dt);
     virtual void applyInverseMassMatrix();
-    virtual std::vector<std::string> GlobalFields() const;
 
 };
 

@@ -38,6 +38,8 @@ public:
     std::vector<std::string> PullElementalFields() const { return {"u"}; }
     std::vector<std::string> PushElementalFields() const { return {"a"}; }
 
+    void prepareStiffness() {  }
+    
 };
 
 

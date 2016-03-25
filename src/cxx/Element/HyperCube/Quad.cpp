@@ -22,6 +22,7 @@ Eigen::VectorXd Quad::mIntegrationWeightsEps;
 Eigen::VectorXd Quad::mIntegrationWeightsEta;
 Eigen::VectorXd Quad::mIntegrationCoordinatesEps;
 Eigen::VectorXd Quad::mIntegrationCoordinatesEta;
+Eigen::MatrixXd Quad::mGradientOperator;
 
 double Quad::n0(const double &eps, const double &eta) { return 0.25 * (1.0 - eps) * (1.0 - eta); }
 double Quad::n1(const double &eps, const double &eta) { return 0.25 * (1.0 + eps) * (1.0 - eta); }
@@ -175,20 +176,6 @@ void Quad::attachVertexCoordinates(DM &distributed_mesh) {
             mVertexCoordinates.row(1).mean();
 
 }
-
-Eigen::Matrix<double,2,2> Quad::jacobianAtPoint(PetscReal eps, PetscReal eta) {
-    Eigen::Matrix<double,2,4> jacobian_multiplier;
-    jacobian_multiplier(0,0) = dn0deps(eta);
-    jacobian_multiplier(0,1) = dn1deps(eta);
-    jacobian_multiplier(0,2) = dn2deps(eta);
-    jacobian_multiplier(0,3) = dn3deps(eta);
-    jacobian_multiplier(1,0) = dn0deta(eps);
-    jacobian_multiplier(1,1) = dn1deta(eps);
-    jacobian_multiplier(1,2) = dn2deta(eps);
-    jacobian_multiplier(1,3) = dn3deta(eps);
-    return jacobian_multiplier * mVertexCoordinates.transpose();
-}
-
 
 std::tuple<Eigen::Matrix2d, PetscReal> Quad::inverseJacobianAtPoint(PetscReal eps, PetscReal eta) {
 
@@ -384,6 +371,8 @@ Quad::Quad(Options options) {
     mNumberIntegrationPointsEta = mIntegrationCoordinatesEta.size();
     mNumberIntegrationPoints = mNumberIntegrationPointsEps * mNumberIntegrationPointsEta;
 
+    // setup evaluated derivatives of test functions
+    setupGradientOperator();
 }
 
 // global x-z points on all nodes
@@ -428,44 +417,9 @@ std::tuple<Eigen::VectorXd,Eigen::VectorXd> Quad::buildNodalPoints(Mesh* mesh) {
   mesh->setFieldFromElement("nodes_x", mElementNumber, mClosureMapping, nodalPoints_x);
   mesh->setFieldFromElement("nodes_z", mElementNumber, mClosureMapping, nodalPoints_z);
 
-  return std::make_tuple(nodalPoints_x,nodalPoints_z);    
+  return std::make_tuple(nodalPoints_x,nodalPoints_z);
 }
 
-Eigen::VectorXd Quad::checkOutFieldElement(Mesh *mesh, const std::string name) {
-
-    return mesh->getFieldOnElement(name, mElementNumber, mClosureMapping);
-
-}
-
-void Quad::checkInFieldElement(Mesh *mesh, const Eigen::VectorXd &field, const std::string name) {
-
-    mesh->addFieldFromElement(name, mElementNumber, mClosureMapping, field);
-
-}
-
-void Quad::setFieldElement(Mesh *mesh, const Eigen::VectorXd &field, const std::string name) {
-
-    mesh->setFieldFromElement(name, mElementNumber, mClosureMapping, field);
-
-}
-
-Quad *Quad::factory(Options options) {
-
-    std::string physics(options.PhysicsSystem());
-    try {
-        if (physics == "acoustic") {
-            return new AcousticQuad(options);
-        } else if (physics == "elastic") {
-            return new Elastic(options);
-        } else {
-            throw std::runtime_error("Runtime Error: Element physics " + physics + " not supported");
-        }
-    } catch (std::exception &e) {
-        utilities::print_from_root_mpi(e.what());
-        MPI::COMM_WORLD.Abort(-1);
-        return nullptr;
-    }
-}
 
 Eigen::VectorXd Quad::interpolateLagrangePolynomials(const double eps, const double eta, const int p_order) {
 
@@ -500,26 +454,18 @@ Eigen::VectorXd Quad::interpolateLagrangePolynomials(const double eps, const dou
 double Quad::integrateField(const Eigen::VectorXd &field) {
 
     double val = 0;
+    Eigen::Matrix<double,2,2> inverse_Jacobian;
+    double detJ;
     for (int i = 0; i < mNumberIntegrationPointsEta; i++) {
         for (int j = 0; j < mNumberIntegrationPointsEps; j++) {
 
             double eps = mIntegrationCoordinatesEps(j);
             double eta = mIntegrationCoordinatesEta(i);
+            std::tie(inverse_Jacobian,detJ) = inverseJacobianAtPoint(eps,eta);
             val += field(j+i*mNumberIntegrationPointsEps) * mIntegrationWeightsEps(j) *
-                    mIntegrationWeightsEta(i) * jacobianAtPoint(eps, eta).determinant();
+                mIntegrationWeightsEta(i) * detJ;
         }
     }
     return val;
-
-}
-
-void Quad::setBoundaryConditions(Mesh *mesh) {
-
-    mOnBoundary = false;
-    std::vector<std::string> bound_map = {"dirchlet", "dirchlet", "dirchlet", "dirchlet"};
-    for (int i = 0; i < bound_map.size(); i++) {
-        int boundary_flag = mesh->BoundaryElementFaces(mElementNumber, (i+1));
-        if (boundary_flag != -1) { mBoundaries[bound_map[i]] = boundary_flag; mOnBoundary = true; }
-    }
 
 }

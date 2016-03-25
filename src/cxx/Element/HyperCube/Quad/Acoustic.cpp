@@ -126,7 +126,7 @@ Eigen::MatrixXd AcousticQuad::computeStiffnessTerm(const Eigen::MatrixXd &displa
     return integratedStiffnessMatrix;
 }
 
-void AcousticQuad:: interpolateMaterialProperties(ExodusModel *model) {
+void AcousticQuad::interpolateMaterialProperties(ExodusModel *model) {
 
     // Vp (m/s).
     mMaterialVelocityAtVertices = __interpolateMaterialProperties(model, "VP");

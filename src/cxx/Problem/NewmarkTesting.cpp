@@ -1,10 +1,6 @@
-//
-// Created by Michael Afanasiev on 2016-03-14.
-//
+#include "NewmarkTesting.h"
 
-#include "NewmarkGeneral.h"
-
-void NewmarkGeneral::initialize(Mesh *mesh,
+void NewmarkTesting::initialize(Mesh *mesh,
                                 ExodusModel *model,
                                 Element2D *elem,
                                 Options options) {
@@ -24,7 +20,7 @@ void NewmarkGeneral::initialize(Mesh *mesh,
     mMesh->setupBoundaries(options);
 
     // Register all global field required for time stepping.
-    for (auto field : mMesh->GlobalFields()) {
+    for (auto field : mMesh->GlobalFields()) {        
         mMesh->registerFieldVectors(field);
     }
 
@@ -60,23 +56,37 @@ void NewmarkGeneral::initialize(Mesh *mesh,
         
         // Prepare stiffness terms
         element->prepareStiffness();
+
+        // setup tests
+        element->setupTest(mMesh, options);
+        
         
     }
-
+    
     // Scatter the mass matrix to the global dofs.
-    mMesh->checkInFieldBegin("m");
-    mMesh->checkInFieldEnd("m");
+    mMesh->assembleLocalFieldToGlobal("m");
 
+    // set initial condition on global vectors
+    for (auto &field : mReferenceElem->PullElementalFields()) {
+        mMesh->setLocalFieldToGlobal(field);
+    }
+    // set nodal locations on global dof (for 2D x,z & 3D x,y,z)
+    mMesh->setLocalFieldToGlobal("x");
+    if(mMesh->NumberDimensions() == 3) {
+        mMesh->setLocalFieldToGlobal("y");
+    }
+    mMesh->setLocalFieldToGlobal("z");
+    
 }
 
-void NewmarkGeneral::solve(Options options) {
+void NewmarkTesting::solve(Options options) {
 
     // Setup values.
     int it          = 0;
     double time     = 0.0;
     double timeStep = options.TimeStep();
     double duration = options.Duration();
-    if(options.SaveMovie()) mMesh->setUpMovie(options.OutputMovieFile());
+    mMesh->setUpMovie(options.OutputMovieFile());
 
     // Over-allocate matrices to avoid re-allocations.
     int max_dims = 3;
@@ -85,7 +95,10 @@ void NewmarkGeneral::solve(Options options) {
     Eigen::MatrixXd u(int_pnts, max_dims);
     Eigen::MatrixXd ku(int_pnts, max_dims);
     Eigen::MatrixXd fMinusKu(int_pnts, max_dims);
+    Eigen::MatrixXd fMinusKu_boundary(int_pnts, max_dims);
 
+    double max_error = 0.0;
+    
     while (time < duration) {
 
         // Collect all global fields to the local partitions.
@@ -100,14 +113,19 @@ void NewmarkGeneral::solve(Options options) {
 
         for (auto &element : mElements) {
 
-            // Get fields on element, store in successive rows.
+            // Get fields on element, store in successive rows. (e.g.,
+            // "u" for acoustic, "ux, uz" for elastic)
             int fitr = 0;
             for (auto &field : mReferenceElem->PullElementalFields()) {
                 u.col(fitr) = mMesh->getFieldOnElement(field, element->Number(),
                                                        element->ElementClosure());
                 fitr++;
             }
-
+            
+            double element_error = element->checkTest(mMesh, options, u.block(0,0,int_pnts,fitr), time);
+            
+            if(element_error > max_error) { max_error = element_error; }
+                       
             // Compute stiffness, only passing those rows which are occupied.
             ku.block(0,0,int_pnts,fitr) = element->computeStiffnessTerm(
                     u.block(0,0,int_pnts,fitr));
@@ -119,6 +137,7 @@ void NewmarkGeneral::solve(Options options) {
             fMinusKu.block(0,0,int_pnts,fitr) = f.block(0,0,int_pnts,fitr).array() -
                     ku.block(0,0,int_pnts,fitr).array();
 
+            
             // Sum fields into local partition.
             fitr = 0;
             for (auto &field : mReferenceElem->PushElementalFields()) {
@@ -126,6 +145,14 @@ void NewmarkGeneral::solve(Options options) {
                                            element->ElementClosure(),
                                            fMinusKu.col(fitr));
                 fitr++;
+            }
+
+            // we can now apply boundary conditions (after fields are set)
+            if(element->OnBoundary()) {
+                // apply boundary condition
+                element->applyBoundaryConditions(mMesh,
+                                                 options,
+                                                 "a");
             }
         }
 
@@ -139,16 +166,46 @@ void NewmarkGeneral::solve(Options options) {
         mMesh->applyInverseMassMatrix();
         mMesh->advanceField(timeStep);
         
-        if(options.SaveMovie() && (it%options.SaveFrameEvery()==0 || it == 0)) {
+        if(options.SaveMovie() && (it%options.SaveFrameEvery()==0 || it == 0) ) {
             // GlobalFields[0] == "u" for acoustic and == "ux" for elastic
-            mMesh->saveFrame(mMesh->GlobalFields()[0], it);            
+            mMesh->saveFrame(mMesh->GlobalFields()[0], it);
+            mMesh->saveFrame("a", it);
+            mMesh->saveFrame("mi", it);
+            if(max_error > 5) {
+                std::cerr << "ERROR: Solution blowing up!\n";
+                exit(1);
+            }
+            PRINT_ROOT() << "TIME: " << time;
         }
         
         it++;
         time += timeStep;
-        PRINT_ROOT() << "TIME: " << time;
+        
     }
+
+    PRINT_ROOT() << "Max Error @ T=end: " << max_error << std::endl;
 
     if(options.SaveMovie()) mMesh->finalizeMovie();
 
+}
+
+void NewmarkTesting::applyDirichletBoundary(Mesh *mesh,std::string fieldname, double value) {
+    
+    // auto& boundaryIds = mesh->BoundaryIds();
+    // auto dirichlet_id_it = boundaryIds.find("dirichlet");
+    // // found dirichlet boundary
+    // if(dirichlet_id_it != boundaryIds.end()) {
+    //     int dirichlet_id = (*dirichlet_id_it).second;
+    //     auto& dirichlet_elems = mesh->BoundaryElementFaces()[dirichlet_id];
+    //     for(auto& elem_key : dirichlet_elems) {                                
+    //         for(auto& faceid : elem_key.second) {                                                            
+    //             auto field = mesh->getFieldOnFace(fieldname,faceid,
+    //                                                mElements[elem_key.first]->GetFaceClosureMapping());
+    //             // apply dirichlet condition
+    //             field = 0*field.array() + value;
+    //             mesh->setFieldFromFace(fieldname,faceid,mElements[elem_key.first]->GetFaceClosureMapping(),field);
+    //         }
+    //     }
+    // }
+    
 }

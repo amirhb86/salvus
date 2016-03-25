@@ -34,7 +34,3 @@ void ScalarNewmark2D::applyInverseMassMatrix() {
 
 
 }
-
-std::vector<std::string> ScalarNewmark2D::GlobalFields() const {
-    return {"u", "v", "a", "a_", "m"};
-}

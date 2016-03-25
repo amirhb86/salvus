@@ -33,12 +33,20 @@ class Options {
     std::string mProblemType;
     std::string mTimeStepType;
 
+    std::vector<std::string> mDirchletBoundaryNames;
+    
     // Determines the output name of the movie.
     std::string mOutputMovieFile;
     // Save movie?, and how often.
     PetscBool mSaveMovie;
     PetscInt mSaveFrameEvery;
-    
+
+    // Run initial condition test with exact solution
+    PetscBool mTestIC;
+    // exact solution parameters
+    PetscReal mCenter_x;
+    PetscReal mCenter_z;
+    PetscReal mSquareSide_L;
 
     std::vector<double> mSourceLocationX;
     std::vector<double> mSourceLocationY;
@@ -53,6 +61,7 @@ public:
 
     // Bool getters
     inline PetscBool SaveMovie() { return mSaveMovie; }
+    inline PetscBool TestIC() { return mTestIC; }    
     
     // Integer getters
     inline PetscInt PolynomialOrder() { return mPolynomialOrder; }
@@ -62,6 +71,9 @@ public:
     // Double getters
     inline double Duration() { return mDuration; }
     inline double TimeStep() { return mTimeStep; }
+    inline PetscReal IC_Center_x() { return mCenter_x; }
+    inline PetscReal IC_Center_z() { return mCenter_z; }
+    inline PetscReal IC_SquareSide_L() { return mSquareSide_L; }
 
     // String getters
     inline std::string PhysicsSystem() { return mPhysicsSystem; }
@@ -73,6 +85,8 @@ public:
     inline std::string OutputMovieFile() { return mOutputMovieFile; }
     inline std::string ProblemType() { return mProblemType; }
 
+    inline std::vector<std::string> DirichletBoundaries() { return mDirchletBoundaryNames; }
+    
     // Vector getters
     inline std::vector<double> SourceLocationX() { return mSourceLocationX; }
     inline std::vector<double> SourceLocationY() { return mSourceLocationY; }
@@ -80,8 +94,7 @@ public:
     inline std::vector<double> SourceRickerAmplitude() { return mSourceRickerAmplitude; }
     inline std::vector<double> SourceRickerCenterFreq() { return mSourceRickerCenterFreq; }
     inline std::vector<double> SourceRickerTimeDelay() { return mSourceRickerTimeDelay; }
-
-
+    
 };
 
 

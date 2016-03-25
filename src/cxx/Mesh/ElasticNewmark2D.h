@@ -13,9 +13,10 @@ public:
 
     virtual void advanceField(double dt);
     virtual void applyInverseMassMatrix();
-    virtual std::vector<std::string> GlobalFields() const;
 
-
+    ElasticNewmark2D() { mGlobalFields = {"ux", "uy", "vx", "vy", "ax", "ay", "ax_", "ay_", "m"}; }
+    ElasticNewmark2D(std::vector<std::string> fields) {mGlobalFields = fields;}
+    
 };
 
 #endif //SALVUS_ELASTICNEWMARK2D_H

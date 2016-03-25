@@ -54,7 +54,7 @@ PetscErrorCode Options::setOptions() {
     // Sources.
     PetscOptionsGetInt(NULL, "--number_of_sources", &int_buffer, &parameter_set);
     if (parameter_set) { mNumberSources = int_buffer; }
-    
+
     mSourceLocationX.resize(mNumberSources);
     mSourceLocationY.resize(mNumberSources);
     mSourceLocationZ.resize(mNumberSources);
@@ -74,19 +74,50 @@ PetscErrorCode Options::setOptions() {
       PetscOptionsGetScalarArray(NULL, "--ricker_time_delay", mSourceRickerTimeDelay.data(), &mNumberSources, NULL);
       PetscOptionsGetScalarArray(NULL, "--ricker_center_freq", mSourceRickerCenterFreq.data(), &mNumberSources, NULL);
     }
+
+    int num_dirichlet_boundaries = 256;
+    char* dirichlet_boundaries[256];
+    PetscOptionsGetStringArray(NULL,"--dirichlet-boundaries",dirichlet_boundaries,&num_dirichlet_boundaries,&parameter_set);
+    if(parameter_set) {
+        printf("Using following for dirichlet boundaries:");
+        for(int i=0;i<num_dirichlet_boundaries;i++) {
+            printf("%s,",dirichlet_boundaries[i]);
+            mDirchletBoundaryNames.push_back(dirichlet_boundaries[i]);
+        }
+        printf("\n");
+    }
+    else {
+        // default
+        mDirchletBoundaryNames.push_back("dirichlet");
+    }
     
     // parameters for movies (to save or not, and how often)
     PetscOptionsGetBool(NULL, "--saveMovie", &mSaveMovie,&parameter_set);
     if(!parameter_set) { mSaveMovie = PETSC_FALSE; }
     PetscOptionsGetInt(NULL, "--saveFrameEvery", &mSaveFrameEvery,&parameter_set);
     if(!parameter_set) { mSaveFrameEvery = 1; }
+
+    // for testing ICs against exact solution
+    PetscOptionsGetBool(NULL, "--testIC", &mTestIC,&parameter_set);
+    if(!parameter_set) { mTestIC = PETSC_FALSE; }
+    if(mTestIC) {
+        // these will issue unused parameter warning if testIC is false
+        PetscOptionsGetReal(NULL, "--IC-center-x", &real_buffer, &parameter_set);
+        if (parameter_set) { mCenter_x = real_buffer; }
+        PetscOptionsGetReal(NULL, "--IC-center-z", &real_buffer, &parameter_set);
+        if (parameter_set) { mCenter_z = real_buffer; }
+        PetscOptionsGetReal(NULL, "--IC-square-side-L", &real_buffer, &parameter_set);
+        if (parameter_set) { mSquareSide_L = real_buffer; }
+    }
     
     // MAKE THESE COMMAND LINE OPTIONS EVENTUALLY.
     mDimension = 2;
     mTimeStepType = "newmark";
 
-    if(mMeshType == "newmark")
-        { mProblemType = "newmark_general"; }
+    if(mMeshType == "newmark") {
+        if(mTestIC) mProblemType = "newmark_testing";
+        else mProblemType = "newmark_general";
+    }
 
     // No error
     return 0;

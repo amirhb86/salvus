@@ -26,9 +26,15 @@ Mesh *Mesh::factory(Options options) {
     std::string mesh_type(options.MeshType());
     try {
         if (mesh_type == "newmark") {
-            return new ScalarNewmark2D;
+            auto sc_nm_mesh = new ScalarNewmark2D();
+            if(options.TestIC()) {
+                // add nodal location to global field vectors for testing
+                sc_nm_mesh->AddToGlobalFields("x");
+                sc_nm_mesh->AddToGlobalFields("z");
+            }
+            return sc_nm_mesh;            
         } else if (mesh_type == "newmark_2d_elastic"){
-            return new ElasticNewmark2D;
+            return new ElasticNewmark2D();
         } else {
             throw std::runtime_error("Runtime Error: Mesh type " + mesh_type + " not supported");
         }
@@ -73,10 +79,11 @@ int Mesh::readBoundaryNames(Options options) {
         }
     } // rank==0        
         
+    std::cout << "boundary_names =" << boundary_names[0] << "\n";
     boundary_names = utilities::broadcastStringVecFromFroot(boundary_names);
     // Build mapping boundary name -> label value (id). `id` starts counting at 1.
     for(int i=0;i<boundary_names.size();i++) {
-        mBoundaryIds[boundary_names[i]] = i+1;
+        mBoundaryIds[i+1] = boundary_names[i];
     }        
     MPI::COMM_WORLD.Barrier();
     PetscFunctionReturn(0);
@@ -118,7 +125,8 @@ int Mesh::setupBoundaries(Options options) {
         ierr = DMLabelGetStratumSize(label, ids[i], &numFaces);CHKERRQ(ierr);
         ierr = DMLabelGetStratumIS(label, ids[i], &pointIS);CHKERRQ(ierr);
         ierr = ISGetIndices(pointIS, &faces);CHKERRQ(ierr);
-
+        auto boundary_name = mBoundaryIds[ids[i]];
+        std::cout << "getting boundary_name=" << boundary_name << "\n";
         for (int p = 0; p < numFaces; p++) {
 
             PetscInt support_size;
@@ -126,10 +134,9 @@ int Mesh::setupBoundaries(Options options) {
             int face = faces[p];
             DMPlexGetSupportSize(mDistributedMesh, face, &support_size);
             DMPlexGetSupport(mDistributedMesh, face, &support);
-            for(int elem = 0; elem < support_size; elem++) {
-                mBoundaryElementFaces[ids[i]][support[elem]].push_back(face);
+            for(int elem = 0; elem < support_size; elem++) {                
+                mBoundaryElementFaces[boundary_name][support[elem]].push_back(face);
             }
-
         }
         ISRestoreIndices(pointIS, &faces);
         ISDestroy(&pointIS);
@@ -239,22 +246,20 @@ Eigen::VectorXd Mesh::getFieldOnFace(const std::string &name, const int &face_nu
     return field;
 }
 
-void Mesh::setFieldFromFace(const std::string &name, const int face_number,
-                               const Eigen::VectorXi &face_closure, const Eigen::VectorXd &field) {
+void Mesh::setFieldFromFace(const std::string &name, const int face_number, const Eigen::VectorXd &field) {
 
-    Eigen::VectorXd val(face_closure.size());
+    Eigen::VectorXd val(field.size());
     // map "our" nodal ordering back onto PETSC ordering
-    for (auto j = 0; j < face_closure.size(); j++) { val(j) = field(face_closure(j)); }
+    for (auto j = 0; j < field.size(); j++) { val(j) = field(j); }
     DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
                         face_number, val.data(), INSERT_VALUES);
 }
 
-void Mesh::addFieldFromFace(const std::string &name, const int face_number,
-                            const Eigen::VectorXi &face_closure, const Eigen::VectorXd &field) {
+void Mesh::addFieldFromFace(const std::string &name, const int face_number, const Eigen::VectorXd &field) {
 
-    Eigen::VectorXd val(face_closure.size());
+    Eigen::VectorXd val(field.size());
     // map "our" nodal ordering back onto PETSC ordering
-    for (auto j = 0; j < face_closure.size(); j++) { val(j) = field(face_closure(j)); }
+    for (auto j = 0; j < field.size(); j++) { val(j) = field(j); }
     DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
                         face_number, val.data(), ADD_VALUES);
 }
@@ -363,7 +368,6 @@ void Mesh::setUpMovie(const std::string &movie_filename) {
 
 void Mesh::saveFrame(std::string name,PetscInt timestep) {
     
-    
     DMSetOutputSequenceNumber(mDistributedMesh, timestep, timestep);
     VecView(mFields[name].glb, mViewer);
 }
@@ -375,15 +379,16 @@ void Mesh::finalizeMovie() {
 
 }
 
-int Mesh::BoundaryElementFaces(int elm, int ss_num) {
+// int Mesh::BoundaryElementFaces(int elm, int ss_num) {
 
-    // Make sure we're looking for a side set that actually exists.
-    // assert(mBoundaryElementFaces.find(ss_num) != mBoundaryElementFaces.end());
+//     // Make sure we're looking for a side set that actually exists.
+//     // assert(mBoundaryElementFaces.find(ss_num) != mBoundaryElementFaces.end());
 
-    if (mBoundaryElementFaces[ss_num].find(elm) == mBoundaryElementFaces[ss_num].end()) {
-        return -1;
-    } else {
-        return mBoundaryElementFaces[ss_num][elm][0];
-    }
+//     // if (mBoundaryElementFaces[ss_num].find(elm) == mBoundaryElementFaces[ss_num].end()) {
+//     //     return -1;
+//     // } else {
+//     //     return mBoundaryElementFaces[ss_num][elm][0];
+//     // }
+    
+// }
 
-}

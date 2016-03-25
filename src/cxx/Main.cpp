@@ -28,8 +28,8 @@ int main(int argc, char *argv[]) {
     std::vector<Source*> sources = Source::factory(options);
 
     // Setup reference element.
-    Quad *reference_element = Quad::factory(options);
-
+    Element2D *reference_element = Element2D::factory(options);
+    
     // Use above elements to define the problem.
     Problem *problem = Problem::factory(options.ProblemType());
     problem->initialize(mesh, model, reference_element, options);

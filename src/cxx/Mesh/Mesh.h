@@ -51,19 +51,23 @@ class Mesh {
 
 protected:
 
+    std::vector<std::string> mGlobalFields;     /** < List of field names on global dof ("u","v",etc) */
     std::map<std::string, vec_struct> mFields;  /** < Dictionary holding the fields on the global dof. */
     PetscViewer mViewer;                        /** < Holds information used to dump field values to disk. */
 
-    std::map<std::string, PetscInt> mBoundaryIds; /** < mapping between boundary name (e.g.,
-                                                    "absorbing boundary" and its associated `id` in
-                                                    the petsc side set collection) */
+
+    std::map<PetscInt, std::string> mBoundaryIds; /** < mapping between boundary id
+                                                      and its associated name (e.g.,
+                                                      "absorbing boundary" in the
+                                                      petsc side set collection) */
     
-    std::map<int,std::map<int,std::vector<int>>> mBoundaryElementFaces; /** < list of elements on a
-                                                                           boundary and the
-                                                                           corresponding boundary
-                                                                           faces. Each boundary id
-                                                                           has its own list of
-                                                                           elements. */
+    
+    std::map<std::string,std::map<int,std::vector<int>>>
+        mBoundaryElementFaces;  /** < list of elements on a boundary and the corresponding
+                                    boundary faces. Each boundary has its own list of
+                                    elements, and each element has its own list of
+                                    faces. */
+ 
     
 public:
 
@@ -193,8 +197,7 @@ public:
      * closure to the desired gll point ordering.
      * @param [in] field The element-ordered field (i.e. x-displacement) to insert into the mesh.
      */
-    void setFieldFromFace(const std::string &name, const int face_number,
-                          const Eigen::VectorXi &face_closure, const Eigen::VectorXd &field);
+    void setFieldFromFace(const std::string &name, const int face_number, const Eigen::VectorXd &field);
 
     /**
      * Adds a field from a face into the degrees of freedom owned by the local processor, via a call to
@@ -205,8 +208,7 @@ public:
      * closure to the desired gll point ordering.
      * @param [in] field The element-ordered field (i.e. x-displacement) to insert into the mesh.
      */
-    void addFieldFromFace(const std::string &name, const int face_number,
-                          const Eigen::VectorXi &face_closure, const Eigen::VectorXd &field);
+    void addFieldFromFace(const std::string &name, const int face_number, const Eigen::VectorXd &field);
     
     /**
      * Sets a field from an element into the degrees of freedom owned by the local processor, via a call to
@@ -288,23 +290,29 @@ public:
     virtual void applyInverseMassMatrix() = 0;
 
     /**
-     * Keeps a list of all the fields required on the global degrees of freedom.
+     * Return list of all the fields required on the global degrees of freedom.
      */
-    virtual std::vector<std::string> GlobalFields() const = 0;
-
+    std::vector<std::string> GlobalFields() const { return mGlobalFields; }
 
     /**
-     * Distributed mesh getattr.
-     * TODO: I don't think we actually need these anymore.
+     * Add field to list of global degrees of freedom. Has to be done
+     * before mesh initializes fields to global DOF. (via registerFieldVectors)
      */
-    int BoundaryElementFaces(int elm, int ss_num);
+    void AddToGlobalFields(std::string fieldname) { mGlobalFields.push_back(fieldname); }
+    
 
-
+    
     inline DM &DistributedMesh() { return mDistributedMesh; }
     inline PetscSection &MeshSection() { return mMeshSection; }
-    virtual std::map<std::string, PetscInt>& BoundaryIds() { return mBoundaryIds; }
+    virtual std::map<PetscInt, std::string>& BoundaryIds() { return mBoundaryIds; }
 
     inline int NumberSideSets() { return mNumberSideSets; }
+    inline int NumberDimensions() { return mNumberDimensions; }
+
+    inline std::map<std::string,std::map<int,std::vector<int>>>
+        BoundaryElementFaces() { return mBoundaryElementFaces; }
+
+
 
 };
 

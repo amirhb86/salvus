@@ -19,6 +19,7 @@ include_directories(${MPI_INCLUDE_PATH})
 link_directories(${PETSC_DIR}/lib)
 
 FILE(GLOB QuadAutoGen src/cxx/Element/HyperCube/Quad/Autogen/*.c)
+FILE(GLOB TriAutoGen src/cxx/Element/Simplex/Triangle/Autogen/*.c)
 
 include_directories(
         ${PETSC_DIR}/include/
@@ -31,6 +32,7 @@ include_directories(
         src/cxx/Element/HyperCube/Hex
         src/cxx/Element/Simplex
         src/cxx/Element/Simplex/Triangle
+        src/cxx/Element/Simplex/Triangle/Autogen
         src/cxx/Element/Simplex/Tetrahedron
         src/cxx/Model)
 
@@ -38,6 +40,7 @@ add_executable(salvus
         src/cxx/Main.cpp
         src/cxx/Problem/Problem.cpp
         src/cxx/Problem/NewmarkGeneral.cpp
+        src/cxx/Problem/NewmarkTesting.cpp
         src/cxx/Mesh/Mesh.cpp
         src/cxx/Mesh/ElasticNewmark2D.cpp
         src/cxx/Mesh/ScalarNewmark2D.cpp
@@ -45,11 +48,14 @@ add_executable(salvus
         src/cxx/Element/HyperCube/Quad.cpp
         src/cxx/Element/HyperCube/Quad/Elastic.cpp
         src/cxx/Element/HyperCube/Quad/Acoustic.cpp
+        src/cxx/Element/Simplex/Triangle.cpp
+        src/cxx/Element/Simplex/Triangle/AcousticTri.cpp
         src/cxx/Model/ExodusModel.cpp
         src/cxx/Utilities/Utilities.cpp
         src/cxx/Utilities/Options.cpp
         src/cxx/Source/Source.cpp
         src/cxx/Utilities/kdtree.c
-        ${QuadAutoGen} )
+        ${QuadAutoGen}
+        ${TriAutoGen})
 
 target_link_libraries(salvus petsc exodus netcdf)
