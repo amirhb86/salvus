@@ -7,7 +7,7 @@
 
 #include <vector>
 #include <assert.h>
-#include <openmpi/ompi/mpi/cxx/mpicxx.h>
+#include <mpi.h>
 #include <Eigen/src/Core/Matrix.h>
 
 #include "../Utilities/Options.h"

@@ -64,8 +64,8 @@ def add_constant_material_parameter(input_file, name, value, output_file):
     working_model = model.ExodusModel(exodus_file=input_file)
     working_model.readFromExodus()
 
-    parameter = np.ones(working_model.number_of_nodes) * value
-    working_model.addMaterialParameter(name.lower(), parameter)
+    parameter = np.ones(working_model.number_of_elements) * value
+    working_model.addMaterialParameter(name.upper(), parameter)
 
     working_model.write(output_file)
 

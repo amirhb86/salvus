@@ -2,10 +2,10 @@
 // Created by Michael Afanasiev on 2016-01-30.
 //
 
+#include <mpi.h>
 #include <iostream>
 #include <petscdm.h>
 #include <petscdmplex.h>
-#include <openmpi/ompi/mpi/cxx/mpicxx.h>
 #include <tuple>
 #include "Quad.h"
 #include "Quad/Autogen/quad_autogen.h"

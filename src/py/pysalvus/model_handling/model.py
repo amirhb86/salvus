@@ -4,6 +4,7 @@ import os
 import shutil
 import exodus
 
+DEFAULT_BLOCK = 1
 TIMESTEP_ZERO = 1
 TEMP_EXODUS_FILENAME = '.tmp.exo2'
 
@@ -59,8 +60,14 @@ class ExodusModel(object):
                 os.remove(file_name)
             tmp = exodus.copyTransfer(TEMP_EXODUS_FILENAME, file_name,
                                       additionalNodalVariables=self.additionalNodalParameter)
+            _, _, nNodeElm, _ = tmp.elem_blk_info(DEFAULT_BLOCK)
+            tmp.set_element_variable_number(nNodeElm)
             for name, value in zip(self.additionalNodalParameter, self.additionalNodalParameterValues):
-                tmp.put_node_variable_values(name, TIMESTEP_ZERO, value)
+                for node in range(nNodeElm):
+                    new_evar_index = node + 1
+                    var_name = "{}_{}".format(name, node)
+                    tmp.put_element_variable_name(var_name, new_evar_index)
+                    tmp.put_element_variable_values(DEFAULT_BLOCK, var_name, TIMESTEP_ZERO, value)
             tmp.close()
         else:
             os.remove(self.exodus_file)

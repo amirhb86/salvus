@@ -1,7 +1,8 @@
+
+#include <mpi.h>
 #include <iostream>
 #include <petscdm.h>
 #include <petscdmplex.h>
-#include <openmpi/ompi/mpi/cxx/mpicxx.h>
 #include <tuple>
 #include "Triangle.h"
 

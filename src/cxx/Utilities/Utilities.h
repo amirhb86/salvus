@@ -5,9 +5,9 @@
 #ifndef SALVUS_UTILITIES_H
 #define SALVUS_UTILITIES_H
 
+#include <mpi.h>
 #include <iosfwd>
 #include <string>
-#include <openmpi/ompi/mpi/cxx/mpicxx.h>
 #include <vector>
 #include <iostream>
 #include <string>
