@@ -2,9 +2,7 @@
 // Created by Michael Afanasiev on 2016-02-01.
 //
 
-#ifndef SALVUS_EXODUSMODEL_H
-#define SALVUS_EXODUSMODEL_H
-
+#pragma once
 #include <vector>
 #include <assert.h>
 #include <mpi.h>
@@ -90,5 +88,3 @@ public:
 
 };
 
-
-#endif //SALVUS_EXODUSMODEL_H
