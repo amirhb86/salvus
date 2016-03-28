@@ -2,5 +2,4 @@ language:
   - c++
 
 install:
-  - git clone -b maint https://bitbucket.org/petsc/petsc petsc; cd petsc
-  - ./configure --download-exodusii --download-netcdf --download-hdf5 --download-chaco --download-mpich
+  - sh conf/install-petsc.sh
