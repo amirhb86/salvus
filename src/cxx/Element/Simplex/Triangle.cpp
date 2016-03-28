@@ -11,6 +11,7 @@
  * STATIC variables WHICH ARE ONLY ON THE REFERENCE ELEMENT.
  */
 
+int Triangle::mNumberVertex = 3;
 Eigen::MatrixXd Triangle::mGradientOperator;
 Eigen::VectorXd Triangle::mIntegrationWeights;
 Eigen::VectorXd Triangle::mIntegrationCoordinates_r;

@@ -1,0 +1,35 @@
+language:
+  - c++
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - gcc-4.8
+      - g++-4.8
+      - gfortran-4.8
+      - build-essential
+      - perl
+      - cmake
+      - m4
+      - git
+      - liblapack-dev
+      - liblapack-doc
+      - liblapack3gf
+      - libblas-dev
+      - libblas3gf
+
+before_install:
+  - test -n $CC && unset CC
+  - test -n $CXX && unset CXX
+
+install:
+  - sh conf/install-deps.sh
+  - cp conf/CMakeLists.txt.travis ./CMakeLists.txt
+  - mkdir build; cd build
+  - cmake ../
+  - make
+
+script:
+  - ls

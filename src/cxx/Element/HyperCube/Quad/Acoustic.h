@@ -2,9 +2,7 @@
 // Created by Michael Afanasiev on 2016-01-30.
 //
 
-#ifndef SALVUS_SQUAREACOUSTICORDERFOUR_H
-#define SALVUS_SQUAREACOUSTICORDERFOUR_H
-
+#pragma once
 
 #include <petscvec.h>
 #include "Utilities/Options.h"
@@ -42,5 +40,3 @@ public:
     
 };
 
-
-#endif //SALVUS_SQUAREACOUSTICORDERFOUR_H

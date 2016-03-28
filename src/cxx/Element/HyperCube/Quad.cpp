@@ -15,6 +15,7 @@
 /*
  * STATIC variables WHICH ARE ONLY ON THE REFERENCE ELEMENT.
  */
+int Quad::mNumberVertex = 4;
 int Quad::mNumberIntegrationPointsEps;
 int Quad::mNumberIntegrationPointsEta;
 

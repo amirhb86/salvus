@@ -42,7 +42,7 @@ protected:
      * STATIC MEMBERS. THESE VARIABLES AND FUNCTIONS SHOULD APPLY TO ALL ELEMENTS.
      *****************************************************************************/
 
-    static const int mNumberVertex = 3;         /** < Number of element vertices. */
+    static int mNumberVertex;         /** < Number of element vertices. */
         
     static Eigen::MatrixXd mGradientOperator;           /** < Derivative of shape function n (col) at pos. m (row) */
     static Eigen::VectorXd mIntegrationWeights;      /** < Integration weights along epsilon direction. */

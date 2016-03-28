@@ -2,11 +2,9 @@
 // Created by Michael Afanasiev on 2016-01-30.
 //
 
-#ifndef SALVUS_HYPERCUBE_H
-#define SALVUS_HYPERCUBE_H
+#pragma once
 
 #include <Eigen/Dense>
-
 #include <Model/ExodusModel.h>
 #include <Source/Source.h>
 #include <Mesh/Mesh.h>
@@ -134,7 +132,7 @@ protected:
      * STATIC MEMBERS. THESE VARIABLES AND FUNCTIONS SHOULD APPLY TO ALL ELEMENTS.
      *****************************************************************************/
 
-    static const int mNumberVertex = 4;         /** < Number of element vertices. */    
+    static int mNumberVertex;         /** < Number of element vertices. */
     
     static int mNumberIntegrationPointsEps;     /** < Number of integration points in the epsilon direction (e.g. 5 for a 4th order gll basis) */
     static int mNumberIntegrationPointsEta;     /** < Number of integration points in the eta direction (e.g. 5 for a 4th order gll basis) */
@@ -342,6 +340,3 @@ public:
     std::tuple<Eigen::VectorXd,Eigen::VectorXd> buildNodalPoints(Mesh* mesh);
 
 };
-
-
-#endif //SALVUS_HYPERCUBE_H
