@@ -9,3 +9,11 @@ cd petsc
 make PETSC_DIR=/home/travis/petsc PETSC_ARCH=arch-linux2-c-debug all
 make PETSC_DIR=/home/travis/petsc PETSC_ARCH=arch-linux2-c-debug test
 make PETSC_DIR=/home/travis/petsc PETSC_ARCH=arch-linux2-c-debug streams NPMAX=2
+
+# Eigen
+cd
+hg clone https://bitbucket.org/eigen/eigen
+
+# Back into salvus directory
+cd
+cd SalvusHub/salvus

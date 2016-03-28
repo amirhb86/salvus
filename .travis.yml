@@ -23,3 +23,10 @@ addons:
 
 install:
   - sh conf/install-petsc.sh
+  - cp conf/CMakeLists.txt.travis ./CMakeLists.txt
+  - mkdir build; cd build
+  - cmake ../
+  - make
+
+script:
+  - ls
