@@ -1,5 +1,25 @@
 language:
   - c++
 
+addons:
+  apt:
+    packages:
+      - build-essential
+      - gfortran
+      - perl
+      - g++
+      - gcc
+      - cmake
+      - m4
+      - git
+      - liblapack-dev
+      - liblapack-doc
+      - liblapack3gf
+      - libblas-dev
+      - libblas3gf
+      - openmpi-bin
+      - openmpi-common
+      - libopenmpi-dev
+
 install:
   - sh conf/install-petsc.sh
