@@ -21,4 +21,4 @@ hg clone https://bitbucket.org/eigen/eigen
 
 # Back into salvus directory
 cd
-cd SalvusHub/salvus
+cd build/SalvusHub/salvus
