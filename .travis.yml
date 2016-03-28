@@ -3,12 +3,14 @@ language:
 
 addons:
   apt:
+    sources:
+      - ubuntu-toolchain-r-test
     packages:
+      - gcc-4.8
+      - g++-4.8
+      - gfortran-4.8
       - build-essential
-      - gfortran
       - perl
-      - g++
-      - gcc
       - cmake
       - m4
       - git
@@ -17,9 +19,6 @@ addons:
       - liblapack3gf
       - libblas-dev
       - libblas3gf
-      - openmpi-bin
-      - openmpi-common
-      - libopenmpi-dev
 
 before_install:
   - test -n $CC && unset CC

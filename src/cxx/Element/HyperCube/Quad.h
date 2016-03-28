@@ -132,7 +132,7 @@ protected:
      * STATIC MEMBERS. THESE VARIABLES AND FUNCTIONS SHOULD APPLY TO ALL ELEMENTS.
      *****************************************************************************/
 
-    static const int mNumberVertex = 4;         /** < Number of element vertices. */    
+    static int mNumberVertex;         /** < Number of element vertices. */
     
     static int mNumberIntegrationPointsEps;     /** < Number of integration points in the epsilon direction (e.g. 5 for a 4th order gll basis) */
     static int mNumberIntegrationPointsEta;     /** < Number of integration points in the eta direction (e.g. 5 for a 4th order gll basis) */
