@@ -21,6 +21,10 @@ addons:
       - openmpi-common
       - libopenmpi-dev
 
+before_install:
+  - test -n $CC && unset CC
+  - test -n $CXX && unset CXX
+
 install:
   - sh conf/install-deps.sh
   - cp conf/CMakeLists.txt.travis ./CMakeLists.txt
