@@ -22,7 +22,7 @@ addons:
       - libopenmpi-dev
 
 install:
-  - sh conf/install-petsc.sh
+  - sh conf/install-deps.sh
   - cp conf/CMakeLists.txt.travis ./CMakeLists.txt
   - mkdir build; cd build
   - cmake ../
