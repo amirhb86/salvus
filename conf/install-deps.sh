@@ -1,7 +1,12 @@
 #!/bin/sh
 
+ls
+pwd
+
 # PETSc
 cd
+ls
+pwd
 git clone -b maint https://bitbucket.org/petsc/petsc petsc;
 cd petsc
 
