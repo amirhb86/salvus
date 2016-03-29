@@ -30,6 +30,8 @@ install:
   - mkdir build; cd build
   - cmake ../
   - make
+  - make salvus_test
 
 script:
   - ls
+  - cd build
