@@ -22,6 +22,7 @@ FILE(GLOB QuadAutoGen src/cxx/Element/HyperCube/Quad/Autogen/*.c)
 FILE(GLOB TriAutoGen src/cxx/Element/Simplex/Triangle/Autogen/*.c)
 
 include_directories(
+	    /home/travis/petsc/include
         ${PETSC_DIR}/include/
         ${EIGEN_INCLUDE}
         src/cxx
