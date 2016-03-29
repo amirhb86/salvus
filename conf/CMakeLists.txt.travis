@@ -22,7 +22,6 @@ FILE(GLOB QuadAutoGen src/cxx/Element/HyperCube/Quad/Autogen/*.c)
 FILE(GLOB TriAutoGen src/cxx/Element/Simplex/Triangle/Autogen/*.c)
 
 include_directories(
-	/home/travis/petsc/include
         ${PETSC_DIR}/include/
         ${EIGEN_INCLUDE}
         src/cxx
@@ -37,8 +36,7 @@ include_directories(
         src/cxx/Element/Simplex/Tetrahedron
         src/cxx/Model)
 
-add_executable(salvus
-        src/cxx/Main.cpp
+set(SALVUS_SOURCES
         src/cxx/Problem/Problem.cpp
         src/cxx/Problem/NewmarkGeneral.cpp
         src/cxx/Problem/NewmarkTesting.cpp
@@ -57,6 +55,21 @@ add_executable(salvus
         src/cxx/Source/Source.cpp
         src/cxx/Utilities/kdtree.c
         ${QuadAutoGen}
-        ${TriAutoGen})
+        ${TriAutoGen}
+        )
 
-target_link_libraries(salvus petsc exodus netcdf hdf5)
+add_executable(salvus
+        ${SALVUS_SOURCES}
+        src/cxx/Main.cpp
+        )
+
+add_executable(salvus_test
+        ${SALVUS_SOURCES}
+        src/cxx/Testing/test_main.cpp
+        )
+
+# run `make` (or `make -j5`) to build `salvus` executable
+target_link_libraries(salvus petsc exodus netcdf)
+# run `make salvus_test` to build testing executable.
+target_link_libraries(salvus_test petsc exodus netcdf)
+set_target_properties(salvus_test PROPERTIES EXCLUDE_FROM_ALL TRUE) # doesn't get built by `make`
