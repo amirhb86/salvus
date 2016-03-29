@@ -94,7 +94,5 @@ TEST_CASE("Test whether simple stuff works.", "[element]") {
 
     Eigen::MatrixXd tField = Eigen::MatrixXd::Zero(reference_element->NumberIntegrationPoints(), 1);
     Eigen::MatrixXd result = mElements[0]->computeStiffnessTerm(tField);
-
-
 }
 
