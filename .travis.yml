@@ -23,9 +23,9 @@ addons:
 before_install:
   - test -n $CC && unset CC
   - test -n $CXX && unset CXX
-  - sh conf/install-deps.sh
 
 install:
+  - sh conf/install-deps.sh
   - cp conf/CMakeLists.txt.travis ./CMakeLists.txt
   - mkdir build; cd build
   - cmake ../

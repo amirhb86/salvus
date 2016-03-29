@@ -8,7 +8,7 @@
 #include <iosfwd>
 #include <string>
 #include <vector>
-#include "petscsys.h"
+#include <petscsys.h>
 
 class Options {
 
