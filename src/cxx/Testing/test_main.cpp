@@ -30,69 +30,79 @@ int main(int argc, char *argv[]) {
     return result;
 }
 
-TEST_CASE("Test whether simple stuff works.", "[element]") {
+Quad *setup_simple_quad(Options options) {
 
-    // Common setup.
-    Options options;
-    options.setOptions();
-    Mesh *mesh = Mesh::factory(options);
-    mesh->read(options);
+    // Simple model.
     ExodusModel *model = new ExodusModel(options);
     model->initializeParallel();
-    std::vector<Source*> sources = Source::factory(options);
+
+    // Get element from options.
     Element2D *reference_element = Element2D::factory(options);
+    Quad *reference_quad = dynamic_cast<Quad*> (reference_element);
 
-    // Define variables.
-    Mesh *mMesh;
-    Element2D *mRefElem;
-    std::vector<Element2D*> mElements;
+    // Make things easy by assuming a reference element.
+    // NOTE THE ELEMENT IS DISTORTED x -> [-2, 1], y -> [-6, 1]
+    Eigen::Matrix<double,2,4> coord;
+    coord << -2, +1, +1, -2,
+             -6, -6, +1, +1;
+    reference_quad->SetVertexCoordinates(coord);
+    reference_quad->interpolateMaterialProperties(model);
+    reference_quad->setupGradientOperator();
 
-    // Problem.
-    mMesh = mesh;
-    mRefElem = reference_element;
-    mMesh->setupGlobalDof(mRefElem->NumberDofVertex(),
-                          mRefElem->NumberDofEdge(),
-                          mRefElem->NumberDofFace(),
-                          0,
-                          mRefElem->NumberDimensions());
-    mMesh->setupBoundaries(options);
+    return reference_quad;
 
-    for (auto field : mMesh->GlobalFields()) {
-        mMesh->registerFieldVectors(field);
-    }
-
-    for (int i = 0; i < mMesh->NumberElementsLocal(); i++) {
-        mElements.push_back(mRefElem->clone());
-    }
-
-    // Set up elements.
-    int element_number = 0;
-    for (auto &element : mElements) {
-
-        // Give each element a number starting from zero.
-        element->SetLocalElementNumber(element_number++);
-
-        // Get vertex coordinates from the PETSc DMPLEX.
-        element->attachVertexCoordinates(mMesh->DistributedMesh());
-
-        // Add material parameters (velocity, Cij, etc...).
-        element->interpolateMaterialProperties(model);
-
-        // Set boundary conditions.
-        element->setBoundaryConditions(mMesh);
-
-        // Assemble the (elemental) mass matrix.
-        element->assembleElementMassMatrix(mMesh);
-
-        // Attach any external source terms.
-        element->attachSource(sources);
-
-        // Prepare stiffness terms
-        element->prepareStiffness();
-
-    }
-
-    Eigen::MatrixXd tField = Eigen::MatrixXd::Zero(reference_element->NumberIntegrationPoints(), 1);
-    Eigen::MatrixXd result = mElements[0]->computeStiffnessTerm(tField);
 }
+
+
+TEST_CASE("Test whether simple stuff works.", "[element]") {
+
+    Options options;
+    options.setOptions();
+
+    int max_order = 10;
+    Eigen::VectorXd exact(max_order);
+    exact <<    21/2.0, -21/4.0, -7.0, -10535/16.0,
+                -1835099/400.0, -19962919/400.0,
+                -177738369/400.0, -7111477851/1600.0,
+                -207368760073/4800, -2094734230553/4800;
+    for (int order = 1; order < max_order+1; order++) {
+
+        options.__SetPolynomialOrder(order);
+        Quad *reference_quad = setup_simple_quad(options);
+
+        // Set up functions (order x**N*y**N-1)
+        int ord = options.PolynomialOrder();
+        Eigen::VectorXi x_exp = Eigen::VectorXi::LinSpaced(ord+1, 0, ord);
+        Eigen::VectorXi y_exp = x_exp;
+        y_exp[ord] = x_exp[ord - 1];
+
+        // TODO: FIX THIS FUNCTION so that we don't need to pass it a mesh.
+        Mesh *mesh;
+        Eigen::VectorXd pts_x, pts_y;
+        std::tie(pts_x,pts_y) = reference_quad->buildNodalPoints(mesh);
+
+        // Set up function values at GLL points.
+        double x, y;
+        x = y = 0.0;
+        Eigen::VectorXd gll_val;
+        Eigen::VectorXd coords = Quad::GllPointsForOrder(options.PolynomialOrder());
+        gll_val.setZero(reference_quad->NumberIntegrationPoints());
+        int num_pts_p_dim = sqrt(reference_quad->NumberIntegrationPoints());
+        for (int o = 0; o < x_exp.size(); o++) {
+            for (int i = 0; i < num_pts_p_dim; i++) {
+                for (int j = 0; j < num_pts_p_dim; j++) {
+
+                    int ind = i + j * num_pts_p_dim;
+                    gll_val(ind) += pow(pts_x(ind), x_exp(o)) * pow(pts_y(ind), y_exp(o));
+
+                }
+            }
+        }
+
+        // Test against analytical solution (from sympy), within floating point precision.
+        REQUIRE(reference_quad->integrateField(gll_val) == Approx(exact(order-1)));
+    }
+
+}
+
 
