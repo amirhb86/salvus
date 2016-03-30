@@ -27,7 +27,7 @@ before_install:
 install:
   - sh conf/install-deps.sh
   - cp conf/CMakeLists.txt.travis ./CMakeLists.txt
-  - mkdir build; cd build
+  - mkdir build; cd build; pwd
   - cmake ../
   - make
   - make salvus_test
@@ -38,4 +38,4 @@ install:
 
 script:
   - cd salvus_data/unit_test_meshes
-  - ./run_2d_acoustic_test.sh
+  - sh ./run_travis.sh
