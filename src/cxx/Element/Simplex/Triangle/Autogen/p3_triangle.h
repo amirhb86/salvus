@@ -13,8 +13,8 @@
 void coordinates_p3_triangle_rn(double *out_3397332268056792470);
 void coordinates_p3_triangle_sn(double *out_2167128771406464040);
 void quadrature_weights_p3_triangle(double *out_1773045392417392299);
-void dphi_dr_rsn_p3_triangle(double *out_8195207393344308784);
-void dphi_ds_rsn_p3_triangle(double *out_5954500155470878852);
+void dphi_dr_rsn_p3_triangle(double *out_8669386580824837528);
+void dphi_ds_rsn_p3_triangle(double *out_7436755633191263298);
 
 #endif
 
