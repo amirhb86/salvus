@@ -32,5 +32,10 @@ install:
   - make
   - make salvus_test
 
+  # Install salvus_data as well.
+  - cd; cd build
+  - git clone https://github.com/SalvusHub/salvus_data.git
+
 script:
-  - ls
+  - cd salvus_data/unit_test_meshes
+  - sh ./run_travis.sh
