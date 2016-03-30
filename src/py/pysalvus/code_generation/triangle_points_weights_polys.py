@@ -38,14 +38,15 @@ def p3ReferenceNodes():
     #    |                        \--
     #    9------3---------4--------- 10
 
+    # petsc ordering
     rsn = [(-0.5853,-0.5853),(0.1706,-0.5853),(-0.5853,0.1706), # G_{1,2,3}
            (-0.413,-1.0),(0.413,-1.0),(0.413,-0.413),(-0.413,0.413),(-1.0,0.413),(-1.0,-0.413), # M_{(123,123)}
-           (-1.0,-1.0),(1.0,-1.0),(-1.0,1.0), ] # S_{1,2,3}
+           (-1.0,-1.0),(1.0,-1.0),(-1.0,1.0)] # S_{1,2,3}
     rsn = np.asarray(rsn)
     return rsn
 
 def p3ElementPolynomials(rsn,r,s):
-    b = (-r)*(s+1)*(r+1)
+    b = (-r-s)*(s+1)*(r+1)
     P1b = np.asarray([r,s])*b
     P3 = np.asarray([1+0*r,r,s,r*s,r**2,s**2,r**3,s**3,
                      r**2*s,r*s**2])
@@ -88,6 +89,51 @@ def p3ElementDerivatives(phi,r,s):
         deriv_s.append(dphi_ds)
     return (deriv_r,deriv_s)
 
+def genK(phi,wn,r,s,rsn):
+    Np = len(wn)
+    Kwn_rr = np.zeros((Np,Np))
+    Kwn_rs = np.zeros((Np,Np))
+    Kwn_sr = np.zeros((Np,Np))
+    Kwn_ss = np.zeros((Np,Np))
+    if os.path.isfile("p3_triangle_Krr_Krs_Ksr_Kss.npz"):
+        print("Using precomputed Krr,etc")
+        Kall = np.load("Krr_Krs_Ksr_Kss.npz")
+        Kwn_rr = Kall["Kwn_rr"]
+        Kwn_rs = Kall["Kwn_rs"]
+        Kwn_sr = Kall["Kwn_sr"]
+        Kwn_ss = Kall["Kwn_ss"]
+    else:
+        print("Computing Krr,etc and storing them")
+        for i in range(0,Np):
+            print("i={}".format(i))
+            for j in range(0,Np):
+                # exact version
+                # phiI_x_phiJ_rr = diff(phi[i],r)*diff(phi[j],r)
+                # phiI_x_phiJ_ss = diff(phi[i],s)*diff(phi[j],s)
+                # Kexact[i,j] = integrate(phiI_x_phiJ_rr,(r,-1,-s),(s,-1,1)) + integrate(phiI_x_phiJ_ss,(r,-1,-s),(s,-1,1))
+                # phiI_x_phiJ_rr = diff(phi[i],r)*diff(phi[j],r)
+                # phiI_x_phiJ_ss = diff(phi[i],s)*diff(phi[j],s)
+                # phiI_x_phiJ_rs = diff(phi[i],r)*diff(phi[j],s)
+                # phiI_x_phiJ_sr = diff(phi[i],s)*diff(phi[j],r)
+                # Kwn_rr[i,j] = integrate(phiI_x_phiJ_rr,(r,-1,-s),(s,-1,1))
+                # Kwn_rs[i,j] = integrate(phiI_x_phiJ_rs,(r,-1,-s),(s,-1,1))
+                # Kwn_sr[i,j] = integrate(phiI_x_phiJ_sr,(r,-1,-s),(s,-1,1))
+                # Kwn_ss[i,j] = integrate(phiI_x_phiJ_ss,(r,-1,-s),(s,-1,1))
+
+                # version using quadrature
+                phiI_r = lambdify((r,s),diff(phi[i],r))
+                phiI_s = lambdify((r,s),diff(phi[i],s))
+                phiJ_r = lambdify((r,s),diff(phi[j],r))
+                phiJ_s = lambdify((r,s),diff(phi[j],s))
+                Kwn_rr[i,j] = np.asarray([phiI_r(rn,sn)*phiJ_r(rn,sn) for (rn,sn) in rsn]).dot(p3QuadratureWeights())
+                Kwn_rs[i,j] = np.asarray([phiI_r(rn,sn)*phiJ_s(rn,sn) for (rn,sn) in rsn]).dot(p3QuadratureWeights())
+                Kwn_sr[i,j] = np.asarray([phiI_s(rn,sn)*phiJ_r(rn,sn) for (rn,sn) in rsn]).dot(p3QuadratureWeights())
+                Kwn_ss[i,j] = np.asarray([phiI_s(rn,sn)*phiJ_s(rn,sn) for (rn,sn) in rsn]).dot(p3QuadratureWeights())
+                np.savez("p3_triangle_Krr_Krs_Ksr_Kss.npz",Kwn_rr=Kwn_rr,Kwn_rs=Kwn_rs,Kwn_sr=Kwn_sr,Kwn_ss=Kwn_ss)
+            
+    return (Kwn_rr,Kwn_rs,Kwn_sr,Kwn_ss)
+
+
 def genP3code():
     autocode = CCodeGen(project="Salvus")
     r,s = symbols("r,s")
@@ -110,13 +156,20 @@ def genP3code():
     rn = Matrix([ri for (ri,si) in rsn])
     sn = Matrix([si for (ri,si) in rsn])
     wn = Matrix(p3QuadratureWeights())
-    rn_routine = autocode.routine("coordinates_p3_triangle_rn",rn,argument_sequence=None)
-    sn_routine = autocode.routine("coordinates_p3_triangle_sn",sn,argument_sequence=None)
-    wn_routine  = autocode.routine("quadrature_weights_p3_triangle",wn,argument_sequence=None)
-    # NOTE: writes out in Row Major (so we write the transpose). Salvus (and Eigen) assume Column Major
-    dphi_dr_rsn_routine  = autocode.routine("dphi_dr_rsn_p3_triangle",dphi_dr_rsn.transpose(),
+    rn_routine = autocode.routine("coordinates_p3_triangle_rn",rn,
+                                  argument_sequence=None)
+    sn_routine = autocode.routine("coordinates_p3_triangle_sn",sn,
+                                  argument_sequence=None)
+    wn_routine  = autocode.routine("quadrature_weights_p3_triangle",wn,
+                                   argument_sequence=None)
+
+    # NOTE: writes out in Row Major (so we write the
+    # transpose). Salvus (via Eigen) assumes Column Major
+    dphi_dr_rsn_routine  = autocode.routine("dphi_dr_rsn_p3_triangle",
+                                            dphi_dr_rsn.transpose(),
                                             argument_sequence=None)
-    dphi_ds_rsn_routine  = autocode.routine("dphi_ds_rsn_p3_triangle",dphi_ds_rsn.transpose(),
+    dphi_ds_rsn_routine  = autocode.routine("dphi_ds_rsn_p3_triangle",
+                                            dphi_ds_rsn.transpose(),
                                             argument_sequence=None)
 
     routines = [rn_routine,
@@ -125,5 +178,4 @@ def genP3code():
                 dphi_dr_rsn_routine,
                 dphi_ds_rsn_routine]
 
-    # autocode.write([rn_routine],"p3_triangle",to_files=True)
     autocode.write(routines,"p3_triangle",to_files=True)
