@@ -60,7 +60,6 @@ void NewmarkTesting::initialize(Mesh *mesh,
         // setup tests
         element->setupTest(mMesh, options);
         
-        
     }
     
     // Scatter the mass matrix to the global dofs.
@@ -147,6 +146,10 @@ void NewmarkTesting::solve(Options options) {
                 fitr++;
             }
 
+        }
+
+        // boundary condition happens after full Ku
+        for( auto &element : mElements) {
             // we can now apply boundary conditions (after fields are set)
             if(element->OnBoundary()) {
                 // apply boundary condition
@@ -187,25 +190,4 @@ void NewmarkTesting::solve(Options options) {
 
     if(options.SaveMovie()) mMesh->finalizeMovie();
 
-}
-
-void NewmarkTesting::applyDirichletBoundary(Mesh *mesh,std::string fieldname, double value) {
-    
-    // auto& boundaryIds = mesh->BoundaryIds();
-    // auto dirichlet_id_it = boundaryIds.find("dirichlet");
-    // // found dirichlet boundary
-    // if(dirichlet_id_it != boundaryIds.end()) {
-    //     int dirichlet_id = (*dirichlet_id_it).second;
-    //     auto& dirichlet_elems = mesh->BoundaryElementFaces()[dirichlet_id];
-    //     for(auto& elem_key : dirichlet_elems) {                                
-    //         for(auto& faceid : elem_key.second) {                                                            
-    //             auto field = mesh->getFieldOnFace(fieldname,faceid,
-    //                                                mElements[elem_key.first]->GetFaceClosureMapping());
-    //             // apply dirichlet condition
-    //             field = 0*field.array() + value;
-    //             mesh->setFieldFromFace(fieldname,faceid,mElements[elem_key.first]->GetFaceClosureMapping(),field);
-    //         }
-    //     }
-    // }
-    
 }
