@@ -415,8 +415,8 @@ std::tuple<Eigen::VectorXd,Eigen::VectorXd> Quad::buildNodalPoints(Mesh* mesh) {
   }
 
   // push nodal locations to shared dofs
-  mesh->setFieldFromElement("nodes_x", mElementNumber, mClosureMapping, nodalPoints_x);
-  mesh->setFieldFromElement("nodes_z", mElementNumber, mClosureMapping, nodalPoints_z);
+  //mesh->setFieldFromElement("nodes_x", mElementNumber, mClosureMapping, nodalPoints_x);
+  //mesh->setFieldFromElement("nodes_z", mElementNumber, mClosureMapping, nodalPoints_z);
 
   return std::make_tuple(nodalPoints_x,nodalPoints_z);
 }
@@ -465,8 +465,10 @@ double Quad::integrateField(const Eigen::VectorXd &field) {
             std::tie(inverse_Jacobian,detJ) = inverseJacobianAtPoint(eps,eta);
             val += field(j+i*mNumberIntegrationPointsEps) * mIntegrationWeightsEps(j) *
                 mIntegrationWeightsEta(i) * detJ;
+
         }
     }
+
     return val;
 
 }

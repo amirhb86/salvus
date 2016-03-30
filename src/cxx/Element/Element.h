@@ -151,6 +151,7 @@ public:
     
     virtual std::map<std::string,std::vector<int>> Boundaries() const { return mBoundaries; }
 
+    void SetVertexCoordinates(Eigen::MatrixXd coord) { mVertexCoordinates = coord; }
     virtual Eigen::MatrixXd GetVertexCoordinates() { return mVertexCoordinates; }
 
 

@@ -94,6 +94,9 @@ public:
     inline std::vector<double> SourceRickerAmplitude() { return mSourceRickerAmplitude; }
     inline std::vector<double> SourceRickerCenterFreq() { return mSourceRickerCenterFreq; }
     inline std::vector<double> SourceRickerTimeDelay() { return mSourceRickerTimeDelay; }
+
+    // Setters (FOR TESTING ONLY).
+    inline void __SetPolynomialOrder(int p_order) { mPolynomialOrder = p_order; }
     
 };
 
