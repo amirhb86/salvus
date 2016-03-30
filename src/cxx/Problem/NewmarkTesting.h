@@ -15,6 +15,5 @@ public:
     void solve(Options options);
     void initialize(Mesh *mesh, ExodusModel *model, Element2D *elem, Options options);
 
-    void applyDirichletBoundary(Mesh *mesh,std::string fieldname, double value);
     
 };
