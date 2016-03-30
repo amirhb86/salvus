@@ -10,12 +10,11 @@ addons:
       - g++-4.8
       - gfortran-4.8
       - build-essential
-      - perl
+      - openmpi-bin
+      - libopenmpi-dev
       - cmake
-      - m4
       - git
       - liblapack-dev
-      - liblapack-doc
       - liblapack3gf
       - libblas-dev
       - libblas3gf
@@ -26,11 +25,10 @@ before_install:
 
 install:
   - sh conf/install-deps.sh
-  - cp conf/CMakeLists.txt.travis ./CMakeLists.txt
   - mkdir build; cd build
-  - cmake ../
-  - make
-  - make salvus_test
+  - CC=gcc-4.8 CXX=g++-4.8 FC=gfortran-4.8 cmake ../ -DPETSC_DIR=/home/travis/petsc -DEIGEN_INCLUDE=/home/travis/eigen
+  - make VERBOSE=1 -j
+  - make salvus_test VERBOSE=1 -j
 
   # Install salvus_data as well.
   - cd; cd build
