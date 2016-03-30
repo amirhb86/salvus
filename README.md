@@ -1,4 +1,6 @@
 # salvus
+[![Build Status](https://travis-ci.org/SalvusHub/salvus.svg?branch=master)](https://travis-ci.org/SalvusHub/salvus)
+
 Ask not what your spectral element wave propagator can do for you, but what you can do for your spectral element wave propagator.
 
 ## Installation

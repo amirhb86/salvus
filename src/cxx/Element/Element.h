@@ -5,6 +5,7 @@
 #include <Source/Source.h>
 #include <Mesh/Mesh.h>
 #include <mpi.h>
+#include <petsc.h>
 
 /**
  * Base class for 2D elements
@@ -179,15 +180,8 @@ public:
     virtual std::vector<std::string> PushElementalFields() const = 0;
 
     // Testing, which is usually implemented via an initial condition
-    virtual void setupTest(Mesh* mesh, Options options)  {
-//        printf("ERROR: No test implemented\n");
-//        MPI::COMM_WORLD.Abort(-1);
-    }
-    virtual double checkTest(Mesh* mesh, Options options, const Eigen::MatrixXd &displacement, double time) {
-//        printf("ERROR: No test implemented\n");
-//        MPI::COMM_WORLD.Abort(-1);
-//        return -1;
-    }
+    virtual void setupTest(Mesh* mesh, Options options);
+    virtual double checkTest(Mesh* mesh, Options options, const Eigen::MatrixXd &displacement, double time);
     
     
 };

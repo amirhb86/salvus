@@ -18,6 +18,17 @@ int Element2D::mNumberIntegrationPoints = -1;
 int Element2D::mPolynomialOrder;
 Eigen::VectorXi Element2D::mClosureMapping;
 
+// Default implementation
+void Element2D::setupTest(Mesh* mesh, Options options) {
+    printf("ERROR: No test implemented\n");
+    MPI::COMM_WORLD.Abort(-1);
+}
+
+double Element2D::checkTest(Mesh* mesh, Options options, const Eigen::MatrixXd &displacement, double time) {
+    printf("ERROR: No test implemented\n");
+    MPI::COMM_WORLD.Abort(-1);
+    return -1;
+}
 
 Element2D *Element2D::factory(Options options) {
 
@@ -105,3 +116,4 @@ void Element2D::applyBoundaryConditions(Mesh *mesh,
         }
     }
 }
+

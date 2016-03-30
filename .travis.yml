@@ -27,7 +27,7 @@ before_install:
 install:
   - sh conf/install-deps.sh
   - cp conf/CMakeLists.txt.travis ./CMakeLists.txt
-  - mkdir build; cd build; pwd
+  - mkdir build; cd build
   - cmake ../
   - make
   - make salvus_test
