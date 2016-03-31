@@ -2,16 +2,14 @@
 
 # PETSc
 cd
-git clone -b maint https://bitbucket.org/petsc/petsc petsc;
-cd petsc
+git clone -b maint https://bitbucket.org/petsc/petsc petsc-src;
+cd petsc-src
 
 # Configure and install.
 ./configure --download-exodusii --download-netcdf --download-hdf5 --download-chaco \
---with-cc=/usr/bin/gcc-4.8 --with-fc=/usr/bin/gfortran-4.8 --with-cxx=/usr/bin/g++-4.8 \
---download-openmpi=yes
-make PETSC_DIR=/home/travis/petsc PETSC_ARCH=arch-linux2-c-debug all
-make PETSC_DIR=/home/travis/petsc PETSC_ARCH=arch-linux2-c-debug test
-make PETSC_DIR=/home/travis/petsc PETSC_ARCH=arch-linux2-c-debug streams NPMAX=2
+            --prefix=/home/travis/petsc
+make 
+make install
 
 # Eigen
 cd
