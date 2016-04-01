@@ -61,8 +61,65 @@ sys.dont_write_bytecode = True
 oneline = "Gather from or export to Exodus II files using the Exodus II library"
 
 # Imports and external programs
+import itertools
 from ctypes import *
+import ctypes.util
 import os
+import re
+
+
+def find_shared_library(name):
+    """
+    Does its very best and attempts to find the given library.
+
+    Fairly wild and brute-force but it should get the job done. If it does not
+    work, just set any environment variable to the folder containing the
+    libraries.
+    """
+    # Ctypes internal functionality. The exact actions performed depend on the
+    # platform but it should be able to find libraries in the default system
+    # paths.
+    lib = ctypes.util.find_library(name)
+    if lib:
+        return lib
+
+    folders = [
+        # Prefix of the Python executable - might work for Anaconda, Homebrew,
+        # and other package managers. Should be covered by the environment
+        # variables below but who knows.
+        os.path.dirname(os.path.dirname(sys.executable)),
+        # Other paths where stuff might be located.
+        "/opt/petsc"]
+
+    # This is a bit brute force - just check all environment variables...
+    for value in os.environ.values():
+        folders.extend(value.split(":"))
+
+    # Strip trailing /bin and to get to the prefix location.
+    folders = [_i if os.path.split(_i)[1] != "bin" else os.path.split(_i)[0]
+               for _i in folders]
+
+    # Search in each folder and its `/lib` subdirectory.
+    folders = itertools.chain.from_iterable(
+        (_i, os.path.join(_i, "lib")) for _i in folders)
+
+    folders = [os.path.abspath(_i) for _i in folders
+               if os.path.exists(_i) and os.path.isdir(_i)]
+
+    # Remove duplicates but preserve order.
+    _t = set()
+    folders = [i for i in folders if not (i in _t or _t.add(i))]
+
+    # Now try to find the library.
+    pattern = re.compile("^lib{name}\.?\d*\.(dylib|so)$".format(name=name))
+    for folder in folders:
+        _res = [i for i in os.listdir(folder) if pattern.match(i)]
+        if not _res:
+            continue
+        return os.path.join(folder, _res[0])
+
+    raise Exception("Could not find {name} library.".format(name=name))
+
 
 def basename(file):
   """
@@ -73,27 +130,34 @@ def basename(file):
   basename = ".".join(fileParts[:-1])
   return basename
 
+
+# Find the libraries.
+NETCDF_SO = find_shared_library("netcdf")
+EXODUS_SO = find_shared_library("exodus")
+
+NETCDF_LIB = cdll.LoadLibrary(NETCDF_SO)
+EXODUS_LIB = cdll.LoadLibrary(EXODUS_SO)
+
+
 def getExodusVersion():
   """
   Parse the exodusII.h header file and return the version number or 0 if not
   found.
   """
-  err_msg = "When searching for the path that contains exodusII.h:\n\n"
-  for line in open("/Users/michaelafanasiev/Development/src/code/seacas/include/exodusII.h"):
+  # Find the include path. Assume it is located at ../include/exodusII.h
+  # relative to the libexodus shared library.
+  exodus_inc = os.path.join(os.path.dirname(EXODUS_SO), os.path.pardir,
+                            "include", "exodusII.h")
+  if not os.path.exists(exodus_inc):
+      raise Exception("File '%s' does not exist." % exodus_inc)
+
+  for line in open(exodus_inc):
     fields = line.split()
     if (len(fields) == 3 and
         fields[0] == '#define' and
         fields[1] == 'EX_API_VERS_NODOT'):
       return int(fields[2])
   return 0
-
-NETCDF_SO = "/usr/local/petsc/lib/libnetcdf.dylib"
-if os.uname()[0] == 'Darwin':
-  EXODUS_SO = "/Users/michaelafanasiev/Development/src/code/seacas/lib/libexodus.dylib"
-else:
-  EXODUS_SO = "/Users/michaelafanasiev/Development/src/code/seacas/lib/libexodus.so"
-NETCDF_LIB = cdll.LoadLibrary(NETCDF_SO)
-EXODUS_LIB = cdll.LoadLibrary(EXODUS_SO)
 
 EX_API_VERSION_NODOT = getExodusVersion()
 EX_VERBOSE           = 1       #verbose mode message flag
