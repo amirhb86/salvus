@@ -95,6 +95,11 @@ def find_shared_library(name):
     for value in os.environ.values():
         folders.extend(value.split(":"))
 
+    # Make sure its a folder. This assures that directly passing the library
+    # name in some way also works.
+    folders = [_i if os.path.isdir(_i) else os.path.dirname(_i)
+               for _i in folders]
+
     # Strip trailing /bin and to get to the prefix location.
     folders = [_i if os.path.split(_i)[1] != "bin" else os.path.split(_i)[0]
                for _i in folders]
