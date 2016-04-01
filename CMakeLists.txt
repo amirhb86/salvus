@@ -44,6 +44,7 @@ include_directories(
 
 set(SALVUS_SOURCES
   src/cxx/Problem/Problem.cpp
+  src/cxx/Problem/FieldIo.cpp
   src/cxx/Problem/NewmarkGeneral.cpp
   src/cxx/Problem/NewmarkTesting.cpp
   src/cxx/Mesh/Mesh.cpp
@@ -76,7 +77,7 @@ add_executable(salvus_test
   )
 
 # run `make` (or `make -j5`) to build `salvus` executable
-target_link_libraries(salvus ${MPI_LIBRARIES} petsc exodus netcdf)
+target_link_libraries(salvus ${MPI_LIBRARIES} petsc exodus netcdf hdf5)
 # run `make salvus_test` to build testing executable.
-target_link_libraries(salvus_test ${MPI_LIBRARIES} petsc exodus netcdf)
+target_link_libraries(salvus_test ${MPI_LIBRARIES} petsc exodus netcdf hdf5)
 set_target_properties(salvus_test PROPERTIES EXCLUDE_FROM_ALL TRUE) # doesn't get built by `make`
