@@ -33,7 +33,7 @@ class Options {
     std::string mProblemType;
     std::string mTimeStepType;
 
-    std::vector<std::string> mDirchletBoundaryNames;
+    std::vector<std::string> mDirichletBoundaryNames;
     
     // Determines the output name of the movie.
     std::string mOutputMovieFile;
@@ -85,7 +85,7 @@ public:
     inline std::string OutputMovieFile() { return mOutputMovieFile; }
     inline std::string ProblemType() { return mProblemType; }
 
-    inline std::vector<std::string> DirichletBoundaries() { return mDirchletBoundaryNames; }
+    inline std::vector<std::string> DirichletBoundaries() { return mDirichletBoundaryNames; }
     
     // Vector getters
     inline std::vector<double> SourceLocationX() { return mSourceLocationX; }
@@ -97,6 +97,19 @@ public:
 
     // Setters (FOR TESTING ONLY).
     inline void __SetPolynomialOrder(int p_order) { mPolynomialOrder = p_order; }
+    inline void __SetDuration(double duration) { mDuration = duration; }
+    inline void __SetTimeStep(double timestep) { mTimeStep = timestep; }
+    inline void __SetMeshType       (std::string MeshType       ){ mMeshType        = MeshType;        }
+    inline void __SetExodusMeshFile (std::string ExodusMeshFile ){ mExodusMeshFile  = ExodusMeshFile;  }
+    inline void __SetElementShape   (std::string ElementShape   ){ mElementShape    = ElementShape;    }
+    inline void __SetPhysicsSystem  (std::string PhysicsSystem  ){ mPhysicsSystem   = PhysicsSystem;  }
+    inline void __SetExodusModelFile(std::string ExodusModelFile){ mExodusModelFile = ExodusModelFile;}
+    inline void __SetDirichletBoundaryNames(std::vector<std::string> DirichletBoundaryNames)
+    { mDirichletBoundaryNames = DirichletBoundaryNames;}
+    inline void __SetCenter_x    (PetscReal Center_x    ) {mCenter_x     = Center_x    ;}
+    inline void __SetCenter_z    (PetscReal Center_z    ) {mCenter_z     = Center_z    ;}
+    inline void __SetSquareSide_L(PetscReal SquareSide_L) {mSquareSide_L = SquareSide_L;}
+    inline void __SetSaveMovie   (PetscBool saveMovie) {mSaveMovie = saveMovie;}
     
 };
 

@@ -79,7 +79,7 @@ TEST_CASE("Test whether simple stuff works.", "[element]") {
         // TODO: FIX THIS FUNCTION so that we don't need to pass it a mesh.
         Mesh *mesh;
         Eigen::VectorXd pts_x, pts_y;
-        std::tie(pts_x,pts_y) = reference_quad->buildNodalPoints(mesh);
+        std::tie(pts_x,pts_y) = reference_quad->buildNodalPoints();
 
         // Set up function values at GLL points.
         double x, y;

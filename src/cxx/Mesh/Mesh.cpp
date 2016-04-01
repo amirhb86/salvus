@@ -31,6 +31,7 @@ Mesh *Mesh::factory(Options options) {
                 // add nodal location to global field vectors for testing
                 sc_nm_mesh->AddToGlobalFields("x");
                 sc_nm_mesh->AddToGlobalFields("z");
+                sc_nm_mesh->AddToGlobalFields("u_exact");
             }
             return sc_nm_mesh;            
         } else if (mesh_type == "newmark_2d_elastic"){

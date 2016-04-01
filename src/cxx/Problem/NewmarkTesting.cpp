@@ -172,8 +172,8 @@ void NewmarkTesting::solve(Options options) {
         if(options.SaveMovie() && (it%options.SaveFrameEvery()==0 || it == 0) ) {
             // GlobalFields[0] == "u" for acoustic and == "ux" for elastic
             mMesh->saveFrame(mMesh->GlobalFields()[0], it);
-            mMesh->saveFrame("a", it);
-            mMesh->saveFrame("mi", it);
+            // mMesh->setLocalFieldToGlobal("u_exact");
+            // mMesh->saveFrame("u_exact", it);
             if(max_error > 5) {
                 std::cerr << "ERROR: Solution blowing up!\n";
                 exit(1);

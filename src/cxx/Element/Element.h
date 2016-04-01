@@ -135,7 +135,7 @@ public:
      * Builds nodal coordinates (x,(y),z) on all mesh degrees of freedom.
      * @param mesh [in] The mesh.
      */
-    virtual std::tuple<Eigen::VectorXd,Eigen::VectorXd> buildNodalPoints(Mesh* mesh) = 0;
+    virtual std::tuple<Eigen::VectorXd,Eigen::VectorXd> buildNodalPoints() = 0;
 
     // Attribute gets.
     virtual int Number() const { return mElementNumber; }

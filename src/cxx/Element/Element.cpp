@@ -47,7 +47,6 @@ Element2D *Element2D::factory(Options options) {
         }
         else if(options.ElementShape() == "triangle") {
             if (physics == "acoustic") {
-                std::cout << "New AcousticTri\n";
                 return new AcousticTri(options);
             }
             else {
@@ -110,7 +109,6 @@ void Element2D::applyBoundaryConditions(Mesh *mesh,
         for(auto& faceid : faceids) {
             auto field = mesh->getFieldOnFace(fieldname,faceid);
             // apply dirichlet condition
-            printf("Setting 0\n");
             field = 0*field.array() + value;
             mesh->setFieldFromFace(fieldname,faceid,field);
         }

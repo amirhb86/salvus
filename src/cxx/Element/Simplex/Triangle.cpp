@@ -71,35 +71,31 @@ Eigen::VectorXi Triangle::ClosureMapping(const int order, const int dimension) {
 
 Triangle::Triangle(Options options) {
 
-    std::cout << "Options constructor \n";
-    // set to -1 at compile time, and now set only once
+    // Basic properties.
+    mPolynomialOrder = options.PolynomialOrder();
+    if(mPolynomialOrder == 3) {
+        mNumberIntegrationPoints = 12;
+        mNumberDofEdge = 2;
+        mNumberDofFace = 3;
+    }
+    else {
+        std::cerr << "ERROR: Order NOT implemented!\n";
+        MPI::COMM_WORLD.Abort(-1);
+    }
+        
+    // mVertexCoordinates has 3 vertices
+    mVertexCoordinates.resize(2,mNumberVertex);
     
+    // Nodal collocation points on edge and surface
+    mNumberDofVertex = 1;
         
-        // Basic properties.
-        mPolynomialOrder = options.PolynomialOrder();
-        if(mPolynomialOrder == 3) {
-            mNumberIntegrationPoints = 12;
-            mNumberDofEdge = 2;
-            mNumberDofFace = 3;
-        }
-        else {
-            std::cerr << "ERROR: Order NOT implemented!\n";
-            MPI::COMM_WORLD.Abort(-1);
-        }
+    // Integration points and weights
+    std::tie(mIntegrationCoordinates_r,mIntegrationCoordinates_s) =
+        Triangle::QuadraturePointsForOrder(options.PolynomialOrder());        
+    mIntegrationWeights = Triangle::QuadratureIntegrationWeightForOrder(options.PolynomialOrder());
         
-        // mVertexCoordinates has 3 vertices
-        mVertexCoordinates.resize(2,mNumberVertex);
-    
-        // Nodal collocation points on edge and surface
-        mNumberDofVertex = 1;
-        
-        // Integration points and weights
-        std::tie(mIntegrationCoordinates_r,mIntegrationCoordinates_s) =
-            Triangle::QuadraturePointsForOrder(options.PolynomialOrder());        
-        mIntegrationWeights = Triangle::QuadratureIntegrationWeightForOrder(options.PolynomialOrder());
-        
-        mClosureMapping = Triangle::ClosureMapping(options.PolynomialOrder(), mNumberDimensions);
-        setupGradientOperator();
+    mClosureMapping = Triangle::ClosureMapping(options.PolynomialOrder(), mNumberDimensions);
+    setupGradientOperator();
     
 }
 
@@ -258,7 +254,7 @@ void Triangle::setupGradientOperator() {
 }
 
 // global x-z points on all nodes
-std::tuple<Eigen::VectorXd,Eigen::VectorXd> Triangle::buildNodalPoints(Mesh* mesh) {
+std::tuple<Eigen::VectorXd,Eigen::VectorXd> Triangle::buildNodalPoints() {
 		
     std::vector<PetscReal> ni(mVertexCoordinates.size());
 	
@@ -280,11 +276,7 @@ std::tuple<Eigen::VectorXd,Eigen::VectorXd> Triangle::buildNodalPoints(Mesh* mes
       auto zn=-z1*(r + s)/2 + z2*(r + 1)/2 + z3*(s + 1)/2;
       nodalPoints_x(n) = xn;
       nodalPoints_z(n) = zn;
-  }
-  
-  // push nodal locations to shared dofs
-  mesh->setFieldFromElement("x", mElementNumber, mClosureMapping, nodalPoints_x);
-  mesh->setFieldFromElement("z", mElementNumber, mClosureMapping, nodalPoints_z);
+  }    
 
   return std::make_tuple(nodalPoints_x,nodalPoints_z);
 }
