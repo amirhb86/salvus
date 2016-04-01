@@ -67,8 +67,6 @@ Eigen::VectorXi Triangle::ClosureMapping(const int order, const int dimension) {
     
 }
 
-
-
 Triangle::Triangle(Options options) {
 
     // Basic properties.
