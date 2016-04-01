@@ -25,7 +25,7 @@ public:
 
     void computeSurfaceTerm();
     void assembleElementMassMatrix(Mesh *mesh);
-    void interpolateMaterialProperties(ExodusModel *model);
+    void attachMaterialProperties(ExodusModel *model);
 
     Eigen::MatrixXd computeSourceTerm(double time);
     Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement);

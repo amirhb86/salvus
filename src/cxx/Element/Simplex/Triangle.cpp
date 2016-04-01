@@ -163,7 +163,7 @@ std::tuple<Eigen::Matrix2d,PetscReal> Triangle::inverseJacobianAtPoint(PetscReal
     
 }
 
-Eigen::Vector3d Triangle::__interpolateMaterialProperties(ExodusModel *model, std::string parameter_name) {
+Eigen::Vector3d Triangle::__attachMaterialProperties(ExodusModel *model, std::string parameter_name) {
 
     Eigen::Vector3d material_at_vertices(mNumberVertex);
 

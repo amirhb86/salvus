@@ -127,12 +127,12 @@ Eigen::MatrixXd Elastic::computeStiffnessTerm(const Eigen::MatrixXd &displacemen
             mElementStrain.block<2,2>(rx,cx) = inverse_jacobian * mElementStrain.block<2,2>(rx,cx);
 
             // Get material parameters at this integration point.
-            double c11 = interpolateShapeFunctions(eps, eta).dot(mC11AtVertices);
-            double c13 = interpolateShapeFunctions(eps, eta).dot(mC13AtVertices);
-            double c15 = interpolateShapeFunctions(eps, eta).dot(mC15AtVertices);
-            double c33 = interpolateShapeFunctions(eps, eta).dot(mC33AtVertices);
-            double c35 = interpolateShapeFunctions(eps, eta).dot(mC35AtVertices);
-            double c55 = interpolateShapeFunctions(eps, eta).dot(mC55AtVertices);
+            double c11 = interpolateAtPoint(eps, eta).dot(mC11AtVertices);
+            double c13 = interpolateAtPoint(eps, eta).dot(mC13AtVertices);
+            double c15 = interpolateAtPoint(eps, eta).dot(mC15AtVertices);
+            double c33 = interpolateAtPoint(eps, eta).dot(mC33AtVertices);
+            double c35 = interpolateAtPoint(eps, eta).dot(mC35AtVertices);
+            double c55 = interpolateAtPoint(eps, eta).dot(mC55AtVertices);
 
             // Calculate element stress by multiplying strain through by elastic tensor.
             // TODO: Probably don't need this temporary object.
@@ -202,16 +202,16 @@ Eigen::MatrixXd Elastic::computeStiffnessTerm(const Eigen::MatrixXd &displacemen
     return integratedStiffnessMatrix;
 }
 
-void Elastic::interpolateMaterialProperties(ExodusModel *model) {
+void Elastic::attachMaterialProperties(ExodusModel *model) {
 
     // TODO: C15, C35.
-    mRhoAtVertices = __interpolateMaterialProperties(model, "RHO");
-    mC11AtVertices = __interpolateMaterialProperties(model, "C11");
-    mC13AtVertices = __interpolateMaterialProperties(model, "C13");
-//    mC15AtVertices = __interpolateMaterialProperties(model, "C15");
-    mC33AtVertices = __interpolateMaterialProperties(model, "C33");
-//    mC35AtVertices = __interpolateMaterialProperties(model, "C35");
-    mC55AtVertices = __interpolateMaterialProperties(model, "C55");
+    mRhoAtVertices = __attachMaterialProperties(model, "RHO");
+    mC11AtVertices = __attachMaterialProperties(model, "C11");
+    mC13AtVertices = __attachMaterialProperties(model, "C13");
+//    mC15AtVertices = __attachMaterialProperties(model, "C15");
+    mC33AtVertices = __attachMaterialProperties(model, "C33");
+//    mC35AtVertices = __attachMaterialProperties(model, "C35");
+    mC55AtVertices = __attachMaterialProperties(model, "C55");
 
     mC31AtVertices = mC13AtVertices = Eigen::MatrixXd::Zero(mNumberVertex,1);
     mC51AtVertices = mC15AtVertices = Eigen::MatrixXd::Zero(mNumberVertex,1);

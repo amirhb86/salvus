@@ -43,7 +43,7 @@ int initialize_exact(Mesh *mesh,
         element->attachVertexCoordinates(mesh->DistributedMesh());
 
         // Add material parameters (velocity, Cij, etc...).
-        element->interpolateMaterialProperties(model);
+        element->attachMaterialProperties(model);
 
         // Set boundary conditions.
         element->setBoundaryConditions(mesh);

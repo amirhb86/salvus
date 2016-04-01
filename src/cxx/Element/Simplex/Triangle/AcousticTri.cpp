@@ -55,10 +55,10 @@ Eigen::MatrixXd AcousticTri::computeStiffnessTerm(const Eigen::MatrixXd &displac
     
 }
 
-void AcousticTri::interpolateMaterialProperties(ExodusModel *model) {
+void AcousticTri::attachMaterialProperties(ExodusModel *model) {
 
     // Vp (m/s).
-    mMaterialVelocityAtVertices = __interpolateMaterialProperties(model, "VP");
+    mMaterialVelocityAtVertices = __attachMaterialProperties(model, "VP");
 
 }
 

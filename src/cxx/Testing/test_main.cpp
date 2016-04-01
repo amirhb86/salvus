@@ -46,13 +46,28 @@ Quad *setup_simple_quad(Options options) {
     coord << -2, +1, +1, -2,
              -6, -6, +1, +1;
     reference_quad->SetVertexCoordinates(coord);
-    reference_quad->interpolateMaterialProperties(model);
+    reference_quad->attachMaterialProperties(model);
     reference_quad->setupGradientOperator();
 
     return reference_quad;
 
 }
 
+AcousticQuad* setup_simple_acousticquad(Options options) {
+
+    // Get element from options.
+    Element2D *reference_element = Element2D::factory(options);
+    AcousticQuad *reference_quad = dynamic_cast<AcousticQuad*> (reference_element);
+
+    // Make things easy by assuming a reference element.
+    // NOTE THE ELEMENT IS DISTORTED x -> [-2, 1], y -> [-6, 1]
+    Eigen::Matrix<double,2,4> coord;
+    coord << -2, +1, +1, -2,
+        -6, -6, +1, +1;
+    reference_quad->SetVertexCoordinates(coord);
+    return reference_quad;
+
+}
 
 TEST_CASE("Test whether simple stuff works.", "[element]") {
 
@@ -105,4 +120,47 @@ TEST_CASE("Test whether simple stuff works.", "[element]") {
 
 }
 
+TEST_CASE("Test quad velocity interpolation", "[element]") {
 
+    Eigen::MatrixXd mMaterialVelocityAtVertices_i(3,4);
+    mMaterialVelocityAtVertices_i <<
+        1,2,2,1,
+        1,1,2,2,
+        1,1,2,1;
+    
+    Eigen::MatrixXd check_velocity_i(3,9);
+    check_velocity_i <<
+        1.0,1.5,2.0,1.0,1.5,2.0,1.0,1.5,2.0,
+        1.0,1.0,1.0,1.5,1.5,1.5,2.0,2.0,2.0,
+        1.0,1.0,1.0,1.0,1.25,1.5,1.0,1.5,2.0;
+    
+    for(int i=0;i<mMaterialVelocityAtVertices_i.rows();i++) {
+        Eigen::VectorXd mMaterialVelocityAtVertices = mMaterialVelocityAtVertices_i.row(i);
+        Eigen::VectorXd check_velocity = check_velocity_i.row(i);
+        Options options;
+        options.__SetPolynomialOrder(2);
+    
+        auto mIntegrationCoordinatesEta = Quad::GllPointsForOrder(options.PolynomialOrder());
+        auto mIntegrationCoordinatesEps = Quad::GllPointsForOrder(options.PolynomialOrder());
+        auto mNumberIntegrationPointsEta = mIntegrationCoordinatesEta.size();
+        auto mNumberIntegrationPointsEps = mIntegrationCoordinatesEps.size();
+    
+        int n=0;
+        Eigen::VectorXd velocity(mNumberIntegrationPointsEta*mNumberIntegrationPointsEps);
+        for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
+            for (auto eps_index = 0; eps_index < mNumberIntegrationPointsEps; eps_index++) {
+
+                // Eps and eta coordinates.
+                double eta = mIntegrationCoordinatesEta[eta_index];
+                double eps = mIntegrationCoordinatesEps[eps_index];
+                // Get material parameters at this node.
+                // new way
+                auto interpolate1 = Quad::interpolateAtPoint(eps, eta);                
+                velocity[n] = interpolate1.dot(mMaterialVelocityAtVertices);
+                n++;
+            }
+        }
+    
+        REQUIRE((velocity.array()-check_velocity.array()).abs().maxCoeff() < 1e-5);
+    }
+}

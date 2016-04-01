@@ -144,13 +144,7 @@ protected:
     static Eigen::VectorXd mIntegrationCoordinatesEps;  /** < Integration points along epsilon direction */
     static Eigen::VectorXd mIntegrationCoordinatesEta;  /** < Integration points along eta direction */
 
-    /**
-     * Returns the shape function coefficients for a given location (eps, eta) in the reference cube.
-     * @param [in] eps Epsilon in the reference element.
-     * @param [in] eta Eta in the reference element.
-     * @returns A vector containing the [4] coefficients from each shape function.
-     */
-    static Eigen::Vector4d interpolateShapeFunctions(const double &eps, const double &eta);
+    
 
     /**
      * Returns the lagrange polynomial coefficients for a given location (eps, eta) in the reference cube.
@@ -285,6 +279,12 @@ public:
     std::tuple<Eigen::Matrix2d,PetscReal> inverseJacobianAtPoint(PetscReal eps, PetscReal eta);
 
     /**
+     * Provides interpolation vector for quadrilaterals with vertex velocities based on right hand rule.
+     * Usage: double velocity_at_eps_eta = interpolateAtPoint(eps,eta).dot(mMaterialVelocityAtVertices);
+     */
+    static Eigen::Vector4d interpolateAtPoint(int eps, int eta);
+
+    /**
      * Attaches a material parameter to the vertices on the current element.
      * Given an exodus model object, we use a kD-tree to find the closest parameter to a vertex. In practice, this
      * closest parameter is often exactly coincident with the vertex, as we use the same exodus model for our mesh
@@ -293,7 +293,7 @@ public:
      * @param [in] parameter_name The name of the field to be added (i.e. velocity, c11).
      * @returns A Vector with 4-entries... one for each Element vertex, in the ordering described above.
      */
-    Eigen::Vector4d __interpolateMaterialProperties(ExodusModel *model,
+    Eigen::Vector4d __attachMaterialProperties(ExodusModel *model,
                                                             std::string parameter_name);
 
     /**

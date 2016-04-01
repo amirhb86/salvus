@@ -158,7 +158,7 @@ public:
     // Abstract methods to be implemented by elements at the physics level (acoustic/elastic)
     virtual Eigen::MatrixXd computeSourceTerm(double time) = 0;
     virtual void assembleElementMassMatrix(Mesh *mesh) = 0;
-    virtual void interpolateMaterialProperties(ExodusModel *model) = 0;
+    virtual void attachMaterialProperties(ExodusModel *model) = 0;
     virtual Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement) = 0;
     virtual void prepareStiffness() = 0;
 

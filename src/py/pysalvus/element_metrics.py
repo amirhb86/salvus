@@ -39,6 +39,37 @@ Tz = v1z+(v2z-v1z)*(r+1)/2 + (v4z+(v3z-v4z)*(r+1)/2 - v1z - (v2z-v1z)*(r+1)/2)*(
 J = sym.Matrix([[sym.diff(Tx,r), sym.diff(Tx,s)],
                 [sym.diff(Tz,r), sym.diff(Tz,s)]])
 
+# interpolation for quadrilaterals based on right-hand rule quad with velocity v0,v1,v2,v3 and eps(x) eta(y,or,z)
+#   v3               vb          v2
+#   +-----------------+----------+ \eps
+#   |                 |          |   ^       \alpha = (eta-(-1))/2
+#   |                 |          |   |       \beta  = (eps-(-1))/2
+#   |              vf + \beta    |   |       va = alpha(v1) + (1-alpha)v0
+#   |                 |  ^       |   |       vb = alpha(v2) + (1-alpha)v3
+#   |                 |  |       |           vf = beta va + (1-beta) vb
+#   |                 |  |       |           group vf by terms v0..v3
+#   |                 |  |       |           = [v0,v1,v2,v3].dot([-0.25*eps*eta - 0.25*eps + 0.25*eta + 0.25,
+#   |              va |  |       |                                0.25*eps*eta + 0.25*eps + 0.25*eta + 0.25,
+#   +-----------------+----------+                                -0.25*eps*eta + 0.25*eps - 0.25*eta + 0.25,
+#   v0 -------------->\alpha    v1  --->\eta                      0.25*eps*eta - 0.25*eps - 0.25*eta + 0.25]
+
+eps,eta,v0,v1,v2,v3 = sym.symbols("eps,eta,v0,v1,v2,v3")
+alpha = (eps-(-1.0))/2.0
+beta  = (eta-(-1.0))/2.0
+
+va = alpha*v2 + (1-alpha)*v3
+vb = alpha*v1 + (1-alpha)*v0
+vf = beta*va + (1-beta)*vb
+vf_full = sym.collect(sym.expand(vf),[v0,v1,v2,v3])
+print("vf={}".format(vf_full))
+vf_terms = sym.collect(sym.expand(vf),[v0,v1,v2,v3],evaluate=False)
+v0t = vf_terms[v0]
+v1t = vf_terms[v1]
+v2t = vf_terms[v2]
+v3t = vf_terms[v3]
+print("vector=[{},{},{},{}]".format(v0t,v1t,v2t,v3t))
+
+
 # J = [-v1x/2 + v2x/2 + (s + 1)*(v1x/2 - v2x/2 + v3x/2 - v4x/2)/2,
 # -v1x/2 + v4x/2 - (r + 1)*(-v1x + v2x)/4 + (r + 1)*(v3x - v4x)/4],
 # [-v1z/2 + v2z/2 + (s + 1)*(v1z/2 - v2z/2 + v3z/2 - v4z/2)/2, -v1z/2

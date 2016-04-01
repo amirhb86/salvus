@@ -142,16 +142,6 @@ Eigen::Map<const Eigen::VectorXd, 0, Eigen::InnerStride<>> Quad::etaVectorStride
             Eigen::InnerStride<> (mNumberIntegrationPointsEps));
 }
 
-
-Eigen::Vector4d Quad::interpolateShapeFunctions(const double &eps, const double &eta) {
-    Eigen::Vector4d coefficients;
-    coefficients(0) = n0(eps, eta);
-    coefficients(1) = n1(eps, eta);
-    coefficients(2) = n2(eps, eta);
-    coefficients(3) = n3(eps, eta);
-    return coefficients;
-}
-
 void Quad::attachVertexCoordinates(DM &distributed_mesh) {
 
     Vec coordinates_local;
@@ -213,7 +203,34 @@ std::tuple<Eigen::Matrix2d, PetscReal> Quad::inverseJacobianAtPoint(PetscReal ep
     return std::make_tuple(inverseJacobian, detJ);
 }
 
-Eigen::Vector4d Quad::__interpolateMaterialProperties(ExodusModel *model, std::string parameter_name) {
+Eigen::Vector4d Quad::interpolateAtPoint(int eps, int eta) {
+    // see element_metrics.py
+    //  interpolation for quadrilaterals based on right-hand rule quad with
+    // velocity v0,v1,v2,v3 and eps(x) eta(y,or,z)
+    //
+    //  v3               vb          v2
+    //  +-----------------+----------+ \eps
+    //  |                 |          |   ^       \alpha = (eta-(-1))/2
+    //  |                 |          |   |       \beta  = (eps-(-1))/2
+    //  |              vf + \beta    |   |       va = alpha(v1) + (1-alpha)v0
+    //  |                 |  ^       |   |       vb = alpha(v2) + (1-alpha)v3
+    //  |                 |  |       |           vf = beta va + (1-beta) vb
+    //  |                 |  |       |           group vf by terms v0..v3
+    //  |                 |  |       |           = [v0,v1,v2,v3].dot([-0.25*eps*eta - 0.25*eps + 0.25*eta + 0.25,
+    //  |              va |  |       |                                0.25*eps*eta + 0.25*eps + 0.25*eta + 0.25,
+    //  +-----------------+----------+                                -0.25*eps*eta + 0.25*eps - 0.25*eta + 0.25,
+    //  v0 -------------->\alpha    v1  --->\eta                      0.25*eps*eta - 0.25*eps - 0.25*eta + 0.25]
+    // ----------------------------------------------------------------------------------------------------------
+    Eigen::Vector4d interpolator;
+    interpolator <<        
+        0.25*eps*eta - 0.25*eps - 0.25*eta + 0.25,
+        -0.25*eps*eta + 0.25*eps - 0.25*eta + 0.25,
+        0.25*eps*eta + 0.25*eps + 0.25*eta + 0.25,
+        -0.25*eps*eta - 0.25*eps + 0.25*eta + 0.25;
+    return interpolator;
+}
+
+Eigen::Vector4d Quad::__attachMaterialProperties(ExodusModel *model, std::string parameter_name) {
 
     Eigen::Vector4d material_at_vertices(mNumberVertex);
 
