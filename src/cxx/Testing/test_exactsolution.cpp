@@ -118,15 +118,13 @@ double solve_vs_exact(Options options, Mesh* mesh, std::vector<Element2D*> &elem
             double element_error = element->checkTest(mesh, options, u.block(0,0,int_pnts,fitr), time);
             
             if(element_error > max_error) { max_error = element_error; }
-                       
+
             // Compute stiffness, only passing those rows which are occupied.
             ku.block(0,0,int_pnts,fitr) = element->computeStiffnessTerm(
                                                                         u.block(0,0,int_pnts,fitr));
 
-            
             // Compute acceleration.
-            fMinusKu.block(0,0,int_pnts,fitr) = f.block(0,0,int_pnts,fitr).array() -
-                ku.block(0,0,int_pnts,fitr).array();
+            fMinusKu.block(0,0,int_pnts,fitr) = -1 * ku.block(0,0,int_pnts,fitr).array();
 
             
             // Sum fields into local partition.
@@ -175,7 +173,7 @@ double solve_vs_exact(Options options, Mesh* mesh, std::vector<Element2D*> &elem
         
         it++;
         time += timeStep;
-        
+
     }
 
     PRINT_ROOT() << "Max Error @ T=end: " << max_error << std::endl;
