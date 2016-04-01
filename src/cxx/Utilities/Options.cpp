@@ -82,13 +82,13 @@ PetscErrorCode Options::setOptions() {
         printf("Using following for dirichlet boundaries:");
         for(int i=0;i<num_dirichlet_boundaries;i++) {
             printf("%s,",dirichlet_boundaries[i]);
-            mDirchletBoundaryNames.push_back(dirichlet_boundaries[i]);
+            mDirichletBoundaryNames.push_back(dirichlet_boundaries[i]);
         }
         printf("\n");
     }
     else {
         // default
-        mDirchletBoundaryNames.push_back("dirichlet");
+        mDirichletBoundaryNames.push_back("dirichlet");
     }
     
     // parameters for movies (to save or not, and how often)

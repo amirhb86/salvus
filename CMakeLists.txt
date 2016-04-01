@@ -17,7 +17,7 @@ if(NOT CMAKE_BUILD_TYPE)
       FORCE)
 endif(NOT CMAKE_BUILD_TYPE)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wno-literal-suffix")
 
 find_package(MPI REQUIRED)
 
@@ -72,6 +72,7 @@ add_executable(salvus
 add_executable(salvus_test
   ${SALVUS_SOURCES}
   src/cxx/Testing/test_main.cpp
+  src/cxx/Testing/test_exactsolution.cpp
   )
 
 # run `make` (or `make -j5`) to build `salvus` executable

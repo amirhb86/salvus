@@ -199,26 +199,53 @@ void AcousticQuad::assembleElementMassMatrix(Mesh *mesh) {
     mesh->addFieldFromElement("m", mElementNumber, mClosureMapping, elementMassMatrix);
 }
 
-void AcousticQuad::setInitialCondition(Mesh* mesh, Eigen::VectorXd& pts_x,Eigen::VectorXd& pts_z) {
+double AcousticQuad::checkTest(Mesh* mesh, Options options, const Eigen::MatrixXd &displacement, double time) {
+
+    auto u_current = displacement.col(0);
+    // exact solution
+    Eigen::VectorXd pts_x,pts_z;
+    std::tie(pts_x,pts_z) = buildNodalPoints();
+    auto un_exact = exactSolution(pts_x,pts_z,
+                                  options.IC_SquareSide_L(),
+                                  options.IC_Center_x(),options.IC_Center_z(),
+                                  time);
+
+    auto element_error = (un_exact - u_current).array().abs().maxCoeff();
+
+    return element_error;
+}
+
+void AcousticQuad::setupTest(Mesh* mesh, Options options) {
+    Eigen::VectorXd pts_x,pts_z;
+    std::tie(pts_x,pts_z) = buildNodalPoints();
+    // push nodal locations to shared dofs
+    setInitialCondition(mesh,pts_x,pts_z,
+                        options.IC_SquareSide_L(),
+                        options.IC_Center_x(),options.IC_Center_z());
+}
+
+void AcousticQuad::setInitialCondition(Mesh* mesh, Eigen::VectorXd& pts_x,Eigen::VectorXd& pts_z,
+                                      double L, double x0, double z0) {
     
-    double Lx = 10.0;
-    double Lz = 10.0;
+    double Lx = L;
+    double Lz = L;
     const double PI = std::atan(1.0)*4.0;
-    Eigen::VectorXd un = (PI/Lx*(pts_x.array()-Lx/2.0)).sin()*(PI/Lz*(pts_z.array()-Lz/2)).sin();
+    Eigen::VectorXd un = (PI/Lx*(pts_x.array()-(x0+L/2))).sin()*(PI/Lz*(pts_z.array()-(z0+L/2))).sin();
     Eigen::VectorXd vn = 0*pts_x;
     Eigen::VectorXd an = 0*pts_x;    
-    mesh->setFieldFromElement("displacement", mElementNumber, mClosureMapping, un);
-    mesh->setFieldFromElement("velocity", mElementNumber, mClosureMapping, vn);
-    mesh->setFieldFromElement("acceleration_", mElementNumber, mClosureMapping, an);
+    mesh->setFieldFromElement("u", mElementNumber, mClosureMapping, un);
+    mesh->setFieldFromElement("v", mElementNumber, mClosureMapping, vn);
+    mesh->setFieldFromElement("a_", mElementNumber, mClosureMapping, an);
     
 }
 
-Eigen::VectorXd AcousticQuad::exactSolution(Eigen::VectorXd& pts_x,Eigen::VectorXd& pts_z,double time) {
+Eigen::VectorXd AcousticQuad::exactSolution(Eigen::VectorXd& pts_x,Eigen::VectorXd& pts_z,
+                                           double L, double x0, double z0, double time) {
 
     const double PI = std::atan(1.0)*4.0;
-    double Lx = 10.0;
-    double Lz = 10.0;
-    Eigen::VectorXd un_xz = (PI/Lx*(pts_x.array()-Lx/2.0)).sin()*(PI/Lz*(pts_z.array()-Lz/2)).sin();
+    double Lx = L;
+    double Lz = L;
+    Eigen::VectorXd un_xz = (PI/Lx*(pts_x.array()-(x0+L/2))).sin()*(PI/Lz*(pts_z.array()-(z0+L/2))).sin();
     double velocity = mMaterialVelocityAtVertices.mean();
     double un_t = cos(PI/Lx*sqrt(2)*time*velocity);
     return un_t*un_xz;

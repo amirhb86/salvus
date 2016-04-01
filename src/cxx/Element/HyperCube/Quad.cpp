@@ -377,7 +377,7 @@ Quad::Quad(Options options) {
 }
 
 // global x-z points on all nodes
-std::tuple<Eigen::VectorXd,Eigen::VectorXd> Quad::buildNodalPoints(Mesh* mesh) {
+std::tuple<Eigen::VectorXd,Eigen::VectorXd> Quad::buildNodalPoints() {
 		
   assert(mNumberIntegrationPoints == mNumberIntegrationPointsEps*mNumberIntegrationPointsEta);
 	
@@ -413,10 +413,6 @@ std::tuple<Eigen::VectorXd,Eigen::VectorXd> Quad::buildNodalPoints(Mesh* mesh) {
           idx++;
       }
   }
-
-  // push nodal locations to shared dofs
-  //mesh->setFieldFromElement("nodes_x", mElementNumber, mClosureMapping, nodalPoints_x);
-  //mesh->setFieldFromElement("nodes_z", mElementNumber, mClosureMapping, nodalPoints_z);
 
   return std::make_tuple(nodalPoints_x,nodalPoints_z);
 }

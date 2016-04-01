@@ -56,20 +56,23 @@ def model_handling():
               type=click.Path(readable=True), required=True)
 @click.option('--name', help='Name of parameter.', default='Velocity')
 @click.option('--value', help='Value of constant parameter.', default=4.0)
-@click.option('--output_file', help='Exodus file to to', default=None)
+@click.option('--output_file', help='Exodus file to to', required=True)
 def add_constant_material_parameter(input_file, name, value, output_file):
     '''
-    Test.
-    '''
-    working_model = model.ExodusModel(exodus_file=input_file)
-    working_model.readFromExodus()
-
-    parameter = np.ones(working_model.number_of_elements) * value
-    working_model.addMaterialParameter(name.upper(), parameter)
-
-    working_model.write(output_file)
-
-
+    Adds single parameter with a constant value for entire mesh.
+    > python pysalvus.py model_handling add_constant_material_parameter --input_file mesh-in.e --name VP --value 4 --output_file mesh-out.e
+    '''    
+    # read input_file and make a copy (at output_file location)
+    exo = model.getExodusCopy(input_file,output_file)
+    
+    values = np.ones(exo.num_elems()) * value
+    if "{}_0".format(name) in exo.get_element_variable_names():
+        print("Updating parameter {} to value {}".format(name,value))
+        model.updateMaterialParameter(exo,name,values)
+    else:
+        model.addMaterialParameter(exo,name,values)
+    exo.close()
+    
 @cli.group()
 def solver_operation():
     """

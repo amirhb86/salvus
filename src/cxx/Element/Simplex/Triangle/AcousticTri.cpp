@@ -91,11 +91,11 @@ void AcousticTri::assembleElementMassMatrix(Mesh *mesh) {
 
 void AcousticTri::setupTest(Mesh* mesh, Options options) {
     Eigen::VectorXd pts_x,pts_z;
-    std::tie(pts_x,pts_z) = buildNodalPoints(mesh);
+    std::tie(pts_x,pts_z) = buildNodalPoints();
+    // push nodal locations to shared dofs
     setInitialCondition(mesh,pts_x,pts_z,
                         options.IC_SquareSide_L(),
                         options.IC_Center_x(),options.IC_Center_z());
-    
 }
 
 void AcousticTri::setInitialCondition(Mesh* mesh, Eigen::VectorXd& pts_x,Eigen::VectorXd& pts_z,
@@ -117,9 +117,9 @@ double AcousticTri::checkTest(Mesh* mesh, Options options, const Eigen::MatrixXd
 
     auto u_current = displacement.col(0);
     // exact solution
-    auto x_e = checkOutFieldElement(mesh, "x");
-    auto z_e = checkOutFieldElement(mesh, "z");
-    auto un_exact = exactSolution(x_e,z_e,
+    Eigen::VectorXd pts_x,pts_z;
+    std::tie(pts_x,pts_z) = buildNodalPoints();
+    auto un_exact = exactSolution(pts_x,pts_z,
                                   options.IC_SquareSide_L(),
                                   options.IC_Center_x(),options.IC_Center_z(),
                                   time);
