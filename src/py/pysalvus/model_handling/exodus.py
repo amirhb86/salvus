@@ -138,7 +138,11 @@ def basename(file):
 
 # Find the libraries.
 NETCDF_SO = find_shared_library("netcdf")
-EXODUS_SO = find_shared_library("exodus")
+# Might have different names.
+try:
+    EXODUS_SO = find_shared_library("exoIIv2")
+except:
+    EXODUS_SO = find_shared_library("exodus")
 
 NETCDF_LIB = cdll.LoadLibrary(NETCDF_SO)
 EXODUS_LIB = cdll.LoadLibrary(EXODUS_SO)
