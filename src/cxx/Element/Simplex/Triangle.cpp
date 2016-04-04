@@ -23,7 +23,7 @@ Eigen::MatrixXd Triangle::mGradientPhi_ds;
 std::tuple<Eigen::VectorXd,Eigen::VectorXd> Triangle::QuadraturePointsForOrder(const int order) {
 
     if(order == 3) {
-        int num_pts = mNumberIntegrationPoints;
+        int num_pts = 12;
         Eigen::VectorXd rn(num_pts);
         Eigen::VectorXd sn(num_pts);
         coordinates_p3_triangle_rn(rn.data());
@@ -40,7 +40,7 @@ std::tuple<Eigen::VectorXd,Eigen::VectorXd> Triangle::QuadraturePointsForOrder(c
 Eigen::VectorXd Triangle::QuadratureIntegrationWeightForOrder(const int order) {
     
     if(order == 3) {
-        int num_pts = mNumberIntegrationPoints;
+        int num_pts = 12;
         Eigen::VectorXd wn(num_pts);
         quadrature_weights_p3_triangle(wn.data());
         return wn;
@@ -54,7 +54,7 @@ Eigen::VectorXi Triangle::ClosureMapping(const int order, const int dimension) {
 
     if(order == 3) {
 
-        int num_pts = mNumberIntegrationPoints;
+        int num_pts = 12;
 
         Eigen::VectorXi closure(num_pts);
         closure << 0,1,2,3,4,5,6,7,8,9,10,11;

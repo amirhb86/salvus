@@ -19,13 +19,13 @@ protected:
      *****************************************************************************/
     static const int mNumberDimensions = 2;     /** < Number of element dimensions. */
     
-    static int mNumberIntegrationPoints;        /** < Total number of integration points (e.g. 25 for a 4th order gll basis) */
+    int mNumberIntegrationPoints;        /** < Total number of integration points (e.g. 25 for a 4th order gll basis) */
 
-    static int mNumberDofVertex;                /** < Number of dofs on a vertex (e.g. 1 for 4th order gll basis) */
-    static int mNumberDofEdge;                  /** < Number of dofs on an edge (e.g. 3 for 4th order gll basis) */
-    static int mNumberDofFace;                  /** < Number of dofs on a face (eg. 9 for a 4th order gll basis) */
+    int mNumberDofVertex;                /** < Number of dofs on a vertex (e.g. 1 for 4th order gll basis) */
+    int mNumberDofEdge;                  /** < Number of dofs on an edge (e.g. 3 for 4th order gll basis) */
+    int mNumberDofFace;                  /** < Number of dofs on a face (eg. 9 for a 4th order gll basis) */
 
-    static int mPolynomialOrder;                /** < base Lagrange polynomial order */
+    int mPolynomialOrder;                /** < base Lagrange polynomial order */
 
     static Eigen::VectorXi mClosureMapping;             /** < Mapping from our element closure
                                                             numbering to PETSc's */

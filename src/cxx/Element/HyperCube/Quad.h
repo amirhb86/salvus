@@ -133,12 +133,9 @@ protected:
      *****************************************************************************/
 
     int mNumberVertex;         /** < Number of element vertices. */
-    
     int mNumberIntegrationPointsEps;     /** < Number of integration points in the epsilon direction (e.g. 5 for a 4th order gll basis) */
     int mNumberIntegrationPointsEta;     /** < Number of integration points in the eta direction (e.g. 5 for a 4th order gll basis) */
-
     Eigen::MatrixXd mGradientOperator;           /** < Derivative of shape function n (col) at pos. m (row) */
-    
     Eigen::VectorXd mIntegrationWeightsEps;      /** < Integration weights along epsilon direction. */
     Eigen::VectorXd mIntegrationWeightsEta;      /** < Integration weights along eta direction. */
     Eigen::VectorXd mIntegrationCoordinatesEps;  /** < Integration points along epsilon direction */
@@ -309,6 +306,7 @@ public:
      */
     void setupGradientOperator();
 
+
     /**
      * Queries the passed DM for the vertex coordinates of the specific element. These coordinates are saved
      * in mVertexCoordiantes.
@@ -327,11 +325,6 @@ public:
      */
     void attachSource(std::vector<Source*> sources);
 
-    /**
-     * Simple function to set the (remembered) element number.
-     */
-    void SetLocalElementNumber(int element_number) { mElementNumber = element_number; }
-           
     /**
      * Builds nodal coordinates (x,z) on all mesh degrees of freedom.
      * @param mesh [in] The mesh.

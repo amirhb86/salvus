@@ -10,12 +10,6 @@
 /*
  * STATIC variables WHICH ARE ONLY ON THE REFERENCE ELEMENT.
  */
-int Element2D::mNumberDofVertex;
-int Element2D::mNumberDofEdge;
-int Element2D::mNumberDofFace;
-// -1 as a canary --- the element constants haven't been assigned yet
-int Element2D::mNumberIntegrationPoints = -1; 
-int Element2D::mPolynomialOrder;
 Eigen::VectorXi Element2D::mClosureMapping;
 
 // Default implementation
@@ -41,8 +35,6 @@ Element2D *Element2D::factory(Options options) {
                 return new AcousticQuad(options);
             } else if (physics == "elastic") {
                 return new Elastic(options);
-            } else {
-                throw std::runtime_error("Runtime Error: Element physics " + physics + " not supported");
             }
         }
         else if(options.ElementShape() == "triangle") {
@@ -54,12 +46,15 @@ Element2D *Element2D::factory(Options options) {
                 MPI::COMM_WORLD.Abort(-1);
                 return nullptr;
             }
+        } else {
+            throw std::runtime_error("Runtime Error: Element physics " + physics + " not supported");
         }
     } catch (std::exception &e) {
         utilities::print_from_root_mpi(e.what());
         MPI::COMM_WORLD.Abort(-1);
-        return nullptr;
     }
+    // Should never get here.
+    return nullptr;
 }
 
 Eigen::VectorXd Element2D::checkOutFieldElement(Mesh *mesh, const std::string name) {
