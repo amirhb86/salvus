@@ -339,7 +339,8 @@ void Quad::setupGradientOperator() {
 Quad::Quad(Options options) {
 
     // Basic properties.
-    int mNumberVertex = 4;
+    mNumberDimensions = 2;
+    mNumberVertex = 4;
     mPolynomialOrder = options.PolynomialOrder();
 
     // mVertexCoordinates has 4 vertices

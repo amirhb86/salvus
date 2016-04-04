@@ -69,6 +69,8 @@ Eigen::VectorXi Triangle::ClosureMapping(const int order, const int dimension) {
 
 Triangle::Triangle(Options options) {
 
+    mNumberDimensions = 2;
+
     // Basic properties.
     mPolynomialOrder = options.PolynomialOrder();
     if(mPolynomialOrder == 3) {

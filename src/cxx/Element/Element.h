@@ -17,7 +17,7 @@ protected:
     /*****************************************************************************
      * STATIC MEMBERS. THESE VARIABLES AND FUNCTIONS SHOULD APPLY TO ALL ELEMENTS.
      *****************************************************************************/
-    static const int mNumberDimensions = 2;     /** < Number of element dimensions. */
+    int mNumberDimensions;     /** < Number of element dimensions. */
     
     int mNumberIntegrationPoints;        /** < Total number of integration points (e.g. 25 for a 4th order gll basis) */
 

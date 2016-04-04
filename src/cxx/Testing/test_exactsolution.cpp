@@ -135,7 +135,6 @@ double solve_vs_exact(Options options, Mesh* mesh, std::vector<Element2D*> &elem
                                            fMinusKu.col(fitr));
                 fitr++;
             }
-
         }
 
         // boundary condition happens after full Ku
@@ -148,6 +147,7 @@ double solve_vs_exact(Options options, Mesh* mesh, std::vector<Element2D*> &elem
                                                  "a");
             }
         }
+
 
         // Sum fields into global partitions.
         for (auto &field : elements[0]->PushElementalFields()) {
