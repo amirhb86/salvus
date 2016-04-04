@@ -15,16 +15,6 @@
 /*
  * STATIC variables WHICH ARE ONLY ON THE REFERENCE ELEMENT.
  */
-int Quad::mNumberVertex = 4;
-int Quad::mNumberIntegrationPointsEps;
-int Quad::mNumberIntegrationPointsEta;
-
-Eigen::VectorXd Quad::mIntegrationWeightsEps;
-Eigen::VectorXd Quad::mIntegrationWeightsEta;
-Eigen::VectorXd Quad::mIntegrationCoordinatesEps;
-Eigen::VectorXd Quad::mIntegrationCoordinatesEta;
-Eigen::MatrixXd Quad::mGradientOperator;
-
 double Quad::n0(const double &eps, const double &eta) { return 0.25 * (1.0 - eps) * (1.0 - eta); }
 double Quad::n1(const double &eps, const double &eta) { return 0.25 * (1.0 + eps) * (1.0 - eta); }
 double Quad::n2(const double &eps, const double &eta) { return 0.25 * (1.0 - eps) * (1.0 + eta); }
@@ -37,6 +27,36 @@ double Quad::dn0deta(const double &eps) { return (1 - eps) * -1.0 / 4.0; }
 double Quad::dn1deta(const double &eps) { return (1 + eps) * -1.0 / 4.0; }
 double Quad::dn2deta(const double &eps) { return (1 - eps) * 1.0 / 4.0; }
 double Quad::dn3deta(const double &eps) { return (1 + eps) * 1.0 / 4.0; }
+
+Quad::Quad(Options options) {
+
+    // Basic properties.
+    mPolynomialOrder = options.PolynomialOrder();
+
+    // mVertexCoordinates has 4 vertices
+    mVertexCoordinates.resize(2,mNumberVertex);
+
+    // Gll points.
+    mNumberDofVertex = 1;
+    mNumberDofEdge = mPolynomialOrder - 1;
+    mNumberDofFace = (mPolynomialOrder - 1) * (mPolynomialOrder - 1);
+
+    // Integration points.
+    mIntegrationCoordinatesEps = Quad::GllPointsForOrder(options.PolynomialOrder());
+    mIntegrationCoordinatesEta = Quad::GllPointsForOrder(options.PolynomialOrder());
+    mIntegrationWeightsEps = Quad::GllIntegrationWeightForOrder(options.PolynomialOrder());
+    mIntegrationWeightsEta = Quad::GllIntegrationWeightForOrder(options.PolynomialOrder());
+    mClosureMapping = Quad::ClosureMapping(options.PolynomialOrder(), mNumberDimensions);
+    // mFaceClosureMapping = Quad::FaceClosureMapping(options.PolynomialOrder(), mNumberDimensions);
+
+    // Save number of integration points.
+    mNumberIntegrationPointsEps = mIntegrationCoordinatesEps.size();
+    mNumberIntegrationPointsEta = mIntegrationCoordinatesEta.size();
+    mNumberIntegrationPoints = mNumberIntegrationPointsEps * mNumberIntegrationPointsEta;
+
+    // setup evaluated derivatives of test functions
+    setupGradientOperator();
+}
 
 Eigen::VectorXd Quad::GllPointsForOrder(const int order) {
     Eigen::VectorXd gll_points(order+1);
@@ -344,36 +364,6 @@ void Quad::setupGradientOperator() {
         }
         mGradientOperator.row(i) = test.col(0);
     }
-}
-
-Quad::Quad(Options options) {
-
-    // Basic properties.
-    mPolynomialOrder = options.PolynomialOrder();
-
-    // mVertexCoordinates has 4 vertices
-    mVertexCoordinates.resize(2,mNumberVertex);
-    
-    // Gll points.
-    mNumberDofVertex = 1;
-    mNumberDofEdge = mPolynomialOrder - 1;
-    mNumberDofFace = (mPolynomialOrder - 1) * (mPolynomialOrder - 1);
-
-    // Integration points.
-    mIntegrationCoordinatesEps = Quad::GllPointsForOrder(options.PolynomialOrder());
-    mIntegrationCoordinatesEta = Quad::GllPointsForOrder(options.PolynomialOrder());
-    mIntegrationWeightsEps = Quad::GllIntegrationWeightForOrder(options.PolynomialOrder());
-    mIntegrationWeightsEta = Quad::GllIntegrationWeightForOrder(options.PolynomialOrder());
-    mClosureMapping = Quad::ClosureMapping(options.PolynomialOrder(), mNumberDimensions);
-    // mFaceClosureMapping = Quad::FaceClosureMapping(options.PolynomialOrder(), mNumberDimensions);
-    
-    // Save number of integration points.
-    mNumberIntegrationPointsEps = mIntegrationCoordinatesEps.size();
-    mNumberIntegrationPointsEta = mIntegrationCoordinatesEta.size();
-    mNumberIntegrationPoints = mNumberIntegrationPointsEps * mNumberIntegrationPointsEta;
-
-    // setup evaluated derivatives of test functions
-    setupGradientOperator();
 }
 
 // global x-z points on all nodes

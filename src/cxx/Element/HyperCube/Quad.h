@@ -132,17 +132,17 @@ protected:
      * STATIC MEMBERS. THESE VARIABLES AND FUNCTIONS SHOULD APPLY TO ALL ELEMENTS.
      *****************************************************************************/
 
-    static int mNumberVertex;         /** < Number of element vertices. */
+    int mNumberVertex;         /** < Number of element vertices. */
     
-    static int mNumberIntegrationPointsEps;     /** < Number of integration points in the epsilon direction (e.g. 5 for a 4th order gll basis) */
-    static int mNumberIntegrationPointsEta;     /** < Number of integration points in the eta direction (e.g. 5 for a 4th order gll basis) */
+    int mNumberIntegrationPointsEps;     /** < Number of integration points in the epsilon direction (e.g. 5 for a 4th order gll basis) */
+    int mNumberIntegrationPointsEta;     /** < Number of integration points in the eta direction (e.g. 5 for a 4th order gll basis) */
 
-    static Eigen::MatrixXd mGradientOperator;           /** < Derivative of shape function n (col) at pos. m (row) */
+    Eigen::MatrixXd mGradientOperator;           /** < Derivative of shape function n (col) at pos. m (row) */
     
-    static Eigen::VectorXd mIntegrationWeightsEps;      /** < Integration weights along epsilon direction. */
-    static Eigen::VectorXd mIntegrationWeightsEta;      /** < Integration weights along eta direction. */
-    static Eigen::VectorXd mIntegrationCoordinatesEps;  /** < Integration points along epsilon direction */
-    static Eigen::VectorXd mIntegrationCoordinatesEta;  /** < Integration points along eta direction */
+    Eigen::VectorXd mIntegrationWeightsEps;      /** < Integration weights along epsilon direction. */
+    Eigen::VectorXd mIntegrationWeightsEta;      /** < Integration weights along eta direction. */
+    Eigen::VectorXd mIntegrationCoordinatesEps;  /** < Integration points along epsilon direction */
+    Eigen::VectorXd mIntegrationCoordinatesEta;  /** < Integration points along eta direction */
 
     /**
      * Returns the shape function coefficients for a given location (eps, eta) in the reference cube.
@@ -176,7 +176,7 @@ protected:
      * @param [in] eta_index Eta_index in the reference element -- to determine which epsilon 'row' we're on.
      * @returns A const pointer with the proper stride and starting point for the desired field points.
      */
-    static Eigen::Map<const Eigen::VectorXd> epsVectorStride(
+    Eigen::Map<const Eigen::VectorXd> epsVectorStride(
             const Eigen::VectorXd &function, const int &eta_index);
 
     /**
@@ -195,7 +195,7 @@ protected:
      * @param [in] eps_index Eps_index in the reference element -- to determine which eta 'column' we're on.
      * @returns A const pointer with the proper stride and starting point for the desired field points.
      */
-    static Eigen::Map<const Eigen::VectorXd, 0, Eigen::InnerStride<>> etaVectorStride(
+    Eigen::Map<const Eigen::VectorXd, 0, Eigen::InnerStride<>> etaVectorStride(
             const Eigen::VectorXd &function, const int &eps_index);
 
     /**********************************************************************************
@@ -309,7 +309,6 @@ public:
      */
     void setupGradientOperator();
 
-    
     /**
      * Queries the passed DM for the vertex coordinates of the specific element. These coordinates are saved
      * in mVertexCoordiantes.
