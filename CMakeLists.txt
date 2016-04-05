@@ -31,6 +31,7 @@ include_directories(
   ${PETSC_DIR}/include/
   ${EIGEN_INCLUDE}
   src/cxx
+  src/cxx/Testing
   src/cxx/Element
   src/cxx/Element/HyperCube
   src/cxx/Element/HyperCube/Quad

@@ -3,38 +3,26 @@
 //
 
 #include <mpi.h>
-#include <iostream>
+
 #include <petscdm.h>
 #include <petscdmplex.h>
-#include <tuple>
 #include "Quad.h"
-#include "Quad/Autogen/quad_autogen.h"
-#include "Quad/Acoustic.h"
-#include "Quad/Elastic.h"
 
-double Quad::n0(const double &eps, const double &eta) { return 0.25 * (1.0 - eps) * (1.0 - eta); }
-double Quad::n1(const double &eps, const double &eta) { return 0.25 * (1.0 + eps) * (1.0 - eta); }
-double Quad::n2(const double &eps, const double &eta) { return 0.25 * (1.0 - eps) * (1.0 + eta); }
-double Quad::n3(const double &eps, const double &eta) { return 0.25 * (1.0 + eps) * (1.0 + eta); }
-double Quad::dn0deps(const double &eta) { return (-1) * (1 - eta) / 4.0; }
-double Quad::dn1deps(const double &eta) { return (+1) * (1 - eta) / 4.0; }
-double Quad::dn2deps(const double &eta) { return (-1) * (1 + eta) / 4.0; }
-double Quad::dn3deps(const double &eta) { return (+1) * (1 + eta) / 4.0; }
-double Quad::dn0deta(const double &eps) { return (1 - eps) * -1.0 / 4.0; }
-double Quad::dn1deta(const double &eps) { return (1 + eps) * -1.0 / 4.0; }
-double Quad::dn2deta(const double &eps) { return (1 - eps) * 1.0 / 4.0; }
-double Quad::dn3deta(const double &eps) { return (1 + eps) * 1.0 / 4.0; }
+double Quad::p1n0(const double &eps, const double &eta) { return 0.25 * (1.0 - eps) * (1.0 - eta); }
+double Quad::p1n1(const double &eps, const double &eta) { return 0.25 * (1.0 + eps) * (1.0 - eta); }
+double Quad::p1n2(const double &eps, const double &eta) { return 0.25 * (1.0 - eps) * (1.0 + eta); }
+double Quad::p1n3(const double &eps, const double &eta) { return 0.25 * (1.0 + eps) * (1.0 + eta); }
 
 Quad::Quad(Options options) {
 
   // Basic properties.
   mNumDim = 2;
-  mNumberVertex = 4;
+  mNumVtx = 4;
   mPlyOrd = options.PolynomialOrder();
 
   // mVtxCrd has 4 vertices.
   mElmCtr.resize(2, 1);
-  mVtxCrd.resize(2, mNumberVertex);
+  mVtxCrd.resize(2, mNumVtx);
 
   // Gll points.
   mNumDofVtx = 1;
@@ -42,25 +30,23 @@ Quad::Quad(Options options) {
   mNumDofFac = (mPlyOrd - 1) * (mPlyOrd - 1);
 
   // Integration points.
-  mIntegrationCoordinatesEps = Quad::GllPointsForOrder(options.PolynomialOrder());
-  mIntegrationCoordinatesEta = Quad::GllPointsForOrder(options.PolynomialOrder());
-  mIntegrationWeightsEps = Quad::GllIntegrationWeightForOrder(options.PolynomialOrder());
-  mIntegrationWeightsEta = Quad::GllIntegrationWeightForOrder(options.PolynomialOrder());
   mClsMap = Quad::ClosureMapping(options.PolynomialOrder(), mNumDim);
-  // mFaceClosureMapping = Quad::FaceClosureMapping(options.PolynomialOrder(), mNumDim);
+  mIntCrdEps = Quad::GllPointsForOrder(options.PolynomialOrder());
+  mIntCrdEta = Quad::GllPointsForOrder(options.PolynomialOrder());
+  mIntWgtEps = Quad::GllIntegrationWeightForOrder(options.PolynomialOrder());
+  mIntWgtEta = Quad::GllIntegrationWeightForOrder(options.PolynomialOrder());
 
   // Save number of integration points.
-  mNumberIntegrationPointsEps = mIntegrationCoordinatesEps.size();
-  mNumberIntegrationPointsEta = mIntegrationCoordinatesEta.size();
-  mNumIntPnt = mNumberIntegrationPointsEps * mNumberIntegrationPointsEta;
+  mNumIntPtsEps = mIntCrdEps.size();
+  mNumIntPtsEta = mIntCrdEta.size();
+  mNumIntPnt = mNumIntPtsEps * mNumIntPtsEta;
 
   // setup evaluated derivatives of test functions
   setupGradientOperator();
 }
 
-
-Eigen::VectorXd Quad::GllPointsForOrder(const int order) {
-  Eigen::VectorXd gll_points(order + 1);
+VectorXd Quad::GllPointsForOrder(const int order) {
+  VectorXd gll_points(order + 1);
   if (order == 1) {
     gll_coordinates_order1_square(gll_points.data());
   } else if (order == 2) {
@@ -85,8 +71,8 @@ Eigen::VectorXd Quad::GllPointsForOrder(const int order) {
   return gll_points;
 }
 
-Eigen::VectorXd Quad::GllIntegrationWeightForOrder(const int order) {
-  Eigen::VectorXd integration_weights(order + 1);
+VectorXd Quad::GllIntegrationWeightForOrder(const int order) {
+  VectorXd integration_weights(order + 1);
   if (order == 1) {
     gll_weights_order1_square(integration_weights.data());
   } else if (order == 2) {
@@ -111,8 +97,8 @@ Eigen::VectorXd Quad::GllIntegrationWeightForOrder(const int order) {
   return integration_weights;
 }
 
-Eigen::VectorXi Quad::ClosureMapping(const int order, const int dimension) {
-  Eigen::VectorXi closure_mapping((order + 1) * (order + 1));
+VectorXi Quad::ClosureMapping(const int order, const int dimension) {
+  VectorXi closure_mapping((order + 1) * (order + 1));
   if (order == 1) {
     closure_mapping_order1_square(closure_mapping.data());
   } else if (order == 2) {
@@ -137,27 +123,27 @@ Eigen::VectorXi Quad::ClosureMapping(const int order, const int dimension) {
   return closure_mapping;
 }
 
-Eigen::Map<const Eigen::VectorXd> Quad::epsVectorStride(const Eigen::VectorXd &function,
-                                                        const int &eta_index) {
-  return Eigen::Map<const Eigen::VectorXd>(
-      function.data() + eta_index * mNumberIntegrationPointsEta,
-      mNumberIntegrationPointsEps);
+Map<const VectorXd> Quad::epsVectorStride(const VectorXd &function,
+                                          const int &eta_index) {
+  return Map<const VectorXd>(
+      function.data() + eta_index * mNumIntPtsEta,
+      mNumIntPtsEps);
 }
 
-Eigen::Map<const Eigen::VectorXd, 0, Eigen::InnerStride<>> Quad::etaVectorStride(const Eigen::VectorXd &function,
-                                                                                 const int &eta_index) {
-  return Eigen::Map<const Eigen::VectorXd, 0, Eigen::InnerStride<>>(
-      function.data() + eta_index, mNumberIntegrationPointsEta,
-      Eigen::InnerStride<>(mNumberIntegrationPointsEps));
+Map<const VectorXd, 0, InnerStride<>> Quad::etaVectorStride(const VectorXd &function,
+                                                            const int &eta_index) {
+  return Map<const VectorXd, 0, InnerStride<>>(
+      function.data() + eta_index, mNumIntPtsEta,
+      InnerStride<>(mNumIntPtsEps));
 }
 
 
-Eigen::Vector4d Quad::interpolateShapeFunctions(const double &eps, const double &eta) {
-  Eigen::Vector4d coefficients;
-  coefficients(0) = n0(eps, eta);
-  coefficients(1) = n1(eps, eta);
-  coefficients(2) = n2(eps, eta);
-  coefficients(3) = n3(eps, eta);
+Vector4d Quad::interpolateShapeFunctions(const double &eps, const double &eta) {
+  Vector4d coefficients;
+  coefficients(0) = p1n0(eps, eta);
+  coefficients(1) = p1n1(eps, eta);
+  coefficients(2) = p1n2(eps, eta);
+  coefficients(3) = p1n3(eps, eta);
   return coefficients;
 }
 
@@ -176,7 +162,7 @@ void Quad::attachVertexCoordinates(DM &distributed_mesh) {
   DMPlexVecRestoreClosure(distributed_mesh, coordinate_section, coordinates_local, mElmNum,
                           &coordinate_buffer_size, &coordinates_buffer);
 
-  for (int i = 0; i < mNumberVertex; i++) {
+  for (int i = 0; i < mNumVtx; i++) {
     mVtxCrd(0, i) = coordinates_element[mNumDim * i + 0];
     mVtxCrd(1, i) = coordinates_element[mNumDim * i + 1];
   }
@@ -187,7 +173,8 @@ void Quad::attachVertexCoordinates(DM &distributed_mesh) {
 
 }
 
-std::tuple<Eigen::Matrix2d, PetscReal> Quad::inverseJacobianAtPoint(PetscReal eps, PetscReal eta) {
+std::tuple<Matrix2d, PetscReal> Quad::inverseJacobianAtPoint(
+    PetscReal eps, PetscReal eta) {
 
   double v1x = mVtxCrd(0, 0);
   double v2x = mVtxCrd(0, 1);
@@ -215,18 +202,19 @@ std::tuple<Eigen::Matrix2d, PetscReal> Quad::inverseJacobianAtPoint(PetscReal ep
   double sx = (1 / detJ) * (-s * (v1z - v2z + v3z - v4z) / 4 + v1z / 2 - v2z / 2);
   double sz = (1 / detJ) * (s * (v1x - v2x + v3x - v4x) / 4 - v1x / 2 + v2x / 2);
 
-  Eigen::Matrix<double, 2, 2> inverseJacobian;
-  inverseJacobian << rx, sx,
-      rz, sz;
+  Matrix2d inverseJacobian;
+  inverseJacobian <<  rx, sx,
+                      rz, sz;
 
   return std::make_tuple(inverseJacobian, detJ);
 }
 
-Eigen::Vector4d Quad::__interpolateMaterialProperties(ExodusModel *model, std::string parameter_name) {
+Eigen::Vector4d Quad::__interpolateMaterialProperties(ExodusModel *model,
+                                                      std::string parameter_name) {
 
-  Eigen::Vector4d material_at_vertices(mNumberVertex);
+  Eigen::Vector4d material_at_vertices(mNumVtx);
 
-  for (auto i = 0; i < mNumberVertex; i++) {
+  for (auto i = 0; i < mNumVtx; i++) {
     material_at_vertices(i) = model->getElementalMaterialParameterAtVertex(
         mElmCtr, parameter_name, i);
   }
@@ -238,8 +226,8 @@ void Quad::attachSource(std::vector<Source *> sources) {
 
   for (auto &source: sources) {
     if (mCheckHull(source->PhysicalLocationX(), source->PhysicalLocationZ())) {
-      Eigen::Vector2d reference_location = inverseCoordinateTransform(source->PhysicalLocationX(),
-                                                                      source->PhysicalLocationZ());
+      Vector2d reference_location = inverseCoordinateTransform(source->PhysicalLocationX(),
+                                                               source->PhysicalLocationZ());
       source->setReferenceLocationEps(reference_location(0));
       source->setReferenceLocationEta(reference_location(1));
       mSrc.push_back(source);
@@ -252,13 +240,13 @@ bool Quad::mCheckHull(double x, double z) {
   int n_neg = 0;
   int n_pos = 0;
   std::vector<int> edge_mapping{0, 1, 2, 3, 0};
-  Eigen::Vector2d test_point;
+  Vector2d test_point;
   test_point << x, z;
-  for (auto i = 0; i < mNumberVertex; i++) {
-    Eigen::Vector2d p0 = mVtxCrd.col(edge_mapping[i + 0]);
-    Eigen::Vector2d p1 = mVtxCrd.col(edge_mapping[i + 1]);
-    Eigen::Vector2d v_seg = p1 - p0;
-    Eigen::Vector2d p_seg = test_point - p0;
+  for (auto i = 0; i < mNumVtx; i++) {
+    Vector2d p0 = mVtxCrd.col(edge_mapping[i + 0]);
+    Vector2d p1 = mVtxCrd.col(edge_mapping[i + 1]);
+    Vector2d v_seg = p1 - p0;
+    Vector2d p_seg = test_point - p0;
     double x_0 = v_seg(0) * p_seg(1) - v_seg(1) * p_seg(0);
     if (x_0 <= 0) {
       n_neg++;
@@ -266,10 +254,10 @@ bool Quad::mCheckHull(double x, double z) {
       n_pos++;
     }
   }
-  return n_neg == mNumberVertex || n_pos == mNumberVertex;
+  return n_neg == mNumVtx || n_pos == mNumVtx;
 }
 
-Eigen::Vector2d Quad::inverseCoordinateTransform(const double &x_real, const double &z_real) {
+Vector2d Quad::inverseCoordinateTransform(const double &x_real, const double &z_real) {
 
   double v1x = mVtxCrd.row(0)[0];
   double v2x = mVtxCrd.row(0)[1];
@@ -288,23 +276,26 @@ Eigen::Vector2d Quad::inverseCoordinateTransform(const double &x_real, const dou
   // https://en.wikipedia.org/wiki/Jacobian_matrix_and_determinant
   double tol = 1e-6;
   int num_iter = 0;
-  Eigen::Vector2d solution{0.0, 0.0}; // initial guess at (0.0,0.0)
+  Vector2d solution{0.0, 0.0}; // initial guess at (0.0,0.0)
   while (true) {
 
     double r = solution(0);
     double s = solution(1);
 
-    Eigen::Matrix2d jacobian;
+    Matrix2d jacobian;
+
     // mapping from reference quad [-1,1]x[-1,1] to *this* element
     double Tx = v1x + (v2x - v1x) * (r + 1) / 2
         + (v4x + (v3x - v4x) * (r + 1) / 2 - v1x - (v2x - v1x) * (r + 1) / 2) * (s + 1) / 2;
     double Tz = v1z + (v2z - v1z) * (r + 1) / 2
         + (v4z + (v3z - v4z) * (r + 1) / 2 - v1z - (v2z - v1z) * (r + 1) / 2) * (s + 1) / 2;
-    Eigen::Vector2d objective_function{x_real - Tx, z_real - Tz};
+    Vector2d objective_function{x_real - Tx, z_real - Tz};
 
     // see element_matrices.py
-    // J = [-v1x/2 + v2x/2 + (s + 1)*(v1x/2 - v2x/2 + v3x/2 - v4x/2)/2, -v1x/2 + v4x/2 - (r + 1)*(-v1x + v2x)/4 + (r + 1)*(v3x - v4x)/4],
-    // [-v1z/2 + v2z/2 + (s + 1)*(v1z/2 - v2z/2 + v3z/2 - v4z/2)/2, -v1z/2 + v4z/2 - (r + 1)*(-v1z + v2z)/4 + (r + 1)*(v3z - v4z)/4]])
+    // J = [-v1x/2 + v2x/2 + (s + 1)*(v1x/2 - v2x/2 + v3x/2 - v4x/2)/2, -v1x/2 + v4x/2 -
+    // (r + 1)*(-v1x + v2x)/4 + (r + 1)*(v3x - v4x)/4],
+    // [-v1z/2 + v2z/2 + (s + 1)*(v1z/2 - v2z/2 + v3z/2 - v4z/2)/2,
+    // -v1z/2 + v4z/2 - (r + 1)*(-v1z + v2z)/4 + (r + 1)*(v3z - v4z)/4]])
 
     jacobian << (-v1x / 2 + v2x / 2 + (s + 1) * (v1x / 2 - v2x / 2 + v3x / 2 - v4x / 2) / 2), -v1x / 2 + v4x / 2
         - (r + 1) * (-v1x + v2x) / 4 + (r + 1) * (v3x - v4x) / 4, -v1z / 2 + v2z / 2
@@ -329,11 +320,11 @@ Eigen::Vector2d Quad::inverseCoordinateTransform(const double &x_real, const dou
 // TODO: Maybe should be moved to the constructor and made static.
 void Quad::setupGradientOperator() {
 
-  double eta = mIntegrationCoordinatesEta[0];
-  mGradientOperator.resize(mNumberIntegrationPointsEta, mNumberIntegrationPointsEps);
-  Eigen::MatrixXd test(mNumberIntegrationPointsEta, mNumberIntegrationPointsEps);
-  for (auto i = 0; i < mNumberIntegrationPointsEps; i++) {
-    double eps = mIntegrationCoordinatesEps[i];
+  double eta = mIntCrdEta[0];
+  mGrd.resize(mNumIntPtsEta, mNumIntPtsEps);
+  Eigen::MatrixXd test(mNumIntPtsEta, mNumIntPtsEps);
+  for (auto i = 0; i < mNumIntPtsEps; i++) {
+    double eps = mIntCrdEps[i];
     if (mPlyOrd == 1) {
       interpolate_eps_derivative_order1_square(eta, test.data());
     } else if (mPlyOrd == 2) {
@@ -355,26 +346,25 @@ void Quad::setupGradientOperator() {
     } else if (mPlyOrd == 10) {
       interpolate_eps_derivative_order10_square(eps, eta, test.data());
     }
-    mGradientOperator.row(i) = test.col(0);
+    mGrd.row(i) = test.col(0);
   }
 }
 
-// global x-z points on all nodes
-std::tuple<Eigen::VectorXd, Eigen::VectorXd> Quad::buildNodalPoints() {
+std::tuple<VectorXd, VectorXd> Quad::buildNodalPoints() {
 
-  assert(mNumIntPnt == mNumberIntegrationPointsEps * mNumberIntegrationPointsEta);
+  assert(mNumIntPnt == mNumIntPtsEps * mNumIntPtsEta);
 
   std::vector<PetscReal> ni(mVtxCrd.size());
 
-  Eigen::VectorXd nodalPoints_x(mNumIntPnt);
-  Eigen::VectorXd nodalPoints_z(mNumIntPnt);
+  VectorXd nodalPoints_x(mNumIntPnt);
+  VectorXd nodalPoints_z(mNumIntPnt);
 
   int idx = 0;
-  for (auto i = 0; i < mNumberIntegrationPointsEta; i++) {
-    for (auto j = 0; j < mNumberIntegrationPointsEps; j++) {
+  for (auto i = 0; i < mNumIntPtsEta; i++) {
+    for (auto j = 0; j < mNumIntPtsEps; j++) {
 
-      double eps = mIntegrationCoordinatesEps(j);
-      double eta = mIntegrationCoordinatesEta(i);
+      double eps = mIntCrdEps(j);
+      double eta = mIntCrdEta(i);
 
       // reference mapping below uses [0,1]x[0,1] reference square
       double r = (eps + 1) / 2;
@@ -401,12 +391,13 @@ std::tuple<Eigen::VectorXd, Eigen::VectorXd> Quad::buildNodalPoints() {
 }
 
 
-Eigen::VectorXd Quad::interpolateLagrangePolynomials(const double eps, const double eta, const int p_order) {
+VectorXd Quad::interpolateLagrangePolynomials(
+    const double eps, const double eta, const int p_order) {
 
   assert(p_order > 0 && p_order < 11);
 
   int n_points = (p_order + 1) * (p_order + 1);
-  Eigen::VectorXd gll_coeffs(n_points);
+  VectorXd gll_coeffs(n_points);
   if (p_order == 1) {
     interpolate_order1_square(eps, eta, gll_coeffs.data());
   } else if (p_order == 2) {
@@ -434,16 +425,16 @@ Eigen::VectorXd Quad::interpolateLagrangePolynomials(const double eps, const dou
 double Quad::integrateField(const Eigen::VectorXd &field) {
 
   double val = 0;
-  Eigen::Matrix<double, 2, 2> inverse_Jacobian;
+  Matrix2d inverse_Jacobian;
   double detJ;
-  for (int i = 0; i < mNumberIntegrationPointsEta; i++) {
-    for (int j = 0; j < mNumberIntegrationPointsEps; j++) {
+  for (int i = 0; i < mNumIntPtsEta; i++) {
+    for (int j = 0; j < mNumIntPtsEps; j++) {
 
-      double eps = mIntegrationCoordinatesEps(j);
-      double eta = mIntegrationCoordinatesEta(i);
+      double eps = mIntCrdEps(j);
+      double eta = mIntCrdEta(i);
       std::tie(inverse_Jacobian, detJ) = inverseJacobianAtPoint(eps, eta);
-      val += field(j + i * mNumberIntegrationPointsEps) * mIntegrationWeightsEps(j) *
-          mIntegrationWeightsEta(i) * detJ;
+      val += field(j + i * mNumIntPtsEps) * mIntWgtEps(j) *
+          mIntWgtEta(i) * detJ;
 
     }
   }

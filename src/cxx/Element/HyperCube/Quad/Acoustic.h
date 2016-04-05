@@ -1,7 +1,3 @@
-//
-// Created by Michael Afanasiev on 2016-01-30.
-//
-
 #pragma once
 
 #include <petscvec.h>
@@ -11,48 +7,72 @@
 #include "Utilities/Utilities.h"
 #include "Mesh/Mesh.h"
 
+using namespace Eigen;
 
-class AcousticQuad : public Quad {
+class AcousticQuad: public Quad {
 
-    Eigen::Vector4d mMaterialVelocityAtVertices;
-    Eigen::MatrixXd mElementStrain;
+  Vector4d mMaterialVelocityAtVertices;
+  MatrixXd mElementStrain;
 
-public:
+ public:
 
-    AcousticQuad(Options options);
+  AcousticQuad(Options options);
 
-    AcousticQuad *clone() const { return new AcousticQuad(*this); }
+  AcousticQuad *clone() const { return new AcousticQuad(*this); }
 
-    void computeSurfaceTerm();
-    void assembleElementMassMatrix(Mesh *mesh);
-    void interpolateMaterialProperties(ExodusModel *model);
+  /**
+   * Empty as its not needed for quadrilaterals (build the stiffness matrix on the fly).
+   */
+  void prepareStiffness() { };
 
-    Eigen::MatrixXd computeSourceTerm(double time);
-    Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement);
+  void assembleElementMassMatrix(Mesh *mesh);
+  void interpolateMaterialProperties(ExodusModel *model);
+  void setInitialCondition(Mesh *mesh, VectorXd &pts_x, VectorXd &pts_z,
+                           double L, double x0, double z0);
 
-    void setInitialCondition(Mesh* mesh, Eigen::VectorXd& pts_x,Eigen::VectorXd& pts_z,
-                             double L, double x0, double z0);
-        
-    Eigen::VectorXd exactSolution(Eigen::VectorXd& pts_x,Eigen::VectorXd& pts_z,
-                                  double L, double x0, double z0, double time);
+  /***************************************************************************
+   *                              TIME LOOP.
+   ***************************************************************************/
+  void computeSurfaceTerm();
+  MatrixXd computeSourceTerm(double time);
+  MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement);
+  std::vector<std::string> PullElementalFields() const { return {"u"}; }
+  std::vector<std::string> PushElementalFields() const { return {"a"}; }
 
-    std::vector<std::string> PullElementalFields() const { return {"u"}; }
-    std::vector<std::string> PushElementalFields() const { return {"a"}; }
+  /***************************************************************************
+   *                            TESTING HELPERS
+   ***************************************************************************/
 
-    /**
-     * Setup initial conditions for tests
-     */
-    void setupTest(Mesh* mesh, Options options);
+  /**
+   * Computes the exact solution (for the case of the first
+   * Eigenfunctions with Dirchelet boundaries) at a given physical point.
+   * @param [in] pts_x Physical GLL locations (x).
+   * @param [in] ptx_z Physical GLL locations (z).
+   * @param [in] L Length of one side of mesh.
+   * @param [in] x0 Center of displacement (x).
+   * @param [in] z0 Center of displacement (z).
+   * @param [in] time Simulation time.
+   * @returns A vector containing the exact solution at GLL points.
+   */
+  VectorXd exactSolution(Eigen::VectorXd &pts_x, Eigen::VectorXd &pts_z,
+                                double L, double x0, double z0, double time);
 
-    /**
-     * Check exact solution against current displacement
-     */
-    double checkTest(Mesh* mesh, Options options, const Eigen::MatrixXd &displacement, double time);
-    
-    /**
-     * Empty as its not needed for quadrilaterals (build the stiffness matrix on the fly).
-     */ 
-    void prepareStiffness() {  }
-    
+  /**
+   * Setup initial conditions for tests.
+   * @param [in] mesh The mesh.
+   * @param [in] options The options class.
+   */
+  void setupTest(Mesh *mesh, Options options);
+
+  /**
+   * Check exact solution against current displacement
+   * @param [in] mesh The mesh.
+   * @param [in] displacement SEM (approximate) displacement.
+   * @param [in] time Simulation time.
+   */
+  double checkTest(Mesh *mesh, Options options,
+                   const MatrixXd &displacement, double time);
+
+
 };
 

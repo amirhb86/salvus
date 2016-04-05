@@ -172,7 +172,7 @@ public:
     double integrateField(const Eigen::VectorXd &field);
 
     /**
-     * Setup the auto-generated gradient operator, and stores the result in mGradientOperator.
+     * Setup the auto-generated gradient operator, and stores the result in mGrd.
      */
     void setupGradientOperator();
 
