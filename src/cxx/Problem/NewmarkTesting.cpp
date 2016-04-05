@@ -2,7 +2,7 @@
 
 void NewmarkTesting::initialize(Mesh *mesh,
                                 ExodusModel *model,
-                                Element2D *elem,
+                                Element *elem,
                                 Options options) {
 
     // Save references to mesh and element base.
@@ -10,11 +10,11 @@ void NewmarkTesting::initialize(Mesh *mesh,
     mReferenceElem = elem;
 
     // Attach elements to mesh.
-    mMesh->setupGlobalDof(mReferenceElem->NumberDofVertex(),
-                          mReferenceElem->NumberDofEdge(),
-                          mReferenceElem->NumberDofFace(),
+    mMesh->setupGlobalDof(mReferenceElem->NumDofVtx(),
+                          mReferenceElem->NumDofEdg(),
+                          mReferenceElem->NumDofFac(),
                           0 /* zero dofvolume */,
-                          mReferenceElem->NumberDimensions());
+                          mReferenceElem->NumDim());
 
     // Setup boundary conditions from options.
     mMesh->setupBoundaries(options);
@@ -37,7 +37,7 @@ void NewmarkTesting::initialize(Mesh *mesh,
     for (auto &element : mElements) {
 
         // Give each element a number starting from zero.
-        element->SetLocalElementNumber(element_number++);
+        element->SetNum(element_number++);
 
         // Get vertex coordinates from the PETSc DMPLEX.
         element->attachVertexCoordinates(mMesh->DistributedMesh());
@@ -89,7 +89,7 @@ void NewmarkTesting::solve(Options options) {
 
     // Over-allocate matrices to avoid re-allocations.
     int max_dims = 3;
-    int int_pnts = mReferenceElem->NumberIntegrationPoints();
+    int int_pnts = mReferenceElem->NumIntPnt();
     Eigen::MatrixXd f(int_pnts, max_dims);
     Eigen::MatrixXd u(int_pnts, max_dims);
     Eigen::MatrixXd ku(int_pnts, max_dims);
@@ -116,8 +116,8 @@ void NewmarkTesting::solve(Options options) {
             // "u" for acoustic, "ux, uz" for elastic)
             int fitr = 0;
             for (auto &field : mReferenceElem->PullElementalFields()) {
-                u.col(fitr) = mMesh->getFieldOnElement(field, element->Number(),
-                                                       element->ElementClosure());
+                u.col(fitr) = mMesh->getFieldOnElement(field, element->Num(),
+                                                       element->ClsMap());
                 fitr++;
             }
             
@@ -140,8 +140,8 @@ void NewmarkTesting::solve(Options options) {
             // Sum fields into local partition.
             fitr = 0;
             for (auto &field : mReferenceElem->PushElementalFields()) {
-                mMesh->addFieldFromElement(field, element->Number(),
-                                           element->ElementClosure(),
+                mMesh->addFieldFromElement(field, element->Num(),
+                                           element->ClsMap(),
                                            fMinusKu.col(fitr));
                 fitr++;
             }
@@ -151,7 +151,7 @@ void NewmarkTesting::solve(Options options) {
         // boundary condition happens after full Ku
         for( auto &element : mElements) {
             // we can now apply boundary conditions (after fields are set)
-            if(element->OnBoundary()) {
+            if(element->BndElm()) {
                 // apply boundary condition
                 element->applyBoundaryConditions(mMesh,
                                                  options,

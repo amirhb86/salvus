@@ -7,10 +7,10 @@
 AcousticQuad::AcousticQuad(Options options): Quad(options) {
 
     // Allocate element vectors.
-    mMassMatrix.setZero(mNumberIntegrationPoints);
+    mMssMat.setZero(mNumIntPnt);
 
     // Strain matrix.
-    mElementStrain.setZero(2, mNumberIntegrationPoints);
+    mElementStrain.setZero(2, mNumIntPnt);
 
 }
 
@@ -23,9 +23,9 @@ Eigen::MatrixXd AcousticQuad::computeStiffnessTerm(const Eigen::MatrixXd &displa
     // TODO: Look into a better way to deal with the temporarily allocated vectors. I believe that due to
     // TODO: RVO the integratedStiffnessMatrix should be ok, but perhaps jacobian_determinant could be handled better.
     Eigen::Matrix<double,2,2> inverse_Jacobian;
-    Eigen::MatrixXd velocity_gradient(2, mNumberIntegrationPoints);
-    Eigen::VectorXd detJ(mNumberIntegrationPoints);
-    Eigen::VectorXd integratedStiffnessMatrix(mNumberIntegrationPoints);
+    Eigen::MatrixXd velocity_gradient(2, mNumIntPnt);
+    Eigen::VectorXd detJ(mNumIntPnt);
+    Eigen::VectorXd integratedStiffnessMatrix(mNumIntPnt);
     Eigen::Matrix<double,2,2> Jinv;
     double detJi;
 
@@ -136,15 +136,15 @@ void AcousticQuad::interpolateMaterialProperties(ExodusModel *model) {
 Eigen::MatrixXd AcousticQuad::computeSourceTerm(double time) {
 
     // Initialize source vector (note: due to RVO I believe no memory re-allocation is occuring).
-    Eigen::VectorXd F = Eigen::VectorXd::Zero(mNumberIntegrationPoints);
+    Eigen::VectorXd F = Eigen::VectorXd::Zero(mNumIntPnt);
 
     // For all sources tagging along with this element.
-    for (auto &source: mSources) {
+    for (auto &source: mSrc) {
 
         // TODO: May make this more efficient (i.e. allocation every loop)?
         // Evaluate shape functions at source (eps, eta). Save the lagrange coefficients in current_source.
         Eigen::VectorXd current_source = interpolateLagrangePolynomials(
-                source->ReferenceLocationEps(), source->ReferenceLocationEta(), mPolynomialOrder);
+                source->ReferenceLocationEps(), source->ReferenceLocationEta(), mPlyOrd);
 
         // Loop over gll points
         for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
@@ -176,7 +176,7 @@ Eigen::MatrixXd AcousticQuad::computeSourceTerm(double time) {
 
 void AcousticQuad::computeSurfaceTerm() {
 
-    std::cout << mElementNumber << std::endl;
+    std::cout << mElmNum << std::endl;
 
 }
 
@@ -185,7 +185,7 @@ void AcousticQuad::assembleElementMassMatrix(Mesh *mesh) {
     int i=0;
     Eigen::Matrix<double,2,2> Jinv;
     double detJ;
-    Eigen::VectorXd elementMassMatrix(mNumberIntegrationPoints);
+    Eigen::VectorXd elementMassMatrix(mNumIntPnt);
     for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
         for (auto eps_index = 0; eps_index < mNumberIntegrationPointsEps; eps_index++) {
             double eps = mIntegrationCoordinatesEps[eps_index];
@@ -196,7 +196,7 @@ void AcousticQuad::assembleElementMassMatrix(Mesh *mesh) {
         }
     }
     // assemble to shared nodes
-    mesh->addFieldFromElement("m", mElementNumber, mClosureMapping, elementMassMatrix);
+    mesh->addFieldFromElement("m", mElmNum, mClsMap, elementMassMatrix);
 }
 
 double AcousticQuad::checkTest(Mesh* mesh, Options options, const Eigen::MatrixXd &displacement, double time) {
@@ -233,9 +233,9 @@ void AcousticQuad::setInitialCondition(Mesh* mesh, Eigen::VectorXd& pts_x,Eigen:
     Eigen::VectorXd un = (PI/Lx*(pts_x.array()-(x0+L/2))).sin()*(PI/Lz*(pts_z.array()-(z0+L/2))).sin();
     Eigen::VectorXd vn = 0*pts_x;
     Eigen::VectorXd an = 0*pts_x;    
-    mesh->setFieldFromElement("u", mElementNumber, mClosureMapping, un);
-    mesh->setFieldFromElement("v", mElementNumber, mClosureMapping, vn);
-    mesh->setFieldFromElement("a_", mElementNumber, mClosureMapping, an);
+    mesh->setFieldFromElement("u", mElmNum, mClsMap, un);
+    mesh->setFieldFromElement("v", mElmNum, mClsMap, vn);
+    mesh->setFieldFromElement("a_", mElmNum, mClsMap, an);
     
 }
 

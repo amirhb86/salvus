@@ -185,7 +185,7 @@ void Mesh::setupGlobalDof(int number_dof_vertex, int number_dof_edge, int number
     int number_components = 1;
     int number_dof_per_element[mNumberDimensions + 1];
 
-    // Number of dof on vertex, edge, face, volume.
+    // Num of dof on vertex, edge, face, volume.
     number_dof_per_element[0] = number_dof_vertex;
     number_dof_per_element[1] = number_dof_edge;
     number_dof_per_element[2] = number_dof_face;

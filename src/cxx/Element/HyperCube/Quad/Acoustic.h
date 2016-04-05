@@ -50,7 +50,7 @@ public:
     double checkTest(Mesh* mesh, Options options, const Eigen::MatrixXd &displacement, double time);
     
     /**
-     * Empty as its not needed for quadrilaterals.
+     * Empty as its not needed for quadrilaterals (build the stiffness matrix on the fly).
      */ 
     void prepareStiffness() {  }
     

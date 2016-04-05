@@ -36,7 +36,7 @@ extern "C" {
  *   |______> (eps)
 */
 
-class Quad : public Element2D {
+class Quad : public Element {
 
     /**
      * Shape function contribution from node zero.
@@ -132,9 +132,9 @@ protected:
      * STATIC MEMBERS. THESE VARIABLES AND FUNCTIONS SHOULD APPLY TO ALL ELEMENTS.
      *****************************************************************************/
 
-    int mNumberVertex;         /** < Number of element vertices. */
-    int mNumberIntegrationPointsEps;     /** < Number of integration points in the epsilon direction (e.g. 5 for a 4th order gll basis) */
-    int mNumberIntegrationPointsEta;     /** < Number of integration points in the eta direction (e.g. 5 for a 4th order gll basis) */
+    int mNumberVertex;         /** < Num of element vertices. */
+    int mNumberIntegrationPointsEps;     /** < Num of integration points in the epsilon direction (e.g. 5 for a 4th order gll basis) */
+    int mNumberIntegrationPointsEta;     /** < Num of integration points in the eta direction (e.g. 5 for a 4th order gll basis) */
     Eigen::MatrixXd mGradientOperator;           /** < Derivative of shape function n (col) at pos. m (row) */
     Eigen::VectorXd mIntegrationWeightsEps;      /** < Integration weights along epsilon direction. */
     Eigen::VectorXd mIntegrationWeightsEta;      /** < Integration weights along eta direction. */
@@ -320,7 +320,7 @@ public:
      * Given a vector of abstract source objects, this function will query each for its spatial location. After
      * performing a convex hull test, it will perform a quick inverse problem to determine the position of any sources
      * within each element in reference coordinates. These reference coordinates are then saved in the source object.
-     * References to any sources which lie within the element are saved in the mSources vector.
+     * References to any sources which lie within the element are saved in the mSrc vector.
      * @param [in] sources A vector of all the sources defined for a simulation run.
      */
     void attachSource(std::vector<Source*> sources);

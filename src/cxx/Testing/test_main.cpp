@@ -37,7 +37,7 @@ Quad *setup_simple_quad(Options options) {
     model->initializeParallel();
 
     // Get element from options.
-    Element2D *reference_element = Element2D::factory(options);
+    Element *reference_element = Element::factory(options);
     Quad *reference_quad = dynamic_cast<Quad*> (reference_element);
 
     // Make things easy by assuming a reference element.
@@ -45,7 +45,7 @@ Quad *setup_simple_quad(Options options) {
     Eigen::Matrix<double,2,4> coord;
     coord << -2, +1, +1, -2,
              -6, -6, +1, +1;
-    reference_quad->SetVertexCoordinates(coord);
+  reference_quad->SetVtxCrd(coord);
     reference_quad->interpolateMaterialProperties(model);
     reference_quad->setupGradientOperator();
 
@@ -55,6 +55,7 @@ Quad *setup_simple_quad(Options options) {
 
 
 TEST_CASE("Test whether simple stuff works.", "[element]") {
+
 
     Options options;
     options.setOptions();
@@ -76,8 +77,6 @@ TEST_CASE("Test whether simple stuff works.", "[element]") {
         Eigen::VectorXi y_exp = x_exp;
         y_exp[ord] = x_exp[ord - 1];
 
-        // TODO: FIX THIS FUNCTION so that we don't need to pass it a mesh.
-        Mesh *mesh;
         Eigen::VectorXd pts_x, pts_y;
         std::tie(pts_x,pts_y) = reference_quad->buildNodalPoints();
 
@@ -86,8 +85,8 @@ TEST_CASE("Test whether simple stuff works.", "[element]") {
         x = y = 0.0;
         Eigen::VectorXd gll_val;
         Eigen::VectorXd coords = Quad::GllPointsForOrder(options.PolynomialOrder());
-        gll_val.setZero(reference_quad->NumberIntegrationPoints());
-        int num_pts_p_dim = sqrt(reference_quad->NumberIntegrationPoints());
+        gll_val.setZero(reference_quad->NumIntPnt());
+        int num_pts_p_dim = sqrt(reference_quad->NumIntPnt());
         for (int o = 0; o < x_exp.size(); o++) {
             for (int i = 0; i < num_pts_p_dim; i++) {
                 for (int j = 0; j < num_pts_p_dim; j++) {

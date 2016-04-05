@@ -39,9 +39,9 @@ struct vec_struct {
 
 class Mesh {
 
-    int mNumberElementsLocal;       /** < Number of elements on this processor. */
-    int mNumberDimensions;          /** < Number of dimensions of the mesh. */
-    int mNumberSideSets;            /** < Number of flagged boundaries. */
+    int mNumberElementsLocal;       /** < Num of elements on this processor. */
+    int mNumberDimensions;          /** < Num of dimensions of the mesh. */
+    int mNumberSideSets;            /** < Num of flagged boundaries. */
 
     std::string mExodusFileName;    /** < Exodus file from which this mesh (skeleton) was defined. */
 
@@ -95,7 +95,7 @@ public:
      * @param [in] number_dof_vertex Number of dofs per 0-d mesh component (vertex). 1 for the standard GLL basis.
      * @param [in] number_dof_edge Number of dofs per 1-d mesh component (edge). order-1 for the standard GLL basis.
      * @param [in] number_dof_face Number of dofs per 2-d mesh component (face). (order-1)^2 for the standard GLL basis.
-     * @param [in] number_dof_volume Number of dofs per 3-d mesh component (volume). Something something for the
+     * @param [in] number_dof_volume Num of dofs per 3-d mesh component (volume). Something something for the
      * standard GLL basis.
      */
     void setupGlobalDof(PetscInt number_dof_vertex, PetscInt number_dof_edge,
@@ -171,7 +171,7 @@ public:
      * Note that a vector containing the closure mapping must also be passed in -- this should change in the future.
      * @param [in] name Name of field.
      * @param [in] element_number Element number (on the local processor) for which the field is requested.
-     * @param [in] closure A vector of size mNumberIntegrationPoints, which specifies the mapping from the Plex element
+     * @param [in] closure A vector of size mNumIntPnt, which specifies the mapping from the Plex element
      * closure to the desired gll point ordering.
      * @ return The ordered field on an element.
      */
@@ -193,7 +193,7 @@ public:
      * DMPlexVecSetClosure. Shared DOF should be identical, and are thus set from an arbitrary element.
      * @param [in] field_name Name of field.
      * @param [in] face_number Face number (on the local processor) for which the field is requested.
-     * @param [in] closure A vector of size mNumberIntegrationPoints, which specifies the mapping from the Plex face
+     * @param [in] closure A vector of size mNumIntPnt, which specifies the mapping from the Plex face
      * closure to the desired gll point ordering.
      * @param [in] field The element-ordered field (i.e. x-displacement) to insert into the mesh.
      */
@@ -204,7 +204,7 @@ public:
      * DMPlexVecSetClosure. Shared DOF are "assembled" (added), and are thus a sum from each arbitrary element.
      * @param [in] field_name Name of field.
      * @param [in] face_number Face number (on the local processor) for which the field is requested.
-     * @param [in] closure A vector of size mNumberIntegrationPoints, which specifies the mapping from the Plex face
+     * @param [in] closure A vector of size mNumIntPnt, which specifies the mapping from the Plex face
      * closure to the desired gll point ordering.
      * @param [in] field The element-ordered field (i.e. x-displacement) to insert into the mesh.
      */
@@ -215,7 +215,7 @@ public:
      * DMPlexVecSetClosure. Shared DOF should be identical, and are thus set from an arbitrary element.
      * @param [in] field_name Name of field.
      * @param [in] element_number Element number (on the local processor) for which the field is requested.
-     * @param [in] closure A vector of size mNumberIntegrationPoints, which specifies the mapping from the Plex element
+     * @param [in] closure A vector of size mNumIntPnt, which specifies the mapping from the Plex element
      * closure to the desired gll point ordering.
      * @param [in] field The element-ordered field (i.e. x-displacement) to sum into the mesh.
      */
@@ -227,7 +227,7 @@ public:
      * DMPlexVecSetClosure. Shared DOF are summed (i.e., assembled).
      * @param [in] field_name Name of field.
      * @param [in] element_number Element number (on the local processor) for which the field is requested.
-     * @param [in] closure A vector of size mNumberIntegrationPoints, which specifies the mapping from the Plex element
+     * @param [in] closure A vector of size mNumIntPnt, which specifies the mapping from the Plex element
      * closure to the desired gll point ordering.
      * @param [in] field The element-ordered field (i.e. x-displacement) to sum into the mesh.
      */
@@ -236,7 +236,7 @@ public:
     
     /**
      * Number of elements owned by the current processors.
-     * @ return Number of Elements.
+     * @ return Num of Elements.
      */
     inline PetscInt NumberElementsLocal() { return mNumberElementsLocal; }
 

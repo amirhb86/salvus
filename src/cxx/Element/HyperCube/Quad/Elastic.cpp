@@ -9,22 +9,22 @@ const std::vector<std::string> mElementalFields {"ux", "uy"};
 
 Elastic::Elastic(Options options): Quad(options) {
 
-    mMassMatrix.setZero(mNumberIntegrationPoints);
-    mElementStrain.setZero(2, mNumberIntegrationPoints*2);
+    mMssMat.setZero(mNumIntPnt);
+    mElementStrain.setZero(2, mNumIntPnt*2);
 
 }
 
 Eigen::MatrixXd Elastic::computeSourceTerm(double time) {
 
     // Initialize source vector (note: due to RVO I believe no memory re-allocation is occuring).
-    Eigen::MatrixXd F = Eigen::MatrixXd::Zero(mNumberIntegrationPoints, 2);
+    Eigen::MatrixXd F = Eigen::MatrixXd::Zero(mNumIntPnt, 2);
 
     // For all sources tagging along with this element.
-    for (auto &source: mSources) {
+    for (auto &source: mSrc) {
 
         // TODO: May make this more efficient (i.e. allocation every loop)
         Eigen::VectorXd current_source = interpolateLagrangePolynomials(
-                source->ReferenceLocationEps(), source->ReferenceLocationEta(), mPolynomialOrder);
+                source->ReferenceLocationEps(), source->ReferenceLocationEta(), mPlyOrd);
 
         // Loop over gll points
         for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
@@ -63,7 +63,7 @@ void Elastic::computeSurfaceTerm() {
 void Elastic::assembleElementMassMatrix(Mesh *mesh) {
 
     int i = 0;
-    Eigen::VectorXd elementMassMatrix(mNumberIntegrationPoints);
+    Eigen::VectorXd elementMassMatrix(mNumIntPnt);
     double density = mRhoAtVertices.mean();
     for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
         for (auto eps_index = 0; eps_index < mNumberIntegrationPointsEps; eps_index++) {
@@ -80,7 +80,7 @@ void Elastic::assembleElementMassMatrix(Mesh *mesh) {
         }
     }
 
-    mesh->addFieldFromElement("m", mElementNumber, mClosureMapping, elementMassMatrix);
+    mesh->addFieldFromElement("m", mElmNum, mClsMap, elementMassMatrix);
 
 }
 
@@ -88,12 +88,12 @@ Eigen::MatrixXd Elastic::computeStiffnessTerm(const Eigen::MatrixXd &displacemen
 
     int itr = 0;
     Eigen::Matrix2d inverse_jacobian, temp_stress;
-    Eigen::VectorXd jacobian_determinant(mNumberIntegrationPoints);
-    Eigen::VectorXd element_stress_xx(mNumberIntegrationPoints);
-    Eigen::VectorXd element_stress_xz(mNumberIntegrationPoints);
-    Eigen::VectorXd element_stress_zx(mNumberIntegrationPoints);
-    Eigen::VectorXd element_stress_zz(mNumberIntegrationPoints);
-    Eigen::MatrixXd integratedStiffnessMatrix(mNumberIntegrationPoints,2);
+    Eigen::VectorXd jacobian_determinant(mNumIntPnt);
+    Eigen::VectorXd element_stress_xx(mNumIntPnt);
+    Eigen::VectorXd element_stress_xz(mNumIntPnt);
+    Eigen::VectorXd element_stress_zx(mNumIntPnt);
+    Eigen::VectorXd element_stress_zz(mNumIntPnt);
+    Eigen::MatrixXd integratedStiffnessMatrix(mNumIntPnt,2);
     for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
         for (auto eps_index = 0; eps_index < mNumberIntegrationPointsEps; eps_index++) {
 

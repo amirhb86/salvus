@@ -34,7 +34,7 @@ extern "C" {
  *   |______> (r)
  */
 
-class Triangle : public Element2D {
+class Triangle : public Element {
 
 protected:
 
@@ -42,7 +42,7 @@ protected:
      * STATIC MEMBERS. THESE VARIABLES AND FUNCTIONS SHOULD APPLY TO ALL ELEMENTS.
      *****************************************************************************/
 
-    static int mNumberVertex;         /** < Number of element vertices. */
+    static int mNumberVertex;         /** < Num of element vertices. */
         
     static Eigen::MatrixXd mGradientOperator;           /** < Derivative of shape function n (col) at pos. m (row) */
     static Eigen::VectorXd mIntegrationWeights;      /** < Integration weights along epsilon direction. */
@@ -116,7 +116,7 @@ public:
     
     // virtual Eigen::VectorXi GetFaceClosureMapping() { return mFaceClosureMapping; }
 
-    // virtual Eigen::MatrixXd GetVertexCoordinates() { return mVertexCoordinates; }
+    // virtual Eigen::MatrixXd VtxCrd() { return mVtxCrd; }
     
     /********************************************************
      ********* Inherited methods from Element 2D ************
@@ -190,7 +190,7 @@ public:
      * Given a vector of abstract source objects, this function will query each for its spatial location. After
      * performing a convex hull test, it will perform a quick inverse problem to determine the position of any sources
      * within each element in reference coordinates. These reference coordinates are then saved in the source object.
-     * References to any sources which lie within the element are saved in the mSources vector.
+     * References to any sources which lie within the element are saved in the mSrc vector.
      * @param [in] sources A vector of all the sources defined for a simulation run.
      */
     void attachSource(std::vector<Source*> sources);
@@ -198,7 +198,7 @@ public:
     /**
      * Simple function to set the (remembered) element number.
      */
-    void SetLocalElementNumber(int element_number) { mElementNumber = element_number; }
+    void SetNum(int element_number) { mElmNum = element_number; }
     
     /**
      * Builds nodal coordinates (x,z) on all mesh degrees of freedom.
