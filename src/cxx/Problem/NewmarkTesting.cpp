@@ -43,7 +43,7 @@ void NewmarkTesting::initialize(Mesh *mesh,
         element->attachVertexCoordinates(mMesh->DistributedMesh());
 
         // Add material parameters (velocity, Cij, etc...).
-        element->interpolateMaterialProperties(model);
+        element->attachMaterialProperties(model);
 
         // Set boundary conditions.
         element->setBoundaryConditions(mMesh);

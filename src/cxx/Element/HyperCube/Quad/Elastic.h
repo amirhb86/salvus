@@ -34,7 +34,7 @@ public:
     virtual Eigen::MatrixXd computeSourceTerm(double time);
     virtual void computeSurfaceTerm();
     virtual void assembleElementMassMatrix(Mesh *mesh);
-    virtual void interpolateMaterialProperties(ExodusModel *model);
+    virtual void attachMaterialProperties(ExodusModel *model);
     virtual std::vector<std::string> PullElementalFields() const { return {"ux", "uy"}; }
     virtual std::vector<std::string> PushElementalFields() const { return {"ax", "ay"}; }
     void prepareStiffness() { /* nothing to be done for quad */ }

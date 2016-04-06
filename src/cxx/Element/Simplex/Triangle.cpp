@@ -67,6 +67,21 @@ Eigen::VectorXi Triangle::ClosureMapping(const int order, const int dimension) {
     
 }
 
+Eigen::Vector3d Triangle::interpolateAtPoint(double r, double s) {
+  // interp_vector=[-r/2 - s/2, r/2 + 1/2, s/2 + 1/2]
+  // barycentric coordinates l1,l2,l3 (l1+l2+l3=1) give us a linear weighting between coordinates (r,s). By computing the barycentric weights, we can compute the interpolated velocity = [l1,l2,l3].doat([v1,v2,v3]) where vN is the vertex velocity.
+  // T*[l1;l2] = xy - v3, where xy is the desired point, and v3 is the vertex 3
+  // thus l12 = T**(-1)*xy - T**(-1)*v3
+  // For reference triangle
+  // Tref = sym.Matrix([[0, 2],
+  //                    [-2,-2]])
+  // See triangle_element_metrics.py: `interp_vector`
+  Eigen::Vector3d interpolator;
+  interpolator <<
+    -r/2.0 - s/2.0, r/2.0 + 1.0/2.0, s/2.0 + 1.0/2.0;
+  return interpolator;
+}
+
 Triangle::Triangle(Options options) {
 
     mNumDim = 2;
@@ -166,7 +181,7 @@ std::tuple<Eigen::Matrix2d,PetscReal> Triangle::inverseJacobianAtPoint(PetscReal
     
 }
 
-Eigen::Vector3d Triangle::__interpolateMaterialProperties(ExodusModel *model, std::string parameter_name) {
+Eigen::Vector3d Triangle::__attachMaterialProperties(ExodusModel *model, std::string parameter_name) {
 
     Eigen::Vector3d material_at_vertices(mNumberVertex);
 

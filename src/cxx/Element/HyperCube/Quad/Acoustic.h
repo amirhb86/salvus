@@ -26,7 +26,7 @@ class AcousticQuad: public Quad {
   void prepareStiffness() { };
 
   void assembleElementMassMatrix(Mesh *mesh);
-  void interpolateMaterialProperties(ExodusModel *model);
+  void attachMaterialProperties(ExodusModel *model);
   void setInitialCondition(Mesh *mesh, VectorXd &pts_x, VectorXd &pts_z,
                            double L, double x0, double z0);
 

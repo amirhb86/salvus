@@ -55,3 +55,8 @@ print("xn={},\nzn={}".format(xn,zn))
 # l3=s/2 + 1/2
 # xn=-x1*(r + s)/2 + x2*(r + 1)/2 + x3*(s + 1)/2,
 # zn=-z1*(r + s)/2 + z2*(r + 1)/2 + z3*(s + 1)/2
+
+# vertex interpolation
+v0,v1,v2 = sym.symbols("v0,v1,v2")
+vector = [l1,l2,l3]
+print("interp_vector={}".format(vector))

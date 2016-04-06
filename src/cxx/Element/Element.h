@@ -91,7 +91,7 @@ class Element {
    * can be performed by a quick dot product.
    * @param model [in] A class which returns a model model parameter at a queried point.
    */
-  virtual void interpolateMaterialProperties(ExodusModel *model) = 0;
+  virtual void attachMaterialProperties(ExodusModel *model) = 0;
 
   /**
    * Queries the passed DM for the vertex coordinates of the specific element. These coordinates are saved

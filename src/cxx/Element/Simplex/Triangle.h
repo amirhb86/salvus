@@ -103,6 +103,8 @@ public:
      */
     static Eigen::VectorXi ClosureMapping(const int order, const int dimension);
 
+  static Eigen::Vector3d interpolateAtPoint(double r, double s);
+  
     // currently not possible
     // /**
     //  * Returns the face mapping from the PETSc to Salvus closure.
@@ -160,7 +162,7 @@ public:
      * @param [in] parameter_name The name of the field to be added (i.e. velocity, c11).
      * @returns A Vector with 4-entries... one for each Element vertex, in the ordering described above.
      */
-    Eigen::Vector3d __interpolateMaterialProperties(ExodusModel *model,
+    Eigen::Vector3d __attachMaterialProperties(ExodusModel *model,
                                                             std::string parameter_name);
 
     /**

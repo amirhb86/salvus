@@ -196,13 +196,14 @@ class Quad: public Element {
   static VectorXi ClosureMapping(const int order, const int dimension);
 
   /**
-   * Returns the shape function coefficients for a given location (eps, eta) in the reference cube.
+   * Provides interpolation vector for quadrilaterals with vertex velocities based on right hand rule.
    * @param [in] eps Epsilon in the reference element.
    * @param [in] eta Eta in the reference element.
    * @returns A vector containing the [4] coefficients from each shape function.
+   * Usage: double velocity_at_eps_eta = interpolateAtPoint(eps,eta).dot(mMaterialVelocityAtVertices);
    */
-  static Vector4d interpolateShapeFunctions(const double &eps, const double &eta);
-
+  static Vector4d interpolateAtPoint(double eps, double eta);
+  
   /**
    * Returns the lagrange polynomial coefficients for a given location (eps, eta) in the reference cube.
    * @param [in] eps Epsilon on the reference element.
@@ -220,7 +221,7 @@ class Quad: public Element {
    * @param [in] parameter_name The name of the field to be added (i.e. velocity, c11).
    * @returns A Vector with 4-entries... one for each Element vertex, in the ordering described above.
    */
-  Vector4d __interpolateMaterialProperties(ExodusModel *model,
+  Vector4d __attachMaterialProperties(ExodusModel *model,
                                            std::string parameter_name);
 
   /**

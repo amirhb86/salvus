@@ -14,6 +14,8 @@ AcousticQuad::AcousticQuad(Options options): Quad(options) {
 
 }
 
+
+
 Eigen::MatrixXd AcousticQuad::computeStiffnessTerm(const Eigen::MatrixXd &displacement) {
 
     // Current gll point.
@@ -48,7 +50,7 @@ Eigen::MatrixXd AcousticQuad::computeStiffnessTerm(const Eigen::MatrixXd &displa
                     etaVectorStride(displacement, eps_index));
 
             // Get material parameters at this node.
-            double velocity = interpolateShapeFunctions(eps, eta).dot(mMaterialVelocityAtVertices);
+            double velocity = interpolateAtPoint(eps, eta).dot(mMaterialVelocityAtVertices);
 
             // apply material velocity (note v^2)
             velocity_gradient.col(itr) = mElementStrain.col(itr) * velocity * velocity;
@@ -126,10 +128,10 @@ Eigen::MatrixXd AcousticQuad::computeStiffnessTerm(const Eigen::MatrixXd &displa
     return integratedStiffnessMatrix;
 }
 
-void AcousticQuad::interpolateMaterialProperties(ExodusModel *model) {
+void AcousticQuad::attachMaterialProperties(ExodusModel *model) {
 
     // Vp (m/s).
-    mMaterialVelocityAtVertices = __interpolateMaterialProperties(model, "VP");
+    mMaterialVelocityAtVertices = __attachMaterialProperties(model, "VP");
 
 }
 

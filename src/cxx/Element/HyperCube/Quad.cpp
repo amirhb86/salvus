@@ -133,18 +133,8 @@ Map<const VectorXd> Quad::epsVectorStride(const VectorXd &function,
 Map<const VectorXd, 0, InnerStride<>> Quad::etaVectorStride(const VectorXd &function,
                                                             const int &eta_index) {
   return Map<const VectorXd, 0, InnerStride<>>(
-      function.data() + eta_index, mNumIntPtsEta,
-      InnerStride<>(mNumIntPtsEps));
-}
-
-
-Vector4d Quad::interpolateShapeFunctions(const double &eps, const double &eta) {
-  Vector4d coefficients;
-  coefficients(0) = p1n0(eps, eta);
-  coefficients(1) = p1n1(eps, eta);
-  coefficients(2) = p1n2(eps, eta);
-  coefficients(3) = p1n3(eps, eta);
-  return coefficients;
+                                               function.data() + eta_index, mNumIntPtsEta,
+                                               InnerStride<>(mNumIntPtsEps));
 }
 
 void Quad::attachVertexCoordinates(DM &distributed_mesh) {
@@ -209,8 +199,34 @@ std::tuple<Matrix2d, PetscReal> Quad::inverseJacobianAtPoint(
   return std::make_tuple(inverseJacobian, detJ);
 }
 
-Eigen::Vector4d Quad::__interpolateMaterialProperties(ExodusModel *model,
-                                                      std::string parameter_name) {
+Eigen::Vector4d Quad::interpolateAtPoint(double eps, double eta) {
+  // see element_metrics.py
+  //  interpolation for quadrilaterals based on right-hand rule quad with
+  // velocity v0,v1,v2,v3 and eps(x) eta(y,or,z)
+  //
+  //  v3               vb          v2
+  //  +-----------------+----------+ \eps
+  //  |                 |          |   ^       \alpha = (eta-(-1))/2
+  //  |                 |          |   |       \beta  = (eps-(-1))/2
+  //  |              vf + \beta    |   |       va = alpha(v1) + (1-alpha)v0
+  //  |                 |  ^       |   |       vb = alpha(v2) + (1-alpha)v3
+  //  |                 |  |       |           vf = beta va + (1-beta) vb
+  //  |                 |  |       |           group vf by terms v0..v3
+  //  |                 |  |       |           = [v0,v1,v2,v3].dot([-0.25*eps*eta - 0.25*eps + 0.25*eta + 0.25,
+  //  |              va |  |       |                                0.25*eps*eta + 0.25*eps + 0.25*eta + 0.25,
+  //  +-----------------+----------+                                -0.25*eps*eta + 0.25*eps - 0.25*eta + 0.25,
+  //  v0 -------------->\alpha    v1  --->\eta                      0.25*eps*eta - 0.25*eps - 0.25*eta + 0.25]
+  // ----------------------------------------------------------------------------------------------------------
+  Eigen::Vector4d interpolator;
+  interpolator <<        
+    0.25*eps*eta - 0.25*eps - 0.25*eta + 0.25,
+    -0.25*eps*eta + 0.25*eps - 0.25*eta + 0.25,
+    0.25*eps*eta + 0.25*eps + 0.25*eta + 0.25,
+    -0.25*eps*eta - 0.25*eps + 0.25*eta + 0.25;
+  return interpolator;
+}
+
+Eigen::Vector4d Quad::__attachMaterialProperties(ExodusModel *model, std::string parameter_name) {
 
   Eigen::Vector4d material_at_vertices(mNumVtx);
 
