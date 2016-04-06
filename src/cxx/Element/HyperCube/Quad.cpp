@@ -199,7 +199,7 @@ std::tuple<Matrix2d, PetscReal> Quad::inverseJacobianAtPoint(
   return std::make_tuple(inverseJacobian, detJ);
 }
 
-Eigen::Vector4d Quad::interpolateAtPoint(int eps, int eta) {
+Eigen::Vector4d Quad::interpolateAtPoint(double eps, double eta) {
   // see element_metrics.py
   //  interpolation for quadrilaterals based on right-hand rule quad with
   // velocity v0,v1,v2,v3 and eps(x) eta(y,or,z)

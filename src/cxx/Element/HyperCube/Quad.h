@@ -202,7 +202,7 @@ class Quad: public Element {
    * @returns A vector containing the [4] coefficients from each shape function.
    * Usage: double velocity_at_eps_eta = interpolateAtPoint(eps,eta).dot(mMaterialVelocityAtVertices);
    */
-  static Vector4d interpolateAtPoint(int eps, int eta);
+  static Vector4d interpolateAtPoint(double eps, double eta);
   
   /**
    * Returns the lagrange polynomial coefficients for a given location (eps, eta) in the reference cube.

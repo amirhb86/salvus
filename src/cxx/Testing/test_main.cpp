@@ -8,6 +8,8 @@
 #include <petsc.h>
 #include <Element/Element.h>
 #include <Element/HyperCube/Quad/Acoustic.h>
+#include <Element/Simplex/Triangle/AcousticTri.h>
+
 
 int main(int argc, char *argv[]) {
 
@@ -117,6 +119,50 @@ TEST_CASE("Test whether simple stuff works.", "[element]") {
     REQUIRE(reference_quad->integrateField(gll_val) == Approx(exact(order-1)));
   }
 
+}
+
+TEST_CASE("Test triangle velocity interpolation", "[element]") {
+
+  // testing triangle with vertices (-1,-1),(1,-1),(0,sqrt(2))
+  
+  Eigen::MatrixXd mMaterialVelocityAtVertices_i(3,3);
+  mMaterialVelocityAtVertices_i <<
+    1,1,2,
+    2,1,1,
+    1,2,1;
+    
+  Eigen::MatrixXd check_velocity_i(3,12);
+  check_velocity_i <<
+    1.20735, 1.20735, 1.5853, 1, 1, 1.2935, 1.7065, 1.7065, 1.2935, 1, 1, 2,
+    1.5853, 1.20735, 1.20735, 1.7065,1.2935,1,1,1.2935,1.7065,2,1,1,
+    1.20735, 1.5853, 1.20735, 1.2935, 1.7065, 1.7065, 1.2935, 1, 1, 1, 2, 1;
+    
+  for(int i=0;i<mMaterialVelocityAtVertices_i.rows();i++) {
+    Eigen::VectorXd mMaterialVelocityAtVertices = mMaterialVelocityAtVertices_i.row(i);
+    Eigen::VectorXd check_velocity = check_velocity_i.row(i);
+    Options options;
+    options.__SetPolynomialOrder(2);
+    
+    Eigen::VectorXd mIntegrationCoordinatesR;
+    Eigen::VectorXd mIntegrationCoordinatesS;
+    std::tie(mIntegrationCoordinatesR,mIntegrationCoordinatesS) = Triangle::QuadraturePointsForOrder(3);
+    
+    int n=0;
+    Eigen::VectorXd velocity(mIntegrationCoordinatesS.size());
+    for (auto i = 0; i < mIntegrationCoordinatesS.size(); i++) {
+      
+      // Eps and eta coordinates.
+      double r = mIntegrationCoordinatesR[i];
+      double s = mIntegrationCoordinatesS[i];
+      // Get material parameters at this node.
+      auto interpolate = Triangle::interpolateAtPoint(r, s);                      
+      velocity[n] = interpolate.dot(mMaterialVelocityAtVertices);
+      n++;      
+    }
+    
+    REQUIRE((velocity.array()-check_velocity.array()).abs().maxCoeff() < 1e-5);
+  }
+  
 }
 
 TEST_CASE("Test quad velocity interpolation", "[element]") {

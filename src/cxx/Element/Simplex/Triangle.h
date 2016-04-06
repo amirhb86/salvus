@@ -103,6 +103,8 @@ public:
      */
     static Eigen::VectorXi ClosureMapping(const int order, const int dimension);
 
+  static Eigen::Vector3d interpolateAtPoint(double r, double s);
+  
     // currently not possible
     // /**
     //  * Returns the face mapping from the PETSc to Salvus closure.
