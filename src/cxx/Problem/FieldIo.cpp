@@ -55,7 +55,7 @@ void FieldIoHdf5::_write_disk() {
     // Name this timedump.
     std::string dump_name = "/TIMEDUMP";
 
-    // Number of datasets to write.
+    // Num of datasets to write.
     size_t n_levels = 7;
 
     // Total size of each dataset (over all processors).
