@@ -12,12 +12,12 @@ int initialize_exact(Mesh *mesh,
     
     PetscFunctionBegin;
 
-    // Attach elements to mesh.
-    mesh->setupGlobalDof(reference_element->NumDofVtx(),
-                         reference_element->NumDofEdg(),
-                         reference_element->NumDofFac(),
-                          0 /* zero dofvolume */,
-                         reference_element->NumDim());
+  // Setup the dofs on each mesh point.
+  mesh->setupGlobalDof(reference_element->NumDofVtx(),
+                       reference_element->NumDofEdg(),
+                       reference_element->NumDofFac(),
+                       reference_element->NumDofVol(),
+                       reference_element->NumDim());
 
     // Setup boundary conditions from options.
     mesh->setupBoundaries(options);
@@ -240,7 +240,7 @@ TEST_CASE("Testing acoustic exact solutions for quadrilaterals", "[exact/quads]"
     options.__SetCenter_z(0.0);
     options.__SetSquareSide_L(2.0);
     options.__SetSaveMovie(PETSC_FALSE);
-    
+
     // Get mesh.
     Mesh *mesh = Mesh::factory(options);
     mesh->read(options);

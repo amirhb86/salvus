@@ -28,6 +28,7 @@ Quad::Quad(Options options) {
   mNumDofVtx = 1;
   mNumDofEdg = mPlyOrd - 1;
   mNumDofFac = (mPlyOrd - 1) * (mPlyOrd - 1);
+  mNumDofVol = 0;
 
   // Integration points.
   mClsMap = Quad::ClosureMapping(options.PolynomialOrder(), mNumDim);

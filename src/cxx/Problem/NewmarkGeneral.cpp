@@ -16,12 +16,11 @@ void NewmarkGeneral::initialize(Mesh *mesh,
   mReferenceElem = elem;
 
   // Attach elements to mesh.
-//  mMesh->setupGlobalDof(mReferenceElem->NumDofVtx(),
-//                        mReferenceElem->NumDofEdg(),
-//                        mReferenceElem->NumDofFac(),
-//                        0 /* zero dofvolume */,
-//                        mReferenceElem->NumDim());
-  mMesh->setupGlobalDofNew();
+  mMesh->setupGlobalDof(mReferenceElem->NumDofVtx(),
+                        mReferenceElem->NumDofEdg(),
+                        mReferenceElem->NumDofFac(),
+                        mReferenceElem->NumDofVol(),
+                        mReferenceElem->NumDim());
 
   // Setup boundary conditions from options.
   mMesh->setupBoundaries(options);

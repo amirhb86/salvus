@@ -3,11 +3,9 @@
 //
 
 #include <vector>
-#include <memory>
 #include "Mesh.h"
 #include "ScalarNewmark2D.h"
 #include "ElasticNewmark2D.h"
-#include "../Utilities/Utilities.h"
 
 void exodusError(const int retval, std::string func_name) {
 
@@ -183,55 +181,105 @@ void Mesh::read(Options options) {
 }
 
 
-PetscErrorCode Mesh::setupGlobalDofNew() {
+PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
+                                    int num_dof_fac, int num_dof_vol,
+                                    int num_dim) {
+
+  assert(num_dim == mNumberDimensions);
 
   PetscErrorCode ier;
-  PetscSection section;
   PetscInt num_fields, num_comp[1];
 
   // One field and one components for field as we handle our own discretization.
   num_fields = 1;
   num_comp[0] = 1;
 
-  ier = PetscSectionCreate(PetscObjectComm((PetscObject)mDistributedMesh), &section);CHKERRQ(ier);
-  ier = PetscSectionSetNumFields(section, num_fields);CHKERRQ(ier);
+  ier = PetscSectionCreate(PetscObjectComm((PetscObject)mDistributedMesh), &mMeshSection);CHKERRQ(ier);
+  ier = PetscSectionSetNumFields(mMeshSection, num_fields);CHKERRQ(ier);
   for (int f = 0; f < num_fields; f++) {
-    ier = PetscSectionSetFieldComponents(section, f, num_comp[f]);CHKERRQ(ier);
+    ier = PetscSectionSetFieldComponents(mMeshSection, f, num_comp[f]);CHKERRQ(ier);
   }
+
+  // Get the indices of  the entire Hasse Diagram.
   PetscInt p_start, p_end;
   ier = DMPlexGetChart(mDistributedMesh, &p_start, &p_end);CHKERRQ(ier);
-  std::cout << "start,end" << p_start << ' ' << p_end << std::endl;
-  exit(0);
 
+  // Tell the section about its' bounds.
+  ier = PetscSectionSetChart(mMeshSection, p_start, p_end);CHKERRQ(ier);
 
-}
+  // Get the number of levels of the Hasse diagram. Should be dimension + 1 (fac, edg, vtx. for 2D)
+  PetscInt depth;
+  ier = DMPlexGetDepth(mDistributedMesh, &depth);CHKERRQ(ier);
 
+  // Wat
+  PetscInt *p_max;
+  ier = PetscMalloc1(depth+1, &p_max);CHKERRQ(ier);
+  ier = DMPlexGetHybridBounds(mDistributedMesh,
+                              depth >= 0 ? &p_max[depth]   : NULL,
+                              depth >  1 ? &p_max[depth-1] : NULL,
+                              depth >  2 ? &p_max[1]       : NULL,
+                              &p_max[0]);CHKERRQ(ier);
 
-void Mesh::setupGlobalDof(int number_dof_vertex, int number_dof_edge, int number_dof_face,
-                          int number_dof_volume, int number_dimensions) {
+  // dep = 0 -> edg; dep = 1 -> vtx; dep = 2 -> fac.
+  assert(depth == 2); // Can only handle 2-D elements for now.
+  for (int dep = 0; dep <= depth; dep++) {
+    int num_dof = 0;
+    if (dep == 0)      { num_dof = num_dof_vtx; }
+    else if (dep == 1) { num_dof = num_dof_edg; }
+    else if (dep == 2) { num_dof = num_dof_fac; }
+    PetscInt d = mNumberDimensions == depth ? dep : (!dep ? 0 : mNumberDimensions);
+    // Get the number of components in each level of the Hasse diagram.
+    ier = DMPlexGetDepthStratum(mDistributedMesh, dep, &p_start, &p_end);CHKERRQ(ier);
+    p_max[dep] = p_max[dep] < 0 ? p_end : p_max[dep];
+    // Loop over all mesh points on this level.
+    for (int p = p_start; p < p_end; ++p) {
+      PetscInt tot = 0;
+      for (int f = 0; f < num_fields; ++f) {
+        // Set a custom number of dofs for each field.
+        ier = PetscSectionSetFieldDof(mMeshSection, p, f, num_dof);CHKERRQ(ier);
+        tot += num_dof;
+      }
+      // Total number of dofs per points is a sum of all the field dofs.
+      ier = PetscSectionSetDof(mMeshSection, p, tot);CHKERRQ(ier);
+    }
+  }
 
-  // Ensure that the mesh and the elements are the same dimension.
-  assert(number_dimensions == mNumberDimensions);
+  // Clean up.
+  ier = PetscFree(p_max);CHKERRQ(ier);
 
-  // Only define 1 field here because we're taking care of multiple fields manually.
-  int number_fields = 1;
-  int number_components = 1;
-  int number_dof_per_element[mNumberDimensions + 1];
-
-  // Num of dof on vertex, edge, face, volume.
-  number_dof_per_element[0] = number_dof_vertex;
-  number_dof_per_element[1] = number_dof_edge;
-  number_dof_per_element[2] = number_dof_face;
-  if (mNumberDimensions == 3) { number_dof_per_element[3] = number_dof_volume; }
-
-  // Setup the global and local (distributed) degrees of freedom.
-  DMPlexCreateSection(mDistributedMesh, mNumberDimensions, number_fields, &number_components,
-                      number_dof_per_element, 0, NULL, NULL, NULL, NULL, &mMeshSection);
+  // Finalize the section, and attach it to the DM.
+  ier = PetscSectionSetUp(mMeshSection);CHKERRQ(ier);
   DMSetDefaultSection(mDistributedMesh, mMeshSection);
 
-  // improves performance of closure calls (for a 1.5x application perf. boost)
+  // Improves performance of closure calls (for a 1.5x application perf. boost)
   DMPlexCreateClosureIndex(mDistributedMesh, mMeshSection);
 }
+
+// TODO: REMOVE.
+//void Mesh::setupGlobalDof(int number_dof_vertex, int number_dof_edge, int number_dof_face,
+//                          int number_dof_volume, int number_dimensions) {
+
+//  // Ensure that the mesh and the elements are the same dimension.
+//  assert(number_dimensions == mNumberDimensions);
+
+//  // Only define 1 field here because we're taking care of multiple fields manually.
+//  int number_fields = 1;
+//  int number_components = 1;
+//  int number_dof_per_element[mNumberDimensions + 1];
+
+//  // Num of dof on vertex, edge, face, volume.
+//  number_dof_per_element[0] = number_dof_vertex;
+//  number_dof_per_element[1] = number_dof_edge;
+//  number_dof_per_element[2] = number_dof_face;
+//  if (mNumberDimensions == 3) { number_dof_per_element[3] = number_dof_volume; }
+
+//  // Setup the global and local (distributed) degrees of freedom.
+//  DMPlexCreateSection(mDistributedMesh, mNumberDimensions, number_fields, &number_components,
+//                      number_dof_per_element, 0, NULL, NULL, NULL, NULL, &mMeshSection);
+//  DMSetDefaultSection(mDistributedMesh, mMeshSection);
+
+//  DMPlexCreateClosureIndex(mDistributedMesh, mMeshSection);
+//}
 
 void Mesh::registerFieldVectors(const std::string &name) {
 
@@ -414,7 +462,7 @@ void Mesh::finalizeMovie() {
 }
 
 
-// int Mesh::BoundaryElementFaces(int elm, int ss_num) {
+// int Mesh::BoundarylementFaces(int elm, int ss_num) {
 
 //     // Make sure we're looking for a side set that actually exists.
 //     // assert(mBoundaryElementFaces.find(ss_num) != mBoundaryElementFaces.end());

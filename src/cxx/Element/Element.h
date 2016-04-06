@@ -193,6 +193,7 @@ class Element {
   inline int NumDofEdg() const { return mNumDofEdg; }
   inline int NumDofFac() const { return mNumDofFac; }
   inline int NumDofVtx() const { return mNumDofVtx; }
+  inline int NumDofVol() const { return mNumDofVol; }
   inline int NumIntPnt() const { return mNumIntPnt; }
   inline bool BndElm() const { return mBndElm; }
   inline VectorXi ClsMap() { return mClsMap; }

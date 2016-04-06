@@ -77,6 +77,7 @@ Triangle::Triangle(Options options) {
         mNumIntPnt = 12;
         mNumDofEdg = 2;
         mNumDofFac = 3;
+        mNumDofVol = 0;
     }
     else {
         std::cerr << "ERROR: Order NOT implemented!\n";
