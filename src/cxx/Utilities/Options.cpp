@@ -53,26 +53,26 @@ PetscErrorCode Options::setOptions() {
     
     // Sources.
     PetscOptionsGetInt(NULL, "--number_of_sources", &int_buffer, &parameter_set);
-    if (parameter_set) { mNumberSources = int_buffer; }
+    if (parameter_set) { mNumberSources = int_buffer; } else { mNumberSources = 0; }
 
-    mSourceLocationX.resize(mNumberSources);
-    mSourceLocationY.resize(mNumberSources);
-    mSourceLocationZ.resize(mNumberSources);
-    mSourceRickerTimeDelay.resize(mNumberSources);
-    mSourceRickerAmplitude.resize(mNumberSources);
-    mSourceRickerCenterFreq.resize(mNumberSources);
+    if (mNumberSources > 0) {
+        mSourceLocationX.resize(mNumberSources);
+        mSourceLocationY.resize(mNumberSources);
+        mSourceLocationZ.resize(mNumberSources);
+        mSourceRickerTimeDelay.resize(mNumberSources);
+        mSourceRickerAmplitude.resize(mNumberSources);
+        mSourceRickerCenterFreq.resize(mNumberSources);
 
-    if(mNumberSources > 0) {
-      PetscOptionsGetString(NULL, "--source_type", char_buffer, PETSC_MAX_PATH_LEN,
-                            &parameter_set);
-      if (parameter_set) { mSourceType = std::string(char_buffer); }
-      
-      PetscOptionsGetScalarArray(NULL, "--source_location_x", mSourceLocationX.data(), &mNumberSources, NULL);
-      //    PetscOptionsGetScalarArray(NULL, "--source_location_y", mSourceLocationY.data(), &mNumberSources, NULL);
-      PetscOptionsGetScalarArray(NULL, "--source_location_z", mSourceLocationZ.data(), &mNumberSources, NULL);
-      PetscOptionsGetScalarArray(NULL, "--ricker_amplitude", mSourceRickerAmplitude.data(), &mNumberSources, NULL);
-      PetscOptionsGetScalarArray(NULL, "--ricker_time_delay", mSourceRickerTimeDelay.data(), &mNumberSources, NULL);
-      PetscOptionsGetScalarArray(NULL, "--ricker_center_freq", mSourceRickerCenterFreq.data(), &mNumberSources, NULL);
+        PetscOptionsGetString(NULL, "--source_type", char_buffer, PETSC_MAX_PATH_LEN,
+                              &parameter_set);
+        if (parameter_set) { mSourceType = std::string(char_buffer); }
+
+        PetscOptionsGetScalarArray(NULL, "--source_location_x", mSourceLocationX.data(), &mNumberSources, NULL);
+        //    PetscOptionsGetScalarArray(NULL, "--source_location_y", mSourceLocationY.data(), &mNumberSources, NULL);
+        PetscOptionsGetScalarArray(NULL, "--source_location_z", mSourceLocationZ.data(), &mNumberSources, NULL);
+        PetscOptionsGetScalarArray(NULL, "--ricker_amplitude", mSourceRickerAmplitude.data(), &mNumberSources, NULL);
+        PetscOptionsGetScalarArray(NULL, "--ricker_time_delay", mSourceRickerTimeDelay.data(), &mNumberSources, NULL);
+        PetscOptionsGetScalarArray(NULL, "--ricker_center_freq", mSourceRickerCenterFreq.data(), &mNumberSources, NULL);
     }
 
     int num_dirichlet_boundaries = 256;
@@ -90,7 +90,7 @@ PetscErrorCode Options::setOptions() {
         // default
         mDirichletBoundaryNames.push_back("dirichlet");
     }
-    
+
     // parameters for movies (to save or not, and how often)
     PetscOptionsGetBool(NULL, "--saveMovie", &mSaveMovie,&parameter_set);
     if(!parameter_set) { mSaveMovie = PETSC_FALSE; }

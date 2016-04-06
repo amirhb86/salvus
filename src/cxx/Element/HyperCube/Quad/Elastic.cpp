@@ -9,37 +9,37 @@ const std::vector<std::string> mElementalFields {"ux", "uy"};
 
 Elastic::Elastic(Options options): Quad(options) {
 
-    mMassMatrix.setZero(mNumberIntegrationPoints);
-    mElementStrain.setZero(2, mNumberIntegrationPoints*2);
+    mMssMat.setZero(mNumIntPnt);
+    mElementStrain.setZero(2, mNumIntPnt*2);
 
 }
 
 Eigen::MatrixXd Elastic::computeSourceTerm(double time) {
 
     // Initialize source vector (note: due to RVO I believe no memory re-allocation is occuring).
-    Eigen::MatrixXd F = Eigen::MatrixXd::Zero(mNumberIntegrationPoints, 2);
+    Eigen::MatrixXd F = Eigen::MatrixXd::Zero(mNumIntPnt, 2);
 
     // For all sources tagging along with this element.
-    for (auto &source: mSources) {
+    for (auto &source: mSrc) {
 
         // TODO: May make this more efficient (i.e. allocation every loop)
         Eigen::VectorXd current_source = interpolateLagrangePolynomials(
-                source->ReferenceLocationEps(), source->ReferenceLocationEta(), mPolynomialOrder);
+                source->ReferenceLocationEps(), source->ReferenceLocationEta(), mPlyOrd);
 
         // Loop over gll points
-        for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
-            for (auto eps_index = 0; eps_index < mNumberIntegrationPointsEps; eps_index++) {
+        for (auto eta_index = 0; eta_index < mNumIntPtsEta; eta_index++) {
+            for (auto eps_index = 0; eps_index < mNumIntPtsEps; eps_index++) {
 
-                double eps = mIntegrationCoordinatesEps[eps_index];
-                double eta = mIntegrationCoordinatesEta[eta_index];
+                double eps = mIntCrdEps[eps_index];
+                double eta = mIntCrdEta[eta_index];
 
                 double detJ;
                 Eigen::Matrix2d Jinv;
                 std::tie(Jinv, detJ) = inverseJacobianAtPoint(eps,eta);
 
                 // Calculate the coefficients needed to integrate to the delta function.
-                current_source[eps_index + eta_index*mNumberIntegrationPointsEps] /=
-                        (mIntegrationWeightsEps(eps_index) * mIntegrationWeightsEta(eta_index) *
+                current_source[eps_index + eta_index*mNumIntPtsEps] /=
+                        (mIntWgtEps(eps_index) * mIntWgtEta(eta_index) *
                         detJ);
 
             }
@@ -63,24 +63,24 @@ void Elastic::computeSurfaceTerm() {
 void Elastic::assembleElementMassMatrix(Mesh *mesh) {
 
     int i = 0;
-    Eigen::VectorXd elementMassMatrix(mNumberIntegrationPoints);
+    Eigen::VectorXd elementMassMatrix(mNumIntPnt);
     double density = mRhoAtVertices.mean();
-    for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
-        for (auto eps_index = 0; eps_index < mNumberIntegrationPointsEps; eps_index++) {
+    for (auto eta_index = 0; eta_index < mNumIntPtsEta; eta_index++) {
+        for (auto eps_index = 0; eps_index < mNumIntPtsEps; eps_index++) {
 
             Eigen::Matrix2d jInv;
             double jDet;
-            double eps = mIntegrationCoordinatesEps[eps_index];
-            double eta = mIntegrationCoordinatesEta[eta_index];
+            double eps = mIntCrdEps[eps_index];
+            double eta = mIntCrdEta[eta_index];
             std::tie(jInv, jDet) = inverseJacobianAtPoint(eps,eta);
-            elementMassMatrix[i] = density * mIntegrationWeightsEps[eps_index] * mIntegrationWeightsEta[eta_index] *
+            elementMassMatrix[i] = density * mIntWgtEps[eps_index] * mIntWgtEta[eta_index] *
                                    jDet;
             i++;
 
         }
     }
 
-    mesh->addFieldFromElement("m", mElementNumber, mClosureMapping, elementMassMatrix);
+    mesh->addFieldFromElement("m", mElmNum, mClsMap, elementMassMatrix);
 
 }
 
@@ -88,18 +88,18 @@ Eigen::MatrixXd Elastic::computeStiffnessTerm(const Eigen::MatrixXd &displacemen
 
     int itr = 0;
     Eigen::Matrix2d inverse_jacobian, temp_stress;
-    Eigen::VectorXd jacobian_determinant(mNumberIntegrationPoints);
-    Eigen::VectorXd element_stress_xx(mNumberIntegrationPoints);
-    Eigen::VectorXd element_stress_xz(mNumberIntegrationPoints);
-    Eigen::VectorXd element_stress_zx(mNumberIntegrationPoints);
-    Eigen::VectorXd element_stress_zz(mNumberIntegrationPoints);
-    Eigen::MatrixXd integratedStiffnessMatrix(mNumberIntegrationPoints,2);
-    for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
-        for (auto eps_index = 0; eps_index < mNumberIntegrationPointsEps; eps_index++) {
+    Eigen::VectorXd jacobian_determinant(mNumIntPnt);
+    Eigen::VectorXd element_stress_xx(mNumIntPnt);
+    Eigen::VectorXd element_stress_xz(mNumIntPnt);
+    Eigen::VectorXd element_stress_zx(mNumIntPnt);
+    Eigen::VectorXd element_stress_zz(mNumIntPnt);
+    Eigen::MatrixXd integratedStiffnessMatrix(mNumIntPnt,2);
+    for (auto eta_index = 0; eta_index < mNumIntPtsEta; eta_index++) {
+        for (auto eps_index = 0; eps_index < mNumIntPtsEps; eps_index++) {
 
             // Eps and eta coordinates.
-            double eta = mIntegrationCoordinatesEta[eta_index];
-            double eps = mIntegrationCoordinatesEps[eps_index];
+            double eta = mIntCrdEta[eta_index];
+            double eps = mIntCrdEps[eps_index];
 
             std::tie(inverse_jacobian, jacobian_determinant(itr)) = inverseJacobianAtPoint(eps, eta);
 
@@ -114,13 +114,13 @@ Eigen::MatrixXd Elastic::computeStiffnessTerm(const Eigen::MatrixXd &displacemen
             int rz = 1;
             int cx = 2*itr+0;
             int cz = 2*itr+1;
-            mElementStrain(rx,cx) = mGradientOperator.row(eps_index).dot(
+            mElementStrain(rx,cx) = mGrd.row(eps_index).dot(
                     epsVectorStride(displacement.col(0), eta_index));
-            mElementStrain(rx,cz) = mGradientOperator.row(eta_index).dot(
+            mElementStrain(rx,cz) = mGrd.row(eta_index).dot(
                     etaVectorStride(displacement.col(0), eps_index));
-            mElementStrain(rz,cx) = mGradientOperator.row(eps_index).dot(
+            mElementStrain(rz,cx) = mGrd.row(eps_index).dot(
                     epsVectorStride(displacement.col(1), eta_index));
-            mElementStrain(rz,cz) = mGradientOperator.row(eta_index).dot(
+            mElementStrain(rz,cz) = mGrd.row(eta_index).dot(
                     etaVectorStride(displacement.col(1), eps_index));
 
             // Convert derivatives to physical co-ordinates through the jacobian.
@@ -160,8 +160,8 @@ Eigen::MatrixXd Elastic::computeStiffnessTerm(const Eigen::MatrixXd &displacemen
     // Loop over all shape functions again. Apply shape function derivatives and integrate.
     // Stiffness matrix is like kx -> row(0), kz -> row(1).
     itr = 0;
-    for (auto eta_index = 0; eta_index < mNumberIntegrationPointsEta; eta_index++) {
-        for (auto eps_index = 0; eps_index < mNumberIntegrationPointsEps; eps_index++) {
+    for (auto eta_index = 0; eta_index < mNumIntPtsEta; eta_index++) {
+        for (auto eps_index = 0; eps_index < mNumIntPtsEps; eps_index++) {
 
             /*
              * Eq. (35) in Komatitsch, 2002.
@@ -170,30 +170,30 @@ Eigen::MatrixXd Elastic::computeStiffnessTerm(const Eigen::MatrixXd &displacemen
              * Anyone know how to read assembly?
              */
             integratedStiffnessMatrix(itr,0) =
-                    mIntegrationWeightsEta(eta_index) *
-                    mIntegrationWeightsEps.dot(
+                    mIntWgtEta(eta_index) *
+                    mIntWgtEps.dot(
                             ((epsVectorStride(jacobian_determinant, eta_index)).array() *
                             (epsVectorStride(element_stress_xx, eta_index)).array() *
-                            (mGradientOperator.col(eps_index)).array()).matrix()) +
+                            (mGrd.col(eps_index)).array()).matrix()) +
 
-                    mIntegrationWeightsEps(eps_index) *
-                    mIntegrationWeightsEta.dot(
+                    mIntWgtEps(eps_index) *
+                    mIntWgtEta.dot(
                             ((etaVectorStride(jacobian_determinant, eps_index)).array() *
                             (etaVectorStride(element_stress_xz, eps_index)).array() *
-                            (mGradientOperator.col(eta_index)).array()).matrix());
+                            (mGrd.col(eta_index)).array()).matrix());
 
             integratedStiffnessMatrix(itr,1) =
-                    mIntegrationWeightsEta(eta_index) *
-                    mIntegrationWeightsEps.dot(
+                    mIntWgtEta(eta_index) *
+                    mIntWgtEps.dot(
                             ((epsVectorStride(jacobian_determinant, eta_index)).array() *
                             (epsVectorStride(element_stress_xz, eta_index)).array() *
-                             (mGradientOperator.col(eps_index)).array()).matrix()) +
+                             (mGrd.col(eps_index)).array()).matrix()) +
 
-                    mIntegrationWeightsEps(eps_index) *
-                    mIntegrationWeightsEta.dot(
+                    mIntWgtEps(eps_index) *
+                    mIntWgtEta.dot(
                             ((etaVectorStride(jacobian_determinant, eps_index)).array() *
                             (etaVectorStride(element_stress_zz, eps_index)).array() *
-                            (mGradientOperator.col(eta_index)).array()).matrix());
+                            (mGrd.col(eta_index)).array()).matrix());
 
             itr++;
         }
@@ -213,8 +213,8 @@ void Elastic::attachMaterialProperties(ExodusModel *model) {
 //    mC35AtVertices = __attachMaterialProperties(model, "C35");
     mC55AtVertices = __attachMaterialProperties(model, "C55");
 
-    mC31AtVertices = mC13AtVertices = Eigen::MatrixXd::Zero(mNumberVertex,1);
-    mC51AtVertices = mC15AtVertices = Eigen::MatrixXd::Zero(mNumberVertex,1);
-    mC53AtVertices = mC35AtVertices = Eigen::MatrixXd::Zero(mNumberVertex,1);
+    mC31AtVertices = mC13AtVertices = Eigen::MatrixXd::Zero(mNumVtx,1);
+    mC51AtVertices = mC15AtVertices = Eigen::MatrixXd::Zero(mNumVtx,1);
+    mC53AtVertices = mC35AtVertices = Eigen::MatrixXd::Zero(mNumVtx,1);
 
 }

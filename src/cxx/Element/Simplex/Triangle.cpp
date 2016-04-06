@@ -23,7 +23,7 @@ Eigen::MatrixXd Triangle::mGradientPhi_ds;
 std::tuple<Eigen::VectorXd,Eigen::VectorXd> Triangle::QuadraturePointsForOrder(const int order) {
 
     if(order == 3) {
-        int num_pts = mNumberIntegrationPoints;
+        int num_pts = 12;
         Eigen::VectorXd rn(num_pts);
         Eigen::VectorXd sn(num_pts);
         coordinates_p3_triangle_rn(rn.data());
@@ -40,7 +40,7 @@ std::tuple<Eigen::VectorXd,Eigen::VectorXd> Triangle::QuadraturePointsForOrder(c
 Eigen::VectorXd Triangle::QuadratureIntegrationWeightForOrder(const int order) {
     
     if(order == 3) {
-        int num_pts = mNumberIntegrationPoints;
+        int num_pts = 12;
         Eigen::VectorXd wn(num_pts);
         quadrature_weights_p3_triangle(wn.data());
         return wn;
@@ -54,7 +54,7 @@ Eigen::VectorXi Triangle::ClosureMapping(const int order, const int dimension) {
 
     if(order == 3) {
 
-        int num_pts = mNumberIntegrationPoints;
+        int num_pts = 12;
 
         Eigen::VectorXi closure(num_pts);
         closure << 0,1,2,3,4,5,6,7,8,9,10,11;
@@ -69,30 +69,33 @@ Eigen::VectorXi Triangle::ClosureMapping(const int order, const int dimension) {
 
 Triangle::Triangle(Options options) {
 
+    mNumDim = 2;
+
     // Basic properties.
-    mPolynomialOrder = options.PolynomialOrder();
-    if(mPolynomialOrder == 3) {
-        mNumberIntegrationPoints = 12;
-        mNumberDofEdge = 2;
-        mNumberDofFace = 3;
+    mPlyOrd = options.PolynomialOrder();
+    if(mPlyOrd == 3) {
+        mNumIntPnt = 12;
+        mNumDofEdg = 2;
+        mNumDofFac = 3;
     }
     else {
         std::cerr << "ERROR: Order NOT implemented!\n";
         MPI::COMM_WORLD.Abort(-1);
     }
         
-    // mVertexCoordinates has 3 vertices
-    mVertexCoordinates.resize(2,mNumberVertex);
+    // mVtxCrd has 3 vertices
+    mElmCtr.resize(2,1);
+    mVtxCrd.resize(2,mNumberVertex);
     
     // Nodal collocation points on edge and surface
-    mNumberDofVertex = 1;
+    mNumDofVtx = 1;
         
     // Integration points and weights
     std::tie(mIntegrationCoordinates_r,mIntegrationCoordinates_s) =
         Triangle::QuadraturePointsForOrder(options.PolynomialOrder());        
     mIntegrationWeights = Triangle::QuadratureIntegrationWeightForOrder(options.PolynomialOrder());
         
-    mClosureMapping = Triangle::ClosureMapping(options.PolynomialOrder(), mNumberDimensions);
+    mClsMap = Triangle::ClosureMapping(options.PolynomialOrder(), mNumDim);
     setupGradientOperator();
     
 }
@@ -106,15 +109,15 @@ void Triangle::attachVertexCoordinates(DM &distributed_mesh) {
 
     DMGetCoordinatesLocal(distributed_mesh, &coordinates_local);
     DMGetCoordinateSection(distributed_mesh, &coordinate_section);
-    DMPlexVecGetClosure(distributed_mesh, coordinate_section, coordinates_local, mElementNumber,
+    DMPlexVecGetClosure(distributed_mesh, coordinate_section, coordinates_local, mElmNum,
                         &coordinate_buffer_size, &coordinates_buffer);
     std::vector<PetscReal> coordinates_element(coordinates_buffer, coordinates_buffer+coordinate_buffer_size);
-    DMPlexVecRestoreClosure(distributed_mesh, coordinate_section, coordinates_local, mElementNumber,
+    DMPlexVecRestoreClosure(distributed_mesh, coordinate_section, coordinates_local, mElmNum,
                             &coordinate_buffer_size, &coordinates_buffer);
     
     for (int i = 0; i < mNumberVertex; i++) {        
-        mVertexCoordinates(0,i) = coordinates_element[mNumberDimensions*i+0];
-        mVertexCoordinates(1,i) = coordinates_element[mNumberDimensions*i+1];
+        mVtxCrd(0,i) = coordinates_element[mNumDim*i+0];
+        mVtxCrd(1,i) = coordinates_element[mNumDim*i+1];
     }
 
 }
@@ -125,13 +128,13 @@ std::tuple<Eigen::Matrix2d,PetscReal> Triangle::inverseJacobianAtPoint(PetscReal
     // Current triangles are affine, so eps and eta are ignored as the
     // tranform from reference element is linear.
     
-    double v1x = mVertexCoordinates(0,0);
-    double v2x = mVertexCoordinates(0,1);
-    double v3x = mVertexCoordinates(0,2);
+    double v1x = mVtxCrd(0,0);
+    double v2x = mVtxCrd(0,1);
+    double v3x = mVtxCrd(0,2);
     
-    double v1z = mVertexCoordinates(1,0);
-    double v2z = mVertexCoordinates(1,1);
-    double v3z = mVertexCoordinates(1,2);
+    double v1z = mVtxCrd(1,0);
+    double v2z = mVtxCrd(1,1);
+    double v3z = mVtxCrd(1,2);
 
     // tranform matrix for reference triangle (-1,-1),(1,-1),(-1,1)
     // See Hesthaven & Warburton pg. 172
@@ -169,7 +172,7 @@ Eigen::Vector3d Triangle::__attachMaterialProperties(ExodusModel *model, std::st
 
     for (auto i = 0; i < mNumberVertex; i++) {
         material_at_vertices(i) = model->getElementalMaterialParameterAtVertex(
-                                                                               mElementCenter, parameter_name, i);
+                                                                               mElmCtr, parameter_name, i);
     }
     return material_at_vertices;
 
@@ -183,7 +186,7 @@ void Triangle::attachSource(std::vector<Source*> sources) {
                                                                             source->PhysicalLocationZ());
             source->setReferenceLocationEps(reference_location(0));
             source->setReferenceLocationEta(reference_location(1));
-            mSources.push_back(source);
+            mSrc.push_back(source);
         }
     }
 
@@ -191,14 +194,14 @@ void Triangle::attachSource(std::vector<Source*> sources) {
 
 bool Triangle::mCheckHull(double x, double z) {
 
-    double x1 = mVertexCoordinates.row(0)[0];
-    double x2 = mVertexCoordinates.row(0)[1];
-    double x3 = mVertexCoordinates.row(0)[2];
-    double x4 = mVertexCoordinates.row(0)[3];
-    double z1 = mVertexCoordinates.row(1)[0];
-    double z2 = mVertexCoordinates.row(1)[1];
-    double z3 = mVertexCoordinates.row(1)[2];
-    double z4 = mVertexCoordinates.row(1)[3];
+    double x1 = mVtxCrd.row(0)[0];
+    double x2 = mVtxCrd.row(0)[1];
+    double x3 = mVtxCrd.row(0)[2];
+    double x4 = mVtxCrd.row(0)[3];
+    double z1 = mVtxCrd.row(1)[0];
+    double z2 = mVtxCrd.row(1)[1];
+    double z3 = mVtxCrd.row(1)[2];
+    double z4 = mVtxCrd.row(1)[3];
 
     // see triangle_element_metrics.py
     // check barycentric coordinates of the point relative to this
@@ -222,12 +225,12 @@ bool Triangle::mCheckHull(double x, double z) {
 
 Eigen::Vector2d Triangle::inverseCoordinateTransform(const double &x, const double &z) {
 
-    double x1 = mVertexCoordinates.row(0)[0];
-    double x2 = mVertexCoordinates.row(0)[1];
-    double x3 = mVertexCoordinates.row(0)[2];
-    double z1 = mVertexCoordinates.row(1)[0];
-    double z2 = mVertexCoordinates.row(1)[1];
-    double z3 = mVertexCoordinates.row(1)[2];
+    double x1 = mVtxCrd.row(0)[0];
+    double x2 = mVtxCrd.row(0)[1];
+    double x3 = mVtxCrd.row(0)[2];
+    double z1 = mVtxCrd.row(1)[0];
+    double z2 = mVtxCrd.row(1)[1];
+    double z3 = mVtxCrd.row(1)[2];
 
     // see triangle_element_metrics.py (and https://en.wikipedia.org/wiki/Barycentric_coordinate_system)
     
@@ -240,9 +243,9 @@ Eigen::Vector2d Triangle::inverseCoordinateTransform(const double &x, const doub
 
 void Triangle::setupGradientOperator() {
 
-    if(mPolynomialOrder == 3) {
-        mGradientPhi_dr.resize(mNumberIntegrationPoints,mNumberIntegrationPoints);
-        mGradientPhi_ds.resize(mNumberIntegrationPoints,mNumberIntegrationPoints);
+    if(mPlyOrd == 3) {
+        mGradientPhi_dr.resize(mNumIntPnt,mNumIntPnt);
+        mGradientPhi_ds.resize(mNumIntPnt,mNumIntPnt);
         dphi_dr_rsn_p3_triangle(mGradientPhi_dr.data());
         dphi_ds_rsn_p3_triangle(mGradientPhi_ds.data());
     } else {        
@@ -254,19 +257,19 @@ void Triangle::setupGradientOperator() {
 // global x-z points on all nodes
 std::tuple<Eigen::VectorXd,Eigen::VectorXd> Triangle::buildNodalPoints() {
 		
-    std::vector<PetscReal> ni(mVertexCoordinates.size());
+    std::vector<PetscReal> ni(mVtxCrd.size());
 	
-  Eigen::VectorXd nodalPoints_x(mNumberIntegrationPoints);
-  Eigen::VectorXd nodalPoints_z(mNumberIntegrationPoints);
+  Eigen::VectorXd nodalPoints_x(mNumIntPnt);
+  Eigen::VectorXd nodalPoints_z(mNumIntPnt);
 
-  double x1 = mVertexCoordinates.row(0)[0];
-  double x2 = mVertexCoordinates.row(0)[1];
-  double x3 = mVertexCoordinates.row(0)[2];
-  double z1 = mVertexCoordinates.row(1)[0];
-  double z2 = mVertexCoordinates.row(1)[1];
-  double z3 = mVertexCoordinates.row(1)[2];
+  double x1 = mVtxCrd.row(0)[0];
+  double x2 = mVtxCrd.row(0)[1];
+  double x3 = mVtxCrd.row(0)[2];
+  double z1 = mVtxCrd.row(1)[0];
+  double z2 = mVtxCrd.row(1)[1];
+  double z3 = mVtxCrd.row(1)[2];
 
-  for(auto n = 0; n < mNumberIntegrationPoints; n++) {
+  for(auto n = 0; n < mNumIntPnt; n++) {
       auto r = mIntegrationCoordinates_r[n];
       auto s = mIntegrationCoordinates_s[n];
       // map from reference triangle point (r,s) to this triangle (x,z)

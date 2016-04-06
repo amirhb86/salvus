@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
     std::vector<Source*> sources = Source::factory(options);
 
     // Setup reference element.
-    Element2D *reference_element = Element2D::factory(options);
+    Element *reference_element = Element::factory(options);
     
     // Use above elements to define the problem.
     Problem *problem = Problem::factory(options.ProblemType());

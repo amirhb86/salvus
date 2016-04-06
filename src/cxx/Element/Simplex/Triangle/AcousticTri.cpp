@@ -3,10 +3,10 @@
 AcousticTri::AcousticTri(Options options): Triangle(options) {
     
     // Allocate element vectors.
-    mMassMatrix.setZero(mNumberIntegrationPoints);
+    mMssMat.setZero(mNumIntPnt);
 
     // Strain matrix.
-    mElementStrain.setZero(2, mNumberIntegrationPoints);
+    mElementStrain.setZero(2, mNumIntPnt);
 
 }
 
@@ -23,19 +23,19 @@ void AcousticTri::buildStiffnessMatrix() {
     auto dsdz = invJ(1,1);
 
     // build material on all nodes
-    Eigen::VectorXd velocity(mNumberIntegrationPoints);
-    mElementStiffnessMatrix.resize(mNumberIntegrationPoints,mNumberIntegrationPoints);
+    Eigen::VectorXd velocity(mNumIntPnt);
+    mElementStiffnessMatrix.resize(mNumIntPnt,mNumIntPnt);
     // just 1 for now...
-    if(mElementNumber < 5) std::cout << "TODO: Interpolate velocity on triangle!\n";
+    if(mElmNum < 5) std::cout << "TODO: Interpolate velocity on triangle!\n";
     velocity = 0*velocity.array() + mMaterialVelocityAtVertices(1);
     
     // loop over matrix(i,j)
-    for(int i=0;i<mNumberIntegrationPoints;i++) {
+    for(int i=0;i<mNumIntPnt;i++) {
         Eigen::VectorXd dPhi_dr_i = mGradientPhi_dr.row(i);
         Eigen::VectorXd dPhi_ds_i = mGradientPhi_ds.row(i);
         auto dPhi_dx_i = dPhi_dr_i*drdx + dPhi_ds_i*dsdx;
         auto dPhi_dz_i = dPhi_dr_i*drdz + dPhi_ds_i*dsdz;
-        for(int j=0;j<mNumberIntegrationPoints;j++) {
+        for(int j=0;j<mNumIntPnt;j++) {
             Eigen::VectorXd dPhi_dr_j = mGradientPhi_dr.row(j);
             Eigen::VectorXd dPhi_ds_j = mGradientPhi_ds.row(j);
             auto dPhi_dx_j = dPhi_dr_j*drdx + dPhi_ds_j*dsdx;
@@ -65,14 +65,14 @@ void AcousticTri::attachMaterialProperties(ExodusModel *model) {
 Eigen::MatrixXd AcousticTri::computeSourceTerm(double time) {
 
     // Initialize source vector (note: due to RVO I believe no memory re-allocation is occuring).
-    Eigen::VectorXd F = Eigen::VectorXd::Zero(mNumberIntegrationPoints);
+    Eigen::VectorXd F = Eigen::VectorXd::Zero(mNumIntPnt);
     
     return F;
 }
 
 void AcousticTri::computeSurfaceTerm() {
 
-    std::cout << mElementNumber << std::endl;
+    std::cout << mElmNum << std::endl;
 
 }
 
@@ -81,11 +81,11 @@ void AcousticTri::assembleElementMassMatrix(Mesh *mesh) {
     int i=0;
     Eigen::Matrix<double,2,2> Jinv;
     double detJ;
-    Eigen::VectorXd elementMassMatrix(mNumberIntegrationPoints);
+    Eigen::VectorXd elementMassMatrix(mNumIntPnt);
     std::tie(Jinv,detJ) = inverseJacobianAtPoint(0,0);
     elementMassMatrix = detJ*mIntegrationWeights;
     // assemble to shared nodes
-    mesh->addFieldFromElement("m", mElementNumber, mClosureMapping, elementMassMatrix);
+    mesh->addFieldFromElement("m", mElmNum, mClsMap, elementMassMatrix);
     
 }
 
@@ -107,9 +107,9 @@ void AcousticTri::setInitialCondition(Mesh* mesh, Eigen::VectorXd& pts_x,Eigen::
     Eigen::VectorXd un = (PI/Lx*(pts_x.array()-(x0+L/2))).sin()*(PI/Lz*(pts_z.array()-(z0+L/2))).sin();
     Eigen::VectorXd vn = 0*pts_x;
     Eigen::VectorXd an = 0*pts_x;    
-    mesh->setFieldFromElement("u", mElementNumber, mClosureMapping, un);
-    mesh->setFieldFromElement("v", mElementNumber, mClosureMapping, vn);
-    mesh->setFieldFromElement("a_", mElementNumber, mClosureMapping, an);
+    mesh->setFieldFromElement("u", mElmNum, mClsMap, un);
+    mesh->setFieldFromElement("v", mElmNum, mClsMap, vn);
+    mesh->setFieldFromElement("a_", mElmNum, mClsMap, an);
     
 }
 

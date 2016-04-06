@@ -7,17 +7,17 @@
 
 int initialize_exact(Mesh *mesh,
                      ExodusModel *model,
-                     Element2D *reference_element,
-                     Options options, std::vector<Element2D*>* elements) {
+                     Element *reference_element,
+                     Options options, std::vector<Element*>* elements) {
     
     PetscFunctionBegin;
 
     // Attach elements to mesh.
-    mesh->setupGlobalDof(reference_element->NumberDofVertex(),
-                          reference_element->NumberDofEdge(),
-                          reference_element->NumberDofFace(),
+    mesh->setupGlobalDof(reference_element->NumDofVtx(),
+                         reference_element->NumDofEdg(),
+                         reference_element->NumDofFac(),
                           0 /* zero dofvolume */,
-                          reference_element->NumberDimensions());
+                         reference_element->NumDim());
 
     // Setup boundary conditions from options.
     mesh->setupBoundaries(options);
@@ -37,7 +37,7 @@ int initialize_exact(Mesh *mesh,
     for (auto &element : *elements) {
 
         // Give each element a number starting from zero.
-        element->SetLocalElementNumber(element_number++);
+        element->SetNum(element_number++);
 
         // Get vertex coordinates from the PETSc DMPLEX.
         element->attachVertexCoordinates(mesh->DistributedMesh());
@@ -71,7 +71,7 @@ int initialize_exact(Mesh *mesh,
     
 }
 
-double solve_vs_exact(Options options, Mesh* mesh, std::vector<Element2D*> &elements) {
+double solve_vs_exact(Options options, Mesh* mesh, std::vector<Element*> &elements) {
     PetscFunctionBegin;
     // Setup values.
     int it          = 0;
@@ -83,7 +83,7 @@ double solve_vs_exact(Options options, Mesh* mesh, std::vector<Element2D*> &elem
 
     // Over-allocate matrices to avoid re-allocations.
     int max_dims = 3;
-    int int_pnts = elements[0]->NumberIntegrationPoints();
+    int int_pnts = elements[0]->NumIntPnt();
     Eigen::MatrixXd f(int_pnts, max_dims);
     Eigen::MatrixXd u(int_pnts, max_dims);
     Eigen::MatrixXd ku(int_pnts, max_dims);
@@ -110,8 +110,8 @@ double solve_vs_exact(Options options, Mesh* mesh, std::vector<Element2D*> &elem
             // "u" for acoustic, "ux, uz" for elastic)
             int fitr = 0;
             for (auto &field : element->PullElementalFields()) {
-                u.col(fitr) = mesh->getFieldOnElement(field, element->Number(),
-                                                       element->ElementClosure());
+                u.col(fitr) = mesh->getFieldOnElement(field, element->Num(),
+                                                      element->ClsMap());
                 fitr++;
             }
             
@@ -130,24 +130,24 @@ double solve_vs_exact(Options options, Mesh* mesh, std::vector<Element2D*> &elem
             // Sum fields into local partition.
             fitr = 0;
             for (auto &field : element->PushElementalFields()) {
-                mesh->addFieldFromElement(field, element->Number(),
-                                           element->ElementClosure(),
+                mesh->addFieldFromElement(field, element->Num(),
+                                          element->ClsMap(),
                                            fMinusKu.col(fitr));
                 fitr++;
             }
-
         }
 
         // boundary condition happens after full Ku
         for( auto &element : elements) {
             // we can now apply boundary conditions (after fields are set)
-            if(element->OnBoundary()) {
+            if(element->BndElm()) {
                 // apply boundary condition
                 element->applyBoundaryConditions(mesh,
                                                  options,
                                                  "a");
             }
         }
+
 
         // Sum fields into global partitions.
         for (auto &field : elements[0]->PushElementalFields()) {
@@ -211,9 +211,9 @@ TEST_CASE("Testing acoustic exact solutions for triangles", "[exact/triangles]")
     model->initializeParallel();
 
     // Setup reference element.
-    Element2D *reference_element = Element2D::factory(options);
+    Element *reference_element = Element::factory(options);
     
-    std::vector<Element2D*> elements;
+    std::vector<Element*> elements;
 
     initialize_exact(mesh, model, reference_element, options, &elements);
     
@@ -250,9 +250,9 @@ TEST_CASE("Testing acoustic exact solutions for quadrilaterals", "[exact/quads]"
     model->initializeParallel();
 
     // Setup reference element.
-    Element2D *reference_element = Element2D::factory(options);
+    Element *reference_element = Element::factory(options);
     
-    std::vector<Element2D*> elements;
+    std::vector<Element*> elements;
 
     initialize_exact(mesh, model, reference_element, options, &elements);
     

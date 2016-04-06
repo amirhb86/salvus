@@ -17,7 +17,7 @@ if(NOT CMAKE_BUILD_TYPE)
       FORCE)
 endif(NOT CMAKE_BUILD_TYPE)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wno-literal-suffix")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 find_package(MPI REQUIRED)
 
@@ -31,6 +31,7 @@ include_directories(
   ${PETSC_DIR}/include/
   ${EIGEN_INCLUDE}
   src/cxx
+  src/cxx/Testing
   src/cxx/Element
   src/cxx/Element/HyperCube
   src/cxx/Element/HyperCube/Quad
@@ -44,6 +45,7 @@ include_directories(
 
 set(SALVUS_SOURCES
   src/cxx/Problem/Problem.cpp
+  src/cxx/Problem/FieldIo.cpp
   src/cxx/Problem/NewmarkGeneral.cpp
   src/cxx/Problem/NewmarkTesting.cpp
   src/cxx/Mesh/Mesh.cpp
@@ -76,7 +78,7 @@ add_executable(salvus_test
   )
 
 # run `make` (or `make -j5`) to build `salvus` executable
-target_link_libraries(salvus ${MPI_LIBRARIES} petsc exodus netcdf)
+target_link_libraries(salvus ${MPI_LIBRARIES} petsc exodus netcdf hdf5)
 # run `make salvus_test` to build testing executable.
-target_link_libraries(salvus_test ${MPI_LIBRARIES} petsc exodus netcdf)
+target_link_libraries(salvus_test ${MPI_LIBRARIES} petsc exodus netcdf hdf5)
 set_target_properties(salvus_test PROPERTIES EXCLUDE_FROM_ALL TRUE) # doesn't get built by `make`
