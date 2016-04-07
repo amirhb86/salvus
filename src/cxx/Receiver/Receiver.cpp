@@ -1,6 +1,6 @@
 #include "Receiver.h"
 #include <iostream>
-#include <exception>
+#include <stdexcept>
 
 std::vector<Receiver *> Receiver::factory(Options options) {
 

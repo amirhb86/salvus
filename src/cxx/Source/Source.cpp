@@ -6,6 +6,7 @@
 std::vector<Source *> Source::factory(Options options) {
 
   std::vector<Source *> sources;
+  std::cout << options.NumberSources() << std::endl;
   for (auto i = 0; i < options.NumberSources(); i++)
     try {
       if (options.SourceType() == "ricker") {

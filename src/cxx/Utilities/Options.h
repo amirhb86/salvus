@@ -97,24 +97,9 @@ class Options {
   inline std::vector<double> SourceRickerCenterFreq() { return mSourceRickerCenterFreq; }
   inline std::vector<double> SourceRickerTimeDelay() { return mSourceRickerTimeDelay; }
 
-  // Setters (FOR TESTING ONLY).
-  inline void __SetPolynomialOrder(int p_order) { mPolynomialOrder = p_order; }
-  inline void __SetDuration(double duration) { mDuration = duration; }
-  inline void __SetTimeStep(double timestep) { mTimeStep = timestep; }
-  inline void __SetMeshType(std::string MeshType) { mMeshType = MeshType; }
-  inline void __SetExodusMeshFile(std::string ExodusMeshFile) { mExodusMeshFile = ExodusMeshFile; }
-  inline void __SetElementShape(std::string ElementShape) { mElementShape = ElementShape; }
-  inline void __SetPhysicsSystem(std::string PhysicsSystem) { mPhysicsSystem = PhysicsSystem; }
-  inline void __SetExodusModelFile(std::string ExodusModelFile) { mExodusModelFile = ExodusModelFile; }
-  inline void __SetDirichletBoundaryNames(std::vector<std::string> DirichletBoundaryNames) {
-    mDirichletBoundaryNames = DirichletBoundaryNames;
-  }
-  inline void __SetCenter_x(PetscReal Center_x) { mCenter_x = Center_x; }
-  inline void __SetCenter_z(PetscReal Center_z) { mCenter_z = Center_z; }
-  inline void __SetSquareSide_L(PetscReal SquareSide_L) { mSquareSide_L = SquareSide_L; }
-  inline void __SetSaveMovie(PetscBool saveMovie) { mSaveMovie = saveMovie; }
-  inline void __SetNumberSources(PetscInt num) { mNumberSources = num; }
-//  inline void __SetPhysicalLocationX(PetscReal x) { mPhy}
+  // Setters for testing.
+  inline void __SetPolynomialOrder(int ord) { mPolynomialOrder = ord; }
+  inline void __SetSourceType(std::string type) { mSourceType = type; }
 
 };
 

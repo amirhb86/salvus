@@ -184,24 +184,34 @@ double solve_vs_exact(Options options, Mesh* mesh, std::vector<Element*> &elemen
 
 TEST_CASE("Testing acoustic exact solutions for triangles", "[exact/triangles]") {
 
+    // Mock command line arguments.
+    PetscOptionsClear();
+    const char *arg[] = {
+        "salvus_test",
+        "--duration", "0.7071067811865475",
+        "--time_step", "0.003",
+        "--exodus_file_name", "simple_trimesh_2x2.e",
+        "--exodus_model_file_name", "simple_trimesh_2x2.e",
+        "--mesh_type", "newmark",
+        "--element_shape", "triangle",
+        "--physics_system", "acoustic",
+        "--polynomial_order", "3",
+        "--dirichlet-boundaries", "dirichlet",
+        "--testIC", "true",
+        "--IC-center-x", "0.0",
+        "--IC-center-z", "0.0",
+        "--IC-square-side-L", "2",
+        NULL};
+    char **argv = const_cast<char**> (arg);
+    int argc = sizeof(arg) / sizeof(const char*) - 1;
+    PetscOptionsInsert(&argc, &argv, NULL);
+
     // Set options for exact tests
     Options options;
+    options.setOptions();
+
     // Triangles
-    options.__SetPolynomialOrder(3);
-    options.__SetDuration(0.7071067811865475); // 1 full cycle with v=4
-    options.__SetTimeStep(0.003);
-    options.__SetMeshType("newmark");
-    options.__SetExodusMeshFile("simple_trimesh_2x2.e");
-    options.__SetExodusModelFile("simple_trimesh_2x2.e");
-    options.__SetElementShape("triangle");
-    options.__SetPhysicsSystem("acoustic");
-    options.__SetDirichletBoundaryNames({"dirichlet"});
-    options.__SetCenter_x(0.0);
-    options.__SetCenter_z(0.0);
-    options.__SetSquareSide_L(2.0);
-    options.__SetSaveMovie(PETSC_FALSE);
-    
-    
+
     // Get mesh.
     Mesh *mesh = Mesh::factory(options);
     mesh->read(options);
@@ -225,22 +235,30 @@ TEST_CASE("Testing acoustic exact solutions for triangles", "[exact/triangles]")
 TEST_CASE("Testing acoustic exact solutions for quadrilaterals", "[exact/quads]") {
 
     // Set options for exact tests
+    PetscOptionsClear();
+    const char *arg[] = {
+        "salvus_test",
+        "--duration", "0.7071067811865475",
+        "--time_step", "0.003",
+        "--exodus_file_name", "simple_quadmesh_2x2.e",
+        "--exodus_model_file_name", "simple_quadmesh_2x2.e",
+        "--mesh_type", "newmark",
+        "--element_shape", "quad",
+        "--physics_system", "acoustic",
+        "--polynomial_order", "3",
+        "--dirichlet-boundaries", "x0,x1,y0,y1",
+        "--testIC", "true",
+        "--IC-center-x", "0.0",
+        "--IC-center-z", "0.0",
+        "--IC-square-side-L", "2",
+        NULL};
+    char **argv = const_cast<char**> (arg);
+    int argc = sizeof(arg) / sizeof(const char*) - 1;
+    PetscOptionsInsert(&argc, &argv, NULL);
+
     Options options;
-    // Triangles
-    options.__SetPolynomialOrder(3);
-    options.__SetDuration(0.7071067811865475); // 1 full cycle with v=4
-    options.__SetTimeStep(0.003);
-    options.__SetMeshType("newmark");
-    options.__SetExodusMeshFile("simple_quadmesh_2x2.e");
-    options.__SetExodusModelFile("simple_quadmesh_2x2.e");
-    options.__SetElementShape("quad");
-    options.__SetPhysicsSystem("acoustic");
-    options.__SetDirichletBoundaryNames({"x0","x1","y0","y1"});
-    options.__SetCenter_x(0.0);
-    options.__SetCenter_z(0.0);
-    options.__SetSquareSide_L(2.0);
-    options.__SetSaveMovie(PETSC_FALSE);
-    
+    options.setOptions();
+
     // Get mesh.
     Mesh *mesh = Mesh::factory(options);
     mesh->read(options);
