@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
    * PETSc arguments read in, and then tell Catch that we really
    * don't have any command line arguments for it in particular.
    * */
-  argc = 1;
+//  argc = 1;
 
   // Run all unit tests.
   int result = Catch::Session().run(argc, argv);
@@ -55,27 +55,26 @@ Quad *setup_simple_quad(Options options) {
 
 }
 
-AcousticQuad* setup_simple_acousticquad(Options options) {
-
-  // Get element from options.
-  Element *reference_element = Element::factory(options);
-  AcousticQuad *reference_quad = dynamic_cast<AcousticQuad*> (reference_element);
-
-  // Make things easy by assuming a reference element.
-  // NOTE THE ELEMENT IS DISTORTED x -> [-2, 1], y -> [-6, 1]
-  Eigen::Matrix<double,2,4> coord;
-  coord << -2, +1, +1, -2,
-    -6, -6, +1, +1;
-  reference_quad->SetVtxCrd(coord);
-  return reference_quad;
-
-}
-
 TEST_CASE("Test whether simple stuff works.", "[element]") {
+
+  char **argv = const_cast<char**> ((const char *[]) {
+      "salvus_test",
+      "--duration", "0.01",
+      "--time_step", "1e-3",
+      "--exodus_file_name", "homogeneous_iso_cartesian_2D_50s.e",
+      "--exodus_model_file_name", "homogeneous_iso_cartesian_2D_50s.e",
+      "--mesh_type", "newmark",
+      "--element_shape", "quad",
+      "--physics_system", "acoustic",
+      "--polynomial_order", "4", NULL});
+  int argc = sizeof(argv) / sizeof(char*) - 1;
+
+  PetscOptionsInsert(&argc &argv, NULL);
 
 
   Options options;
   options.setOptions();
+  std::cout << options.PhysicsSystem() << std::endl;
 
   int max_order = 10;
   Eigen::VectorXd exact(max_order);
@@ -118,6 +117,7 @@ TEST_CASE("Test whether simple stuff works.", "[element]") {
     // Test against analytical solution (from sympy), within floating point precision.
     REQUIRE(reference_quad->integrateField(gll_val) == Approx(exact(order-1)));
   }
+
 
 }
 

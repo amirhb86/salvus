@@ -85,7 +85,7 @@ class Options {
   inline std::string SourceType() { return mSourceType; }
   inline std::string OutputMovieFile() { return mOutputMovieFile; }
   inline std::string ProblemType() { return mProblemType; }
-  inline std::string ReceiverType() { return "hdf5"; }
+  inline std::string ReceiverType() { return "hdf5"; } // TODO: GENERAL
 
   inline std::vector<std::string> DirichletBoundaries() { return mDirichletBoundaryNames; }
 
@@ -113,6 +113,8 @@ class Options {
   inline void __SetCenter_z(PetscReal Center_z) { mCenter_z = Center_z; }
   inline void __SetSquareSide_L(PetscReal SquareSide_L) { mSquareSide_L = SquareSide_L; }
   inline void __SetSaveMovie(PetscBool saveMovie) { mSaveMovie = saveMovie; }
+  inline void __SetNumberSources(PetscInt num) { mNumberSources = num; }
+//  inline void __SetPhysicalLocationX(PetscReal x) { mPhy}
 
 };
 

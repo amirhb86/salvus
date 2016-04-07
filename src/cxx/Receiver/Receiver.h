@@ -11,6 +11,7 @@ class Receiver {
 
  public:
 
+  Receiver(Options options);
   static std::vector<Receiver *> factory(Options options);
 
 };
