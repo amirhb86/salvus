@@ -61,6 +61,7 @@ set(SALVUS_SOURCES
   src/cxx/Utilities/Utilities.cpp
   src/cxx/Utilities/Options.cpp
   src/cxx/Source/Source.cpp
+  src/cxx/Receiver/Receiver.cpp
   src/cxx/Utilities/kdtree.c
   ${QuadAutoGen}
   ${TriAutoGen}
