@@ -2,7 +2,6 @@
 // Created by Michael Afanasiev on 2016-01-27.
 //
 
-#include <vector>
 #include "Mesh.h"
 #include "ScalarNewmark2D.h"
 #include "ElasticNewmark2D.h"
@@ -220,7 +219,7 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
                               depth >  2 ? &p_max[1]       : NULL,
                               &p_max[0]);CHKERRQ(ier);
 
-  // dep = 0 -> edg; dep = 1 -> vtx; dep = 2 -> fac.
+  // dep = 0 -> fac; dep = 1 -> edg; dep = 2 -> vtx.
   assert(depth == 2); // Can only handle 2-D elements for now.
   for (int dep = 0; dep <= depth; dep++) {
     int num_dof = 0;
@@ -348,6 +347,8 @@ void Mesh::addFieldFromFace(const std::string &name, const int face_number, cons
 
 Eigen::VectorXd Mesh::getFieldOnElement(const std::string &name, const int &element_number,
                                         const Eigen::VectorXi &closure) {
+
+//  DMPlexGetClosureIndices()
 
   PetscScalar *val = NULL;
   Eigen::VectorXd field(closure.size());

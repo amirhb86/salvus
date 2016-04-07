@@ -22,8 +22,9 @@
 
 #include <Eigen/Dense>
 
-#include "../Utilities/Options.h"
-#include "../Utilities/Utilities.h"
+#include <Utilities/Options.h>
+#include <Utilities/Utilities.h>
+#include <Utilities/PETScExtensions.h>
 
 /**
  * Struct holding the vectors representing the global DOFs.

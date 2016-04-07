@@ -62,14 +62,14 @@ set(SALVUS_SOURCES
   src/cxx/Utilities/Options.cpp
   src/cxx/Source/Source.cpp
   src/cxx/Utilities/kdtree.c
+  src/cxx/Utilities/PETScExtensions.c
   ${QuadAutoGen}
   ${TriAutoGen}
   )      
             
 add_executable(salvus
   ${SALVUS_SOURCES}
-  src/cxx/Main.cpp  
-  )
+  src/cxx/Main.cpp)
 
 add_executable(salvus_test
   ${SALVUS_SOURCES}
