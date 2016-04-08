@@ -459,3 +459,8 @@ double Quad::integrateField(const Eigen::VectorXd &field) {
   return val;
 
 }
+void Quad::attachReceiver(std::vector<Receiver *> receivers) {
+
+}
+
+

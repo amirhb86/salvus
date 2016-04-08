@@ -256,6 +256,16 @@ class Quad: public Element {
   void attachSource(std::vector<Source *> sources);
 
   /**
+   * Attach receiver.
+   * Given a vector of abstract receiver objects, this function will query each for its spatial location. After
+   * performing a convex hull test, it will perform a quick inverse problem to determine the position of any
+   * sources within each element in reference coordiantes. These reference coordinates are then saved in the
+   * receiver object. References to any receivers which lie within the element are saved in the mRec vector.
+   * @param [in] receivers A vector of all the receivers defined for a simulation run.
+   */
+  void attachReceiver(std::vector<Receiver *> receivers);
+
+  /**
    * Builds nodal coordinates (x,z) on all mesh degrees of freedom.
    * @param mesh [in] The mesh.
    */

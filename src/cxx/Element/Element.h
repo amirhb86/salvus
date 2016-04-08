@@ -6,6 +6,7 @@
 #include <Mesh/Mesh.h>
 #include <mpi.h>
 #include <petsc.h>
+#include <Receiver/Receiver.h>
 
 using namespace Eigen;
 
@@ -110,6 +111,16 @@ class Element {
    * @param [in] sources A vector of all the sources defined for a simulation run.
    */
   virtual void attachSource(std::vector<Source *> sources) = 0;
+
+  /**
+   * Atttach receiver.
+   * Given a vector of abstract receiver objects, this function will query each for its spatial location. After
+   * performing a convex hull test, it will perform a quick inverse problem to determine the position of any
+   * sources within each element in reference coordiantes. These reference coordinates are then saved in the
+   * receiver object. References to any receivers which lie within the element are saved in the mRec vector.
+   * @param [in] receivers A vector of all the receivers defined for a simulation run.
+   */
+  virtual void attachReceiver(std::vector<Receiver *> receivers) = 0;
 
   /**
    * Build the elemental stiffness matrix.
