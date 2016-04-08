@@ -195,6 +195,7 @@ class Element {
   inline int NumDofVtx() const { return mNumDofVtx; }
   inline int NumDofVol() const { return mNumDofVol; }
   inline int NumIntPnt() const { return mNumIntPnt; }
+  inline int NumSrc() const { return mSrc.size(); }
   inline bool BndElm() const { return mBndElm; }
   inline VectorXi ClsMap() { return mClsMap; }
   inline MatrixXd VtxCrd() { return mVtxCrd; }

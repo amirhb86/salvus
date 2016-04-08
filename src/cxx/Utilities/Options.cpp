@@ -18,14 +18,14 @@ PetscErrorCode Options::setOptions() {
   if (parameter_set) { mDuration = real_buffer; }
   else {
     if (! testing)
-    SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER, "Duration must be given via --duration");
+    { SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER, "Duration must be given via --duration"); }
   }
 
   PetscOptionsGetReal(NULL, "--time_step", &real_buffer, &parameter_set);
   if (parameter_set) { mTimeStep = real_buffer; }
   else {
     if (! testing)
-    SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER, "Time step must be given via --time_step");
+    { SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER, "Time step must be given via --time_step"); }
   }
 
   // String options.O
