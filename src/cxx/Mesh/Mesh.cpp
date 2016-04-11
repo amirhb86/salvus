@@ -1,7 +1,3 @@
-//
-// Created by Michael Afanasiev on 2016-01-27.
-//
-
 #include <vector>
 #include <memory>
 #include "Mesh.h"

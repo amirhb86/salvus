@@ -209,7 +209,7 @@ class Triangle: public Element {
    * receiver object. References to any receivers which lie within the element are saved in the mRec vector.
    * @param [in] receivers A vector of all the receivers defined for a simulation run.
    */
-  void attachReceiver(std::vector<Receiver *> receivers);
+  void attachReceiver(std::vector<std::unique_ptr<Receiver>> &receivers);
 
   /**
    * Simple function to set the (remembered) element number.

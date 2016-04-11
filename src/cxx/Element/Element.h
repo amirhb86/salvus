@@ -120,7 +120,7 @@ class Element {
    * receiver object. References to any receivers which lie within the element are saved in the mRec vector.
    * @param [in] receivers A vector of all the receivers defined for a simulation run.
    */
-  virtual void attachReceiver(std::vector<Receiver *> receivers) = 0;
+  virtual void attachReceiver(std::vector<std::unique_ptr<Receiver>> &receivers) = 0;
 
   /**
    * Build the elemental stiffness matrix.

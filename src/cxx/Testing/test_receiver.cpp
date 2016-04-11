@@ -1,6 +1,5 @@
 #include "catch.h"
 #include <Element/Element.h>
-#include <Element/HyperCube/Quad/Acoustic.h>
 
 TEST_CASE("test_receiver", "[receiver]") {
 // Set up custom command line arguments.
@@ -15,6 +14,9 @@ TEST_CASE("test_receiver", "[receiver]") {
       "--ricker_amplitude", "10.0",
       "--ricker_time_delay", "1.0",
       "--ricker_center_freq", "1.0",
+      "--number_of_receivers", "2",
+      "--receiver_location_x1", "26000,76000",
+      "--receiver_location_x2", "26000,76000",
       "--exodus_file_name", "homogeneous_iso_cartesian_2D_50s.e",
       "--exodus_model_file_name", "homogeneous_iso_cartesian_2D_50s.e",
       "--mesh_type", "newmark",

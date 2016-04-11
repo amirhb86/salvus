@@ -1,13 +1,18 @@
 #include "Receiver.h"
+#include "ReceiverHdf5.h"
 #include <iostream>
-#include <stdexcept>
+#include <assert.h>
 
-std::vector<Receiver *> Receiver::factory(Options options) {
+// Initialize counter to zero.
+long Receiver::num = 0;
 
-  std::vector<Receiver *> receivers;
+std::vector<std::unique_ptr<Receiver>> Receiver::factory(Options options) {
+
+  std::vector<std::unique_ptr<Receiver>> receivers;
   for (int i = 0; i < options.NumberReceivers(); i++) {
     try {
       if (options.ReceiverType() == "hdf5") {
+        receivers.push_back(std::unique_ptr<ReceiverHdf5> (new ReceiverHdf5(options)));
       } else {
         throw std::runtime_error("Runtime error: Receiver type " + options.ReceiverType() + " not supported.");
       }
@@ -20,13 +25,36 @@ std::vector<Receiver *> Receiver::factory(Options options) {
   }
   return receivers;
 }
+
 Receiver::Receiver(Options options) {
 
-  mPysLocX = 0.0;
-  mPysLocY = 0.0;
-  mPysLocZ = 0.0;
+  // Check sanity of receiver coordinates.
+  if (options.Dimension() == 2) {
+    assert(options.RecLocX3().size() == 0);
+  } else if (options.Dimension() == 3) {
+    assert(options.RecLocX3().size() == options.RecLocX2().size());
+  }
+
+  // Get receiver number and increment.
+  mNum = Receiver::num;
+  Receiver::num++;
+
+  // Set physical location.
+  mPysLocX1 = options.RecLocX1()[mNum];
+  mPysLocX2 = options.RecLocX2()[mNum];
+  if (options.RecLocX3().size()) {
+    mPysLocX3 = options.RecLocX3()[mNum];
+  }
 
 }
+Receiver::~Receiver() {
+
+  // Reset receiver count.
+  Receiver::num = 0;
+
+}
+
+
 
 
 

@@ -5,6 +5,9 @@
 
 PetscErrorCode Options::setOptions() {
 
+  // TODO!! DIMENSION ONLY 2 FOR NOW!!
+  mDimension = 2;
+
   PetscInt int_buffer;
   PetscBool parameter_set;
   double real_buffer;
@@ -82,6 +85,23 @@ PetscErrorCode Options::setOptions() {
     PetscOptionsGetScalarArray(NULL, "--ricker_center_freq", mSourceRickerCenterFreq.data(), &mNumberSources, NULL);
   }
 
+  // Receivers.
+  PetscOptionsGetInt(NULL, "--number_of_receivers", &int_buffer, &parameter_set);
+  if (parameter_set) { mNumRec = int_buffer; } else { mNumRec = 0; }
+  if (mNumRec > 0) {
+    mRecLocX1.resize(mNumRec);
+    mRecLocX2.resize(mNumRec);
+    if (mDimension == 3) {
+      mRecLocX3.resize(mNumRec);
+    }
+
+    PetscOptionsGetScalarArray(NULL, "--receiver_location_x1", mRecLocX1.data(), &mNumRec, NULL);
+    PetscOptionsGetScalarArray(NULL, "--receiver_location_x2", mRecLocX2.data(), &mNumRec, NULL);
+    if (mDimension == 3) {
+      PetscOptionsGetScalarArray(NULL, "--receiver_location_x3", mRecLocX3.data(), &mNumRec, NULL);
+    }
+  }
+
   int num_dirichlet_boundaries = 256;
   char *dirichlet_boundaries[256];
   PetscOptionsGetStringArray(NULL,
@@ -122,7 +142,6 @@ PetscErrorCode Options::setOptions() {
   }
 
   // MAKE THESE COMMAND LINE OPTIONS EVENTUALLY.
-  mDimension = 2;
   mTimeStepType = "newmark";
 
   if (mMeshType == "newmark") {

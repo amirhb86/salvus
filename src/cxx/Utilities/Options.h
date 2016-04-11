@@ -34,6 +34,7 @@ class Options {
   std::string mTimeStepType;
 
   std::vector<std::string> mDirichletBoundaryNames;
+  std::vector<std::string> mRecNames;
 
   // Determines the output name of the movie.
   std::string mOutputMovieFile;
@@ -48,12 +49,21 @@ class Options {
   PetscReal mCenter_z;
   PetscReal mSquareSide_L;
 
+  // Sources.
+  // TODO: Move to simple HDF5 file.
   std::vector<double> mSourceLocationX;
   std::vector<double> mSourceLocationY;
   std::vector<double> mSourceLocationZ;
   std::vector<double> mSourceRickerAmplitude;
   std::vector<double> mSourceRickerCenterFreq;
   std::vector<double> mSourceRickerTimeDelay;
+
+  // Receivers.
+  // TODO: Move to simple HDF5 file.
+  PetscInt mNumRec;
+  std::vector<double> mRecLocX1;
+  std::vector<double> mRecLocX2;
+  std::vector<double> mRecLocX3;
 
  public:
 
@@ -64,9 +74,10 @@ class Options {
   inline PetscBool TestIC() { return mTestIC; }
 
   // Integer getters
+  inline PetscInt Dimension() { return mDimension; }
   inline PetscInt PolynomialOrder() { return mPolynomialOrder; }
   inline PetscInt NumberSources() { return mNumberSources; }
-  inline PetscInt NumberReceivers() { return 1; }
+  inline PetscInt NumberReceivers() { return mNumRec; }
   inline PetscInt SaveFrameEvery() { return mSaveFrameEvery; }
 
   // Double getters
@@ -88,8 +99,12 @@ class Options {
   inline std::string ReceiverType() { return "hdf5"; } // TODO: GENERAL
 
   inline std::vector<std::string> DirichletBoundaries() { return mDirichletBoundaryNames; }
+  inline std::vector<std::string> RecNames() { return mRecNames; }
 
   // Vector getters
+  inline std::vector<double> RecLocX1() { return mRecLocX1; }
+  inline std::vector<double> RecLocX2() { return mRecLocX2; }
+  inline std::vector<double> RecLocX3() { return mRecLocX3; }
   inline std::vector<double> SourceLocationX() { return mSourceLocationX; }
   inline std::vector<double> SourceLocationY() { return mSourceLocationY; }
   inline std::vector<double> SourceLocationZ() { return mSourceLocationZ; }
