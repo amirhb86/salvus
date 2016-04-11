@@ -307,7 +307,7 @@ double Triangle::integrateField(const Eigen::VectorXd &field) {
     return val;
 
 }
-void Triangle::attachReceiver(std::vector<std::unique_ptr<Receiver>> &receivers) {
+void Triangle::attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers) {
 
 }
 

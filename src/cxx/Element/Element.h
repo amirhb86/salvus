@@ -7,6 +7,7 @@
 #include <mpi.h>
 #include <petsc.h>
 #include <Receiver/Receiver.h>
+#include <memory>
 
 using namespace Eigen;
 
@@ -57,6 +58,18 @@ class Element {
 
   // Other objects.
   std::vector<Source *> mSrc; /** < Vector of sources belonging to the element. */
+
+  /**
+   * Had an interesting time with this one. I was trying to make this a vector of
+   * std::unique_ptrs. That did not work, because of the *clone() function below, which
+   * relies upon the copy constructor of this element. Of course, you can't copy a unique_ptr!
+   * So, in order to make things work with unique_ptrs, we would have to re-write the copy
+   * constructors of most of our classes to deal with move semantics instead. THIS MIGHT BE
+   * PREFERABLE! But it's not clear... still new-ish to c++11. Anyways, this is a shared_ptr for
+   * now... and it may stay that way. I need a beer.
+   * See: http://stackoverflow.com/questions/16030081/copy-constructor-for-a-class-with-unique-ptr.
+   */
+  std::vector<std::shared_ptr<Receiver>> mRec;
 
  public:
 
@@ -120,7 +133,7 @@ class Element {
    * receiver object. References to any receivers which lie within the element are saved in the mRec vector.
    * @param [in] receivers A vector of all the receivers defined for a simulation run.
    */
-  virtual void attachReceiver(std::vector<std::unique_ptr<Receiver>> &receivers) = 0;
+  virtual void attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers) = 0;
 
   /**
    * Build the elemental stiffness matrix.

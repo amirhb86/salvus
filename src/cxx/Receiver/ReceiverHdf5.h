@@ -9,8 +9,14 @@ class ReceiverHdf5 : public Receiver {
 
   static hid_t mPlistId, mFileId;
 
- public:
+public:
+
+  std::shared_ptr<Receiver> clone() const {
+    return (std::shared_ptr<Receiver> (new ReceiverHdf5(*this)));
+  }
   ReceiverHdf5(Options options);
+  ~ReceiverHdf5();
+
 
 };
 

@@ -239,6 +239,20 @@ Eigen::Vector4d Quad::__attachMaterialProperties(ExodusModel *model, std::string
 
 }
 
+void Quad::attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers) {
+
+  for (auto &rec: receivers) {
+    if (mCheckHull(rec->PysLocX1(), rec->PysLocX2())) {
+      Vector2d ref_loc = inverseCoordinateTransform(rec->PysLocX1(), rec->PysLocX2());
+      rec->SetRefLocR(ref_loc(0));
+      rec->SetRefLocS(ref_loc(1));
+      mRec.push_back(rec->clone());
+    }
+  }
+
+}
+
+
 void Quad::attachSource(std::vector<Source *> sources) {
 
   for (auto &source: sources) {
@@ -459,11 +473,4 @@ double Quad::integrateField(const Eigen::VectorXd &field) {
   return val;
 
 }
-void Quad::attachReceiver(std::vector<std::unique_ptr<Receiver>> &receivers) {
-
-  for (auto &rec : receivers) { }
-
-
-}
-
 
