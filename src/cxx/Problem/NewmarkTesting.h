@@ -7,13 +7,13 @@ class NewmarkTesting: public Problem {
 private:
 
     Mesh *mMesh;
-    Element *mReferenceElem;
-    std::vector<Element *> mElements;
+    std::shared_ptr<Element> mReferenceElem;
+    std::vector<std::shared_ptr<Element>> mElements;
 
 public:
 
     void solve(Options options);
-    void initialize(Mesh *mesh, ExodusModel *model, Element *elem, Options options);
+    void initialize(Mesh *mesh, ExodusModel *model, std::shared_ptr<Element> elem, Options options);
 
     
 };

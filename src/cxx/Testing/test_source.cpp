@@ -37,8 +37,8 @@ TEST_CASE("point_source_interpolation", "[source]") {
     auto sources = Source::factory(options);
     Mesh *msh = Mesh::factory(options);
     msh->read(options);
-    Element *elm = Element::factory(options);
-    std::vector<Element *> elms;
+    std::shared_ptr<Element> elm = Element::factory(options);
+    std::vector<std::shared_ptr<Element>> elms;
 
     msh->setupGlobalDof(elm->NumDofVtx(), elm->NumDofEdg(),
                         elm->NumDofFac(), elm->NumDofVol(),
@@ -75,7 +75,7 @@ TEST_CASE("point_source_interpolation", "[source]") {
 
     SECTION("Point source integrates properly.") {
       for (auto &elem : elms) {
-        Quad *quad = dynamic_cast<Quad *> (elem);
+        std::shared_ptr<Quad> quad = std::dynamic_pointer_cast<Quad> (elem);
         if (quad->NumSrc()) {
           REQUIRE(quad->integrateField(quad->computeSourceTerm(1.0)) == Approx(10));
         } else {

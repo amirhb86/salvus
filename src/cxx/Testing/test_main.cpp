@@ -21,15 +21,15 @@ int main(int argc, char *argv[]) {
   return result;
 }
 
-Quad *setup_simple_quad(Options options) {
+std::shared_ptr<Quad> setup_simple_quad(Options options) {
 
   // Simple model.
   ExodusModel *model = new ExodusModel(options);
   model->initializeParallel();
 
   // Get element from options.
-  Element *reference_element = Element::factory(options);
-  Quad *reference_quad = dynamic_cast<Quad*> (reference_element);
+  std::shared_ptr<Element> reference_element = Element::factory(options);
+  std::shared_ptr<Quad> reference_quad = std::dynamic_pointer_cast<Quad> (reference_element);
 
   // Make things easy by assuming a reference element.
   // NOTE THE ELEMENT IS DISTORTED x -> [-2, 1], y -> [-6, 1]
@@ -75,7 +75,7 @@ TEST_CASE("Test whether simple stuff works.", "[element]") {
     Options options;
     options.setOptions();
 
-    Quad *reference_quad = setup_simple_quad(options);
+    std::shared_ptr<Quad> reference_quad = setup_simple_quad(options);
     // Set up functions (order x**N*y**N-1)
     int ord = options.PolynomialOrder();
     Eigen::VectorXi x_exp = Eigen::VectorXi::LinSpaced(ord+1, 0, ord);

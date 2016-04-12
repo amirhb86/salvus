@@ -1,9 +1,7 @@
 #include <vector>
-#include <memory>
 #include "Mesh.h"
 #include "ScalarNewmark2D.h"
 #include "ElasticNewmark2D.h"
-#include "../Utilities/Utilities.h"
 
 void exodusError(const int retval, std::string func_name) {
 

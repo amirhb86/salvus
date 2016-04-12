@@ -78,11 +78,9 @@ class Triangle: public Element {
   Triangle(Options options);
 
   /**
-   * Copy constructor.
-   * Returns a copy. Use this once the reference element is set up via the constructor, to allocate space for
-   * all the unique elements on a processor.
+   * Destructor.
    */
-  virtual Triangle *clone() const = 0;
+  ~Triangle() {};
 
   /**
    * Returns the gll locations for a given polynomial order.
@@ -108,6 +106,11 @@ class Triangle: public Element {
   static Eigen::VectorXi ClosureMapping(const int order, const int dimension);
 
   static Eigen::Vector3d interpolateAtPoint(double r, double s);
+  Eigen::MatrixXd interpolateFieldAtPoint(const VectorXd &pnt) {
+    return Eigen::Matrix<double, -1, -1, 0, -1, -1>();
+  }
+
+  void recordField(const MatrixXd &u) {};
 
   // currently not possible
   // /**
@@ -199,7 +202,7 @@ class Triangle: public Element {
    * References to any sources which lie within the element are saved in the mSrc vector.
    * @param [in] sources A vector of all the sources defined for a simulation run.
    */
-  void attachSource(std::vector<Source *> sources);
+  void attachSource(std::vector<std::shared_ptr<Source>> sources);
 
   /**
    * Atttach receiver.

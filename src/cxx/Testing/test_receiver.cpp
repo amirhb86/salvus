@@ -1,5 +1,6 @@
 #include "catch.h"
 #include <Element/Element.h>
+#include <Problem/Problem.h>
 
 TEST_CASE("test_receiver", "[receiver]") {
 // Set up custom command line arguments.
@@ -7,6 +8,8 @@ TEST_CASE("test_receiver", "[receiver]") {
   const char *arg[] = {
       "salvus_test",
       "--testing", "true",
+      "--duration", "0.7071067811865475",
+      "--time_step", "0.003",
       "--number_of_sources", "1",
       "--source_type", "ricker",
       "--source_location_x", "76000",
@@ -17,8 +20,9 @@ TEST_CASE("test_receiver", "[receiver]") {
       "--number_of_receivers", "2",
       "--receiver_location_x1", "26000,76000",
       "--receiver_location_x2", "26000,76000",
-      "--exodus_file_name", "homogeneous_iso_cartesian_2D_50s.e",
-      "--exodus_model_file_name", "homogeneous_iso_cartesian_2D_50s.e",
+      "--receiver_names", "rec1,rec2",
+      "--exodus_file_name", "../../salvus_data/unit_test_meshes/homogeneous_iso_cartesian_2D_50s.e",
+      "--exodus_model_file_name", "../../salvus_data/unit_test_meshes/homogeneous_iso_cartesian_2D_50s.e",
       "--mesh_type", "newmark",
       "--element_shape", "quad",
       "--physics_system", "acoustic",
@@ -35,38 +39,21 @@ TEST_CASE("test_receiver", "[receiver]") {
     Options options;
     options.setOptions();
 
-    auto sources = Source::factory(options);
-    auto receivers = Receiver::factory(options);
-    Mesh *msh = Mesh::factory(options);
-    msh->read(options);
-    Element *elm = Element::factory(options);
-    std::vector<Element *> elms;
+    Mesh *mesh = Mesh::factory(options);
+    mesh->read(options);
 
-    msh->setupGlobalDof(elm->NumDofVtx(), elm->NumDofEdg(),
-                        elm->NumDofFac(), elm->NumDofVol(),
-                        elm->NumDim());
+    ExodusModel *model = new ExodusModel(options);
+    model->initializeParallel();
 
-    // Get a list of all local elements.
-    for (int i = 0; i < msh->NumberElementsLocal(); i++) {
-      elms.push_back(elm->clone());
-    }
+    std::shared_ptr<Element> reference_element = Element::factory(options);
 
-    // Set up elements.
-    int element_number = 0;
-    for (auto &element : elms) {
+    Problem *problem = Problem::factory(options.ProblemType());
+    problem->initialize(mesh, model, reference_element, options);
+    problem->solve(options);
 
-      // Give each element a number starting from zero.
-      element->SetNum(element_number++);
+    delete problem;
 
-      // Get vertex coordinates from the PETSc DMPLEX.
-      element->attachVertexCoordinates(msh->DistributedMesh());
-
-      // Attach source.
-      element->attachSource(sources);
-
-      // Attach receiver.
-      element->attachReceiver(receivers);
-
-    }
+    if (i > 4) { break; }
   }
+
 }

@@ -89,17 +89,22 @@ PetscErrorCode Options::setOptions() {
   PetscOptionsGetInt(NULL, "--number_of_receivers", &int_buffer, &parameter_set);
   if (parameter_set) { mNumRec = int_buffer; } else { mNumRec = 0; }
   if (mNumRec > 0) {
+    mRecNames.resize(mNumRec);
     mRecLocX1.resize(mNumRec);
     mRecLocX2.resize(mNumRec);
     if (mDimension == 3) {
       mRecLocX3.resize(mNumRec);
     }
 
+    char *maxrecs[10000];
+    PetscOptionsGetStringArray(NULL, "--receiver_names", maxrecs, &mNumRec, NULL);
     PetscOptionsGetScalarArray(NULL, "--receiver_location_x1", mRecLocX1.data(), &mNumRec, NULL);
     PetscOptionsGetScalarArray(NULL, "--receiver_location_x2", mRecLocX2.data(), &mNumRec, NULL);
     if (mDimension == 3) {
       PetscOptionsGetScalarArray(NULL, "--receiver_location_x3", mRecLocX3.data(), &mNumRec, NULL);
     }
+
+    for (int i = 0; i < mNumRec; i++) { mRecNames.push_back(maxrecs[i]); }
   }
 
   int num_dirichlet_boundaries = 256;

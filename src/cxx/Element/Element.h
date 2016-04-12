@@ -57,7 +57,7 @@ class Element {
            std::vector<int>> mBnd;  /** < Map relating the type of boundary to the Petsc edge number */
 
   // Other objects.
-  std::vector<Source *> mSrc; /** < Vector of sources belonging to the element. */
+  std::vector<std::shared_ptr<Source>> mSrc; /** < Vector of sources belonging to the element. */
 
   /**
    * Had an interesting time with this one. I was trying to make this a vector of
@@ -81,14 +81,19 @@ class Element {
    * Factory return the proper element physics based on the command line options.
    * @return Some derived element class.
    */
-  static Element *factory(Options options);
+  static std::shared_ptr<Element> factory(Options options);
+
+  /**
+   * Abstract destructor responsible for cleaning up.
+   */
+  virtual ~Element() {};
 
   /**
    * Copy constructor.
    * Returns a copy. Use this once the reference element is set up via the constructor, to allocate space for
    * all the unique elements on a processor.
    */
-  virtual Element *clone() const = 0;
+  virtual std::shared_ptr<Element> clone() const = 0;
 
   /**
    * Figure out which dofs (if any) are on the boundary.
@@ -123,7 +128,7 @@ class Element {
    * References to any sources which lie within the element are saved in the mSrc vector.
    * @param [in] sources A vector of all the sources defined for a simulation run.
    */
-  virtual void attachSource(std::vector<Source *> sources) = 0;
+  virtual void attachSource(std::vector<std::shared_ptr<Source>> sources) = 0;
 
   /**
    * Atttach receiver.
@@ -204,6 +209,10 @@ class Element {
    * @returns A vector of fields with the field names.
    */
   virtual std::vector<std::string> PushElementalFields() const = 0;
+
+  virtual MatrixXd interpolateFieldAtPoint(const VectorXd &pnt) = 0;
+
+  virtual void recordField(const MatrixXd &u) = 0;
 
   /***************************************************************************
    *                             ACCESSORS

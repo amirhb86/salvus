@@ -246,14 +246,14 @@ void Quad::attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers) {
       Vector2d ref_loc = inverseCoordinateTransform(rec->PysLocX1(), rec->PysLocX2());
       rec->SetRefLocR(ref_loc(0));
       rec->SetRefLocS(ref_loc(1));
-      mRec.push_back(rec->clone());
+      mRec.push_back(rec);
     }
   }
 
 }
 
 
-void Quad::attachSource(std::vector<Source *> sources) {
+void Quad::attachSource(std::vector<std::shared_ptr<Source>> sources) {
 
   for (auto &source: sources) {
     if (mCheckHull(source->PhysicalLocationX(), source->PhysicalLocationZ())) {
@@ -473,4 +473,21 @@ double Quad::integrateField(const Eigen::VectorXd &field) {
   return val;
 
 }
+MatrixXd Quad::interpolateFieldAtPoint(const VectorXd &pnt) {
+  return interpolateLagrangePolynomials(pnt(0), pnt(1), mPlyOrd);
+}
+void Quad::recordField(const MatrixXd &u) {
+
+  for (auto &rec : mRec) {
+    for (int i = 0; i < u.cols(); i++) {
+      rec->record(interpolateLagrangePolynomials(rec->RefLocR(), rec->RefLocS(), mPlyOrd).dot(u.col(i)),
+                  PullElementalFields()[i]);
+    }
+  }
+
+}
+
+
+
+
 

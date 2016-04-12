@@ -2,7 +2,7 @@
 
 void NewmarkTesting::initialize(Mesh *mesh,
                                 ExodusModel *model,
-                                Element *elem,
+                                std::shared_ptr<Element> elem,
                                 Options options) {
 
     // Save references to mesh and element base.

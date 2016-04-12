@@ -7,6 +7,7 @@
 
 class ReceiverHdf5 : public Receiver {
 
+  static std::vector<std::string> names;
   static hid_t mPlistId, mFileId;
 
 public:
@@ -17,6 +18,7 @@ public:
   ReceiverHdf5(Options options);
   ~ReceiverHdf5();
 
+  void write();
 
 };
 

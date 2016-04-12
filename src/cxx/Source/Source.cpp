@@ -3,13 +3,13 @@
 #include <vector>
 #include "Source.h"
 
-std::vector<Source *> Source::factory(Options options) {
+std::vector<std::shared_ptr<Source>> Source::factory(Options options) {
 
-  std::vector<Source *> sources;
+  std::vector<std::shared_ptr<Source>> sources;
   for (auto i = 0; i < options.NumberSources(); i++)
     try {
       if (options.SourceType() == "ricker") {
-        sources.push_back(new Ricker(options, i));
+        sources.push_back(std::shared_ptr<Source> (new Ricker(options, i)));
       } else {
         throw std::runtime_error("Runtime error: Source type " + options.SourceType() + " not supported.");
       }
