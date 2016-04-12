@@ -13,7 +13,9 @@ private:
 public:
 
     void solve(Options options);
-    void initialize(Mesh *mesh, ExodusModel *model, std::shared_ptr<Element> elem, Options options);
+    void initialize(Mesh *mesh,
+                    ExodusModel *model,
+                    std::shared_ptr<Element> elem, Options options);
 
     
 };

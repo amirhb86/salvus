@@ -44,6 +44,7 @@ class Receiver {
   inline void SetRefLocT (double val) { mRefLocT = val; }
 
   inline long Num() { return mNum; }
+  inline std::string Name() { return mName; }
   inline double PysLocX1() { return mPysLocX1; }
   inline double PysLocX2() { return mPysLocX2; }
   inline double PysLocX3() { return mPysLocX3; }

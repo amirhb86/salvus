@@ -2,6 +2,11 @@
 #include <Element/Element.h>
 #include <Problem/Problem.h>
 
+/**
+ * TODO
+ * This test only runs with mpirun = 1. I think this has something to do with the re-initializaiton
+ * of the exodus file. It might be an issue with Petsc never calling ex_close, but i'm not sure.
+ */
 TEST_CASE("test_receiver", "[receiver]") {
 // Set up custom command line arguments.
   PetscOptionsClear();
@@ -28,8 +33,8 @@ TEST_CASE("test_receiver", "[receiver]") {
       "--physics_system", "acoustic",
       "--polynomial_order", "4", NULL};
 
-  int max_order = 10;
-  for (int i = 1; i <= max_order; i++) {
+  int max_order = 4;
+  for (int i = 4; i <= max_order; i++) {
     char **argv = const_cast<char **> (arg);
     int argc = sizeof(arg) / sizeof(const char *) - 1;
 
@@ -38,6 +43,7 @@ TEST_CASE("test_receiver", "[receiver]") {
 
     Options options;
     options.setOptions();
+
 
     Mesh *mesh = Mesh::factory(options);
     mesh->read(options);

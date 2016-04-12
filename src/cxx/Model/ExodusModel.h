@@ -70,6 +70,7 @@ class ExodusModel {
 public:
 
     ExodusModel(Options options);
+    ~ExodusModel() { int rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank); if (!rank) { ex_close(mExodusId); } }
     void initializeParallel();
     PetscReal getMaterialParameterAtPoint(const std::vector<double> point,
                                           const std::string parameter_name);

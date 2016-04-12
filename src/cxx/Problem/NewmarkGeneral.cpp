@@ -67,6 +67,9 @@ void NewmarkGeneral::initialize(Mesh *mesh,
   mMesh->checkInFieldBegin("m");
   mMesh->checkInFieldEnd("m");
 
+  // TODO: NOTE HERE! Need to make this a smart pointer as well.
+  delete model;
+
 }
 
 void NewmarkGeneral::solve(Options options) {
@@ -158,5 +161,6 @@ void NewmarkGeneral::solve(Options options) {
   for (auto &rec : mRecs) {
     rec->write();
   }
+
 }
 

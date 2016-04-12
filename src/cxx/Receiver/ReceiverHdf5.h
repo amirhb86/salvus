@@ -7,8 +7,9 @@
 
 class ReceiverHdf5 : public Receiver {
 
-  static std::vector<std::string> names;
-  static hid_t mPlistId, mFileId;
+  static hid_t mFileId;
+  hsize_t max_size;
+  static std::vector<std::string> mWriteRegisteredFields;
 
 public:
 

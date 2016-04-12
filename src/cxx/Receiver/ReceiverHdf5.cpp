@@ -2,9 +2,8 @@
 #include "ReceiverHdf5.h"
 
 // Initialize hdf5 static.
-hid_t ReceiverHdf5::mPlistId;
 hid_t ReceiverHdf5::mFileId;
-std::vector<std::string> ReceiverHdf5::names;
+std::vector<std::string> ReceiverHdf5::mWriteRegisteredFields;
 
 ReceiverHdf5::ReceiverHdf5(Options options) : Receiver(options) {
 
@@ -13,15 +12,12 @@ ReceiverHdf5::ReceiverHdf5(Options options) : Receiver(options) {
 
     // Create file and set access.
     std::string fname = "/users/michaelafanasiev/Desktop/test.h5";
-    mPlistId = H5Pcreate(H5P_FILE_ACCESS);
-    H5Pset_fapl_mpio(mPlistId, PETSC_COMM_WORLD, MPI_INFO_NULL);
-    mFileId = H5Fcreate(fname.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, mPlistId);
-    H5Pclose(mPlistId);
+    hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
+    H5Pset_fapl_mpio(plist_id, PETSC_COMM_WORLD, MPI_INFO_NULL);
+    mFileId = H5Fcreate(fname.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
+    H5Pclose(plist_id);
 
   }
-
-  // Save all names globally (for HDF5 dataset creation).
-  names.push_back(options.RecNames()[Num()]);
 
 }
 
@@ -33,6 +29,63 @@ ReceiverHdf5::~ReceiverHdf5() {
 
 void ReceiverHdf5::write() {
 
+  // Send maximum length to all processors. Also send all field names (just once).
+  // Is this really the best way to do this??????
+  hsize_t loc_size = (store.size()) ? store.begin()->second.size() : 0;
+  hsize_t n_samples = 0;
+  MPI_Allreduce(&loc_size, &n_samples, 1, MPI_UNSIGNED_LONG_LONG,
+                MPI_SUM, MPI_COMM_WORLD);
+  if (Num() == 0) {
+    int name_rank = 0;
+    hsize_t name_size = 0;
+    std::string name;
+    for (auto &dict: store) {
+      name = dict.first;
+      name_size = name.size();
+      MPI_Comm_rank(PETSC_COMM_WORLD, &name_rank);
+    }
+    int my_rank; MPI_Comm_rank(PETSC_COMM_WORLD, &my_rank);
+    MPI_Allreduce(MPI_IN_PLACE, &name_size, 1, MPI_UNSIGNED_LONG_LONG,
+                  MPI_SUM, PETSC_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, &name_rank, 1, MPI_INT, MPI_SUM, PETSC_COMM_WORLD);
+    char *buf = new char[name_size+1];
+    if (my_rank == name_rank) { name.copy(buf, name_size, 0); }
+    MPI_Bcast(buf, name_size, MPI_CHAR, name_rank, PETSC_COMM_WORLD);
+    buf[name_size] = '\0';
+    mWriteRegisteredFields.push_back(std::string(buf));
+  }
+
+  hid_t gid = H5Gcreate(mFileId, Name().c_str(), H5P_DEFAULT,
+                        H5P_DEFAULT, H5P_DEFAULT);
+  H5Gclose(gid);
+
+  for (auto &field: mWriteRegisteredFields) {
+
+    std::string fullname = "/" + Name() + "/" + field;
+    hid_t filespace = H5Screate_simple(1, &n_samples, NULL);
+    hid_t dset_id = H5Dcreate(mFileId, fullname.c_str(), H5T_NATIVE_FLOAT, filespace,
+                              H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    H5Sclose(filespace);
+
+    // Define memory space on each processor.
+    hsize_t num = loc_size;
+    hid_t memspace = H5Screate_simple(1, &num, NULL);
+
+    // Select hyperslab.
+    hsize_t off = 0;
+    filespace = H5Dget_space(dset_id);
+    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, &off, NULL, &num, NULL);
+    hid_t plist_id = H5Pcreate(H5P_DATASET_XFER);
+    H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
+
+    // Write.
+    H5Dwrite(dset_id, H5T_NATIVE_FLOAT, memspace, filespace, plist_id, store.begin()->second.data());
+
+    H5Dclose(dset_id);
+    H5Sclose(filespace);
+    H5Sclose(memspace);
+    H5Pclose(plist_id);
+  }
 
 }
 

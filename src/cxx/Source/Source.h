@@ -1,5 +1,6 @@
 #pragma once
 #include <Utilities/Options.h>
+#include <memory>
 
 class Source {
 
