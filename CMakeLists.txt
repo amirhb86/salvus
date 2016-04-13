@@ -78,7 +78,8 @@ add_executable(salvus_test
   src/cxx/Testing/test_main.cpp
   src/cxx/Testing/test_exactsolution.cpp
   src/cxx/Testing/test_source.cpp
-  src/cxx/Testing/test_receiver.cpp)
+  src/cxx/Testing/test_receiver.cpp
+  src/cxx/Testing/test_multi_field.cpp)
 
 # run `make` (or `make -j5`) to build `salvus` executable
 target_link_libraries(salvus ${MPI_LIBRARIES} petsc exodus netcdf hdf5)
