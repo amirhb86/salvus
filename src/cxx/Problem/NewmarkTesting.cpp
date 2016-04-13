@@ -14,7 +14,8 @@ void NewmarkTesting::initialize(Mesh *mesh,
                           mReferenceElem->NumDofEdg(),
                           mReferenceElem->NumDofFac(),
                           mReferenceElem->NumDofVol(),
-                          mReferenceElem->NumDim());
+                          mReferenceElem->NumDim(),
+                          nullptr);
 
     // Setup boundary conditions from options.
     mMesh->setupBoundaries(options);

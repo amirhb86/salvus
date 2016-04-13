@@ -2,6 +2,9 @@
 #include "Mesh.h"
 #include "ScalarNewmark2D.h"
 #include "ElasticNewmark2D.h"
+#include "Model/ExodusModel.h"
+#include <Eigen/Dense>
+#include <set>
 
 void exodusError(const int retval, std::string func_name) {
 
@@ -177,7 +180,7 @@ void Mesh::read(Options options) {
 
 PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
                                     int num_dof_fac, int num_dof_vol,
-                                    int num_dim) {
+                                    int num_dim, ExodusModel *model) {
 
   assert(num_dim == mNumberDimensions);
 
@@ -188,22 +191,58 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
   num_fields = 1;
   num_comp[0] = 1;
 
-  ier = PetscSectionCreate(PetscObjectComm((PetscObject)mDistributedMesh), &mMeshSection);CHKERRQ(ier);
-  ier = PetscSectionSetNumFields(mMeshSection, num_fields);CHKERRQ(ier);
+  ier = PetscSectionCreate(PetscObjectComm((PetscObject) mDistributedMesh), &mMeshSection);
+  CHKERRQ(ier);
+  ier = PetscSectionSetNumFields(mMeshSection, num_fields);
+  CHKERRQ(ier);
   for (int f = 0; f < num_fields; f++) {
-    ier = PetscSectionSetFieldComponents(mMeshSection, f, num_comp[f]);CHKERRQ(ier);
+    ier = PetscSectionSetFieldComponents(mMeshSection, f, num_comp[f]);
+    CHKERRQ(ier);
   }
 
   // Get the indices of  the entire Hasse Diagram.
   PetscInt p_start, p_end;
-  ier = DMPlexGetChart(mDistributedMesh, &p_start, &p_end);CHKERRQ(ier);
+  ier = DMPlexGetChart(mDistributedMesh, &p_start, &p_end);
+  CHKERRQ(ier);
 
   // Tell the section about its' bounds.
-  ier = PetscSectionSetChart(mMeshSection, p_start, p_end);CHKERRQ(ier);
+  ier = PetscSectionSetChart(mMeshSection, p_start, p_end);
+  CHKERRQ(ier);
 
   // Get the number of levels of the Hasse diagram. Should be dimension + 1 (fac, edg, vtx. for 2D)
   PetscInt depth;
-  ier = DMPlexGetDepth(mDistributedMesh, &depth);CHKERRQ(ier);
+  ier = DMPlexGetDepth(mDistributedMesh, &depth);
+  CHKERRQ(ier);
+
+  // Save the types for all the elements. Get the types with our (could be better)
+  // centroid method.
+  std::map<int,std::set<std::string>> pnt_types;
+  for (PetscInt i = 0; i < mNumberElementsLocal; i++) {
+
+    // Get the type of this element.
+    Eigen::MatrixXd vtx = getElementCoordinateClosure(i);
+    Eigen::VectorXd ctr(vtx.cols());
+    if (mNumberDimensions == 2) { ctr << vtx.col(0).mean(), vtx.col(1).mean(); }
+    else if (mNumberDimensions == 3) { ctr << vtx.col(0).mean(), vtx.col(1).mean(), vtx.col(2).mean(); }
+    std::string type = model->getElementType(ctr);
+
+    // Get the transitive closure for this element.
+    PetscInt num_pnts; PetscInt *points = NULL;
+    ier = DMPlexGetTransitiveClosure(mDistributedMesh, i, PETSC_TRUE, &num_pnts, &points);CHKERRQ(ier);
+
+    // Traverse the closure, and add types accordingly.
+    for (PetscInt j = 0; j < num_pnts; j++) {
+
+      // Make a map of pnt -> set of types at each graph point.
+      PetscInt pnt = points[2*j];
+      std::set<std::string> phys = {type};
+      auto in = pnt_types.insert(std::make_pair(pnt, phys));
+      if (!in.second) { pnt_types[pnt].insert(type); }
+
+    }
+  }
+
+  for (auto s : pnt_types) { std::cout << s.second.size() << std::endl; }
 
   // Wat
   PetscInt *p_max;
@@ -227,6 +266,7 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
     p_max[dep] = p_max[dep] < 0 ? p_end : p_max[dep];
     // Loop over all mesh points on this level.
     for (int p = p_start; p < p_end; ++p) {
+//      printf("%d, %d\n", dep, p);
       PetscInt tot = 0;
       for (int f = 0; f < num_fields; ++f) {
         // Set a custom number of dofs for each field.
@@ -456,6 +496,33 @@ void Mesh::finalizeMovie() {
   PetscViewerDestroy(&mViewer);
 
 }
+
+Eigen::MatrixXd Mesh::getElementCoordinateClosure(PetscInt elem_num) {
+
+  Vec coord; DMGetCoordinatesLocal(mDistributedMesh, &coord);
+  PetscSection coord_section; DMGetCoordinateSection(mDistributedMesh, &coord_section);
+
+  PetscInt coord_buf_size;
+  PetscReal *coord_buf = NULL;
+  DMPlexVecGetClosure(mDistributedMesh, coord_section, coord, elem_num, &coord_buf_size, &coord_buf);
+
+  int num_vtx = coord_buf_size / mNumberDimensions;
+  Eigen::MatrixXd vtx(num_vtx, mNumberDimensions);
+  for (int i = 0; i < num_vtx; i++) {
+    vtx(i,0) = coord_buf[mNumberDimensions * i + 0];
+    vtx(i,1) = coord_buf[mNumberDimensions * i + 1];
+    if (mNumberDimensions == 3) {
+      vtx(i,2) = coord_buf[mNumberDimensions * i + 2];
+    }
+  }
+
+  DMPlexVecRestoreClosure(mDistributedMesh, coord_section, coord, elem_num, &coord_buf_size, &coord_buf);
+
+  return vtx;
+
+}
+
+
 
 
 // int Mesh::BoundarylementFaces(int elm, int ss_num) {

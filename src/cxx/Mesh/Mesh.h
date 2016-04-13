@@ -25,6 +25,7 @@
 #include <Utilities/Options.h>
 #include <Utilities/Utilities.h>
 #include <Utilities/PETScExtensions.h>
+#include <Model/ExodusModel.h>
 
 /**
  * Struct holding the vectors representing the global DOFs.
@@ -112,9 +113,12 @@ class Mesh {
    * @param [in] number_dof_volume Num of dofs per 3-d mesh component (volume). Something something for the
    * standard GLL basis.
    */
-  PetscErrorCode setupGlobalDof(PetscInt number_dof_vertex, PetscInt number_dof_edge,
-                                PetscInt number_dof_face, PetscInt number_dof_volume,
-                                PetscInt number_dimensions);
+  PetscErrorCode setupGlobalDof(int number_dof_vertex,
+                                int number_dof_edge,
+                                int number_dof_face,
+                                int number_dof_volume,
+                                int number_dimensions,
+                                ExodusModel *model);
 
   /**
    * Registers both the global (across parallel partition) and local (on a single parallel partition) vectors for a
@@ -313,6 +317,11 @@ class Mesh {
    * before mesh initializes fields to global DOF. (via registerFieldVectors)
    */
   void AddToGlobalFields(std::string fieldname) { mGlobalFields.push_back(fieldname); }
+
+  /**
+   * Get the transitive closure of a coordinate section for a mesh point.
+   */
+  Eigen::MatrixXd getElementCoordinateClosure(PetscInt elem_num);
 
 
   inline DM &DistributedMesh() { return mDistributedMesh; }

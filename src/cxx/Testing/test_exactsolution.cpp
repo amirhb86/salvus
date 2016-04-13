@@ -15,7 +15,8 @@ std::vector<std::shared_ptr<Element>> initialize_exact(Mesh *mesh,
                        reference_element->NumDofEdg(),
                        reference_element->NumDofFac(),
                        reference_element->NumDofVol(),
-                       reference_element->NumDim());
+                       reference_element->NumDim(),
+                       nullptr);
 
   // Setup boundary conditions from options.
   mesh->setupBoundaries(options);

@@ -32,8 +32,6 @@ TEST_CASE("test_multi_field", "[multi_field]") {
   ExodusModel *model = new ExodusModel(options);
   model->initializeParallel();
 
-  Eigen::VectorXd pnt;
-  pnt.resize(2); pnt(0) = 1e5; pnt(1) = 1e5;
-  std::cout << model->getElementType(pnt) << std::endl;
+  mesh->setupGlobalDof(1, 1, 1, 0, 2, model);
 
 }
