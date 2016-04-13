@@ -112,9 +112,9 @@ class Mesh {
    * @param [in] number_dof_volume Num of dofs per 3-d mesh component (volume). Something something for the
    * standard GLL basis.
    */
-  void setupGlobalDof(PetscInt number_dof_vertex, PetscInt number_dof_edge,
-                      PetscInt number_dof_face, PetscInt number_dof_volume,
-                      PetscInt number_dimensions);
+  PetscErrorCode setupGlobalDof(PetscInt number_dof_vertex, PetscInt number_dof_edge,
+                                PetscInt number_dof_face, PetscInt number_dof_volume,
+                                PetscInt number_dimensions);
 
   /**
    * Registers both the global (across parallel partition) and local (on a single parallel partition) vectors for a
