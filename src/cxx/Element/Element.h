@@ -6,6 +6,8 @@
 #include <Mesh/Mesh.h>
 #include <mpi.h>
 #include <petsc.h>
+#include <Receiver/Receiver.h>
+#include <memory>
 
 using namespace Eigen;
 
@@ -55,7 +57,19 @@ class Element {
            std::vector<int>> mBnd;  /** < Map relating the type of boundary to the Petsc edge number */
 
   // Other objects.
-  std::vector<Source *> mSrc; /** < Vector of sources belonging to the element. */
+  std::vector<std::shared_ptr<Source>> mSrc; /** < Vector of sources belonging to the element. */
+
+  /**
+   * Had an interesting time with this one. I was trying to make this a vector of
+   * std::unique_ptrs. That did not work, because of the *clone() function below, which
+   * relies upon the copy constructor of this element. Of course, you can't copy a unique_ptr!
+   * So, in order to make things work with unique_ptrs, we would have to re-write the copy
+   * constructors of most of our classes to deal with move semantics instead. THIS MIGHT BE
+   * PREFERABLE! But it's not clear... still new-ish to c++11. Anyways, this is a shared_ptr for
+   * now... and it may stay that way. I need a beer.
+   * See: http://stackoverflow.com/questions/16030081/copy-constructor-for-a-class-with-unique-ptr.
+   */
+  std::vector<std::shared_ptr<Receiver>> mRec;
 
  public:
 
@@ -67,14 +81,19 @@ class Element {
    * Factory return the proper element physics based on the command line options.
    * @return Some derived element class.
    */
-  static Element *factory(Options options);
+  static std::shared_ptr<Element> factory(Options options);
+
+  /**
+   * Abstract destructor responsible for cleaning up.
+   */
+  virtual ~Element() {};
 
   /**
    * Copy constructor.
    * Returns a copy. Use this once the reference element is set up via the constructor, to allocate space for
    * all the unique elements on a processor.
    */
-  virtual Element *clone() const = 0;
+  virtual std::shared_ptr<Element> clone() const = 0;
 
   /**
    * Figure out which dofs (if any) are on the boundary.
@@ -91,7 +110,7 @@ class Element {
    * can be performed by a quick dot product.
    * @param model [in] A class which returns a model model parameter at a queried point.
    */
-  virtual void interpolateMaterialProperties(ExodusModel *model) = 0;
+  virtual void attachMaterialProperties(ExodusModel *model) = 0;
 
   /**
    * Queries the passed DM for the vertex coordinates of the specific element. These coordinates are saved
@@ -109,7 +128,17 @@ class Element {
    * References to any sources which lie within the element are saved in the mSrc vector.
    * @param [in] sources A vector of all the sources defined for a simulation run.
    */
-  virtual void attachSource(std::vector<Source *> sources) = 0;
+  virtual void attachSource(std::vector<std::shared_ptr<Source>> sources) = 0;
+
+  /**
+   * Atttach receiver.
+   * Given a vector of abstract receiver objects, this function will query each for its spatial location. After
+   * performing a convex hull test, it will perform a quick inverse problem to determine the position of any
+   * sources within each element in reference coordiantes. These reference coordinates are then saved in the
+   * receiver object. References to any receivers which lie within the element are saved in the mRec vector.
+   * @param [in] receivers A vector of all the receivers defined for a simulation run.
+   */
+  virtual void attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers) = 0;
 
   /**
    * Build the elemental stiffness matrix.
@@ -181,6 +210,10 @@ class Element {
    */
   virtual std::vector<std::string> PushElementalFields() const = 0;
 
+  virtual MatrixXd interpolateFieldAtPoint(const VectorXd &pnt) = 0;
+
+  virtual void recordField(const MatrixXd &u) = 0;
+
   /***************************************************************************
    *                             ACCESSORS
    ***************************************************************************/
@@ -195,6 +228,7 @@ class Element {
   inline int NumDofVtx() const { return mNumDofVtx; }
   inline int NumDofVol() const { return mNumDofVol; }
   inline int NumIntPnt() const { return mNumIntPnt; }
+  inline int NumSrc() const { return mSrc.size(); }
   inline bool BndElm() const { return mBndElm; }
   inline VectorXi ClsMap() { return mClsMap; }
   inline MatrixXd VtxCrd() { return mVtxCrd; }

@@ -109,7 +109,8 @@ class Quad: public Element {
   /** < Integration weights along eta direction. */
   VectorXd mIntCrdEps;
   /** < Integration points along epsilon direction */
-  VectorXd mIntCrdEta;  /** < Integration points along eta direction */
+  VectorXd mIntCrdEta;
+  /** < Integration points along eta direction */
 
   /**
    * Sets up the proper stride for a field in the epsilon direction, on the tensorized gll basis.
@@ -169,6 +170,11 @@ class Quad: public Element {
    */
   Quad(Options options);
 
+  /**
+   * Destructor.
+   */
+  virtual ~Quad() {};
+
   /****************************************************************************
    *                       STATIC UTILITY FUNCTIONS
   *****************************************************************************/
@@ -196,13 +202,14 @@ class Quad: public Element {
   static VectorXi ClosureMapping(const int order, const int dimension);
 
   /**
-   * Returns the shape function coefficients for a given location (eps, eta) in the reference cube.
+   * Provides interpolation vector for quadrilaterals with vertex velocities based on right hand rule.
    * @param [in] eps Epsilon in the reference element.
    * @param [in] eta Eta in the reference element.
    * @returns A vector containing the [4] coefficients from each shape function.
+   * Usage: double velocity_at_eps_eta = interpolateAtPoint(eps,eta).dot(mMaterialVelocityAtVertices);
    */
-  static Vector4d interpolateShapeFunctions(const double &eps, const double &eta);
-
+  static Vector4d interpolateAtPoint(double eps, double eta);
+  
   /**
    * Returns the lagrange polynomial coefficients for a given location (eps, eta) in the reference cube.
    * @param [in] eps Epsilon on the reference element.
@@ -210,6 +217,7 @@ class Quad: public Element {
    * @returns A vector containing the polynomial coefficient at each gll point.
    */
   static VectorXd interpolateLagrangePolynomials(const double eps, const double eta, const int p_order);
+  MatrixXd interpolateFieldAtPoint(const VectorXd &pnt);
 
   /**
    * Attaches a material parameter to the vertices on the current element.
@@ -220,7 +228,7 @@ class Quad: public Element {
    * @param [in] parameter_name The name of the field to be added (i.e. velocity, c11).
    * @returns A Vector with 4-entries... one for each Element vertex, in the ordering described above.
    */
-  Vector4d __interpolateMaterialProperties(ExodusModel *model,
+  Vector4d __attachMaterialProperties(ExodusModel *model,
                                            std::string parameter_name);
 
   /**
@@ -252,7 +260,19 @@ class Quad: public Element {
    * References to any sources which lie within the element are saved in the mSrc vector.
    * @param [in] sources A vector of all the sources defined for a simulation run.
    */
-  void attachSource(std::vector<Source *> sources);
+  void attachSource(std::vector<std::shared_ptr<Source>> sources);
+
+  /**
+   * Attach receiver.
+   * Given a vector of abstract receiver objects, this function will query each for its spatial location. After
+   * performing a convex hull test, it will perform a quick inverse problem to determine the position of any
+   * sources within each element in reference coordiantes. These reference coordinates are then saved in the
+   * receiver object. References to any receivers which lie within the element are saved in the mRec vector.
+   * @param [in] receivers A vector of all the receivers defined for a simulation run.
+   */
+  void attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers);
+
+  void recordField(const MatrixXd &u);
 
   /**
    * Builds nodal coordinates (x,z) on all mesh degrees of freedom.

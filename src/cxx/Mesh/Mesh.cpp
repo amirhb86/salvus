@@ -1,7 +1,4 @@
-//
-// Created by Michael Afanasiev on 2016-01-27.
-//
-
+#include <vector>
 #include "Mesh.h"
 #include "ScalarNewmark2D.h"
 #include "ElasticNewmark2D.h"
@@ -47,44 +44,44 @@ Mesh *Mesh::factory(Options options) {
 #undef __FUNCT__
 #define __FUNCT__ "readBoundaryNames"
 int Mesh::readBoundaryNames(Options options) {
-
-  PetscFunctionBegin;
-  std::vector<std::string> boundary_names;
-  if (MPI::COMM_WORLD.Get_rank() == 0) {
-
-    int num_boundaries = -1;
-    float exodus_version;
-    int io_ws = 0;
-    int comp_ws = 8;
-    try {
-      int exoid = ex_open(options.ExodusMeshFile().c_str(), EX_READ, &comp_ws, &io_ws, &exodus_version);
-      if (exoid < 0) { throw std::runtime_error("Error opening exodus model file."); }
-      float fdum = 0.0;
-      char *cdum = 0;
-      exodusError(ex_inquire(exoid, EX_INQ_SIDE_SETS, &num_boundaries, &fdum, cdum), "ex_inq");
-      for (int b = 1; b <= num_boundaries; b++) {
-        char name[1024];
-        int ret = -1;
-        // retrieve name from id={1,2,3..}
-        // note that blank spaces given in Trelis get an underscore.
-        exodusError(ex_get_name(exoid, EX_SIDE_SET, b, name), "ex_get_name");
-        std::string namestr(name);
-        boundary_names.push_back(name);
-      }
-    } catch (std::exception &e) {
-      std::cerr << "ERROR(rank=" << MPI::COMM_WORLD.Get_rank() << ")!: " << e.what();
-      MPI_Abort(PETSC_COMM_WORLD, -1);
-    }
-  } // rank==0
-
-  std::cout << "boundary_names =" << boundary_names[0] << "\n";
-  boundary_names = utilities::broadcastStringVecFromFroot(boundary_names);
-  // Build mapping boundary name -> label value (id). `id` starts counting at 1.
-  for (int i = 0; i < boundary_names.size(); i++) {
-    mBoundaryIds[i + 1] = boundary_names[i];
-  }
-  MPI::COMM_WORLD.Barrier();
-  PetscFunctionReturn(0);
+    
+    PetscFunctionBegin;
+    std::vector<std::string> boundary_names;
+    if (MPI::COMM_WORLD.Get_rank() == 0) {
+     
+        int num_boundaries = -1;
+        float exodus_version;
+        int io_ws = 0;
+        int comp_ws = 8;
+        try {
+            int exoid = ex_open(options.ExodusMeshFile().c_str() , EX_READ, &comp_ws, &io_ws, &exodus_version);
+            if (exoid < 0) { throw std::runtime_error("Error opening exodus model file."); }
+            float fdum = 0.0;
+            char* cdum = 0;
+            exodusError(ex_inquire(exoid,EX_INQ_SIDE_SETS,&num_boundaries,&fdum,cdum),"ex_inq");
+            for(int b=1;b<=num_boundaries;b++) {
+                char name[1024];
+                int ret=-1;
+                // retrieve name from id={1,2,3..}
+                // note that blank spaces given in Trelis get an underscore.
+                exodusError(ex_get_name(exoid,EX_SIDE_SET,b,name),"ex_get_name");
+                std::string namestr(name);
+                boundary_names.push_back(name);
+            }
+        } catch (std::exception &e) {
+            std::cerr << "ERROR(rank=" << MPI::COMM_WORLD.Get_rank() << ")!: " << e.what();
+            MPI_Abort(PETSC_COMM_WORLD, -1);
+        }
+    } // rank==0        
+        
+    boundary_names = utilities::broadcastStringVecFromRank(boundary_names, 0);
+    std::cout << "boundary_names =" << boundary_names[0] << "\n";
+    // Build mapping boundary name -> label value (id). `id` starts counting at 1.
+    for(int i=0;i<boundary_names.size();i++) {
+        mBoundaryIds[i+1] = boundary_names[i];
+    }        
+    MPI::COMM_WORLD.Barrier();
+    PetscFunctionReturn(0);
 }
 
 #undef __FUNCT__

@@ -12,39 +12,44 @@ AcousticTri::AcousticTri(Options options): Triangle(options) {
 
 void AcousticTri::buildStiffnessMatrix() {
 
-    Eigen::Matrix2d invJ;
-    double detJ;
-    std::tie(invJ,detJ) = inverseJacobianAtPoint(0,0);
-    //Jinv= rx, sx,
-    //      rz, sz;
-    auto drdx = invJ(0,0);
-    auto dsdx = invJ(0,1);
-    auto drdz = invJ(1,0);
-    auto dsdz = invJ(1,1);
+  Eigen::Matrix2d invJ;
+  double detJ;
+  std::tie(invJ,detJ) = inverseJacobianAtPoint(0,0);
+  //Jinv= rx, sx,
+  //      rz, sz;
+  auto drdx = invJ(0,0);
+  auto dsdx = invJ(0,1);
+  auto drdz = invJ(1,0);
+  auto dsdz = invJ(1,1);
 
-    // build material on all nodes
-    Eigen::VectorXd velocity(mNumIntPnt);
-    mElementStiffnessMatrix.resize(mNumIntPnt,mNumIntPnt);
-    // just 1 for now...
-    if(mElmNum < 5) std::cout << "TODO: Interpolate velocity on triangle!\n";
-    velocity = 0*velocity.array() + mMaterialVelocityAtVertices(1);
+  // build material on all nodes
+  Eigen::VectorXd velocity(mNumIntPnt);
+  mElementStiffnessMatrix.resize(mNumIntPnt,mNumIntPnt);
     
-    // loop over matrix(i,j)
-    for(int i=0;i<mNumIntPnt;i++) {
-        Eigen::VectorXd dPhi_dr_i = mGradientPhi_dr.row(i);
-        Eigen::VectorXd dPhi_ds_i = mGradientPhi_ds.row(i);
-        auto dPhi_dx_i = dPhi_dr_i*drdx + dPhi_ds_i*dsdx;
-        auto dPhi_dz_i = dPhi_dr_i*drdz + dPhi_ds_i*dsdz;
-        for(int j=0;j<mNumIntPnt;j++) {
-            Eigen::VectorXd dPhi_dr_j = mGradientPhi_dr.row(j);
-            Eigen::VectorXd dPhi_ds_j = mGradientPhi_ds.row(j);
-            auto dPhi_dx_j = dPhi_dr_j*drdx + dPhi_ds_j*dsdx;
-            auto dPhi_dz_j = dPhi_dr_j*drdz + dPhi_ds_j*dsdz;
+  // interpolate velocity at all nodes
+  for(int i=0;i<mNumIntPnt;i++) {
+    auto r = mIntegrationCoordinates_r[i];
+    auto s = mIntegrationCoordinates_s[i];
+    velocity(i) = interpolateAtPoint(r,s).dot(mMaterialVelocityAtVertices);
+  }
+    
+  // loop over matrix(i,j)
+  for(int i=0;i<mNumIntPnt;i++) {
+      
+    Eigen::VectorXd dPhi_dr_i = mGradientPhi_dr.row(i);
+    Eigen::VectorXd dPhi_ds_i = mGradientPhi_ds.row(i);
+    auto dPhi_dx_i = dPhi_dr_i*drdx + dPhi_ds_i*dsdx;
+    auto dPhi_dz_i = dPhi_dr_i*drdz + dPhi_ds_i*dsdz;
+    for(int j=0;j<mNumIntPnt;j++) {
+      Eigen::VectorXd dPhi_dr_j = mGradientPhi_dr.row(j);
+      Eigen::VectorXd dPhi_ds_j = mGradientPhi_ds.row(j);
+      auto dPhi_dx_j = dPhi_dr_j*drdx + dPhi_ds_j*dsdx;
+      auto dPhi_dz_j = dPhi_dr_j*drdz + dPhi_ds_j*dsdz;
             
-            mElementStiffnessMatrix(i,j) = detJ*mIntegrationWeights.dot((velocity.array().pow(2) * dPhi_dx_i.array() * dPhi_dx_j.array()).matrix()) +
-                detJ*mIntegrationWeights.dot((velocity.array().pow(2) * dPhi_dz_i.array() * dPhi_dz_j.array()).matrix());
-        }
+      mElementStiffnessMatrix(i,j) = detJ*mIntegrationWeights.dot((velocity.array().pow(2) * dPhi_dx_i.array() * dPhi_dx_j.array()).matrix()) +
+        detJ*mIntegrationWeights.dot((velocity.array().pow(2) * dPhi_dz_i.array() * dPhi_dz_j.array()).matrix());
     }
+  }
     
 }
 
@@ -55,10 +60,10 @@ Eigen::MatrixXd AcousticTri::computeStiffnessTerm(const Eigen::MatrixXd &displac
     
 }
 
-void AcousticTri::interpolateMaterialProperties(ExodusModel *model) {
+void AcousticTri::attachMaterialProperties(ExodusModel *model) {
 
     // Vp (m/s).
-    mMaterialVelocityAtVertices = __interpolateMaterialProperties(model, "VP");
+    mMaterialVelocityAtVertices = __attachMaterialProperties(model, "VP");
 
 }
 

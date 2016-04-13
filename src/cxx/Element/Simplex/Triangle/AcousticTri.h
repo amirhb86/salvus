@@ -8,50 +8,51 @@
 #include "Mesh/Mesh.h"
 
 
-class AcousticTri : public Triangle {
+class AcousticTri: public Triangle {
 
-    Eigen::Vector3d mMaterialVelocityAtVertices;
-    Eigen::MatrixXd mElementStrain;
+  Eigen::Vector3d mMaterialVelocityAtVertices;
+  Eigen::MatrixXd mElementStrain;
 
-    // precomputed element stiffness matrix (with velocities)
-    Eigen::MatrixXd mElementStiffnessMatrix;
-    
-public:
+  // precomputed element stiffness matrix (with velocities)
+  Eigen::MatrixXd mElementStiffnessMatrix;
 
-    AcousticTri(Options options);
+ public:
 
-    AcousticTri *clone() const { return new AcousticTri(*this); }
+  AcousticTri(Options options);
+  ~AcousticTri() {};
 
-    void computeSurfaceTerm();
-    void assembleElementMassMatrix(Mesh *mesh);
-    void interpolateMaterialProperties(ExodusModel *model);
+  std::shared_ptr<Element> clone() const { return std::shared_ptr<Element> (new AcousticTri(*this)); }
 
-    Eigen::MatrixXd computeSourceTerm(double time);
-    Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement);
+  void computeSurfaceTerm();
+  void assembleElementMassMatrix(Mesh *mesh);
+  void attachMaterialProperties(ExodusModel *model);
 
-    void setInitialCondition(Mesh* mesh, Eigen::VectorXd& pts_x,Eigen::VectorXd& pts_z,
-                             double L, double x0, double z0);
-        
-    Eigen::VectorXd exactSolution(Eigen::VectorXd& pts_x,Eigen::VectorXd& pts_z,
-                                  double L, double x0, double z0, double time);
+  Eigen::MatrixXd computeSourceTerm(double time);
+  Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement);
 
-    std::vector<std::string> PullElementalFields() const { return {"u"}; }
-    std::vector<std::string> PushElementalFields() const { return {"a"}; }
+  void setInitialCondition(Mesh *mesh, Eigen::VectorXd &pts_x, Eigen::VectorXd &pts_z,
+                           double L, double x0, double z0);
 
-    Eigen::MatrixXd ElementStiffnessMatrix() { return mElementStiffnessMatrix; }
+  Eigen::VectorXd exactSolution(Eigen::VectorXd &pts_x, Eigen::VectorXd &pts_z,
+                                double L, double x0, double z0, double time);
 
-    void buildStiffnessMatrix();
+  std::vector<std::string> PullElementalFields() const { return {"u"}; }
+  std::vector<std::string> PushElementalFields() const { return {"a"}; }
 
-    void prepareStiffness() { buildStiffnessMatrix(); }
+  Eigen::MatrixXd ElementStiffnessMatrix() { return mElementStiffnessMatrix; }
 
-    /**
-     * Setup initial conditions for tests
-     */
-    void setupTest(Mesh* mesh, Options options);
+  void buildStiffnessMatrix();
 
-    /**
-     * Check exact solution against current displacement
-     */
-    double checkTest(Mesh* mesh, Options options, const Eigen::MatrixXd &displacement, double time);
-    
+  void prepareStiffness() { buildStiffnessMatrix(); }
+
+  /**
+   * Setup initial conditions for tests
+   */
+  void setupTest(Mesh *mesh, Options options);
+
+  /**
+   * Check exact solution against current displacement
+   */
+  double checkTest(Mesh *mesh, Options options, const Eigen::MatrixXd &displacement, double time);
+
 };

@@ -91,6 +91,8 @@ class Mesh {
    */
   static Mesh *factory(Options options);
 
+  virtual ~Mesh() { DMDestroy(&mDistributedMesh); }
+
   /**
    * Reads an exodus mesh from a file defined in options.
    * By the time this method is finished, the mesh has been
@@ -100,7 +102,6 @@ class Mesh {
   void read(Options options);
 
   /**
-   * TODO: MARK FOR DELETION.
    * Sets up the dofs across elements and processor boundaries.
    * Specifcally, this function defines a `DMPlex section` spread across all elements. It is this section that
    * defines the integration points, and carries information about which of these points are shared across processor
@@ -110,13 +111,10 @@ class Mesh {
    * @param [in] number_dof_face Number of dofs per 2-d mesh component (face). (order-1)^2 for the standard GLL basis.
    * @param [in] number_dof_volume Num of dofs per 3-d mesh component (volume). Something something for the
    * standard GLL basis.
-      void setupGlobalDof(PetscInt number_dof_vertex, PetscInt number_dof_edge,
-                          PetscInt number_dof_face, PetscInt number_dof_volume,
-                          PetscInt number_dimensions);
    */
-
-  PetscErrorCode setupGlobalDof(int num_dof_vtx, int num_dof_edg, int num_dof_fac, int num_dof_vol, int num_dim);
-
+  void setupGlobalDof(PetscInt number_dof_vertex, PetscInt number_dof_edge,
+                      PetscInt number_dof_face, PetscInt number_dof_volume,
+                      PetscInt number_dimensions);
 
   /**
    * Registers both the global (across parallel partition) and local (on a single parallel partition) vectors for a

@@ -1,14 +1,10 @@
-//
-// Created by Michael Afanasiev on 2016-03-14.
-//
-
 #include "NewmarkGeneral.h"
 
 using namespace Eigen;
 
 void NewmarkGeneral::initialize(Mesh *mesh,
                                 ExodusModel *model,
-                                Element *elem,
+                                std::shared_ptr<Element> elem,
                                 Options options) {
 
   // Save references to mesh and element base.
@@ -35,8 +31,9 @@ void NewmarkGeneral::initialize(Mesh *mesh,
     mElements.push_back(mReferenceElem->clone());
   }
 
-  // Get a list of all sources.
+  // Get a list of all sources and receivers.
   auto sources = Source::factory(options);
+  mRecs = Receiver::factory(options);
 
   // Set up elements.
   int element_number = 0;
@@ -49,7 +46,7 @@ void NewmarkGeneral::initialize(Mesh *mesh,
     element->attachVertexCoordinates(mMesh->DistributedMesh());
 
     // Add material parameters (velocity, Cij, etc...).
-    element->interpolateMaterialProperties(model);
+    element->attachMaterialProperties(model);
 
     // Set boundary conditions.
     element->setBoundaryConditions(mMesh);
@@ -57,8 +54,9 @@ void NewmarkGeneral::initialize(Mesh *mesh,
     // Assemble the (elemental) mass matrix.
     element->assembleElementMassMatrix(mMesh);
 
-    // Attach any external source terms.
+    // Attach any external sources and receivers.
     element->attachSource(sources);
+    element->attachReceiver(mRecs);
 
     // Prepare stiffness terms.
     element->prepareStiffness();
@@ -68,6 +66,9 @@ void NewmarkGeneral::initialize(Mesh *mesh,
   // Scatter the mass matrix to the global dofs.
   mMesh->checkInFieldBegin("m");
   mMesh->checkInFieldEnd("m");
+
+  // TODO: NOTE HERE! Need to make this a smart pointer as well.
+  delete model;
 
 }
 
@@ -110,6 +111,9 @@ void NewmarkGeneral::solve(Options options) {
         fitr++;
       }
 
+      // Record displacement.
+      element->recordField(u.block(0, 0, int_pnts, fitr));
+
       // Compute stiffness, only passing those rows which are occupied.
       ku.block(0, 0, int_pnts, fitr) = element->computeStiffnessTerm(
           u.block(0, 0, int_pnts, fitr));
@@ -148,9 +152,15 @@ void NewmarkGeneral::solve(Options options) {
 
     it++;
     time += timeStep;
-    PRINT_ROOT() << "TIME: " << time;
+//    PRINT_ROOT() << "TIME: " << time;
   }
 
   if (options.SaveMovie()) mMesh->finalizeMovie();
 
+  // Save all receivers.
+  for (auto &rec : mRecs) {
+    rec->write();
+  }
+
 }
+

@@ -1,6 +1,6 @@
 /**
- * A class to oversee the setup and solution of our problem. Created
- * by Michael Afanasiev on 2016-01-27.  The `Problem` class is
+ * A class to oversee the setup and solution of our problem.
+ * The `Problem` class is
  * responsible for directing the majority of the work done in the
  * program. It should be inherited from for each conceivable
  * combination of parameters (i.e. there should be a separate derived
@@ -25,28 +25,32 @@
 #include <mpi.h>
 #include <iosfwd>
 #include <string>
-#include "../Utilities/Utilities.h"
-#include "../Source/Source.h"
 
-#include "../Mesh/Mesh.h"
-#include "../Mesh/ScalarNewmark2D.h"
-#include "../Mesh/ElasticNewmark2D.h"
+#include <Utilities/Utilities.h>
+#include <Source/Source.h>
+#include <Receiver/Receiver.h>
+#include <Receiver/ReceiverHdf5.h>
 
-#include "../Element/HyperCube/Quad.h"
-#include "../Element/HyperCube/Quad/Elastic.h"
-#include "../Element/HyperCube/Quad/Acoustic.h"
+#include <Mesh/Mesh.h>
+#include <Mesh/ScalarNewmark2D.h>
+#include <Mesh/ElasticNewmark2D.h>
+
+#include <Element/HyperCube/Quad.h>
+#include <Element/HyperCube/Quad/Elastic.h>
+#include <Element/HyperCube/Quad/Acoustic.h>
 
 #include <Element/Simplex/Triangle.h>
 
 class Problem {
 
-public:
+ public:
 
-    static Problem *factory(std::string solver_type);
+  virtual ~Problem() {};
 
-    virtual void solve(Options options) = 0;
-    virtual void initialize(Mesh *mesh, ExodusModel *model, Element *elem, Options options) = 0;
+  static Problem *factory(std::string solver_type);
 
+  virtual void solve(Options options) = 0;
+  virtual void initialize(Mesh *mesh, ExodusModel *model, std::shared_ptr<Element> elem, Options options) = 0;
 
 };
 
