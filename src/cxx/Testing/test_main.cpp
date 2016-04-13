@@ -1,7 +1,3 @@
-//
-// Created by Michael Afanasiev on 2016-03-27.
-//
-
 #define CATCH_CONFIG_RUNNER
 #include "catch.h"
 #include <Eigen/Dense>
@@ -16,13 +12,6 @@ int main(int argc, char *argv[]) {
   // Init Salvus command line arguments.
   PetscInitialize(&argc, &argv, NULL, NULL);
 
-  /* Need to be careful here. Catch defines its own command line
-   * arguments, as does SALVUS. This is just a trick to get the
-   * PETSc arguments read in, and then tell Catch that we really
-   * don't have any command line arguments for it in particular.
-   * */
-  argc = 1;
-
   // Run all unit tests.
   int result = Catch::Session().run(argc, argv);
 
@@ -32,15 +21,15 @@ int main(int argc, char *argv[]) {
   return result;
 }
 
-Quad *setup_simple_quad(Options options) {
+std::shared_ptr<Quad> setup_simple_quad(Options options) {
 
   // Simple model.
   ExodusModel *model = new ExodusModel(options);
   model->initializeParallel();
 
   // Get element from options.
-  Element *reference_element = Element::factory(options);
-  Quad *reference_quad = dynamic_cast<Quad*> (reference_element);
+  std::shared_ptr<Element> reference_element = Element::factory(options);
+  std::shared_ptr<Quad> reference_quad = std::dynamic_pointer_cast<Quad> (reference_element);
 
   // Make things easy by assuming a reference element.
   // NOTE THE ELEMENT IS DISTORTED x -> [-2, 1], y -> [-6, 1]
@@ -55,27 +44,7 @@ Quad *setup_simple_quad(Options options) {
 
 }
 
-AcousticQuad* setup_simple_acousticquad(Options options) {
-
-  // Get element from options.
-  Element *reference_element = Element::factory(options);
-  AcousticQuad *reference_quad = dynamic_cast<AcousticQuad*> (reference_element);
-
-  // Make things easy by assuming a reference element.
-  // NOTE THE ELEMENT IS DISTORTED x -> [-2, 1], y -> [-6, 1]
-  Eigen::Matrix<double,2,4> coord;
-  coord << -2, +1, +1, -2,
-    -6, -6, +1, +1;
-  reference_quad->SetVtxCrd(coord);
-  return reference_quad;
-
-}
-
 TEST_CASE("Test whether simple stuff works.", "[element]") {
-
-
-  Options options;
-  options.setOptions();
 
   int max_order = 10;
   Eigen::VectorXd exact(max_order);
@@ -83,11 +52,30 @@ TEST_CASE("Test whether simple stuff works.", "[element]") {
     -1835099/400.0, -19962919/400.0,
     -177738369/400.0, -7111477851/1600.0,
     -207368760073/4800, -2094734230553/4800;
+
   for (int order = 1; order < max_order+1; order++) {
 
-    options.__SetPolynomialOrder(order);
-    Quad *reference_quad = setup_simple_quad(options);
+    std::string num = std::to_string(order);
 
+    // Set up custom command line arguments.
+    PetscOptionsClear();
+    const char *arg[] = {
+        "salvus_test",
+        "--duration", "0.01",
+        "--time_step", "1e-3",
+        "--exodus_file_name", "homogeneous_iso_cartesian_2D_50s.e",
+        "--exodus_model_file_name", "homogeneous_iso_cartesian_2D_50s.e",
+        "--mesh_type", "newmark",
+        "--element_shape", "quad",
+        "--physics_system", "acoustic",
+        "--polynomial_order", num.c_str(), NULL};
+    char **argv = const_cast<char**> (arg);
+    int argc = sizeof(arg) / sizeof(const char*) - 1;
+    PetscOptionsInsert(&argc, &argv, NULL);
+    Options options;
+    options.setOptions();
+
+    std::shared_ptr<Quad> reference_quad = setup_simple_quad(options);
     // Set up functions (order x**N*y**N-1)
     int ord = options.PolynomialOrder();
     Eigen::VectorXi x_exp = Eigen::VectorXi::LinSpaced(ord+1, 0, ord);
@@ -118,6 +106,7 @@ TEST_CASE("Test whether simple stuff works.", "[element]") {
     // Test against analytical solution (from sympy), within floating point precision.
     REQUIRE(reference_quad->integrateField(gll_val) == Approx(exact(order-1)));
   }
+
 
 }
 

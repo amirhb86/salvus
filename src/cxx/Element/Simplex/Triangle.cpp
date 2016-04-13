@@ -193,7 +193,7 @@ Eigen::Vector3d Triangle::__attachMaterialProperties(ExodusModel *model, std::st
 
 }
 
-void Triangle::attachSource(std::vector<Source*> sources) {
+void Triangle::attachSource(std::vector<std::shared_ptr<Source>> sources) {
 
     for (auto &source: sources) {
         if (mCheckHull(source->PhysicalLocationX(), source->PhysicalLocationZ())) {
@@ -307,4 +307,9 @@ double Triangle::integrateField(const Eigen::VectorXd &field) {
     return val;
 
 }
+void Triangle::attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers) {
+
+}
+
+
 
