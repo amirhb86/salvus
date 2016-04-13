@@ -61,6 +61,7 @@ class Options {
   // Receivers.
   // TODO: Move to simple HDF5 file.
   PetscInt mNumRec;
+  std::string mReceiverFileName;
   std::vector<double> mRecLocX1;
   std::vector<double> mRecLocX2;
   std::vector<double> mRecLocX3;
@@ -97,6 +98,7 @@ class Options {
   inline std::string OutputMovieFile() { return mOutputMovieFile; }
   inline std::string ProblemType() { return mProblemType; }
   inline std::string ReceiverType() { return "hdf5"; } // TODO: GENERAL
+  inline std::string ReceiverFileName() { return mReceiverFileName; }
 
   inline std::vector<std::string> DirichletBoundaries() { return mDirichletBoundaryNames; }
   inline std::vector<std::string> RecNames() { return mRecNames; }

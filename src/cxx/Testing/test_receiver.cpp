@@ -26,6 +26,7 @@ TEST_CASE("test_receiver", "[receiver]") {
       "--receiver_location_x1", "26000,76000",
       "--receiver_location_x2", "26000,76000",
       "--receiver_names", "rec1,rec2",
+      "--receiver_file_name", "test_rec.h5",
       "--exodus_file_name", "../../salvus_data/unit_test_meshes/homogeneous_iso_cartesian_2D_50s.e",
       "--exodus_model_file_name", "../../salvus_data/unit_test_meshes/homogeneous_iso_cartesian_2D_50s.e",
       "--mesh_type", "newmark",

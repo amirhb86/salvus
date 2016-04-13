@@ -74,7 +74,7 @@ int Mesh::readBoundaryNames(Options options) {
         }
     } // rank==0        
         
-    boundary_names = utilities::broadcastStringVecFromFroot(boundary_names);
+    boundary_names = utilities::broadcastStringVecFromRank(boundary_names, 0);
     std::cout << "boundary_names =" << boundary_names[0] << "\n";
     // Build mapping boundary name -> label value (id). `id` starts counting at 1.
     for(int i=0;i<boundary_names.size();i++) {

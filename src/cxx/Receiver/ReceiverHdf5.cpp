@@ -1,4 +1,5 @@
 #include <iostream>
+#include <Utilities/Utilities.h>
 #include "ReceiverHdf5.h"
 
 // Initialize hdf5 static.
@@ -11,7 +12,7 @@ ReceiverHdf5::ReceiverHdf5(Options options) : Receiver(options) {
   if (Num() == 0) {
 
     // Create file and set access.
-    std::string fname = "/users/michaelafanasiev/Desktop/test.h5";
+    std::string fname = options.ReceiverFileName();
     hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
     H5Pset_fapl_mpio(plist_id, PETSC_COMM_WORLD, MPI_INFO_NULL);
     mFileId = H5Fcreate(fname.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
@@ -30,29 +31,20 @@ ReceiverHdf5::~ReceiverHdf5() {
 void ReceiverHdf5::write() {
 
   // Send maximum length to all processors. Also send all field names (just once).
-  // Is this really the best way to do this??????
   hsize_t loc_size = (store.size()) ? store.begin()->second.size() : 0;
   hsize_t n_samples = 0;
   MPI_Allreduce(&loc_size, &n_samples, 1, MPI_UNSIGNED_LONG_LONG,
                 MPI_SUM, MPI_COMM_WORLD);
+
   if (Num() == 0) {
     int name_rank = 0;
-    hsize_t name_size = 0;
-    std::string name;
+    std::vector<std::string> name;
     for (auto &dict: store) {
-      name = dict.first;
-      name_size = name.size();
+      name.push_back(dict.first);
       MPI_Comm_rank(PETSC_COMM_WORLD, &name_rank);
     }
-    int my_rank; MPI_Comm_rank(PETSC_COMM_WORLD, &my_rank);
-    MPI_Allreduce(MPI_IN_PLACE, &name_size, 1, MPI_UNSIGNED_LONG_LONG,
-                  MPI_SUM, PETSC_COMM_WORLD);
     MPI_Allreduce(MPI_IN_PLACE, &name_rank, 1, MPI_INT, MPI_SUM, PETSC_COMM_WORLD);
-    char *buf = new char[name_size+1];
-    if (my_rank == name_rank) { name.copy(buf, name_size, 0); }
-    MPI_Bcast(buf, name_size, MPI_CHAR, name_rank, PETSC_COMM_WORLD);
-    buf[name_size] = '\0';
-    mWriteRegisteredFields.push_back(std::string(buf));
+    mWriteRegisteredFields = utilities::broadcastStringVecFromRank(name, name_rank);
   }
 
   hid_t gid = H5Gcreate(mFileId, Name().c_str(), H5P_DEFAULT,

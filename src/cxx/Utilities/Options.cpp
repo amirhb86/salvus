@@ -89,6 +89,9 @@ PetscErrorCode Options::setOptions() {
   PetscOptionsGetInt(NULL, "--number_of_receivers", &int_buffer, &parameter_set);
   if (parameter_set) { mNumRec = int_buffer; } else { mNumRec = 0; }
   if (mNumRec > 0) {
+    PetscOptionsGetString(NULL, "--receiver_file_name", char_buffer, PETSC_MAX_PATH_LEN,
+                          &parameter_set);
+    if (parameter_set) { mReceiverFileName = std::string(char_buffer); }
     mRecLocX1.resize(mNumRec);
     mRecLocX2.resize(mNumRec);
     if (mDimension == 3) {
