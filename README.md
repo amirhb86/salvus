@@ -17,7 +17,7 @@ what you can do for your spectral element wave propagator.
     sudo apt-get install gcc-4.8 g++-4.8
     ```
 
-2. CMake (https://cmake.org)
+2. CMake: <https://cmake.org>
 
     ```bash
     brew install cmake         # OSX
@@ -28,7 +28,7 @@ what you can do for your spectral element wave propagator.
     sudo apt-get install cmake
     ```
 
-3. Eigen (https://eigen.tuxfamily.org)\
+3. Eigen: <https://eigen.tuxfamily.org>  
     You will need to install version 3.x of the     `eigen` library
 
     ```bash
@@ -40,39 +40,42 @@ what you can do for your spectral element wave propagator.
     sudo apt-get install libeigen3-dev
     ```
 
-4. MPI (Message Passing Interface)\
-    We recommend the MPICH implementation (https://www.mpich.org)
+4. MPI (Message Passing Interface):  
+    We recommend the MPICH implementation <https://www.mpich.org>
 
-5. PETSc (https://www.mcs.anl.gov/petsc)\
-    You need 3.6.x. Download it from http://www.mcs.anl.gov/petsc/download, unpack it, and install it with all the required libraries. \
+5. PETSc: <https://www.mcs.anl.gov/petsc>  
+    You need version 3.6.x. Download it from <http://www.mcs.anl.gov/petsc/download>, unpack it, and install it with all the required libraries. 
     Adjust the `prefix` to where you want it installed.
-    Salvus requires the following additional packages be used with PETSc \
+    Salvus requires the following additional packages be used with PETSc 
 
       * MPI, ExodusII, HDF5, NetCDF, Chaco
 
-    Installation on a local system without a batch queuing system \
+	PETSc can instal the above packages for you, or use pre-existing installations. See below for additional notes.
+
+    **PETSc installation on a local system without a batch queuing system**  
     If you do not have MPI installed on your machine, PETSc can install it for you
+    
     ``` bash
     ./configure --prefix=/opt/petsc --with-cc=gcc-4.8 --with-cxx=g++-4.8 --download-mpich --download-exodusii --download-netcdf --download-hdf5 --download-chaco
     ```
 
-    Installation on systems with a batch queuing system \
-    You need to point PETSc to a working MPI implementation provided by target system.\
-    All other required packages can be installed by PETSc, or you can use local installations \
+    **PETSc installation on systems with a batch queuing system**  
+    You will need to point PETSc to a working MPI implementation provided by target system.
+    All other required packages can be installed by PETSc, or you can use local installations 
     provided by your target system if they are available (e.g. HDF5, NetCDF)
 
-    Suppose your target system provides HDF5 and NetCDF (together with MPI), \
+    Suppose your target system provides HDF5 and NetCDF (together with MPI), 
     then you would configure PETSc like this
 
     ``` bash
     ./configure --prefix=/home/software/petsc --with-batch=no --with-cc=/path/to/mpicc --with-cxx=/path/to/mpicxx --with-mpi-dir=/path/to/mpi --with-netcdf-dir=/path/to/netcdf --with-hdf5-dir=/path/to/h5 --download-exodusii --download-chaco
     ```
 
-    Following a successful configure, following the instructions issued by PETSc.
+    After a successful configure, follow the instructions issued by PETSc.
 
-    If you have problems configuring PETSc, please refer here http://www.mcs.anl.gov/petsc/documentation/installation.html \
-    For serious problems which cannot be resolved, email (as an attachment) \
-    the entire configure.log and make.log files to petsc-maint@mcs.anl.gov
+    If you have problems configuring PETSc, please refer here http://www.mcs.anl.gov/petsc/documentation/installation.html 
+    For serious problems which cannot be resolved, email  
+    the entire configure.log and make.log files (as  attachments) to <petsc-maint@mcs.anl.gov>
 
 
 ## Installation
@@ -123,4 +126,4 @@ Describe how a test suite can be executed following installation
 
 ### Running it
 
-We aim to collect a number of examples including all required data here: https://github.com/SalvusHub/salvus_data
+We aim to collect a number of examples including all required data here: <https://github.com/SalvusHub/salvus_data>
