@@ -238,11 +238,8 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
       std::set<std::string> phys = {type};
       auto in = pnt_types.insert(std::make_pair(pnt, phys));
       if (!in.second) { pnt_types[pnt].insert(type); }
-
     }
   }
-
-  for (auto s : pnt_types) { std::cout << s.second.size() << std::endl; }
 
   // Wat
   PetscInt *p_max;
@@ -266,8 +263,9 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
     p_max[dep] = p_max[dep] < 0 ? p_end : p_max[dep];
     // Loop over all mesh points on this level.
     for (int p = p_start; p < p_end; ++p) {
-//      printf("%d, %d\n", dep, p);
       PetscInt tot = 0;
+      num_fields = pnt_types[p].size();
+      std::cout << num_fields << std::endl;
       for (int f = 0; f < num_fields; ++f) {
         // Set a custom number of dofs for each field.
         ier = PetscSectionSetFieldDof(mMeshSection, p, f, num_dof);CHKERRQ(ier);
@@ -521,6 +519,20 @@ Eigen::MatrixXd Mesh::getElementCoordinateClosure(PetscInt elem_num) {
   return vtx;
 
 }
+int Mesh::numFieldPerPhysics(std::string physics) {
+  try {
+    if (physics == "fluid") { return 1; }
+    else if (physics == "2delastic") { return 2; }
+    else {
+      throw std::runtime_error("Physics type " + physics + " is not known.");
+    }
+  } catch (std::exception &e) {
+    PRINT_ROOT() << e.what();
+    MPI_Abort(PETSC_COMM_WORLD, -1);
+  }
+}
+
+
 
 
 

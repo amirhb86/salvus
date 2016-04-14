@@ -1,5 +1,6 @@
 #! -*- coding: utf-8 -*-
 from __future__ import print_function
+from model_handling import exodus as elib
 
 import click
 import numpy as np
@@ -72,6 +73,27 @@ def add_constant_material_parameter(input_file, name, value, output_file):
     else:
         model.addMaterialParameter(exo,name,values)
     exo.close()
+
+@model_handling.command()
+@click.option('--input-file', help='Exodus file to add parameter to',
+             type=click.Path(readable=True), required=True)
+@click.option('--output-file', help='Exodus file to add parameter to',
+              required=True)
+def add_fluid_flag(input_file, output_file):
+    '''
+    Just a quick function to mark everything as fluid.
+    :param input_file:
+    :param output_file:
+    :return:
+    '''
+
+    exo = elib.copyTransfer(input_file, output_file,
+                            additionalElementVariables=['fluid'])
+    values = np.ones(exo.num_elems())
+    exo.put_element_variable_values(1, 'fluid', 1, values)
+    exo.close()
+
+
     
 @cli.group()
 def solver_operation():

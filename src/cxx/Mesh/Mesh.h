@@ -58,6 +58,12 @@ class Mesh {
   PetscSection mMeshSection;      /** < Mesh section describing location of the integration points. In the future we
                                         * may have many of these per mesh. */
 
+  /**
+   * Returns the number of fields at a give DOF.
+   * For example numFieldPerPhysics(scalar) -> 1, numFieldPerPhysics(2delastic) - > 2.
+   */
+  int numFieldPerPhysics(std::string physics);
+
  protected:
 
   std::vector<std::string> mGlobalFields;

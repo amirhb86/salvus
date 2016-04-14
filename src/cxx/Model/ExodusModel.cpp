@@ -263,6 +263,7 @@ void ExodusModel::readElementalVariables() {
   for (auto i = 0; i < mNumberElementalVariables; i++) { nm[i] = (char *) calloc((MAX_STR_LENGTH + 1), sizeof(char)); }
   exodusError(ex_get_var_names(mExodusId, "E", mNumberElementalVariables, nm),
               "ex_get_var_names");
+  std::cout << mNumberElementalVariables << std::endl;
   for (auto i = 0; i < mNumberElementalVariables; i++) { mElementalVariableNames.push_back(std::string(nm[i])); }
 
   int time_step = 1;

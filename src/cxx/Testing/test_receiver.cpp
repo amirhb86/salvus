@@ -45,7 +45,6 @@ TEST_CASE("test_receiver", "[receiver]") {
     Options options;
     options.setOptions();
 
-
     Mesh *mesh = Mesh::factory(options);
     mesh->read(options);
 
