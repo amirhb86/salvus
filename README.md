@@ -95,17 +95,13 @@ mkdir build
 cd build
 ```
 
-SHOULD INDICATE WHICH ONES ARE ACTUALLY ESSENTIAL TO BE DEFINED OTHER THAN PETSC\_DIR and EIGEN\_INCLUDE
-
-
-Several library variables will need setting in order to successfully compile. From you build directory, you can directly set the `PETSC_DIR`, and `EIGEN_INCLUDE` directories via `ccmake ../`. Hit the `c` key to "configure", make your changes, and hit `g` to generate the Makefiles. Alternatively, you can achieve this via `cmake` on the command line
+Several variables will need setting in order to successfully compile. From you build directory, you can directly set the `PETSC_DIR`, and `EIGEN_INCLUDE` directories via `ccmake ../`. Hit the `c` key to "configure", make your changes, and hit `g` to generate the Makefiles. Alternatively, you can achieve this via `cmake` on the command line
 
 ``` bash
 CC=/opt/petsc/bin/mpicc CXX=/opt/petsc/bin/mpicxx cmake ../ -DPETSC_DIR=/opt/petsc -DEIGEN_INCLUDE=/usr/include/eigen3
 ```
 
-Note the usage of `CC=gcc-4.8` `CXX=g++-4.8`, which is used to change the default compiler used. This only works the **first** time `cmake` is run (it gets cached). `cmake` manages the linking to mpi includes and libraries itself, so no need to use a wrapper such as `mpicc` or `mpic++`  
-- *This is a bad idea and leads to compiler mismatches* ~ DAM
+Note the usage of `CC=/opt/petsc/bin/mpicc` `CXX=/opt/petsc/bin/mpicxx`, which is used to change the default compiler used. This only works the **first** time `cmake` is run (it gets cached). 
 
 By default, Salvus is compiled with optimizations (i.e., a release build). To compile for debugging (which adds `-g` and removes `-O3`), add `-DCMAKE_BUILD_TYPE=Debug` (instead of `Release`) to the **first** run of `cmake ../`.
 
