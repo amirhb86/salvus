@@ -43,7 +43,10 @@ what you can do for your spectral element wave propagator.
     Adjust the `prefix` to where you want it installed.
     Salvus requires the following additional packages be used with PETSc 
 
-      * MPI, ExodusII, HDF5, NetCDF, Chaco
+      * MPI, ExodusII, HDF5, NetCDF
+      * A graph partitioner (chaco, ptscotch, parmetis)
+
+	We recommnend using the chaco partitioner. Note that only ptscotch and parmetis provide support for 64-bit indices.
 
 	PETSc can instal the above packages for you, or use pre-existing installations. See below for additional notes.
 
