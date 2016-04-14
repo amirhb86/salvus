@@ -9,35 +9,30 @@ what you can do for your spectral element wave propagator.
 1. You need at least g++ 4.8 (for C++11 features)
 
     ```bash
-    brew install gcc48         # OSX
+    brew install gcc48                   # OSX
     ```
-    and on Ubuntu 12.04
-
     ``` bash
-    sudo apt-get install gcc-4.8 g++-4.8
+    sudo apt-get install gcc-4.8 g++-4.8 # Ubuntu 12.04
     ```
 
 2. CMake: <https://cmake.org>
 
     ```bash
-    brew install cmake         # OSX
+    brew install cmake          # OSX
     ```
-    and on Ubuntu 12.04
 
     ``` bash
-    sudo apt-get install cmake
+    sudo apt-get install cmake  # Ubuntu 12.04
     ```
 
 3. Eigen: <https://eigen.tuxfamily.org>  
     You will need to install version 3.x of the     `eigen` library
 
     ```bash
-    brew install eigen         # OSX
+    brew install eigen                  # OSX
     ```
-    and on Ubuntu 12.04
-    
     ``` bash
-    sudo apt-get install libeigen3-dev
+    sudo apt-get install libeigen3-dev  # Ubuntu 12.04
     ```
 
 4. MPI (Message Passing Interface):  
@@ -56,7 +51,11 @@ what you can do for your spectral element wave propagator.
     If you do not have MPI installed on your machine, PETSc can install it for you
     
     ``` bash
-    ./configure --prefix=/opt/petsc --with-cc=gcc-4.8 --with-cxx=g++-4.8 --download-mpich --download-exodusii --download-netcdf --download-hdf5 --download-chaco
+    ./configure --prefix=/opt/petsc \  
+      --with-cc=gcc-4.8 --with-cxx=g++-4.8 \  
+      --download-mpich=yes --download-exodusii=yes \  
+      --download-netcdf=yes --download-hdf5=yes \  
+      --download-chaco=yes
     ```
 
     **PETSc installation on systems with a batch queuing system**  
@@ -68,12 +67,17 @@ what you can do for your spectral element wave propagator.
     then you would configure PETSc like this
 
     ``` bash
-    ./configure --prefix=/home/software/petsc --with-batch=no --with-cc=/path/to/mpicc --with-cxx=/path/to/mpicxx --with-mpi-dir=/path/to/mpi --with-netcdf-dir=/path/to/netcdf --with-hdf5-dir=/path/to/h5 --download-exodusii --download-chaco
+    ./configure --prefix=/home/software/petsc \  
+      --with-batch=no \  
+      --with-cc=/path/to/mpicc --with-cxx=/path/to/mpicxx \  
+      --with-mpi-dir=/path/to/mpi \  
+      --with-netcdf-dir=/path/to/netcdf --with-hdf5-dir=/path/to/h5 \  
+      --download-exodusii=yes --download-chaco=yes
     ```
 
     After a successful configure, follow the instructions issued by PETSc.
 
-    If you have problems configuring PETSc, please refer here http://www.mcs.anl.gov/petsc/documentation/installation.html 
+    If you have problems configuring PETSc, please refer here <http://www.mcs.anl.gov/petsc/documentation/installation.html>.  
     For serious problems which cannot be resolved, email  
     the entire configure.log and make.log files (as  attachments) to <petsc-maint@mcs.anl.gov>
 
@@ -88,30 +92,19 @@ mkdir build
 cd build
 ```
 
-SHOULD INDICATE WHICH ONES ARE ESSENTIAL
+SHOULD INDICATE WHICH ONES ARE ACTUALLY ESSENTIAL TO BE DEFINED OTHER THAN PETSC\_DIR and EIGEN\_INCLUDE
 
 
-Several library variables will need setting in order to successfully
-compile. From you build directory, you can directly set the
-`PETSC_DIR`, and `EIGEN_INCLUDE` directories via `ccmake ../`. Hit the
-`c` key to "configure", make your changes, and hit `g` to generate the
-Makefiles. Alternatively, you can achieve this via `cmake` on the
-command line
+Several library variables will need setting in order to successfully compile. From you build directory, you can directly set the `PETSC_DIR`, and `EIGEN_INCLUDE` directories via `ccmake ../`. Hit the `c` key to "configure", make your changes, and hit `g` to generate the Makefiles. Alternatively, you can achieve this via `cmake` on the command line
 
 ``` bash
 CC=/opt/petsc/bin/mpicc CXX=/opt/petsc/bin/mpicxx cmake ../ -DPETSC_DIR=/opt/petsc -DEIGEN_INCLUDE=/usr/include/eigen3
 ```
 
-Note the usage of `CC=gcc-4.8` `CXX=g++-4.8`, which is used to change the
-default compiler used. This only works the **first** time `cmake` is
-run (it gets cached). `cmake` manages the linking to mpi includes and
-libraries itself, so no need to use a wrapper such as `mpicc` or
-`mpic++` - BAD IDEA
+Note the usage of `CC=gcc-4.8` `CXX=g++-4.8`, which is used to change the default compiler used. This only works the **first** time `cmake` is run (it gets cached). `cmake` manages the linking to mpi includes and libraries itself, so no need to use a wrapper such as `mpicc` or `mpic++`  
+- *This is a bad idea and leads to compiler mismatches* ~ DAM
 
-By default, Salvus is compiled with optimizations (i.e., a release
-build). To compile for debugging (which adds `-g` and removes `-O3`),
-add `-DCMAKE_BUILD_TYPE=Debug` (instead of `Release`) to the **first**
-run of `cmake ../`.
+By default, Salvus is compiled with optimizations (i.e., a release build). To compile for debugging (which adds `-g` and removes `-O3`), add `-DCMAKE_BUILD_TYPE=Debug` (instead of `Release`) to the **first** run of `cmake ../`.
 
 Finally compile `salvus` with
 
@@ -119,11 +112,11 @@ Finally compile `salvus` with
 $ make -j4
 ```
 
-### Verifying installation
+## Verifying installation
 
 Describe how a test suite can be executed following installation
 
 
-### Running it
+## Running it
 
 We aim to collect a number of examples including all required data here: <https://github.com/SalvusHub/salvus_data>
