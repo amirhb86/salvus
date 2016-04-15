@@ -5,7 +5,7 @@
 
 TEST_CASE("test_multi_field", "[multi_field]") {
 
-  std::string e_file = "../../salvus_data/unit_test_meshes/fluid_layer_over_elastic_cartesian_2D_100s.e";
+  std::string e_file = "../../salvus_data/unit_test_meshes/fluid_layer_over_elastic_cartesian_2D_50s.e";
 //  std::string e_file = "../../salvus_data/unit_test_meshes/simple_quadmesh_2x2.e";
 
   // Set up custom command line arguments.
@@ -32,7 +32,6 @@ TEST_CASE("test_multi_field", "[multi_field]") {
   ExodusModel *model = new ExodusModel(options);
   model->initializeParallel();
 
-  std::cout << "HERE" << std::endl;
-  mesh->setupGlobalDof(1, 1, 1, 0, 2, model);
+  mesh->setupGlobalDof(1, 3, 9, 0, 2, model);
 
 }

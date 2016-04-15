@@ -8,13 +8,16 @@
 ExodusModel::ExodusModel(Options options) {
 
   mExodusFileName = options.ExodusModelFile();
+  mNumberElementVertex = 4;
+
 
 }
 
 void ExodusModel::initializeParallel() {
 
   // Do all reading from exodus file on rank 0.
-  if (MPI::COMM_WORLD.Get_rank() == 0) {
+  int rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+  if (!rank) {
     getInitialization();
     readConnectivity();
     readCoordinates();
@@ -51,7 +54,7 @@ void ExodusModel::initializeParallel() {
 void ExodusModel::exodusError(const int retval, std::string func_name) {
 
   if (retval) {
-    throw std::runtime_error("Error in exodus function: " + func_name);
+    throw std::runtime_error("Error in exodus function: " + func_name + " with retval " + std::to_string(retval));
   }
 
 }
@@ -128,7 +131,7 @@ void ExodusModel::createElementalKdTree() {
   mElementalKdTreeData.resize(mNumberElements);
 
   // TODO: Make this general!!
-  int num_vertex_per_elem = 4;
+  int num_vertex_per_elem = mNumberElementVertex;
 
   if (mNumberDimension == 2) {
     mElementalKdTree = kd_create(2);
@@ -201,7 +204,7 @@ PetscReal ExodusModel::getMaterialParameterAtPoint(const std::vector<double> poi
 
 void ExodusModel::readConnectivity() {
 
-  mElementConnectivity.resize(4 * mNumberElements);
+  mElementConnectivity.resize(mNumberElementVertex * mNumberElements);
   exodusError(ex_get_elem_conn(mExodusId, 1, mElementConnectivity.data()), "ex_get_elem_conn");
 
 }
@@ -237,7 +240,7 @@ std::string ExodusModel::getElementType(const Eigen::VectorXd &elem_center) {
   kd_res_free(set);
 
   int i = 0;
-  int parameter_index;
+  int parameter_index = 0;
   auto full_name = "fluid";
   for (auto &name : mElementalVariableNames) {
     if (name == full_name) { parameter_index = i; }
@@ -248,8 +251,10 @@ std::string ExodusModel::getElementType(const Eigen::VectorXd &elem_center) {
   if (type == 1) {
     return "fluid";
   } else {
-    return "elastic";
+    return "2delastic";
+    std::cout << "HI" << std::endl;
   }
+
 
 }
 
@@ -257,22 +262,29 @@ std::string ExodusModel::getElementType(const Eigen::VectorXd &elem_center) {
 void ExodusModel::readElementalVariables() {
 
   // Get variable names.
-  exodusError(ex_get_var_param(
-      mExodusId, "e", &mNumberElementalVariables), "ex_get_var_param");
-  char *nm[mNumberElementalVariables];
-  for (auto i = 0; i < mNumberElementalVariables; i++) { nm[i] = (char *) calloc((MAX_STR_LENGTH + 1), sizeof(char)); }
-  exodusError(ex_get_var_names(mExodusId, "E", mNumberElementalVariables, nm),
-              "ex_get_var_names");
-  std::cout << mNumberElementalVariables << std::endl;
-  for (auto i = 0; i < mNumberElementalVariables; i++) { mElementalVariableNames.push_back(std::string(nm[i])); }
+  try {
+    exodusError(ex_get_var_param(
+        mExodusId, "e", &mNumberElementalVariables), "ex_get_var_param");
+    char *nm[mNumberElementalVariables];
+    for (auto i = 0; i < mNumberElementalVariables; i++) {
+      nm[i] = (char *) calloc((MAX_STR_LENGTH + 1), sizeof(char));
+    }
+    exodusError(ex_get_variable_names(mExodusId, EX_ELEM_BLOCK, mNumberElementalVariables, nm),
+                "ex_get_variable_names");
+    for (auto i = 0; i < mNumberElementalVariables; i++) { mElementalVariableNames.push_back(std::string(nm[i])); }
 
-  int time_step = 1;
-  std::vector<double> buffer(mNumberElements);
-  for (auto i = 0; i < mNumberElementalVariables; i++) {
-    exodusError(ex_get_elem_var(mExodusId, time_step, (i + 1), 1, mNumberElements, buffer.data()),
-                "ex_get_elem_var");
-    mElementalVariables.insert(mElementalVariables.end(), buffer.begin(), buffer.end());
+    int time_step = 1;
+    std::vector<double> buffer(mNumberElements);
+    for (auto i = 0; i < mNumberElementalVariables; i++) {
+      exodusError(ex_get_var(mExodusId, 1, EX_ELEM_BLOCK, (i+1), 1, mNumberElements, buffer.data()),
+          "ex_get_var");
+      mElementalVariables.insert(mElementalVariables.end(), buffer.begin(), buffer.end());
+    }
+  } catch (std::runtime_error &e) {
+    std::cout << e.what() << std::endl;
+    MPI_Abort(PETSC_COMM_WORLD, -1);
   }
+
 }
 
 void ExodusModel::readSideSets() {

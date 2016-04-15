@@ -26,6 +26,7 @@ class ExodusModel {
   int mNumberNodeSets;
   int mNumberSideSets;
   int mNumberNodalVariables;
+  int mNumberElementVertex;
 
   // New variables for pymesher.
   int mNumberElementalVariables;
@@ -96,6 +97,8 @@ class ExodusModel {
    * I.e. will return "ACOUSTIC" for acoustic, "ELASTIC" for elastic.
    */
   std::string getElementType(const Eigen::VectorXd &elem_center);
+
+  int NumberElementVertices() const { return mNumberElementVertex; }
 
 };
 
