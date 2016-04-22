@@ -290,7 +290,7 @@ TEST_CASE("Testing acoustic exact solutions for hexahedra", "[exact/hexahedra]")
   const char *arg[] = {
     "salvus_test",
     "--testing","true",
-    "--duration", "0.17677669529663687", // 1.25 full cycle with v=4
+    "--duration", "0.08838834764831843", // 30 steps
     "--time_step", "0.003",
     "--exodus_file_name", "simple_hexmesh_2x2x2.vp4.e",
     "--exodus_model_file_name", "simple_hexmesh_2x2x2.vp4.e",
