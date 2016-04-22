@@ -7,6 +7,9 @@
 
 #include "Element/Simplex/Triangle/AcousticTri.h"
 
+#include <Element/HyperCube/Hexahedra.h>
+#include "Element/HyperCube/Hex/AcousticHex.h"
+
 // Default implementation
 void Element::setupTest(Mesh* mesh, Options options) {
     printf("ERROR: No test implemented\n");
@@ -21,29 +24,34 @@ double Element::checkTest(Mesh* mesh, Options options, const Eigen::MatrixXd &di
 
 Element *Element::factory(Options options) {
 
-    std::string physics(options.PhysicsSystem());
+  std::string physics(options.PhysicsSystem());
     
-    try {
-        if(options.ElementShape() == "quad") {
-            if (physics == "acoustic") {
-                return new AcousticQuad(options);
-            } else if (physics == "elastic") {
-                return new Elastic(options);
-            }
-        }
-        else if(options.ElementShape() == "triangle") {
-            if (physics == "acoustic") {
-                return new AcousticTri(options);
-            }
-        } else {
-            throw std::runtime_error("Runtime Error: Element physics " + physics + " not supported");
-        }
-    } catch (std::exception &e) {
-        PRINT_ROOT() << e.what();
-        MPI::COMM_WORLD.Abort(-1);
+  try {
+    if(options.ElementShape() == "quad") {
+      if (physics == "acoustic") {
+        return new AcousticQuad(options);
+      } else if (physics == "elastic") {
+        return new Elastic(options);
+      }
     }
-    // Should never get here.
-    return nullptr;
+    else if(options.ElementShape() == "triangle") {
+      if (physics == "acoustic") {
+        return new AcousticTri(options);
+      }
+    } else if(options.ElementShape() == "hex") {
+      if(physics == "acoustic") {
+        return new AcousticHex(options);
+      }
+    }
+    else {
+      throw std::runtime_error("Runtime Error: Element physics " + physics + " not supported");
+    }
+  } catch (std::exception &e) {
+    PRINT_ROOT() << e.what();
+    MPI::COMM_WORLD.Abort(-1);
+  }
+  // Should never get here.
+  return nullptr;
 }
 
 void Element::setBoundaryConditions(Mesh *mesh) {

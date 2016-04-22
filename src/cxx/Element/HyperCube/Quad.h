@@ -257,8 +257,7 @@ class Quad: public Element {
 
   /**
    * Builds nodal coordinates (x,z) on all mesh degrees of freedom.
-   * @param mesh [in] The mesh.
    */
   std::tuple<Eigen::VectorXd, Eigen::VectorXd> buildNodalPoints();
-
+  
 };

@@ -45,6 +45,7 @@ class Options {
     PetscBool mTestIC;
     // exact solution parameters
     PetscReal mCenter_x;
+    PetscReal mCenter_y;
     PetscReal mCenter_z;
     PetscReal mSquareSide_L;
 
@@ -72,6 +73,7 @@ public:
     inline double Duration() { return mDuration; }
     inline double TimeStep() { return mTimeStep; }
     inline PetscReal IC_Center_x() { return mCenter_x; }
+    inline PetscReal IC_Center_y() { return mCenter_y; } 
     inline PetscReal IC_Center_z() { return mCenter_z; }
     inline PetscReal IC_SquareSide_L() { return mSquareSide_L; }
 
@@ -106,11 +108,14 @@ public:
     inline void __SetExodusModelFile(std::string ExodusModelFile){ mExodusModelFile = ExodusModelFile;}
     inline void __SetDirichletBoundaryNames(std::vector<std::string> DirichletBoundaryNames)
     { mDirichletBoundaryNames = DirichletBoundaryNames;}
+  inline void __SetTestIC        (PetscBool TestIC      ) {mTestIC       = TestIC      ;}
     inline void __SetCenter_x    (PetscReal Center_x    ) {mCenter_x     = Center_x    ;}
+    inline void __SetCenter_y    (PetscReal Center_y    ) {mCenter_y     = Center_y    ;}
     inline void __SetCenter_z    (PetscReal Center_z    ) {mCenter_z     = Center_z    ;}
     inline void __SetSquareSide_L(PetscReal SquareSide_L) {mSquareSide_L = SquareSide_L;}
     inline void __SetSaveMovie   (PetscBool saveMovie) {mSaveMovie = saveMovie;}
-    
+    inline void __SetSaveFrameEvery(PetscInt SaveFrameEvery) {mSaveFrameEvery = SaveFrameEvery;}
+    inline void __SetOutputMovieFile(std::string OutputMovieFile){ mOutputMovieFile = OutputMovieFile;}
 };
 
 

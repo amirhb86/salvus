@@ -87,6 +87,12 @@ public:
      */
     void read(Options options);
 
+  /**
+   * Alternate version of read, which creates a mesh given a matrix of verts and cells.
+   */
+  void read(int dim, int numCells, int numVerts, int numVertsPerElem,
+            Eigen::MatrixXi cells, Eigen::MatrixXd coords);
+  
     /**
      * Sets up the dofs across elements and processor boundaries.
      * Specifcally, this function defines a `DMPlex section` spread across all elements. It is this section that
@@ -166,6 +172,8 @@ public:
      */
     void checkInFieldEnd(const std::string &name);
 
+  Eigen::VectorXd getFieldOnPoint(int point,std::string name);
+  
     /**
      * Returns an ordered vector of a field (i.e. x-displacement) on an element, via a call to DMPlexVecGetClosure.
      * Note that a vector containing the closure mapping must also be passed in -- this should change in the future.

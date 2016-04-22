@@ -104,6 +104,8 @@ PetscErrorCode Options::setOptions() {
         // these will issue unused parameter warning if testIC is false
         PetscOptionsGetReal(NULL, "--IC-center-x", &real_buffer, &parameter_set);
         if (parameter_set) { mCenter_x = real_buffer; }
+        PetscOptionsGetReal(NULL, "--IC-center-y", &real_buffer, &parameter_set);
+        if (parameter_set) { mCenter_y = real_buffer; }
         PetscOptionsGetReal(NULL, "--IC-center-z", &real_buffer, &parameter_set);
         if (parameter_set) { mCenter_z = real_buffer; }
         PetscOptionsGetReal(NULL, "--IC-square-side-L", &real_buffer, &parameter_set);
