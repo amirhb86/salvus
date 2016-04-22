@@ -302,7 +302,7 @@
 
 // unique_ptr support
 #ifdef CATCH_CONFIG_CPP11_UNIQUE_PTR
-#   define CATCH_AUTO_PTR( T ) std::unique_ptr<T>
+#   define CATCH_AUTO_PTR( T ) std::shared_ptr<T>
 #else
 #   define CATCH_AUTO_PTR( T ) std::auto_ptr<T>
 #endif
@@ -3920,7 +3920,7 @@ namespace Tbc {
 
 // unique_ptr support
 #ifdef CLARA_CONFIG_CPP11_UNIQUE_PTR
-#   define CLARA_AUTO_PTR( T ) std::unique_ptr<T>
+#   define CLARA_AUTO_PTR( T ) std::shared_ptr<T>
 #else
 #   define CLARA_AUTO_PTR( T ) std::auto_ptr<T>
 #endif

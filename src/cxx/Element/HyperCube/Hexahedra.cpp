@@ -1079,7 +1079,10 @@ Eigen::VectorXd Hexahedra::interpolateAtPoint(double r, double s, double t) {
   return interpolator;
 }
 
-void Hexahedra::attachSource(std::vector<Source *> sources) {}
+void Hexahedra::attachSource(std::vector<std::shared_ptr<Source>> sources) {
+  printf("TODO: attachSource");
+  exit(1);
+}
 
 void Hexahedra::prepareStiffness() {}
 

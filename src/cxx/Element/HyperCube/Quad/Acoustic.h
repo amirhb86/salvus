@@ -17,8 +17,9 @@ class AcousticQuad: public Quad {
  public:
 
   AcousticQuad(Options options);
+  ~AcousticQuad() {};
 
-  AcousticQuad *clone() const { return new AcousticQuad(*this); }
+  std::shared_ptr<Element> clone() const { return std::shared_ptr<Element> (new AcousticQuad(*this)); }
 
   /**
    * Empty as its not needed for quadrilaterals (build the stiffness matrix on the fly).

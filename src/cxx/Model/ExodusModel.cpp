@@ -35,8 +35,8 @@ void ExodusModel::initializeParallel() {
     mNodalY = utilities::broadcastStdVecFromRoot(mNodalY);
     mElementConnectivity = utilities::broadcastStdVecFromRoot(mElementConnectivity);
     mElementalVariables = utilities::broadcastStdVecFromRoot(mElementalVariables);
-    mElementalVariableNames = utilities::broadcastStringVecFromFroot(mElementalVariableNames);
-    mSideSetNames = utilities::broadcastStringVecFromFroot(mSideSetNames);
+    mElementalVariableNames = utilities::broadcastStringVecFromRank(mElementalVariableNames, 0);
+    mSideSetNames = utilities::broadcastStringVecFromRank(mSideSetNames, 0);
 
     // Broadcast dimension specific components.
     if (mNumberDimension > 2) { mNodalZ = utilities::broadcastStdVecFromRoot(mNodalZ); }

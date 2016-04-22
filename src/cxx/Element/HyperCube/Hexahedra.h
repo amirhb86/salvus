@@ -208,7 +208,7 @@ public:
    * References to any sources which lie within the element are saved in the mSrc vector.
    * @param [in] sources A vector of all the sources defined for a simulation run.
    */
-  void attachSource(std::vector<Source *> sources);
+  void attachSource(std::vector<std::shared_ptr<Source>> sources);
 
   /**
    * Returns the mapping from the PETSc to Salvus closure.
@@ -244,8 +244,7 @@ public:
   MatrixXd computeStiffnessTerm(const MatrixXd &displacement);
   std::vector<std::string> PullElementalFields() const { return {"u"}; }
   std::vector<std::string> PushElementalFields() const { return {"a"}; }
-  std::vector<std::string> PushElementalFields();
-  Hexahedra *clone() const { return new Hexahedra(*this); }
+  std::vector<std::string> PushElementalFields();  
   void attachMaterialProperties(ExodusModel *model);
   
 };

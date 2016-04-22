@@ -301,3 +301,20 @@ Eigen::VectorXd AcousticHex::exactSolution(Eigen::VectorXd& pts_x,
   double un_t = cos(PI/Lx*sqrt(3)*(time)*velocity);
   return un_t*un_xyz;
 }
+
+void AcousticHex::attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers) {
+  printf("TODO: attachReciever");
+  exit(1);
+}
+
+MatrixXd AcousticHex::interpolateFieldAtPoint(const VectorXd &pnt) {
+  MatrixXd field;
+  printf("TODO: interpolateFieldAtPoint");
+  exit(1);
+  return field;
+}
+void AcousticHex::recordField(const MatrixXd &u) {
+  printf("TODO: recordField");
+  exit(1);
+}
+

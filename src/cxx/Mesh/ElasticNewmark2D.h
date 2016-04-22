@@ -11,6 +11,7 @@ class ElasticNewmark2D: public Mesh {
 
 public:
 
+    ~ElasticNewmark2D() {};
     virtual void advanceField(double dt);
     virtual void applyInverseMassMatrix();
 

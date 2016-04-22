@@ -1,13 +1,7 @@
-//
-// Created by Michael Afanasiev on 2016-01-27.
-//
-
 #include <vector>
-#include <memory>
 #include "Mesh.h"
 #include "ScalarNewmark2D.h"
 #include "ElasticNewmark2D.h"
-#include "../Utilities/Utilities.h"
 
 void exodusError(const int retval, std::string func_name) {
 
@@ -82,7 +76,8 @@ int Mesh::readBoundaryNames(Options options) {
         }
     } // rank==0        
         
-    boundary_names = utilities::broadcastStringVecFromFroot(boundary_names);
+    boundary_names = utilities::broadcastStringVecFromRank(boundary_names,0);
+
     // Build mapping boundary name -> label value (id). `id` starts counting at 1.
     for(int i=0;i<boundary_names.size();i++) {
         mBoundaryIds[i+1] = boundary_names[i];

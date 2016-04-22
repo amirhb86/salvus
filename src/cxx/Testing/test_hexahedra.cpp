@@ -3,6 +3,7 @@
 #include <Eigen/Dense>
 #include <Element/Element.h>
 #include <Element/HyperCube/Hexahedra.h>
+#include <Element/HyperCube/Hex/AcousticHex.h>
 
 template<typename T>
 std::ostream& operator<< (std::ostream& out, const std::vector<T>& v) {
@@ -25,7 +26,7 @@ TEST_CASE("Test hexahedra strides","[element/hexahedra]") {
   int order = 4;
   Options options;
   options.__SetPolynomialOrder(order);
-  Hexahedra ref_hex(options);
+  AcousticHex ref_hex(options);
   int num_pts = ref_hex.__GetNumIntPtsR() * ref_hex.__GetNumIntPtsS() * ref_hex.__GetNumIntPtsT();
   VectorXd hexDataLayout(num_pts);
   VectorXd hexRn(num_pts);
@@ -330,16 +331,30 @@ double five_places(double in) {
 TEST_CASE("Test closure mapping","[element/hexahedra]") {
 
   int order = 3;
-  Options options;
-  options.__SetPolynomialOrder(order);
-  Hexahedra ref_hex(options);
-  int num_pts = ref_hex.__GetNumIntPtsR() * ref_hex.__GetNumIntPtsS() * ref_hex.__GetNumIntPtsT();
-  options.__SetMeshType("newmark");
-  options.__SetExodusMeshFile("simple_hexmesh_2x2x2_8elements.vp4.e");
-  options.__SetExodusModelFile("simple_hexmesh_2x2x2_8elements.vp4.e");
-  options.__SetElementShape("hex");
-  options.__SetPhysicsSystem("acoustic");
+  
+  PetscOptionsClear();
+  const char *arg[] = {
+    "salvus_test",
+    "--testing","true",
+    "--exodus_file_name", "simple_hexmesh_2x2x2_8elements.vp4.e",
+    "--exodus_model_file_name", "simple_hexmesh_2x2x2_8elements.vp4.e",
+    "--mesh_type", "newmark",
+    "--element_shape", "hex",
+    "--physics_system", "acoustic",
+    "--polynomial_order", "3",NULL};
+  
+  char **argv = const_cast<char **> (arg);
+  int argc = sizeof(arg) / sizeof(const char *) - 1;
+  PetscOptionsInsert(&argc, &argv, NULL);
 
+  // Set options for exact tests
+  Options options;
+  options.setOptions();
+  
+  AcousticHex ref_hex(options);
+  int num_pts = ref_hex.__GetNumIntPtsR() * ref_hex.__GetNumIntPtsS() * ref_hex.__GetNumIntPtsT();
+
+  
   // Get mesh.
   Mesh *mesh = Mesh::factory(options);
   mesh->read(options);
@@ -354,12 +369,12 @@ TEST_CASE("Test closure mapping","[element/hexahedra]") {
   }
   
   // Setup reference element.
-  Element *reference_element = Element::factory(options);
+  auto reference_element = Element::factory(options);
 
-  std::vector<Element*> elements;
+  std::vector<std::shared_ptr<Element>> elements;
   // Get a list of all local elements.
   for (int i = 0; i < mesh->NumberElementsLocal(); i++) {
-    elements.push_back(reference_element->clone());
+    elements.push_back(std::shared_ptr<Element>(reference_element->clone()));
   }    
   VectorXd expected_multiplier(64);
   expected_multiplier <<
@@ -387,7 +402,7 @@ TEST_CASE("Test closure mapping","[element/hexahedra]") {
   
     
   VectorXd computed_value(expected_multiplier.size());
-  Hexahedra* hex0 = dynamic_cast<Hexahedra*> (elements[0]);
+  auto hex0 = std::dynamic_pointer_cast<AcousticHex> (elements[0]);
   // Get vertex coordinates from the PETSc DMPLEX.
   hex0->SetNum(0);
   hex0->attachVertexCoordinates(mesh->DistributedMesh());    
@@ -414,7 +429,7 @@ TEST_CASE("Test closure mapping","[element/hexahedra]") {
     // Set up elements.
     int element_number = 0;
     for (auto &element_gen : elements) {
-      Hexahedra* hex = dynamic_cast<Hexahedra*> (element_gen);
+      auto hex = std::dynamic_pointer_cast<AcousticHex> (element_gen);
       // Give each element a number starting from zero.
       hex->SetNum(element_number++);
       
@@ -447,9 +462,7 @@ TEST_CASE("Test closure mapping","[element/hexahedra]") {
                                 hex->ClsMap(),
                                 one_at_one_node);
     }
-    Hexahedra* hex_test = dynamic_cast<Hexahedra*> (elements[0]);
-    
-    
+    auto hex_test = std::dynamic_pointer_cast<AcousticHex> (elements[0]);
     
     VectorXd one_at_one_node(pts_x.size());
     one_at_one_node.setZero();
@@ -474,14 +487,26 @@ TEST_CASE("Test closure mapping","[element/hexahedra]") {
 TEST_CASE("Test Jacobian mapping","[element/hexahedra]") {
 
   int order = 3;
+  PetscOptionsClear();
+  const char *arg[] = {
+    "salvus_test",
+    "--testing","true",
+    "--element_shape", "hex",
+    "--physics_system", "acoustic",
+    "--polynomial_order", "3",NULL};
+  
+  char **argv = const_cast<char **> (arg);
+  int argc = sizeof(arg) / sizeof(const char *) - 1;
+  PetscOptionsInsert(&argc, &argv, NULL);
+
+  // Set options for exact tests
   Options options;
-  options.__SetPolynomialOrder(order);
-  options.__SetElementShape("hex");
-  options.__SetPhysicsSystem("acoustic");
-  Hexahedra ref_hex(options);
+  options.setOptions();
+  
+  AcousticHex ref_hex(options);
   int num_pts = ref_hex.__GetNumIntPtsR() * ref_hex.__GetNumIntPtsS() * ref_hex.__GetNumIntPtsT();
-  Element *reference_element = Element::factory(options);  
-  Hexahedra *reference_hex = dynamic_cast<Hexahedra*> (reference_element);
+  auto reference_element = Element::factory(options);  
+  auto reference_hex = std::dynamic_pointer_cast<AcousticHex> (reference_element);
   // A distorted element
   Eigen::Matrix<double,3,8> coord;
 
@@ -543,12 +568,25 @@ TEST_CASE("Test Jacobian mapping","[element/hexahedra]") {
 TEST_CASE("Test inverse coordinate transform mapping","[element/hexahedra]") {
 
   int order = 3;
+
+  PetscOptionsClear();
+  const char *arg[] = {
+    "salvus_test",
+    "--testing","true",
+    "--element_shape", "hex",
+    "--physics_system", "acoustic",
+    "--polynomial_order", "3",NULL};
+  
+  char **argv = const_cast<char **> (arg);
+  int argc = sizeof(arg) / sizeof(const char *) - 1;
+  PetscOptionsInsert(&argc, &argv, NULL);
+
+  // Set options for exact tests
   Options options;
-  options.__SetPolynomialOrder(order);
-  options.__SetElementShape("hex");
-  options.__SetPhysicsSystem("acoustic");
-  Element *reference_element = Element::factory(options);  
-  Hexahedra *reference_hex = dynamic_cast<Hexahedra*> (reference_element);
+  options.setOptions();
+
+  auto reference_element = Element::factory(options);  
+  auto reference_hex = std::dynamic_pointer_cast<AcousticHex> (reference_element);
   int num_pts = reference_hex->__GetNumIntPtsR() * reference_hex->__GetNumIntPtsS() * reference_hex->__GetNumIntPtsT();  
   // A distorted element
   MatrixXd coord(3,8);
@@ -603,15 +641,26 @@ TEST_CASE("Test inverse coordinate transform mapping","[element/hexahedra]") {
 
 TEST_CASE("Test reference mapping","[element/hexahedra]") {
 
+  PetscOptionsClear();
+  const char *arg[] = {
+    "salvus_test",
+    "--testing","true",
+    "--element_shape", "hex",
+    "--physics_system", "acoustic",
+    "--polynomial_order", "3",NULL};
   int order = 3;
+  char **argv = const_cast<char **> (arg);
+  int argc = sizeof(arg) / sizeof(const char *) - 1;
+  PetscOptionsInsert(&argc, &argv, NULL);
+  
+  // Set options for exact tests
   Options options;
-  options.__SetPolynomialOrder(order);
-  options.__SetElementShape("hex");
-  options.__SetPhysicsSystem("acoustic");
-  Hexahedra ref_hex(options);
+  options.setOptions();
+  
+  AcousticHex ref_hex(options);
   int num_pts = ref_hex.__GetNumIntPtsR() * ref_hex.__GetNumIntPtsS() * ref_hex.__GetNumIntPtsT();  
-  Element *reference_element = Element::factory(options);  
-  Hexahedra *reference_hex = dynamic_cast<Hexahedra*> (reference_element);
+  auto reference_element = Element::factory(options);  
+  auto reference_hex = std::dynamic_pointer_cast<AcousticHex> (reference_element);
   // A distorted element
   Eigen::Matrix<double,3,8> coord;
 

@@ -18,8 +18,6 @@ class AcousticHex: public Hexahedra {
 
   AcousticHex(Options options);
 
-  AcousticHex *clone() const { return new AcousticHex(*this); }
-
   /**
    * Empty as its not needed for quadrilaterals (build the stiffness matrix on the fly).
    */
@@ -39,6 +37,7 @@ class AcousticHex: public Hexahedra {
   std::vector<std::string> PullElementalFields() const { return {"u"}; }
   std::vector<std::string> PushElementalFields() const { return {"a"}; }
 
+  void attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers);
   /***************************************************************************
    *                            TESTING HELPERS
    ***************************************************************************/
@@ -75,6 +74,11 @@ class AcousticHex: public Hexahedra {
   double checkTest(Mesh *mesh, Options options,
                    const MatrixXd &displacement, double time);
 
+  MatrixXd interpolateFieldAtPoint(const VectorXd &pnt);
+  void recordField(const MatrixXd &u);
+  
+  std::shared_ptr<Element> clone() const { return std::shared_ptr<Element> (new AcousticHex(*this)); }
+  
 
 };
 
