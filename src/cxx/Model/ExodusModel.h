@@ -27,6 +27,9 @@ class ExodusModel {
     int mNumberSideSets;
     int mNumberNodalVariables;
 
+  std::vector<int> mElementBlockIds;
+  std::vector<int> mVerticesPerElementPerBlock;
+  
     // New variables for pymesher.
     int mNumberElementalVariables;
     std::vector<std::string> mElementalVariableNames;

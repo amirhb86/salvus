@@ -4,7 +4,7 @@
 #include <Element/Element.h>
 #include <Element/HyperCube/Quad/Acoustic.h>
 #include <Element/Simplex/Triangle/AcousticTri.h>
-
+#include <Element/HyperCube/Hex/AcousticHex.h>
 std::vector<std::shared_ptr<Element>> initialize_exact(Mesh *mesh,
                                                        ExodusModel *model,
                                                        std::shared_ptr<Element> reference_element,
@@ -14,7 +14,7 @@ std::vector<std::shared_ptr<Element>> initialize_exact(Mesh *mesh,
   mesh->setupGlobalDof(reference_element->NumDofVtx(),
                        reference_element->NumDofEdg(),
                        reference_element->NumDofFac(),
-                       0 /* zero dofvolume */,
+                       reference_element->NumDofVol(),
                        reference_element->NumDim());
 
   // Setup boundary conditions from options.
@@ -114,7 +114,7 @@ double solve_vs_exact(Options options, Mesh *mesh, std::vector<std::shared_ptr<E
         fitr++;
       }
 
-      double element_error = element->checkTest(mesh, options, u.block(0, 0, int_pnts, fitr), time);
+      double element_error = element->checkTest(mesh, options, u.block(0, 0, int_pnts, fitr), time+timeStep/2);
 
       if (element_error > max_error) { max_error = element_error; }
 
@@ -187,6 +187,7 @@ TEST_CASE("Testing acoustic exact solutions for triangles", "[exact/triangles]")
   PetscOptionsClear();
   const char *arg[] = {
       "salvus_test",
+      "--testing","true",
       "--duration", "0.7071067811865475",
       "--time_step", "0.003",
       "--exodus_file_name", "simple_trimesh_2x2.e",
@@ -198,8 +199,11 @@ TEST_CASE("Testing acoustic exact solutions for triangles", "[exact/triangles]")
       "--dirichlet-boundaries", "dirichlet",
       "--testIC", "true",
       "--IC-center-x", "0.0",
-      "--IC-center-z", "0.0",
+      "--IC-center-z", "0.0",      
       "--IC-square-side-L", "2",
+      "--saveMovie","false",
+      "--saveFrameEvery","1",
+      "--output_movie_file_name","/scratch/salvus/output_files/movie.h5",
       NULL};
   char **argv = const_cast<char **> (arg);
   int argc = sizeof(arg) / sizeof(const char *) - 1;
@@ -232,10 +236,12 @@ TEST_CASE("Testing acoustic exact solutions for triangles", "[exact/triangles]")
 
 TEST_CASE("Testing acoustic exact solutions for quadrilaterals", "[exact/quads]") {
 
+  std::cout << "Testing exact solution quads!\n";
   // Set options for exact tests
   PetscOptionsClear();
   const char *arg[] = {
       "salvus_test",
+      "--testing","true",
       "--duration", "0.7071067811865475",
       "--time_step", "0.003",
       "--exodus_file_name", "simple_quadmesh_2x2.e",
@@ -249,6 +255,9 @@ TEST_CASE("Testing acoustic exact solutions for quadrilaterals", "[exact/quads]"
       "--IC-center-x", "0.0",
       "--IC-center-z", "0.0",
       "--IC-square-side-L", "2",
+      "--saveMovie","false",
+      "--saveFrameEvery","1",
+      "--output_movie_file_name","/scratch/salvus/output_files/movie.h5",
       NULL};
   char **argv = const_cast<char **> (arg);
   int argc = sizeof(arg) / sizeof(const char *) - 1;
@@ -272,4 +281,57 @@ TEST_CASE("Testing acoustic exact solutions for quadrilaterals", "[exact/quads]"
   double error = solve_vs_exact(options, mesh, elements);
   REQUIRE(error < 3e-2);
 
+}
+
+TEST_CASE("Testing acoustic exact solutions for hexahedra", "[exact/hexahedra]") {
+  
+  std::cout << "Testing exact acoustic hex solution.\n";
+  PetscOptionsClear();
+  const char *arg[] = {
+    "salvus_test",
+    "--testing","true",
+    "--duration", "0.08838834764831843", // 30 steps
+    "--time_step", "0.003",
+    "--exodus_file_name", "simple_hexmesh_2x2x2.vp4.e",
+    "--exodus_model_file_name", "simple_hexmesh_2x2x2.vp4.e",
+    "--mesh_type", "newmark",
+    "--element_shape", "hex",
+    "--physics_system", "acoustic",
+    "--polynomial_order", "3",
+    "--dirichlet-boundaries", "x0,x1,y0,y1,z0,z1",
+    "--testIC", "true",
+    "--IC-center-x", "0.0",
+    "--IC-center-z", "0.0",
+    "--IC-square-side-L", "2",
+    "--saveMovie","false",
+    "--saveFrameEvery","1",
+    "--output_movie_file_name","/scratch/salvus/output_files/movie.h5",
+    // options.__SetSaveMovie(PETSC_FALSE);
+    // options.__SetSaveFrameEvery(1);
+    NULL};
+  char **argv = const_cast<char **> (arg);
+  int argc = sizeof(arg) / sizeof(const char *) - 1;
+  PetscOptionsInsert(&argc, &argv, NULL);
+  
+  // Set options for exact tests
+  Options options;
+  options.setOptions();
+  
+  // Get mesh.
+  Mesh *mesh = Mesh::factory(options);
+  mesh->read(options);
+  
+  // Get model.
+  ExodusModel *model = new ExodusModel(options);
+  model->initializeParallel();
+
+  // Setup reference element.
+  auto reference_element = Element::factory(options);
+
+  auto elements = initialize_exact(mesh, model, reference_element, options);
+  
+  double error = solve_vs_exact(options, mesh,elements);
+
+  REQUIRE(error < 1e-3);
+  
 }

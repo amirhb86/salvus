@@ -55,6 +55,8 @@ set(SALVUS_SOURCES
   src/cxx/Element/HyperCube/Quad.cpp
   src/cxx/Element/HyperCube/Quad/Elastic.cpp
   src/cxx/Element/HyperCube/Quad/Acoustic.cpp
+  src/cxx/Element/HyperCube/Hexahedra.cpp
+  src/cxx/Element/HyperCube/Hex/AcousticHex.cpp
   src/cxx/Element/Simplex/Triangle.cpp
   src/cxx/Element/Simplex/Triangle/AcousticTri.cpp
   src/cxx/Model/ExodusModel.cpp
@@ -75,6 +77,7 @@ add_executable(salvus
 add_executable(salvus_test
   ${SALVUS_SOURCES}
   src/cxx/Testing/test_main.cpp
+  src/cxx/Testing/test_hexahedra.cpp
   src/cxx/Testing/test_exactsolution.cpp
   src/cxx/Testing/test_source.cpp
   src/cxx/Testing/test_receiver.cpp)

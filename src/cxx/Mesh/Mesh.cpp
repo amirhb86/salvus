@@ -25,7 +25,9 @@ Mesh *Mesh::factory(Options options) {
                 // add nodal location to global field vectors for testing
                 sc_nm_mesh->AddToGlobalFields("x");
                 sc_nm_mesh->AddToGlobalFields("z");
-                sc_nm_mesh->AddToGlobalFields("u_exact");
+                if(options.ElementShape() == "hex") {
+                  sc_nm_mesh->AddToGlobalFields("y");
+                }
             }
             return sc_nm_mesh;            
         } else if (mesh_type == "newmark_2d_elastic"){
@@ -74,8 +76,8 @@ int Mesh::readBoundaryNames(Options options) {
         }
     } // rank==0        
         
-    boundary_names = utilities::broadcastStringVecFromRank(boundary_names, 0);
-    std::cout << "boundary_names =" << boundary_names[0] << "\n";
+    boundary_names = utilities::broadcastStringVecFromRank(boundary_names,0);
+
     // Build mapping boundary name -> label value (id). `id` starts counting at 1.
     for(int i=0;i<boundary_names.size();i++) {
         mBoundaryIds[i+1] = boundary_names[i];
@@ -121,7 +123,6 @@ int Mesh::setupBoundaries(Options options) {
         ierr = DMLabelGetStratumIS(label, ids[i], &pointIS);CHKERRQ(ierr);
         ierr = ISGetIndices(pointIS, &faces);CHKERRQ(ierr);
         auto boundary_name = mBoundaryIds[ids[i]];
-        std::cout << "getting boundary_name=" << boundary_name << "\n";
         for (int p = 0; p < numFaces; p++) {
 
             PetscInt support_size;
@@ -144,17 +145,45 @@ int Mesh::setupBoundaries(Options options) {
 
 void Mesh::read(Options options) {
 
+  // Class variables.
+  mDistributedMesh = NULL;
+  mExodusFileName = options.ExodusMeshFile();
+
+  // Function variables.
+  DM dm = NULL;
+  PetscBool interpolate_edges = PETSC_TRUE;
+
+  // Read exodus file.
+  DMPlexCreateExodusFromFile(PETSC_COMM_WORLD, mExodusFileName.c_str(), interpolate_edges, &dm);
+
+  // May be a race condition on distribute.
+  MPI::COMM_WORLD.Barrier();
+  DMPlexDistribute(dm, 0, NULL, &mDistributedMesh);
+
+  // We don't need the serial mesh anymore.
+  if (mDistributedMesh) { DMDestroy(&dm); }
+  // mDistributedMesh == NULL when only 1 proc is used.
+  else { mDistributedMesh = dm; }
+
+  DMGetDimension(mDistributedMesh, &mNumberDimensions);
+  DMPlexGetDepthStratum(mDistributedMesh, mNumberDimensions, NULL, &mNumberElementsLocal);
+}
+
+void Mesh::read(int dim, int numCells, int numVerts, int numVertsPerElem,
+                Eigen::MatrixXi cells, Eigen::MatrixXd vertex_coords) {
+
     // Class variables.
     mDistributedMesh = NULL;
-    mExodusFileName = options.ExodusMeshFile();
-
-    // Function variables.
     DM dm = NULL;
     PetscBool interpolate_edges = PETSC_TRUE;
-
-    // Read exodus file.
-    DMPlexCreateExodusFromFile(PETSC_COMM_WORLD, mExodusFileName.c_str(), interpolate_edges, &dm);
-
+    
+    printf("cells=[");
+    for(int i=0;i<numCells*numVertsPerElem;i++) {
+      printf("%d, ",cells.data()[i]);
+    }printf("]\n");
+    DMPlexCreateFromCellList(PETSC_COMM_WORLD, dim, numCells, numVerts, numVertsPerElem,
+                             interpolate_edges, cells.data(), dim, vertex_coords.data(),&dm);
+    
     // May be a race condition on distribute.
     MPI::COMM_WORLD.Barrier();
     DMPlexDistribute(dm, 0, NULL, &mDistributedMesh);
@@ -246,8 +275,11 @@ void Mesh::setFieldFromFace(const std::string &name, const int face_number, cons
     Eigen::VectorXd val(field.size());
     // map "our" nodal ordering back onto PETSC ordering
     for (auto j = 0; j < field.size(); j++) { val(j) = field(j); }
-    DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
-                        face_number, val.data(), INSERT_VALUES);
+    int ierr = DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
+                                   face_number, val.data(), INSERT_VALUES);
+    if(ierr > 0) {
+      std::cerr << "Error after DMPlexVecSetClosure in setFieldFromFace" << "\n";
+    }
 }
 
 void Mesh::addFieldFromFace(const std::string &name, const int face_number, const Eigen::VectorXd &field) {
@@ -257,6 +289,20 @@ void Mesh::addFieldFromFace(const std::string &name, const int face_number, cons
     for (auto j = 0; j < field.size(); j++) { val(j) = field(j); }
     DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
                         face_number, val.data(), ADD_VALUES);
+}
+
+Eigen::VectorXd Mesh::getFieldOnPoint(int point,std::string name) {
+
+  int num_values;
+  double* values = NULL;
+  DMPlexVecGetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
+                      point, &num_values, &values);
+  Eigen::VectorXd field(num_values);
+  for (auto j = 0; j < num_values; j++) { field(j) = values[j]; }
+  // printf("getting %d into %d\n",closure(47),47);
+  DMPlexVecRestoreClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
+                      point, &num_values, &values);  
+  return field;
 }
 
 Eigen::VectorXd Mesh::getFieldOnElement(const std::string &name, const int &element_number,
@@ -279,8 +325,12 @@ void Mesh::setFieldFromElement(const std::string &name, const int element_number
     Eigen::VectorXd val(closure.size());
     // map "our" nodal ordering back onto PETSC ordering
     for (auto j = 0; j < closure.size(); j++) { val(j) = field(closure(j)); }
-    DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
+    int ierr = DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
                         element_number, val.data(), INSERT_VALUES);
+    if(ierr > 0) {
+      std::cerr << "Error after DMPlexVecSetClosure in setFieldFromElement" << "\n";
+      exit(1);
+    }
 }
 
 void Mesh::addFieldFromElement(const std::string &name, const int element_number,
@@ -289,8 +339,12 @@ void Mesh::addFieldFromElement(const std::string &name, const int element_number
     Eigen::VectorXd val(closure.size());
     // map "our" nodal ordering back onto PETSC ordering
     for (auto j = 0; j < closure.size(); j++) { val(j) = field(closure(j)); }
-    DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
+    int ierr = DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
                         element_number, val.data(), ADD_VALUES);
+    if(ierr > 0) {
+      std::cerr << "Error after DMPlexVecSetClosure in addFieldFromElement" << "\n";
+      exit(1);
+    }
 }
 
 void Mesh::assembleLocalFieldToGlobal(const std::string &name) {

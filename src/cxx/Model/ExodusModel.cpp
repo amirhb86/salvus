@@ -18,7 +18,6 @@ void ExodusModel::initializeParallel() {
         getInitialization();
         readConnectivity();
         readCoordinates();
-//        readNodalVariables();
         readElementalVariables();
         readSideSets();
     }
@@ -58,23 +57,23 @@ void ExodusModel::exodusError(const int retval, std::string func_name) {
 
 void ExodusModel::readCoordinates() {
 
-    try {
-        mNodalX.resize(mNumberVertices);
-        mNodalY.resize(mNumberVertices);
-        if (mNumberDimension > 2) { mNodalZ.resize(mNumberVertices); }
-        if (mNumberDimension == 2) {
-            exodusError(ex_get_coord(
-                                mExodusId, mNodalX.data(), mNodalY.data(), NULL),
-                        "ex_get_coord");
-        } else {
-            exodusError(ex_get_coord(
-                                mExodusId, mNodalX.data(), mNodalY.data(), mNodalZ.data()),
-                        "ex_get_coord");
-        }
-    } catch (std::exception &e) {
-        utilities::print_from_root_mpi(e.what());
-        MPI_Abort(PETSC_COMM_WORLD, -1);
+  try {
+    mNodalX.resize(mNumberVertices);
+    mNodalY.resize(mNumberVertices);
+    if (mNumberDimension > 2) { mNodalZ.resize(mNumberVertices); }
+    if (mNumberDimension == 2) {
+      exodusError(ex_get_coord(
+                               mExodusId, mNodalX.data(), mNodalY.data(), NULL),
+                  "ex_get_coord");
+    } else {
+      exodusError(ex_get_coord(
+                               mExodusId, mNodalX.data(), mNodalY.data(), mNodalZ.data()),
+                  "ex_get_coord");
     }
+  } catch (std::exception &e) {
+    utilities::print_from_root_mpi(e.what());
+    MPI_Abort(PETSC_COMM_WORLD, -1);
+  }
 
 }
 
@@ -90,6 +89,24 @@ void ExodusModel::getInitialization() {
                             mExodusId, mExodusTitle, &mNumberDimension, &mNumberVertices, &mNumberElements,
                             &mNumberElementBlocks, &mNumberNodeSets, &mNumberSideSets),
                     "ex_get_init");
+        mElementBlockIds.resize(mNumberElementBlocks);
+        mVerticesPerElementPerBlock.resize(mNumberElementBlocks);
+        exodusError(ex_get_elem_blk_ids(mExodusId,mElementBlockIds.data()),
+                    "ex_get_elem_blk_ids");
+        for(int i=0;i<mNumberElementBlocks;i++) {
+          char elem_type[256];
+          int num_elem_this_blk;
+          int num_nodes_per_elem;
+          int num_attr;
+          exodusError(ex_get_elem_block	(	mExodusId,
+                                                mElementBlockIds[i],
+                                                elem_type,&num_elem_this_blk,
+                                                &num_nodes_per_elem,
+                                                &num_attr
+                                                ), "ex_get_elem_block");
+          mVerticesPerElementPerBlock[i] = num_nodes_per_elem;
+        }
+        
 
     } catch (std::exception &e) {
         utilities::print_from_root_mpi(e.what());
@@ -127,8 +144,8 @@ void ExodusModel::createElementalKdTree() {
     // Need to keep the index arrays allocated.
     mElementalKdTreeData.resize(mNumberElements);
 
-    // TODO: Make this general!!
-    int num_vertex_per_elem = 4;
+    // TODO: Multiple blocks?
+    int num_vertex_per_elem = mVerticesPerElementPerBlock[0]; // first block
 
     if (mNumberDimension == 2) {
         mElementalKdTree = kd_create(2);
@@ -147,6 +164,28 @@ void ExodusModel::createElementalKdTree() {
                               avg_x / (double) num_vertex_per_elem, avg_y / (double) num_vertex_per_elem}.data(),
                       &mElementalKdTreeData[i]);
         }
+    }
+    else if(mNumberDimension == 3) {
+      mElementalKdTree = kd_create(3);
+      for (auto i = 0; i < mNumberElements; i++) {
+
+        // Calculate element centers.
+        double avg_x = 0, avg_y = 0, avg_z = 0;
+        for (auto j = num_vertex_per_elem*i; j < num_vertex_per_elem*(i+1); j++) {
+          avg_x += mNodalX[mElementConnectivity[j]-1];
+          avg_y += mNodalY[mElementConnectivity[j]-1];
+          avg_z += mNodalZ[mElementConnectivity[j]-1];
+        }
+
+        // Insert centers into tree.
+        mElementalKdTreeData[i] = i;
+        kd_insert(mElementalKdTree,
+                  std::vector<double> {
+                    avg_x / (double) num_vertex_per_elem,
+                      avg_y / (double) num_vertex_per_elem,
+                      avg_z / (double) num_vertex_per_elem}.data(),
+                  &mElementalKdTreeData[i]);
+      }
     }
 
 
@@ -199,8 +238,9 @@ PetscReal ExodusModel::getMaterialParameterAtPoint(const std::vector<double> poi
 
 void ExodusModel::readConnectivity() {
 
-    mElementConnectivity.resize(4*mNumberElements);
-    exodusError(ex_get_elem_conn(mExodusId, 1, mElementConnectivity.data()), "ex_get_elem_conn");
+  int block_id = 0;
+  mElementConnectivity.resize(mVerticesPerElementPerBlock[block_id]*mNumberElements);
+  exodusError(ex_get_elem_conn(mExodusId, mElementBlockIds[block_id], mElementConnectivity.data()), "ex_get_elem_conn");
 
 }
 

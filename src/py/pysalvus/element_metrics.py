@@ -18,6 +18,9 @@ dzds = sym.diff(Tz,s)
 J = sym.Matrix([[dxdr,dzdr],
                 [dxds,dzds]])
 
+# J^{-1}   =   [dr/dx ds/dx;
+#               dr/dz ds/dz]
+
 # Build inverse using 2x2 closed formula
 detJxJinv = sym.simplify(sym.Matrix([[dzds,-dzdr],
                                      [-dxds,dxdr]]))
@@ -41,9 +44,9 @@ J = sym.Matrix([[sym.diff(Tx,r), sym.diff(Tx,s)],
 
 # interpolation for quadrilaterals based on right-hand rule quad with velocity v0,v1,v2,v3 and eps(x) eta(y,or,z)
 #   v3               vb          v2
-#   +-----------------+----------+ \eps
-#   |                 |          |   ^       \alpha = (eta-(-1))/2
-#   |                 |          |   |       \beta  = (eps-(-1))/2
+#   +-----------------+----------+ \eta
+#   |                 |          |   ^       \alpha = (eps-(-1))/2
+#   |                 |          |   |       \beta  = (eta-(-1))/2
 #   |              vf + \beta    |   |       va = alpha(v1) + (1-alpha)v0
 #   |                 |  ^       |   |       vb = alpha(v2) + (1-alpha)v3
 #   |                 |  |       |           vf = beta va + (1-beta) vb
@@ -51,7 +54,7 @@ J = sym.Matrix([[sym.diff(Tx,r), sym.diff(Tx,s)],
 #   |                 |  |       |           = [v0,v1,v2,v3].dot([-0.25*eps*eta - 0.25*eps + 0.25*eta + 0.25,
 #   |              va |  |       |                                0.25*eps*eta + 0.25*eps + 0.25*eta + 0.25,
 #   +-----------------+----------+                                -0.25*eps*eta + 0.25*eps - 0.25*eta + 0.25,
-#   v0 -------------->\alpha    v1  --->\eta                      0.25*eps*eta - 0.25*eps - 0.25*eta + 0.25]
+#   v0 -------------->\alpha    v1  --->\eps                      0.25*eps*eta - 0.25*eps - 0.25*eta + 0.25]
 
 eps,eta,v0,v1,v2,v3 = sym.symbols("eps,eta,v0,v1,v2,v3")
 alpha = (eps-(-1.0))/2.0

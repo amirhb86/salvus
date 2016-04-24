@@ -156,13 +156,6 @@ class Element {
    */
   virtual void assembleElementMassMatrix(Mesh *mesh) = 0;
 
-  /**
-   * TODO: Make this general over dimension.
-   * Builds nodal coordinates (x,(y),z) on all mesh degrees of freedom.
-   * @param mesh [in] The mesh.
-   */
-  virtual std::tuple<VectorXd, VectorXd> buildNodalPoints() = 0;
-
   /***************************************************************************
    *                       TIME LOOP FUNCTIONS
    ***************************************************************************/
@@ -223,10 +216,10 @@ class Element {
 
   inline int Num() const { return mElmNum; }
   inline int NumDim() const { return mNumDim; }
-  inline int NumDofEdg() const { return mNumDofEdg; }
-  inline int NumDofFac() const { return mNumDofFac; }
-  inline int NumDofVtx() const { return mNumDofVtx; }
   inline int NumDofVol() const { return mNumDofVol; }
+  inline int NumDofFac() const { return mNumDofFac; }
+  inline int NumDofEdg() const { return mNumDofEdg; }
+  inline int NumDofVtx() const { return mNumDofVtx; }
   inline int NumIntPnt() const { return mNumIntPnt; }
   inline int NumSrc() const { return mSrc.size(); }
   inline bool BndElm() const { return mBndElm; }
