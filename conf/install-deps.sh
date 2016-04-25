@@ -2,7 +2,7 @@
 
 # PETSc
 cd
-git clone -b maint https://bitbucket.org/petsc/petsc petsc-src;
+git clone -b maint-3.6 https://bitbucket.org/petsc/petsc petsc-src;
 cd petsc-src
 
 # Configure and install.
