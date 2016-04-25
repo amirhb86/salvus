@@ -77,7 +77,7 @@ Eigen::MatrixXd AcousticHex::computeStiffnessTerm(const Eigen::MatrixXd &displac
         std::tie(Jinv,detJi) = inverseJacobianAtPoint(r,s,t);
 
 
-        // map reference gradient (lr,ls) to this element (lx,lz)
+        // map reference gradient (lr,ls,lt) to this element (lx,ly,lz)
         auto lr = mGrd.col(r_index);
         auto ls = mGrd.col(s_index);
         auto lt = mGrd.col(t_index);
