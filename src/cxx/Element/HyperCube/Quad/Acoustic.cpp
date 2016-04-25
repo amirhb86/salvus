@@ -30,7 +30,8 @@ Eigen::MatrixXd AcousticQuad::computeStiffnessTerm(const Eigen::MatrixXd &displa
     Eigen::VectorXd integratedStiffnessMatrix(mNumIntPnt);
     Eigen::Matrix<double,2,2> Jinv;
     double detJi;
-
+    Vector2d elementStrainEpsEta(2);
+    
     // Loop over all GLL points once to calculate the gradient of the pressure (u).
     for (auto eta_index = 0; eta_index < mNumIntPtsEta; eta_index++) {
         for (auto eps_index = 0; eps_index < mNumIntPtsEps; eps_index++) {
@@ -43,21 +44,20 @@ Eigen::MatrixXd AcousticQuad::computeStiffnessTerm(const Eigen::MatrixXd &displa
             std::tie(Jinv,detJi) = inverseJacobianAtPoint(eps,eta);
             detJ[itr] = detJi;
 
-            // Calculate gradient. Save for kernel calculations.
-            mElementStrain(0,itr) = mGrd.row(eps_index).dot(
-                    epsVectorStride(displacement, eta_index));
-            mElementStrain(1,itr) = mGrd.row(eta_index).dot(
-                    etaVectorStride(displacement, eps_index));
+            // Calculate gradient in (eps,eta). Save for kernel calculations.
+            elementStrainEpsEta <<
+              mGrd.row(eps_index).dot(epsVectorStride(displacement, eta_index)),
+              mGrd.row(eta_index).dot(etaVectorStride(displacement, eps_index));
 
-            // Get material parameters at this node.
+            // (eps,eta) -> (x,z) and save for kernel calculations.
+            mElementStrain.col(itr) = Jinv*elementStrainEpsEta;
+            
+            // interpolate material parameters at this node.
             double velocity = interpolateAtPoint(eps, eta).dot(mMaterialVelocityAtVertices);
 
             // apply material velocity (note v^2)
-            velocity_gradient.col(itr) = mElementStrain.col(itr) * velocity * velocity;
-
-            // map gradient from reference element to actual element coordinates.
-            velocity_gradient.col(itr) = Jinv * velocity_gradient.col(itr);
-
+            velocity_gradient.col(itr) = velocity * velocity * mElementStrain.col(itr);
+            
             itr++;
 
         }
@@ -65,62 +65,50 @@ Eigen::MatrixXd AcousticQuad::computeStiffnessTerm(const Eigen::MatrixXd &displa
 
     // Loop over all gll points again. Apply shape function derivative and integrate.
     itr = 0;
+    
     for (auto eta_index = 0; eta_index < mNumIntPtsEta; eta_index++) {
         for (auto eps_index = 0; eps_index < mNumIntPtsEps; eps_index++) {
             double eta = mIntCrdEta[eta_index];
             double eps = mIntCrdEps[eps_index];
-
-            Eigen::Matrix<double,2,2> Jinv;
-            double detJi;
+            
             std::tie(Jinv,detJi) = inverseJacobianAtPoint(eps,eta);
 
+            // apply gradient in reference coordinates (eps,eta)
+            auto l_eps = mGrd.col(eps_index);
+            auto l_eta = mGrd.col(eta_index);
 
-            // map reference gradient (lr,ls) to this element (lx,lz)
-            auto lr = mGrd.col(eps_index);
-            auto ls = mGrd.col(eta_index);
-            Eigen::VectorXd lx(mNumIntPtsEps);
-            Eigen::VectorXd lz(mNumIntPtsEta);
-            for(int i=0;i<mNumIntPtsEta;i++) {
-                Eigen::VectorXd lrsi(2);
-                lrsi[0] = lr[i];
-                lrsi[1] = ls[i];
-                auto lxzi = Jinv*lrsi;
-                lx[i] = lxzi[0];
-                lz[i] = lxzi[1];
-            }
+            auto dphi_eps_dux = mIntWgtEta(eta_index) *
+              mIntWgtEps.dot(((epsVectorStride(detJ, eta_index)).array() *
+                              (epsVectorStride(velocity_gradient.row(0), eta_index)).array() *
+                              (l_eps).array()).matrix());
 
+            auto dphi_eta_dux = mIntWgtEps(eps_index) *
+              mIntWgtEta.dot(((etaVectorStride(detJ, eps_index)).array() *
+                              (etaVectorStride(velocity_gradient.row(0), eps_index)).array() *
+                              (l_eta).array()).matrix());
+            
+            auto dphi_eps_duz = mIntWgtEta(eta_index) *
+              mIntWgtEps.dot(((epsVectorStride(detJ, eta_index)).array() *
+                              (epsVectorStride(velocity_gradient.row(1), eta_index)).array() *
+                              (l_eps).array()).matrix());
+
+            auto dphi_eta_duz = mIntWgtEps(eps_index) *
+              mIntWgtEta.dot(((etaVectorStride(detJ, eps_index)).array() *
+                              (etaVectorStride(velocity_gradient.row(1), eps_index)).array() *
+                              (l_eta).array()).matrix());
+
+            Vector2d dphi_epseta_dux(2);
+            dphi_epseta_dux << dphi_eps_dux, dphi_eta_dux;
+
+            Vector2d dphi_epseta_duz(2);
+            dphi_epseta_duz << dphi_eps_duz, dphi_eta_duz;
+
+            // from reference (eps,eta) to (x,z) coordinates
             integratedStiffnessMatrix(itr) =
-                mIntWgtEta(eta_index) *
-                mIntWgtEps.dot(((epsVectorStride(detJ, eta_index)).array() *
-                                            (epsVectorStride(velocity_gradient.row(0), eta_index)).array() *
-                                            (lx).array()).matrix()) +
-                mIntWgtEps(eps_index) *
-                mIntWgtEta.dot(((etaVectorStride(detJ, eps_index)).array() *
-                                            (etaVectorStride(velocity_gradient.row(1), eps_index)).array() *
-                                            (lz).array()).matrix());
+              Jinv.row(0).dot(dphi_epseta_dux) +
+              Jinv.row(1).dot(dphi_epseta_duz);
             
             itr++;
-            
-            // old version
-            // EQ. (35) in Komatitsch, 2002.
-            // TODO: What do you think of this? Too concise?
-            // integratedStiffness_rs(0) = mIntWgtEta(eta_index) *
-            //     mIntWgtEps.dot((
-            //                                 (epsVectorStride(jacobian_determinant, eta_index)).array() *
-            //                                 (epsVectorStride(velocity_gradient.row(0), eta_index)).array() *
-            //                                 (mGrd.col(eps_index)).array()).matrix());
-
-            // integratedStiffness_rs(1) = mIntWgtEps(eps_index) *
-            //     mIntWgtEta.dot((
-            //                                 (etaVectorStride(jacobian_determinant, eps_index)).array() *
-            //                                 (etaVectorStride(velocity_gradient.row(1), eps_index)).array() *
-            //                                 (mGrd.col(eta_index)).array()).matrix());
-            
-            
-            // integratedStiffnessMatrix(itr) = integratedStiffness_rs(0) + integratedStiffness_rs(1);
-            
-            
-
             
         }
     }

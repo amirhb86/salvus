@@ -230,7 +230,9 @@ TEST_CASE("Testing acoustic exact solutions for triangles", "[exact/triangles]")
       mesh, model, reference_element, options);
 
   double error = solve_vs_exact(options, mesh, elements);
-  REQUIRE(error < 3e-2);
+
+  // allow 10% increase previously found in error, or fail.
+  REQUIRE(error < (1.1*0.000183694));
 
 }
 
@@ -279,7 +281,8 @@ TEST_CASE("Testing acoustic exact solutions for quadrilaterals", "[exact/quads]"
 
   std::vector<std::shared_ptr<Element>> elements = initialize_exact(mesh, model, reference_element, options);
   double error = solve_vs_exact(options, mesh, elements);
-  REQUIRE(error < 3e-2);
+  // allow 10% increase previously found in error, or fail.
+  REQUIRE(error < (1.1*0.000180304));
 
 }
 
@@ -332,6 +335,7 @@ TEST_CASE("Testing acoustic exact solutions for hexahedra", "[exact/hexahedra]")
   
   double error = solve_vs_exact(options, mesh,elements);
 
-  REQUIRE(error < 1e-3);
+  // allow 10% increase in previously found error, or fail.
+  REQUIRE(error < (1.1*0.000133237));
   
 }
