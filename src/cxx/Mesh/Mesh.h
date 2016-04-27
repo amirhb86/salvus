@@ -110,9 +110,10 @@ class Mesh {
 
   /**
    * Sets up the dofs across elements and processor boundaries.
-   * Specifcally, this function defines a `DMPlex section` spread across all elements. It is this section that
+   * Specifically, this function defines a `DMPlex section` spread across all elements. It is this section that
    * defines the integration points, and carries information about which of these points are shared across processor
-   * boundries.
+   * boundaries. This function takes a model object because it needs to know about the physics attached
+   * to each element. It uses the physics to set an appropriate amount of components belonging to each DOF.
    * @param [in] number_dof_vertex Number of dofs per 0-d mesh component (vertex). 1 for the standard GLL basis.
    * @param [in] number_dof_edge Number of dofs per 1-d mesh component (edge). order-1 for the standard GLL basis.
    * @param [in] number_dof_face Number of dofs per 2-d mesh component (face). (order-1)^2 for the standard GLL basis.

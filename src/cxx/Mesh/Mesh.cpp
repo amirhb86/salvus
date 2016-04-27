@@ -200,6 +200,7 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
     if (mNumberDimensions == 2) { ctr << vtx.col(0).mean(), vtx.col(1).mean(); }
     else if (mNumberDimensions == 3) { ctr << vtx.col(0).mean(), vtx.col(1).mean(), vtx.col(2).mean(); }
 
+    // Extract the string defining the element type.
     std::string type = model->getElementType(ctr);
 
     // Get the transitive closure for this element.
@@ -220,7 +221,7 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
     }
   }
 
-  // One field and one components for field as we handle our own discretization.
+  // Different number of components depending on which field.
   std::vector<PetscInt> num_comp;
   std::vector<std::string> all_fields_vec;
   PetscInt num_fields = all_fields.size();
@@ -281,11 +282,21 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
     for (int p = p_start; p < p_end; ++p) {
       PetscInt tot = 0;
       for (int f = 0; f < num_fields; ++f) {
-        const char *nm;
-        PetscSectionGetFieldName(mMeshSection, f, &nm);
+
+        // Loop through all fields defined on the mesh.
+        const char *nm; PetscSectionGetFieldName(mMeshSection, f, &nm);
+
+        // Is this particular field defined at this mesh point?
         bool exists = pnt_types[p].find((std::string(nm))) != pnt_types[p].end();
+
+        // If so, add num_dof points to this field. Otherwise add 0 dofs.
+        // Remember: the number of components given to any particular field
+        // has already been set above.
         int num_dof_field_elem = exists ? num_dof : 0;
+
+        // Actually set the DOFs into the section.
         ier = PetscSectionSetFieldDof(mMeshSection, p, f, num_dof_field_elem);CHKERRQ(ier);
+
         // Set a custom number of dofs for each field.
         tot += num_dof;
       }
@@ -537,6 +548,7 @@ Eigen::MatrixXd Mesh::getElementCoordinateClosure(PetscInt elem_num) {
   return vtx;
 
 }
+
 int Mesh::numFieldPerPhysics(std::string physics) {
   try {
     if (physics == "fluid") { return 1; }
@@ -549,11 +561,6 @@ int Mesh::numFieldPerPhysics(std::string physics) {
     MPI_Abort(PETSC_COMM_WORLD, -1);
   }
 }
-
-
-
-
-
 
 // int Mesh::BoundarylementFaces(int elm, int ss_num) {
 
