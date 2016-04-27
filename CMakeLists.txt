@@ -66,6 +66,7 @@ set(SALVUS_SOURCES
   src/cxx/Receiver/Receiver.cpp
   src/cxx/Receiver/ReceiverHdf5.cpp
   src/cxx/Utilities/kdtree.c
+  src/cxx/Utilities/PETScExtensions.c
   ${QuadAutoGen}
   ${TriAutoGen}
   )      
@@ -80,7 +81,8 @@ add_executable(salvus_test
   src/cxx/Testing/test_hexahedra.cpp
   src/cxx/Testing/test_exactsolution.cpp
   src/cxx/Testing/test_source.cpp
-  src/cxx/Testing/test_receiver.cpp)
+  src/cxx/Testing/test_receiver.cpp
+  src/cxx/Testing/test_multi_field.cpp)
 
 # run `make` (or `make -j5`) to build `salvus` executable
 target_link_libraries(salvus ${MPI_LIBRARIES} petsc exodus netcdf hdf5)

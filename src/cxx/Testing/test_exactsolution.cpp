@@ -10,12 +10,13 @@ std::vector<std::shared_ptr<Element>> initialize_exact(Mesh *mesh,
                                                        std::shared_ptr<Element> reference_element,
                                                        Options options) {
 
-  // Attach elements to mesh.
+  // Setup the dofs on each mesh point.
   mesh->setupGlobalDof(reference_element->NumDofVtx(),
                        reference_element->NumDofEdg(),
                        reference_element->NumDofFac(),
                        reference_element->NumDofVol(),
-                       reference_element->NumDim());
+                       reference_element->NumDim(),
+                       model);
 
   // Setup boundary conditions from options.
   mesh->setupBoundaries(options);

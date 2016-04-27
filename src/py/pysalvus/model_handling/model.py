@@ -33,4 +33,8 @@ def updateMaterialParameter(exoObj,parameter_name, parameter_values):
             exoObj.put_element_variable_values(BLOCK_ID, var_name, TIMESTEP_ZERO, parameter_values)        
     else:
         raise RuntimeError("Parameter doesn't exist. Use addMaterialParameter() to add it.")
-            
+
+def addMaterialFlag(exoObj,fluid=True):
+    BLOCK_ID = DEFAULT_BLOCK
+    var_name = 'fluid'
+

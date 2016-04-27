@@ -354,7 +354,10 @@ TEST_CASE("Test closure mapping","[element/hexahedra]") {
   AcousticHex ref_hex(options);
   int num_pts = ref_hex.__GetNumIntPtsR() * ref_hex.__GetNumIntPtsS() * ref_hex.__GetNumIntPtsT();
 
-  
+  // Get model.
+  ExodusModel *model = new ExodusModel(options);
+  model->initializeParallel();
+
   // Get mesh.
   Mesh *mesh = Mesh::factory(options);
   mesh->read(options);
@@ -362,7 +365,9 @@ TEST_CASE("Test closure mapping","[element/hexahedra]") {
                        ref_hex.NumDofEdg(),
                        ref_hex.NumDofFac(),
                        ref_hex.NumDofVol(),
-                       ref_hex.NumDim());
+                       ref_hex.NumDim(),
+                       model);
+
   // Register all global field required for time stepping.  
   for (auto field : mesh->GlobalFields()) {        
     mesh->registerFieldVectors(field);
