@@ -213,11 +213,9 @@ bool Triangle::mCheckHull(double x, double z) {
     double x1 = mVtxCrd.row(0)[0];
     double x2 = mVtxCrd.row(0)[1];
     double x3 = mVtxCrd.row(0)[2];
-    double x4 = mVtxCrd.row(0)[3];
     double z1 = mVtxCrd.row(1)[0];
     double z2 = mVtxCrd.row(1)[1];
     double z3 = mVtxCrd.row(1)[2];
-    double z4 = mVtxCrd.row(1)[3];
 
     // see triangle_element_metrics.py
     // check barycentric coordinates of the point relative to this

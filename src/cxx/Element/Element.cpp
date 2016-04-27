@@ -7,6 +7,9 @@
 
 #include "Element/Simplex/Triangle/AcousticTri.h"
 
+#include <Element/HyperCube/Hexahedra.h>
+#include "Element/HyperCube/Hex/AcousticHex.h"
+
 // Default implementation
 void Element::setupTest(Mesh *mesh, Options options) {
   printf("ERROR: No test implemented\n");
@@ -34,6 +37,11 @@ std::shared_ptr<Element> Element::factory(Options options) {
     else if (options.ElementShape() == "triangle") {
       if (physics == "acoustic") {
         return std::shared_ptr<Element> (new AcousticTri(options));
+      }
+    }
+    else if(options.ElementShape() == "hex") {
+      if(physics == "acoustic") {
+        return std::shared_ptr<Element> (new AcousticHex(options));
       }
     } else {
       throw std::runtime_error("Runtime Error: Element physics " + physics + " not supported");

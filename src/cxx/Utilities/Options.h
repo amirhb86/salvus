@@ -46,6 +46,7 @@ class Options {
   PetscBool mTestIC;
   // exact solution parameters
   PetscReal mCenter_x;
+  PetscReal mCenter_y;
   PetscReal mCenter_z;
   PetscReal mSquareSide_L;
 
@@ -85,6 +86,7 @@ class Options {
   inline double Duration() { return mDuration; }
   inline double TimeStep() { return mTimeStep; }
   inline PetscReal IC_Center_x() { return mCenter_x; }
+  inline PetscReal IC_Center_y() { return mCenter_y; }
   inline PetscReal IC_Center_z() { return mCenter_z; }
   inline PetscReal IC_SquareSide_L() { return mSquareSide_L; }
 

@@ -28,12 +28,15 @@ class ExodusModel {
   int mNumberNodalVariables;
   int mNumberElementVertex;
 
-  // New variables for pymesher.
-  int mNumberElementalVariables;
-  std::vector<std::string> mElementalVariableNames;
-  std::vector<double> mElementalVariables;
-  kdtree *mElementalKdTree;
-  std::vector<int> mElementalKdTreeData;
+  std::vector<int> mElementBlockIds;
+  std::vector<int> mVerticesPerElementPerBlock;
+  
+    // New variables for pymesher.
+    int mNumberElementalVariables;
+    std::vector<std::string> mElementalVariableNames;
+    std::vector<double> mElementalVariables;
+    kdtree *mElementalKdTree;
+    std::vector<int> mElementalKdTreeData;
 
   char mExodusTitle[MAX_LINE_LENGTH + 1];
 

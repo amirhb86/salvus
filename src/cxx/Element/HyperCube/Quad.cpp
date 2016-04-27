@@ -207,9 +207,9 @@ Eigen::Vector4d Quad::interpolateAtPoint(double eps, double eta) {
   // velocity v0,v1,v2,v3 and eps(x) eta(y,or,z)
   //
   //  v3               vb          v2
-  //  +-----------------+----------+ \eps
-  //  |                 |          |   ^       \alpha = (eta-(-1))/2
-  //  |                 |          |   |       \beta  = (eps-(-1))/2
+  //  +-----------------+----------+ \eta
+  //  |                 |          |   ^       \alpha = (eps-(-1))/2
+  //  |                 |          |   |       \beta  = (eta-(-1))/2
   //  |              vf + \beta    |   |       va = alpha(v1) + (1-alpha)v0
   //  |                 |  ^       |   |       vb = alpha(v2) + (1-alpha)v3
   //  |                 |  |       |           vf = beta va + (1-beta) vb
@@ -217,7 +217,7 @@ Eigen::Vector4d Quad::interpolateAtPoint(double eps, double eta) {
   //  |                 |  |       |           = [v0,v1,v2,v3].dot([-0.25*eps*eta - 0.25*eps + 0.25*eta + 0.25,
   //  |              va |  |       |                                0.25*eps*eta + 0.25*eps + 0.25*eta + 0.25,
   //  +-----------------+----------+                                -0.25*eps*eta + 0.25*eps - 0.25*eta + 0.25,
-  //  v0 -------------->\alpha    v1  --->\eta                      0.25*eps*eta - 0.25*eps - 0.25*eta + 0.25]
+  //  v0 -------------->\alpha    v1  --->\eps                      0.25*eps*eta - 0.25*eps - 0.25*eta + 0.25]
   // ----------------------------------------------------------------------------------------------------------
   Eigen::Vector4d interpolator;
   interpolator <<        
@@ -385,8 +385,6 @@ void Quad::setupGradientOperator() {
 std::tuple<VectorXd, VectorXd> Quad::buildNodalPoints() {
 
   assert(mNumIntPnt == mNumIntPtsEps * mNumIntPtsEta);
-
-  std::vector<PetscReal> ni(mVtxCrd.size());
 
   VectorXd nodalPoints_x(mNumIntPnt);
   VectorXd nodalPoints_z(mNumIntPnt);
