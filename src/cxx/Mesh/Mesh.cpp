@@ -199,6 +199,7 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
 
     if (mNumberDimensions == 2) { ctr << vtx.col(0).mean(), vtx.col(1).mean(); }
     else if (mNumberDimensions == 3) { ctr << vtx.col(0).mean(), vtx.col(1).mean(), vtx.col(2).mean(); }
+
     std::string type = model->getElementType(ctr);
 
     // Get the transitive closure for this element.
@@ -530,7 +531,6 @@ Eigen::MatrixXd Mesh::getElementCoordinateClosure(PetscInt elem_num) {
       vtx(i,2) = coord_buf[mNumberDimensions * i + 2];
     }
   }
-  std::cout << vtx << std::endl;
 
   DMPlexVecRestoreClosure(mDistributedMesh, coord_section, coord, elem_num, &coord_buf_size, &coord_buf);
 

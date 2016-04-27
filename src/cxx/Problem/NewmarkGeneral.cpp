@@ -17,7 +17,7 @@ void NewmarkGeneral::initialize(Mesh *mesh,
                         mReferenceElem->NumDofFac(),
                         mReferenceElem->NumDofVol(),
                         mReferenceElem->NumDim(),
-                        nullptr);
+                        model);
 
   // Setup boundary conditions from options.
   mMesh->setupBoundaries(options);

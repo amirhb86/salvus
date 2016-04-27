@@ -40,7 +40,11 @@ TEST_CASE("point_source_interpolation", "[source]") {
     std::shared_ptr<Element> elm = Element::factory(options);
     std::vector<std::shared_ptr<Element>> elms;
 
-    msh->setupGlobalDof(elm->NumDofVtx(), elm->NumDofEdg(), elm->NumDofFac(), elm->NumDofVol(), elm->NumDim(), nullptr);
+    ExodusModel *model = new ExodusModel(options);
+    model->initializeParallel();
+
+    msh->setupGlobalDof(elm->NumDofVtx(), elm->NumDofEdg(), elm->NumDofFac(),
+                        elm->NumDofVol(), elm->NumDim(), model);
 
     // Get a list of all local elements.
     for (int i = 0; i < msh->NumberElementsLocal(); i++) {

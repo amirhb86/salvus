@@ -232,7 +232,7 @@ double ExodusModel::getElementalMaterialParameterAtVertex(const Eigen::VectorXd 
 
 std::string ExodusModel::getElementType(const Eigen::VectorXd &elem_center) {
 
-  assert(elem_center.size() == mNumberDimension);
+//  assert(elem_center.size() == mNumberDimension);
 
   // Get spatial element index.
   auto *set = kd_nearest(mElementalKdTree, elem_center.data());
@@ -250,9 +250,9 @@ std::string ExodusModel::getElementType(const Eigen::VectorXd &elem_center) {
   auto type = mElementalVariables[parameter_index * mNumberElements + spatial_index];
   if (type == 1) {
     return "fluid";
+    std::cout << "HI" << std::endl;
   } else {
     return "2delastic";
-    std::cout << "HI" << std::endl;
   }
 
 
