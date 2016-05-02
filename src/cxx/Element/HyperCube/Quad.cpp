@@ -24,8 +24,7 @@ Quad::Quad(Options options) {
   mElmCtr.resize(2, 1);
   mVtxCrd.resize(2, mNumVtx);
 
-  // Gll points.
-  mNumDofVol = 0;
+  // Gll points.  
   mNumDofVtx = 1;
   mNumDofEdg = mPlyOrd - 1;
   mNumDofFac = (mPlyOrd - 1) * (mPlyOrd - 1);

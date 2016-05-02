@@ -6,6 +6,7 @@
 #include "Element/HyperCube/Quad/Elastic.h"
 
 #include "Element/Simplex/Triangle/AcousticTri.h"
+#include "Element/Simplex/Tetrahedra/AcousticTet.h"
 
 #include <Element/HyperCube/Hexahedra.h>
 #include "Element/HyperCube/Hex/AcousticHex.h"
@@ -33,18 +34,37 @@ std::shared_ptr<Element> Element::factory(Options options) {
       } else if (physics == "elastic") {
         return std::shared_ptr<Element> (new Elastic(options));
       }
+      else {
+        throw std::runtime_error("Runtime Error: Element physics " + physics + " not supported");
+      }
     }
     else if (options.ElementShape() == "triangle") {
       if (physics == "acoustic") {
         return std::shared_ptr<Element> (new AcousticTri(options));
+      }
+      else {
+        throw std::runtime_error("Runtime Error: Element physics " + physics + " not supported");
       }
     }
     else if(options.ElementShape() == "hex") {
       if(physics == "acoustic") {
         return std::shared_ptr<Element> (new AcousticHex(options));
       }
-    } else {
-      throw std::runtime_error("Runtime Error: Element physics " + physics + " not supported");
+      else {
+        throw std::runtime_error("Runtime Error: Element physics " + physics + " not supported");
+      }
+    }
+    else if(options.ElementShape() == "tet") {
+      if(physics == "acoustic") {
+        return std::shared_ptr<Element> (new AcousticTet(options));
+      }
+      else {
+        throw std::runtime_error("Runtime Error: Element physics " + physics + " not supported");
+      }
+    }
+    else {
+      // throw std::runtime_error("Runtime Error: Element physics " + physics + " not supported");
+      throw std::runtime_error("Runtime Error: Element type " + options.ElementShape() + " not supported");      
     }
   } catch (std::exception &e) {
     PRINT_ROOT() << e.what();

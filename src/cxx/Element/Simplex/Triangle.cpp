@@ -69,7 +69,7 @@ Eigen::VectorXi Triangle::ClosureMapping(const int order, const int dimension) {
 
 Eigen::Vector3d Triangle::interpolateAtPoint(double r, double s) {
   // interp_vector=[-r/2 - s/2, r/2 + 1/2, s/2 + 1/2]
-  // barycentric coordinates l1,l2,l3 (l1+l2+l3=1) give us a linear weighting between coordinates (r,s). By computing the barycentric weights, we can compute the interpolated velocity = [l1,l2,l3].doat([v1,v2,v3]) where vN is the vertex velocity.
+  // barycentric coordinates l1,l2,l3 (l1+l2+l3=1) give us a linear weighting between coordinates (r,s). By computing the barycentric weights, we can compute the interpolated velocity = [l1,l2,l3].dot([v1,v2,v3]) where vN is the vertex velocity.
   // T*[l1;l2] = xy - v3, where xy is the desired point, and v3 is the vertex 3
   // thus l12 = T**(-1)*xy - T**(-1)*v3
   // For reference triangle
@@ -307,7 +307,8 @@ double Triangle::integrateField(const Eigen::VectorXd &field) {
 
 }
 void Triangle::attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers) {
-
+  printf("TODO: attachedReciever\n");
+  exit(1);
 }
 
 
