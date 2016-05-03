@@ -25,6 +25,7 @@ link_directories(${PETSC_DIR}/lib)
 
 FILE(GLOB QuadAutoGen src/cxx/Element/HyperCube/Quad/Autogen/*.c)
 FILE(GLOB TriAutoGen src/cxx/Element/Simplex/Triangle/Autogen/*.c)
+FILE(GLOB TetAutoGen src/cxx/Element/Simplex/Tetrahedra/Autogen/*.c)
 
 include_directories(
   ${MPI_INCLUDE_PATH}
@@ -40,7 +41,8 @@ include_directories(
   src/cxx/Element/Simplex
   src/cxx/Element/Simplex/Triangle
   src/cxx/Element/Simplex/Triangle/Autogen
-  src/cxx/Element/Simplex/Tetrahedron
+  src/cxx/Element/Simplex/Tetrahedra
+  src/cxx/Element/Simplex/Tetrahedra/Autogen
   src/cxx/Model)
 
 set(SALVUS_SOURCES
@@ -59,6 +61,8 @@ set(SALVUS_SOURCES
   src/cxx/Element/HyperCube/Hex/AcousticHex.cpp
   src/cxx/Element/Simplex/Triangle.cpp
   src/cxx/Element/Simplex/Triangle/AcousticTri.cpp
+  src/cxx/Element/Simplex/Tetrahedra.cpp
+  src/cxx/Element/Simplex/Tetrahedra/AcousticTet.cpp
   src/cxx/Model/ExodusModel.cpp
   src/cxx/Utilities/Utilities.cpp
   src/cxx/Utilities/Options.cpp
@@ -69,6 +73,7 @@ set(SALVUS_SOURCES
   src/cxx/Utilities/PETScExtensions.c
   ${QuadAutoGen}
   ${TriAutoGen}
+  ${TetAutoGen}
   )      
             
 add_executable(salvus
@@ -79,6 +84,7 @@ add_executable(salvus_test
   ${SALVUS_SOURCES}
   src/cxx/Testing/test_main.cpp
   src/cxx/Testing/test_hexahedra.cpp
+  src/cxx/Testing/test_tetrahedra.cpp
   src/cxx/Testing/test_exactsolution.cpp
   src/cxx/Testing/test_source.cpp
   src/cxx/Testing/test_receiver.cpp

@@ -23,14 +23,14 @@ void ScalarNewmark2D::advanceField(double dt) {
 
 void ScalarNewmark2D::applyInverseMassMatrix() {
 
-    if (mFields.find("mi") == mFields.end()){
-        registerFieldVectors("mi");
-        VecCopy(mFields["m"].glb, mFields["mi"].glb);
-        VecReciprocal(mFields["mi"].glb);
-    }
-
-    VecPointwiseMult(mFields["a"].glb, mFields["mi"].glb,
-                     mFields["a"].glb);
-
+  if (mFields.find("mi") == mFields.end()){
+      
+    registerFieldVectors("mi");
+    VecCopy(mFields["m"].glb, mFields["mi"].glb);
+    VecReciprocal(mFields["mi"].glb);
+  }
+    
+  VecPointwiseMult(mFields["a"].glb, mFields["mi"].glb,
+                   mFields["a"].glb);
 
 }

@@ -136,6 +136,12 @@ PetscErrorCode Options::setOptions() {
   PetscOptionsGetInt(NULL, "--saveFrameEvery", &mSaveFrameEvery, &parameter_set);
   if (!parameter_set) { mSaveFrameEvery = 1; }
 
+  // parameters for movies (to save or not, and how often)
+  PetscOptionsGetBool(NULL, "--displayDiagnostics", &mDisplayDiagnostics, &parameter_set);
+  if (!parameter_set) { mDisplayDiagnostics = PETSC_TRUE; }
+  PetscOptionsGetInt(NULL, "--displayDiagnosticsEvery", &mDisplayDiagnosticsEvery, &parameter_set);
+  if (!parameter_set) { mDisplayDiagnosticsEvery = 10; }
+  
   // for testing ICs against exact solution
   PetscOptionsGetBool(NULL, "--testIC", &mTestIC, &parameter_set);
   if (!parameter_set) { mTestIC = PETSC_FALSE; }

@@ -71,13 +71,18 @@ Eigen::MatrixXd AcousticTri::computeSourceTerm(double time) {
 
     // Initialize source vector (note: due to RVO I believe no memory re-allocation is occuring).
     Eigen::VectorXd F = Eigen::VectorXd::Zero(mNumIntPnt);
+
+    printf("TODO: computeSourceTerm\n");
+    exit(1);
     
     return F;
 }
 
 void AcousticTri::computeSurfaceTerm() {
 
-    std::cout << mElmNum << std::endl;
+  printf("TODO: computeSurfaceTerm\n");
+  exit(1);
+  std::cout << mElmNum << std::endl;
 
 }
 

@@ -280,13 +280,17 @@ std::string ExodusModel::getElementType(const Eigen::VectorXd &elem_center) {
   kd_res_free(set);
 
   int i = 0;
-  int parameter_index = 0;
+  int parameter_index = -1;
   auto full_name = "fluid";
   for (auto &name : mElementalVariableNames) {
     if (name == full_name) { parameter_index = i; }
     i++;
   }
 
+  if(parameter_index == -1) {
+    throw std::runtime_error("ERROR: `fluid` field not found in mesh!");
+  }
+  
   auto type = mElementalVariables[parameter_index * mNumberElements + spatial_index];
   if (type == 1) {
     return "fluid";
