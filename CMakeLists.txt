@@ -78,7 +78,7 @@ set(SALVUS_SOURCES
             
 add_executable(salvus
   ${SALVUS_SOURCES}
-  src/cxx/Main.cpp)
+  src/cxx/Main.cpp src/cxx/Element/HyperCube/Quad/QuadNew.cpp src/cxx/Element/HyperCube/Quad/QuadNew.h)
 
 add_executable(salvus_test
   ${SALVUS_SOURCES}

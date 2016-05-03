@@ -63,8 +63,7 @@ std::shared_ptr<Element> Element::factory(Options options) {
       }
     }
     else {
-      // throw std::runtime_error("Runtime Error: Element physics " + physics + " not supported");
-      throw std::runtime_error("Runtime Error: Element type " + options.ElementShape() + " not supported");      
+      throw std::runtime_error("Runtime Error: Element type " + options.ElementShape() + " not supported");
     }
   } catch (std::exception &e) {
     PRINT_ROOT() << e.what();
