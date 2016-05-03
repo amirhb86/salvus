@@ -138,7 +138,9 @@ double solve_vs_exact(Options options, Mesh *mesh, std::vector<std::shared_ptr<E
       }
     }
 
-    printf("max_error=%f @ time=%f (%f%%)\n",max_error,time,100*(time/duration));
+    if(options.DisplayDiagnostics() && (it % options.DisplayDiagnosticsEvery() == 0 || it == 0)) {
+      printf("max_error=%f @ time=%f (%f%%)\n",max_error,time,100*(time/duration));
+    }
     if (max_error > 5) {
       std::cerr << "ERROR: Solution blowing up!\n";
       exit(1);
@@ -357,8 +359,8 @@ TEST_CASE("Testing acoustic exact solutions for tetrahedra", "[exact/tetrahedra]
     // dt/4 = 0.0009021097956087903
     "--time_step", "0.0009021097956087903",
     // "--time_step", "0.0001",
-    "--exodus_file_name", "simple_tetmesh_2x2x2.vp4.e",
-    "--exodus_model_file_name", "simple_tetmesh_2x2x2.vp4.e",
+    "--exodus_file_name", "simple_tetmesh_2x2x2.vp4.fluid.e",
+    "--exodus_model_file_name", "simple_tetmesh_2x2x2.vp4.fluid.e",
     "--mesh_type", "newmark",
     "--element_shape", "tet",
     "--physics_system", "acoustic",
@@ -371,7 +373,9 @@ TEST_CASE("Testing acoustic exact solutions for tetrahedra", "[exact/tetrahedra]
     "--IC-square-side-L", "2",
     "--saveMovie","false",
     "--saveFrameEvery","1",
-    "--output_movie_file_name","/scratch/salvus/output_files/movie.h5",    
+    "--output_movie_file_name","/scratch/salvus/output_files/movie.h5",
+    "--displayDiagnostics", "true",
+    "--displayDiagnosticsEvery", "10",
     NULL};
   char **argv = const_cast<char **> (arg);
   int argc = sizeof(arg) / sizeof(const char *) - 1;

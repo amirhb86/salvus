@@ -157,9 +157,7 @@ void AcousticTet::assembleElementMassMatrix(Mesh *mesh) {
 
   std::tie(Jinv,detJ) = inverseJacobianAtPoint(0,0,0);
   elementMassMatrix = detJ*mIntegrationWeights;
-  if(mElmNum == 0) {
-    std::cout << "m(k==0)=" << elementMassMatrix.transpose() << "\n";
-  }
+  
   // assemble to shared nodes  
   mesh->addFieldFromElement("m", mElmNum, mClsMap, elementMassMatrix);
     

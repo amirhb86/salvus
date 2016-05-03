@@ -112,6 +112,65 @@ TEST_CASE("Test mapping from reference tet to physical coords and back","[elemen
   
 }
 
+// TEST_CASE("Testing fluid vs. non-fluid meshes", "[model]") {
+  
+//   std::cout << "Testing if model crashes without fluid flag.\n";
+//   PetscOptionsClear();
+//   const char *arg[] = {
+//     "salvus_test",
+//     "--testing","true",
+//     "--duration", "0.08838834764831843", // 120 steps
+//     // dt=0.0036084391824351613 is stable for V=1
+//     // dt/4 = 0.0009021097956087903
+//     "--time_step", "0.0009021097956087903",
+//     // "--time_step", "0.0001",
+//     "--exodus_file_name", "simple_hexmesh_2x2x2_8elements.vp4.e",
+//     "--exodus_model_file_name", "simple_hexmesh_2x2x2_8elements.vp4.e",
+//     "--mesh_type", "newmark",
+//     "--element_shape", "tet",
+//     "--physics_system", "acoustic",
+//     "--polynomial_order", "3",
+//     "--dirichlet-boundaries", "x0,x1,y0,y1,z0,z1",
+//     "--testIC", "true",
+//     "--IC-center-x", "0.0",
+//     "--IC-center-y", "0.0",
+//     "--IC-center-z", "0.0",
+//     "--IC-square-side-L", "2",
+//     "--saveMovie","false",
+//     "--saveFrameEvery","1",
+//     "--output_movie_file_name","/scratch/salvus/output_files/movie.h5",    
+//     NULL};
+//   char **argv = const_cast<char **> (arg);
+//   int argc = sizeof(arg) / sizeof(const char *) - 1;
+//   PetscOptionsInsert(&argc, &argv, NULL);
+  
+//   // Set options for exact tests
+//   Options options;
+//   options.setOptions();
+  
+//   // Get mesh.
+//   Mesh *mesh = Mesh::factory(options);
+//   mesh->read(options);
+  
+//   // Get model.
+//   ExodusModel *model = new ExodusModel(options);
+//   model->initializeParallel();
+
+//   // Setup reference element.
+//   auto reference_element = Element::factory(options);
+
+
+//   // Setup the dofs on each mesh point.
+//   mesh->setupGlobalDof(reference_element->NumDofVtx(),
+//                        reference_element->NumDofEdg(),
+//                        reference_element->NumDofFac(),
+//                        reference_element->NumDofVol(),
+//                        reference_element->NumDim(),
+//                        model);
+
+// }
+
+
 // TEST_CASE("Test tetrahedra closure mapping","[element/tetrahedra]") {
 
 //   int order = 3;

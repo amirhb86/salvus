@@ -42,6 +42,10 @@ class Options {
   PetscBool mSaveMovie;
   PetscInt mSaveFrameEvery;
 
+  // Diagnostic information
+  PetscBool mDisplayDiagnostics;
+  PetscInt mDisplayDiagnosticsEvery;
+  
   // Run initial condition test with exact solution
   PetscBool mTestIC;
   // exact solution parameters
@@ -74,14 +78,17 @@ class Options {
   // Bool getters
   inline PetscBool SaveMovie() { return mSaveMovie; }
   inline PetscBool TestIC() { return mTestIC; }
-
+  inline PetscBool DisplayDiagnostics() { return mDisplayDiagnostics; }
+  
   // Integer getters
   inline PetscInt Dimension() { return mDimension; }
   inline PetscInt PolynomialOrder() { return mPolynomialOrder; }
   inline PetscInt NumberSources() { return mNumberSources; }
   inline PetscInt NumberReceivers() { return mNumRec; }
   inline PetscInt SaveFrameEvery() { return mSaveFrameEvery; }
-
+  inline PetscInt DisplayDiagnosticsEvery() { return mDisplayDiagnosticsEvery; }
+  
+  
   // Double getters
   inline double Duration() { return mDuration; }
   inline double TimeStep() { return mTimeStep; }
