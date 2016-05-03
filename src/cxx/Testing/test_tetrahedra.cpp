@@ -179,7 +179,7 @@ TEST_CASE("Test mapping from reference tet to physical coords and back","[elemen
 //   const char *arg[] = {
 //     "salvus_test",
 //     "--testing","true",
-//     "--exodus_file_name", "simple_tetmesh_2x2x2_30elements.e",
+//     "--exodus_file_name", "simple_tetmesh_2x2x2_30elements.vp4.e",
 //     "--exodus_model_file_name", "simple_tetmesh_2x2x2_30elements.vp4.e",
 //     "--mesh_type", "newmark",
 //     "--element_shape", "tet",

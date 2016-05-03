@@ -288,8 +288,7 @@ std::string ExodusModel::getElementType(const Eigen::VectorXd &elem_center) {
   }
 
   if(parameter_index == -1) {
-    std::cerr << "ERROR: `fluid` field not found in mesh!\n";
-    MPI_Abort(PETSC_COMM_WORLD, -1);        
+    throw std::runtime_error("ERROR: `fluid` field not found in mesh!");
   }
   
   auto type = mElementalVariables[parameter_index * mNumberElements + spatial_index];
