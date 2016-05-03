@@ -13,8 +13,9 @@ void NewmarkTesting::initialize(Mesh *mesh,
     mMesh->setupGlobalDof(mReferenceElem->NumDofVtx(),
                           mReferenceElem->NumDofEdg(),
                           mReferenceElem->NumDofFac(),
-                          0 /* zero dofvolume */,
-                          mReferenceElem->NumDim());
+                          mReferenceElem->NumDofVol(),
+                          mReferenceElem->NumDim(),
+                          nullptr);
 
     // Setup boundary conditions from options.
     mMesh->setupBoundaries(options);

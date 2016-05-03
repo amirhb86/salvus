@@ -22,8 +22,10 @@
 
 #include <Eigen/Dense>
 
-#include "../Utilities/Options.h"
-#include "../Utilities/Utilities.h"
+#include <Utilities/Options.h>
+#include <Utilities/Utilities.h>
+#include <Utilities/PETScExtensions.h>
+#include <Model/ExodusModel.h>
 
 /**
  * Struct holding the vectors representing the global DOFs.
@@ -55,6 +57,12 @@ class Mesh {
   /** < PETSc distributed mesh defining parallel element layout. */
   PetscSection mMeshSection;      /** < Mesh section describing location of the integration points. In the future we
                                         * may have many of these per mesh. */
+
+  /**
+   * Returns the number of fields at a give DOF.
+   * For example numFieldPerPhysics(scalar) -> 1, numFieldPerPhysics(2delastic) - > 2.
+   */
+  int numFieldPerPhysics(std::string physics);
 
  protected:
 
@@ -108,18 +116,22 @@ class Mesh {
   
   /**
    * Sets up the dofs across elements and processor boundaries.
-   * Specifcally, this function defines a `DMPlex section` spread across all elements. It is this section that
+   * Specifically, this function defines a `DMPlex section` spread across all elements. It is this section that
    * defines the integration points, and carries information about which of these points are shared across processor
-   * boundries.
+   * boundaries. This function takes a model object because it needs to know about the physics attached
+   * to each element. It uses the physics to set an appropriate amount of components belonging to each DOF.
    * @param [in] number_dof_vertex Number of dofs per 0-d mesh component (vertex). 1 for the standard GLL basis.
    * @param [in] number_dof_edge Number of dofs per 1-d mesh component (edge). order-1 for the standard GLL basis.
    * @param [in] number_dof_face Number of dofs per 2-d mesh component (face). (order-1)^2 for the standard GLL basis.
    * @param [in] number_dof_volume Num of dofs per 3-d mesh component (volume). Something something for the
    * standard GLL basis.
    */
-  void setupGlobalDof(PetscInt number_dof_vertex, PetscInt number_dof_edge,
-                      PetscInt number_dof_face, PetscInt number_dof_volume,
-                      PetscInt number_dimensions);
+  PetscErrorCode setupGlobalDof(int number_dof_vertex,
+                                int number_dof_edge,
+                                int number_dof_face,
+                                int number_dof_volume,
+                                int number_dimensions,
+                                ExodusModel *model);
 
   /**
    * Registers both the global (across parallel partition) and local (on a single parallel partition) vectors for a
@@ -329,6 +341,11 @@ class Mesh {
    * before mesh initializes fields to global DOF. (via registerFieldVectors)
    */
   void AddToGlobalFields(std::string fieldname) { mGlobalFields.push_back(fieldname); }
+
+  /**
+   * Get the transitive closure of a coordinate section for a mesh point.
+   */
+  Eigen::MatrixXd getElementCoordinateClosure(PetscInt elem_num);
 
 
   inline DM &DistributedMesh() { return mDistributedMesh; }

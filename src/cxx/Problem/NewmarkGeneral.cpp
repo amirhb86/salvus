@@ -15,8 +15,9 @@ void NewmarkGeneral::initialize(Mesh *mesh,
   mMesh->setupGlobalDof(mReferenceElem->NumDofVtx(),
                         mReferenceElem->NumDofEdg(),
                         mReferenceElem->NumDofFac(),
-                        0 /* zero dofvolume */,
-                        mReferenceElem->NumDim());
+                        mReferenceElem->NumDofVol(),
+                        mReferenceElem->NumDim(),
+                        model);
 
   // Setup boundary conditions from options.
   mMesh->setupBoundaries(options);
