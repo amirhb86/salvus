@@ -9,13 +9,11 @@
 #include <Receiver/Receiver.h>
 #include <memory>
 
-using namespace Eigen;
-
 /**
  * TODO: Make this a pure-virtual (interface) class.
  * We're very close to achieving this. There's just a couple of functions (i.e. the boundary functions)
  * that are actually implemented here. I think (but am not certain), that in the general case these
- * should be implemented on the Shape/Physics level in the long run.
+ * should be implemented on the Shape/Derived level in the long run.
  */
 
 class Element {
@@ -42,13 +40,13 @@ class Element {
   int mNumIntPnt;   /** < Total number of integration points. */
 
   // Element properties.
-  VectorXi mClsMap;
+  Eigen::VectorXi mClsMap;
   /** < Mapping from our element closure numbering to PETSc's. */
-  VectorXd mMssMat;
+  Eigen::VectorXd mMssMat;
   /** < Elemental mass matrix. */
-  MatrixXd mVtxCrd;
+  Eigen::MatrixXd mVtxCrd;
   /** < Vertex coordinates ordered as above. r0->x,r1->y,r2->z. */
-  MatrixXd mElmCtr; /** < Coordinates of the element center. r0->x,r1->y,r2->z. */
+  Eigen::MatrixXd mElmCtr; /** < Coordinates of the element center. r0->x,r1->y,r2->z. */
 
   // Boundary information.
   bool mBndElm;
@@ -165,7 +163,7 @@ class Element {
    * Compute the right hand side.
    * Given a certain time, compute the value of the external force.
    */
-  virtual MatrixXd computeSourceTerm(double time) = 0;
+  virtual Eigen::MatrixXd computeSourceTerm(double time) = 0;
 
   /**
    * Compute the action of the stiffness matrix on a field.
@@ -174,7 +172,7 @@ class Element {
    * @param displacement [in] Displacement on the elemental degrees of freedom.
    * @returns Ku
    */
-  virtual MatrixXd computeStiffnessTerm(const MatrixXd &displacement) = 0;
+  virtual Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement) = 0;
 
   /**
    * TODO: Do we need all these parameters?
@@ -203,16 +201,16 @@ class Element {
    */
   virtual std::vector<std::string> PushElementalFields() const = 0;
 
-  virtual MatrixXd interpolateFieldAtPoint(const VectorXd &pnt) = 0;
+  virtual Eigen::MatrixXd interpolateFieldAtPoint(const Eigen::VectorXd &pnt) = 0;
 
-  virtual void recordField(const MatrixXd &u) = 0;
+  virtual void recordField(const Eigen::MatrixXd &u) = 0;
 
   /***************************************************************************
    *                             ACCESSORS
    ***************************************************************************/
 
   inline void SetNum(int element_number) { mElmNum = element_number; }
-  inline void SetVtxCrd(MatrixXd coord) { mVtxCrd = coord; }
+  inline void SetVtxCrd(Eigen::MatrixXd coord) { mVtxCrd = coord; }
 
   inline int Num() const { return mElmNum; }
   inline int NumDim() const { return mNumDim; }
@@ -223,8 +221,8 @@ class Element {
   inline int NumIntPnt() const { return mNumIntPnt; }
   inline int NumSrc() const { return mSrc.size(); }
   inline bool BndElm() const { return mBndElm; }
-  inline VectorXi ClsMap() { return mClsMap; }
-  inline MatrixXd VtxCrd() { return mVtxCrd; }
+  inline Eigen::VectorXi ClsMap() { return mClsMap; }
+  inline Eigen::MatrixXd VtxCrd() { return mVtxCrd; }
 
   /***************************************************************************
    *                             TESTING

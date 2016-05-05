@@ -103,11 +103,11 @@ class Triangle: public Element {
   static Eigen::VectorXi ClosureMapping(const int order, const int dimension);
 
   static Eigen::Vector3d interpolateAtPoint(double r, double s);
-  Eigen::MatrixXd interpolateFieldAtPoint(const VectorXd &pnt) {
+  Eigen::MatrixXd interpolateFieldAtPoint(const Eigen::VectorXd &pnt) {
     return Eigen::Matrix<double, -1, -1, 0, -1, -1>();
   }
 
-  void recordField(const MatrixXd &u) {};
+  void recordField(const Eigen::MatrixXd &u) {};
 
   // currently not possible
   // /**

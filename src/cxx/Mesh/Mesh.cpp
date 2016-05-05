@@ -602,7 +602,7 @@ int Mesh::numFieldPerPhysics(std::string physics) {
     if (physics == "fluid") { return 1; }
     else if (physics == "2delastic") { return 2; }
     else {
-      throw std::runtime_error("Physics type " + physics + " is not known.");
+      throw std::runtime_error("Derived type " + physics + " is not known.");
     }
   } catch (std::exception &e) {
     PRINT_ROOT() << e.what();

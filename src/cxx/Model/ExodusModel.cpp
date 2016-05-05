@@ -250,7 +250,8 @@ void ExodusModel::readConnectivity() {
 }
 
 double ExodusModel::getElementalMaterialParameterAtVertex(const Eigen::VectorXd &elem_center,
-                                                          const std::string &parameter_name, const int vertex_num) {
+                                                          const std::string &parameter_name,
+                                                          const int vertex_num) const {
   assert(elem_center.size() == mNumberDimension);
 
   // Get elemental spatial index.

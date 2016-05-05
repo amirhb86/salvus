@@ -1,5 +1,7 @@
 #include "AcousticTet.h"
 
+using namespace Eigen;
+
 AcousticTet::AcousticTet(Options options): Tetrahedra(options) {
     
   // Allocate element vectors.

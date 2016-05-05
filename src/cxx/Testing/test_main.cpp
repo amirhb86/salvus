@@ -3,9 +3,11 @@
 #include <Eigen/Dense>
 #include <petsc.h>
 #include <Element/Element.h>
+#include <Element/HyperCube/QuadNew.h>
+#include <Element/HyperCube/Quad/QuadP1.h>
+#include <Physics/AcousticNew.h>
 #include <Element/HyperCube/Quad/Acoustic.h>
 #include <Element/Simplex/Triangle/AcousticTri.h>
-
 
 int main(int argc, char *argv[]) {
 
@@ -21,24 +23,29 @@ int main(int argc, char *argv[]) {
   return result;
 }
 
-std::shared_ptr<Quad> setup_simple_quad(Options options) {
+std::shared_ptr<QuadNew<AcousticNew<QuadP1>>> setup_simple_quad(Options options) {
 
   // Simple model.
   ExodusModel *model = new ExodusModel(options);
   model->initializeParallel();
 
   // Get element from options.
-  std::shared_ptr<Element> reference_element = Element::factory(options);
-  std::shared_ptr<Quad> reference_quad = std::dynamic_pointer_cast<Quad> (reference_element);
+//  std::shared_ptr<Element> reference_element = Element::factory(options);
+//  std::shared_ptr<Quad> reference_quad = std::dynamic_pointer_cast<Quad> (reference_element);
+  auto reference_quad = std::make_shared<QuadNew<AcousticNew<QuadP1>>>(options);
 
   // Make things easy by assuming a reference element.
   // NOTE THE ELEMENT IS DISTORTED x -> [-2, 1], y -> [-6, 1]
-  Eigen::Matrix<double,2,4> coord;
-  coord << -2, +1, +1, -2,
-    -6, -6, +1, +1;
+  Eigen::Matrix<double,4,2> coord;
+//  coord << -2, +1, +1, -2,
+//    -6, -6, +1, +1;
+  coord << -2, -6,
+           +1, -6,
+           +1, +1,
+           -2, +1;
   reference_quad->SetVtxCrd(coord);
   reference_quad->attachMaterialProperties(model);
-  reference_quad->setupGradientOperator();
+  reference_quad->setupGradientOperator(options.PolynomialOrder());
 
   return reference_quad;
 
@@ -75,7 +82,8 @@ TEST_CASE("Test whether simple stuff works.", "[element]") {
     Options options;
     options.setOptions();
 
-    std::shared_ptr<Quad> reference_quad = setup_simple_quad(options);
+    std::shared_ptr<QuadNew<AcousticNew<QuadP1>>> reference_quad = setup_simple_quad(options);
+
     // Set up functions (order x**N*y**N-1)
     int ord = options.PolynomialOrder();
     Eigen::VectorXi x_exp = Eigen::VectorXi::LinSpaced(ord+1, 0, ord);
@@ -83,7 +91,9 @@ TEST_CASE("Test whether simple stuff works.", "[element]") {
     y_exp[ord] = x_exp[ord - 1];
 
     Eigen::VectorXd pts_x, pts_y;
-    std::tie(pts_x,pts_y) = reference_quad->buildNodalPoints();
+    std::tie(pts_x,pts_y) = QuadP1::buildNodalPoints(
+        reference_quad->IntCrdR(), reference_quad->IntCrdS(),
+        reference_quad->VtxCrd());
 
     // Set up function values at GLL points.
     double x, y;
@@ -104,6 +114,7 @@ TEST_CASE("Test whether simple stuff works.", "[element]") {
     }
 
     // Test against analytical solution (from sympy), within floating point precision.
+//    std::cout << reference_quad->integrateField(gll_val) << std::endl;
     REQUIRE(reference_quad->integrateField(gll_val) == Approx(exact(order-1)));
   }
 

@@ -5,6 +5,8 @@
 #include <Element/Simplex/Tetrahedra.h>
 #include <Element/Simplex/Tetrahedra/AcousticTet.h>
 
+using namespace Eigen;
+
 template<typename T>
 std::ostream& operator<< (std::ostream& out, const std::vector<T>& v) {
   out << "[";
@@ -52,7 +54,7 @@ TEST_CASE("Test mapping from reference tet to physical coords and back","[elemen
     
   ref_tet->SetVtxCrd(coord);
 
-  VectorXd pts_x,pts_y,pts_z;
+  Eigen::VectorXd pts_x,pts_y,pts_z;
   std::tie(pts_x,pts_y,pts_z) = ref_tet->buildNodalPoints();
 
   VectorXd ref_pts_x(num_pts);
