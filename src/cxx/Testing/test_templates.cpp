@@ -1,6 +1,7 @@
 #include <iostream>
 #include <Physics/AcousticNew.h>
 #include <Element/Element.h>
+#include <Element/ElementAdapter.h>
 #include <Element/HyperCube/QuadNew.h>
 #include <Element/HyperCube/Quad/QuadP1.h>
 #include "catch.h"
@@ -48,7 +49,8 @@ TEST_CASE("test_templates", "[template]") {
   msh->setupGlobalDof(1, 3, 9, 0, 2, model);
 
   std::cout << "Hello world." << std::endl;
-  auto elm = std::make_shared<QuadNew<AcousticNew<QuadP1>>>(options);
+  auto elm = std::make_shared<ElementAdapter<AcousticNew<QuadNew<QuadP1>>>>(options);
+  std::cout << elm->PushElementalFields()[0] << std::endl;
 
   auto receivers = Receiver::factory(options);
   auto sources = Source::factory(options);
@@ -57,11 +59,11 @@ TEST_CASE("test_templates", "[template]") {
   elm->attachVertexCoordinates(msh->DistributedMesh());
   elm->attachReceiver(receivers);
   elm->attachSource(sources);
-
-  Eigen::MatrixXd dummy(1,1);
-  double detJ;
-  Eigen::Matrix2d jInv;
-  std::tie(jInv, detJ) = QuadP1::inverseJacobianAtPoint(0, 0, elm->VtxCrd());
+//
+//  Eigen::MatrixXd dummy(1,1);
+//  double detJ;
+//  Eigen::Matrix2d jInv;
+//  std::tie(jInv, detJ) = QuadP1::inverseJacobianAtPoint(0, 0, elm->VtxCrd());
 //  std::cout << elm->computeStiffnessTerm(dummy);
 
 

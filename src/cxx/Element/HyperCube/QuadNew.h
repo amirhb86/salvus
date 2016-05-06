@@ -11,7 +11,7 @@ extern "C" {
 }
 
 template <typename Derived>
-class QuadNew: public Element, Derived {
+class QuadNew: public Derived {
 
   /** \class QuadNew
    *
@@ -62,7 +62,9 @@ private:
   const static int mNumVtx = 4;
 
   // Instance variables.
+  int mElmNum;
   int mPlyOrd;
+  int mNumIntPnt;
   int mNumDofVtx;
   int mNumDofEdg;
   int mNumDofFac;
@@ -87,6 +89,10 @@ private:
 
   // Matrix holding gradient information.
   Eigen::MatrixXd mGrd;
+
+  // Sources and receivers.
+  std::vector<std::shared_ptr<Source>> mSrc;
+  std::vector<std::shared_ptr<Receiver>> mRec;
 
  public:
 
@@ -113,7 +119,6 @@ private:
 
 
   double integrateField(const Eigen::Ref<const Eigen::VectorXd>& field);
-  std::shared_ptr<Element> clone() const { return std::shared_ptr<Element> (new QuadNew(*this)); }
   void prepareStiffness();
   Eigen::Vector4d getMaterialPropertiesAtVertices(const ExodusModel *model, const std::string parameter_name) const;
   void attachVertexCoordinates(DM &distributed_mesh);
@@ -128,11 +133,11 @@ private:
   Eigen::MatrixXd computeSourceTerm(double time) { return Eigen::MatrixXd(1, 1); };
 
   // Delegates.
-  std::vector<std::string> PullElementalFields() const { return Derived::PullElementalFields(); }
-  std::vector<std::string> PushElementalFields() const { return Derived::PushElementalFields(); }
-  Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement) {
-    return Derived::computeStiffnessTerm(displacement);
-  }
+//  std::vector<std::string> PullElementalFields() const { return Derived::PullElementalFields(); }
+//  std::vector<std::string> PushElementalFields() const { return Derived::PushElementalFields(); }
+//  Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement) {
+//    return Derived::computeStiffnessTerm(displacement);
+//  }
 
   Eigen::MatrixXd interpolateFieldAtPoint(const Eigen::VectorXd &pnt) { return Eigen::MatrixXd(1, 1); }
   void recordField(const Eigen::MatrixXd &u) {};

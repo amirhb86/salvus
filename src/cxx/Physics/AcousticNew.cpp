@@ -19,4 +19,4 @@ MatrixXd AcousticNew<Derived>::computeStiffnessTerm(
     const Eigen::Ref<const Eigen::MatrixXd> &displacement) {
 }
 
-template class AcousticNew<QuadP1>;
+template class AcousticNew<QuadNew<QuadP1>>;

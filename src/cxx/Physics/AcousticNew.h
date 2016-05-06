@@ -10,6 +10,7 @@ class AcousticNew: public Shape {
  public:
 
   // Delegates.
+  AcousticNew(Options options): Shape(options) {};
 
 
 //  std::shared_ptr<Element> clone() const { return std::shared_ptr<Element> (new AcousticNew(*this)); }

@@ -238,6 +238,6 @@ double QuadNew<Derived>::integrateField(const Eigen::Ref<const Eigen::VectorXd> 
 }
 
 // Instantiate combinatorical cases.
-//template class QuadNew<QuadP1>;
-template class QuadNew<AcousticNew<QuadP1>>;
+template class QuadNew<QuadP1>;
+//template class QuadNew<AcousticNew<QuadP1>>;
 

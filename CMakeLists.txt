@@ -81,7 +81,7 @@ set(SALVUS_SOURCES
 
 add_executable(salvus
         ${SALVUS_SOURCES}
-        src/cxx/Main.cpp)
+        src/cxx/Main.cpp src/cxx/Element/ElementAdapter.h)
 
 add_executable(salvus_test
         ${SALVUS_SOURCES}

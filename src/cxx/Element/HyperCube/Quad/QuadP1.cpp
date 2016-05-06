@@ -29,14 +29,14 @@ Eigen::Vector2d QuadP1::inverseCoordinateTransform(const double x,
                                                    const double y,
                                                    const Ref<const Matrix<double,mNumVtx,mNumDim>> &vtx) {
 
-  double v1x = vtx.col(0)[0];
-  double v2x = vtx.col(0)[1];
-  double v3x = vtx.col(0)[2];
-  double v4x = vtx.col(0)[3];
-  double v1z = vtx.col(1)[0];
-  double v2z = vtx.col(1)[1];
-  double v3z = vtx.col(1)[2];
-  double v4z = vtx.col(1)[3];
+  double v1x = vtx(0,0);
+  double v2x = vtx(1,0);
+  double v3x = vtx(2,0);
+  double v4x = vtx(3,0);
+  double v1z = vtx(0,1);
+  double v2z = vtx(1,1);
+  double v3z = vtx(2,1);
+  double v4z = vtx(3,1);
 
   // Using Newton iterations
   // https://en.wikipedia.org/wiki/Newton%27s_method#Nonlinear_systems_of_equations

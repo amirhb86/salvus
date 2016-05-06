@@ -13,6 +13,7 @@ class QuadP1 {
 
  public:
 
+  QuadP1() {};
   static Eigen::Vector4d interpolateAtPoint(const double r, const double s);
   static bool checkHull(const double x, const double y,
                         const Eigen::Ref<const Eigen::Matrix<double,mNumVtx,mNumDim>> &vtx);
