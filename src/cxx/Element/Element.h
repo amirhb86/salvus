@@ -224,6 +224,7 @@ class Element {
   inline Eigen::VectorXi ClsMap() { return mClsMap; }
   inline Eigen::MatrixXd VtxCrd() { return mVtxCrd; }
 
+
   /***************************************************************************
    *                             TESTING
    ***************************************************************************/

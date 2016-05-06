@@ -143,6 +143,7 @@ private:
   void recordField(const Eigen::MatrixXd &u) {};
 
   // Setters.
+  inline void SetNumNew(const PetscInt num) { mElmNum = num; }
   inline void SetVtxCrd(const Eigen::Ref<const Eigen::Matrix<double,4,2>> &v) { mVtxCrd = v; }
 
   // Getters.

@@ -55,18 +55,14 @@ TEST_CASE("test_templates", "[template]") {
   auto receivers = Receiver::factory(options);
   auto sources = Source::factory(options);
 
-  elm->SetNum(0);
+  elm->SetNumNew(0);
+  std::cout << elm->IntCrdR() << std::endl;
   elm->attachVertexCoordinates(msh->DistributedMesh());
   elm->attachReceiver(receivers);
   elm->attachSource(sources);
-//
-//  Eigen::MatrixXd dummy(1,1);
-//  double detJ;
-//  Eigen::Matrix2d jInv;
-//  std::tie(jInv, detJ) = QuadP1::inverseJacobianAtPoint(0, 0, elm->VtxCrd());
-//  std::cout << elm->computeStiffnessTerm(dummy);
 
-
-
+  Eigen::MatrixXd dummy(1,1);
+  double detJ;
+  Eigen::Matrix2d jInv;
 
 }
