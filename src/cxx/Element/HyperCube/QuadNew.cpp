@@ -58,16 +58,26 @@ void QuadNew<Derived>::attachVertexCoordinates(DM &distributed_mesh) {
 }
 
 template <typename Derived>
-Eigen::Vector4d QuadNew<Derived>::getMaterialPropertiesAtVertices(const ExodusModel *model,
-                                                                  const std::string parameter_name)
-                                                                  const {
+void QuadNew<Derived>::attachMaterialPropertiesNew(ExodusModel *model, std::string parameter) {
   Vector4d material_at_vertices;
   for (int i = 0; i < mNumVtx; i++) {
     material_at_vertices(i) = model->getElementalMaterialParameterAtVertex(
-        mElmCtr, parameter_name, i);
+        mElmCtr, parameter, i);
   }
-  return material_at_vertices;
+  mPar[parameter] = material_at_vertices;
 }
+
+//template <typename Derived>
+//Eigen::Vector4d QuadNew<Derived>::getMaterialPropertiesAtVertices(const ExodusModel *model,
+//                                                                  const std::string parameter_name)
+//                                                                  const {
+//  Vector4d material_at_vertices;
+//  for (int i = 0; i < mNumVtx; i++) {
+//    material_at_vertices(i) = model->getElementalMaterialParameterAtVertex(
+//        mElmCtr, parameter_name, i);
+//  }
+//  return material_at_vertices;
+//}
 
 template <typename Derived>
 void QuadNew<Derived>::attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers) {
@@ -235,6 +245,24 @@ double QuadNew<Derived>::integrateField(const Eigen::Ref<const Eigen::VectorXd> 
   }
 
   return val;
+}
+
+template <typename Derived>
+void QuadNew<Derived>::setBoundaryConditionsNew(Mesh *mesh) {
+  mBndElm = false;
+  for (auto &keys: mesh ->BoundaryElementFaces()) {
+    auto boundary_name = keys.first;
+    auto element_in_boundary = keys.second;
+    if (element_in_boundary.find(mElmNum) != element_in_boundary.end()) {
+      mBndElm = true;
+      mBnd[boundary_name] = element_in_boundary[mElmNum];
+    }
+  }
+}
+
+template <typename Derived>
+double QuadNew<Derived>::ParAtPnt(const double r, const double s, const std::string &par) {
+  return Derived::interpolateAtPoint(r, s).dot(mPar[par]);
 }
 
 // Instantiate combinatorical cases.

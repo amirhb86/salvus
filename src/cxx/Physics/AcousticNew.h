@@ -7,17 +7,26 @@
 template <typename Shape>
 class AcousticNew: public Shape {
 
+ private:
+
+  Eigen::VectorXd mStiff;
+  Eigen::VectorXd mDetJac;
+  Eigen::VectorXd mVelGrd;
+  Eigen::MatrixXd mStress;
+  Eigen::MatrixXd mStrain;
+
  public:
 
   // Delegates.
-  AcousticNew(Options options): Shape(options) {};
+  AcousticNew<Shape>(Options options);
 
-
-//  std::shared_ptr<Element> clone() const { return std::shared_ptr<Element> (new AcousticNew(*this)); }
+  void attachMaterialPropertiesNew(ExodusModel *model);
   std::vector<std::string> PullElementalFields() const;
   std::vector<std::string> PushElementalFields() const;
 
-  Eigen::MatrixXd computeStiffnessTerm(const Eigen::Ref<const Eigen::MatrixXd>& displacement);
+  void setupEigenfunctionTest(Mesh *mesh, Options options);
+  void assembleElementMassMatrix(Mesh *mesh);
+  Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement);
 
 };
 

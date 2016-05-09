@@ -235,4 +235,17 @@ class Element {
                            const Eigen::MatrixXd &displacement,
                            double time);
 
+  /***************************************************************************
+   *                             MIGRATE
+   ***************************************************************************/
+
+  virtual inline int NumDimNew() const {};
+  virtual void SetNumNew(const int num) {};
+  virtual void attachMaterialPropertiesNew(ExodusModel *model) {};
+  virtual void setBoundaryConditionsNew(Mesh *msh) {};
+  virtual inline int NumDofVolNew() const { return mNumDofVol; }
+  virtual inline int NumDofFacNew() const { return mNumDofFac; }
+  virtual inline int NumDofEdgNew() const { return mNumDofEdg; }
+  virtual inline int NumDofVtxNew() const { return mNumDofVtx; }
+
 };

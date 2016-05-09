@@ -30,7 +30,7 @@ TEST_CASE("test_templates", "[template]") {
       "--exodus_file_name", "../../salvus_data/unit_test_meshes/homogeneous_iso_cartesian_2D_50s.e",
       "--exodus_model_file_name", "../../salvus_data/unit_test_meshes/homogeneous_iso_cartesian_2D_50s.e",
       "--mesh_type", "newmark",
-      "--element_shape", "quad",
+      "--element_shape", "quad_new",
       "--physics_system", "acoustic",
       "--polynomial_order", "4", NULL};
 
@@ -47,22 +47,31 @@ TEST_CASE("test_templates", "[template]") {
   Mesh *msh = Mesh::factory(options);
   msh->read(options);
   msh->setupGlobalDof(1, 3, 9, 0, 2, model);
+  msh->setupBoundaries(options);
 
-  std::cout << "Hello world." << std::endl;
-  auto elm = std::make_shared<ElementAdapter<AcousticNew<QuadNew<QuadP1>>>>(options);
+  for (auto field: msh->GlobalFields()) {
+    msh->registerFieldVectors(field);
+  }
+
+  auto elm = Element::factory(options);
   std::cout << elm->PushElementalFields()[0] << std::endl;
 
   auto receivers = Receiver::factory(options);
   auto sources = Source::factory(options);
 
   elm->SetNumNew(0);
-  std::cout << elm->IntCrdR() << std::endl;
   elm->attachVertexCoordinates(msh->DistributedMesh());
   elm->attachReceiver(receivers);
   elm->attachSource(sources);
+  elm->attachMaterialPropertiesNew(model);
+  elm->setBoundaryConditionsNew(msh);
+  elm->assembleElementMassMatrix(msh);
 
-  Eigen::MatrixXd dummy(1,1);
-  double detJ;
-  Eigen::Matrix2d jInv;
+  msh->checkInFieldBegin("m");
+  msh->checkInFieldEnd("m");
+
+  Eigen::MatrixXd test(25, 1);
+  test.setZero();
+  elm->computeStiffnessTerm(test);
 
 }

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Eigen/Dense>
-#include <Element/Element.h>
+#include <Element/ElementNew.h>
 
 // Derived.
 #include <Physics/AcousticNew.h>
@@ -61,8 +61,12 @@ private:
   const static int mNumDim = 2;
   const static int mNumVtx = 4;
 
+  // On Boundary.
+  bool mBndElm;
+  std::map<std::string,std::vector<int>> mBnd;
+
   // Instance variables.
-  int mElmNum;
+  PetscInt mElmNum;
   int mPlyOrd;
   int mNumIntPnt;
   int mNumDofVtx;
@@ -90,6 +94,9 @@ private:
   // Matrix holding gradient information.
   Eigen::MatrixXd mGrd;
 
+  // Material parameters.
+  std::map<std::string,Eigen::Vector4d> mPar;
+
   // Sources and receivers.
   std::vector<std::shared_ptr<Source>> mSrc;
   std::vector<std::shared_ptr<Receiver>> mRec;
@@ -104,13 +111,13 @@ private:
   static Eigen::MatrixXd setupGradientOperator(const int order);
 
   // Helper functions.
-  static Eigen::MatrixXd rVectorStride(const Eigen::Ref<const Eigen::VectorXd>& f,
+  static Eigen::VectorXd rVectorStride(const Eigen::Ref<const Eigen::VectorXd>& f,
                                        const int s_ind, const int numPtsS,
                                        const int numPtsR) {
     return Eigen::Map<const Eigen::VectorXd> (
         f.data() + s_ind * numPtsS, numPtsR);
   };
-  static Eigen::MatrixXd sVectorStride(const Eigen::Ref<const Eigen::VectorXd>& f,
+  static Eigen::VectorXd sVectorStride(const Eigen::Ref<const Eigen::VectorXd>& f,
                                        const int r_ind, const int numPtsS,
                                        const int numPtsR) {
     return Eigen::Map<const Eigen::VectorXd, 0, Eigen::InnerStride<>> (
@@ -118,26 +125,24 @@ private:
   };
 
 
+  void setBoundaryConditionsNew(Mesh *mesh);
   double integrateField(const Eigen::Ref<const Eigen::VectorXd>& field);
   void prepareStiffness();
-  Eigen::Vector4d getMaterialPropertiesAtVertices(const ExodusModel *model, const std::string parameter_name) const;
   void attachVertexCoordinates(DM &distributed_mesh);
   void attachSource(std::vector<std::shared_ptr<Source>> sources);
   void attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers);
 
   // Setup.
-  void attachMaterialProperties(ExodusModel *model) {}; // TODO: Delete.
+  void attachMaterialProperties(ExodusModel *model) {};
+  void attachMaterialPropertiesNew(ExodusModel *model, std::string parameter);
   void assembleElementMassMatrix(Mesh *mesh) {};
+  void setupTest(Mesh *mesh, Options options);
+
+  double ParAtPnt(const double r, const double s, const std::string &par);
 
   // Time loop.
   Eigen::MatrixXd computeSourceTerm(double time) { return Eigen::MatrixXd(1, 1); };
 
-  // Delegates.
-//  std::vector<std::string> PullElementalFields() const { return Derived::PullElementalFields(); }
-//  std::vector<std::string> PushElementalFields() const { return Derived::PushElementalFields(); }
-//  Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement) {
-//    return Derived::computeStiffnessTerm(displacement);
-//  }
 
   Eigen::MatrixXd interpolateFieldAtPoint(const Eigen::VectorXd &pnt) { return Eigen::MatrixXd(1, 1); }
   void recordField(const Eigen::MatrixXd &u) {};
@@ -147,10 +152,33 @@ private:
   inline void SetVtxCrd(const Eigen::Ref<const Eigen::Matrix<double,4,2>> &v) { mVtxCrd = v; }
 
   // Getters.
-  inline int NumIntpnt() { return mNumIntPnt; }
+  inline PetscInt ElmNum() { return mElmNum; }
+  inline int NumDimNew() const { return mNumDim; }
+  inline int NumIntPnt() { return mNumIntPnt; }
+  inline int NumIntPtsR() { return mNumIntPtsR; }
+  inline int NumIntPtsS() { return mNumIntPtsS; }
+
+  inline int NumDofVolNew() const { return mNumDofVol; }
+  inline int NumDofFacNew() const { return mNumDofFac; }
+  inline int NumDofEdgNew() const { return mNumDofEdg; }
+  inline int NumDofVtxNew() const { return mNumDofVtx; }
+
+  inline double IntWgtR(const int ind) { return mIntWgtR[ind]; }
+  inline double IntWgtS(const int ind) { return mIntWgtS[ind]; }
+  inline double IntCrdR(const int ind) { return mIntCrdR[ind]; }
+  inline double IntCrdS(const int ind) { return mIntCrdS[ind]; }
+  inline Eigen::VectorXd VecIntWgtR() { return mIntWgtR; }
+  inline Eigen::VectorXd VecIntWgtS() { return mIntWgtS; }
+
+  inline Eigen::MatrixXi ClosureMap() { return mClsMap; }
   inline Eigen::Matrix<double,mNumVtx,mNumDim> VtxCrd() { return mVtxCrd; }
-  inline Eigen::VectorXd IntCrdR() { return mIntCrdR; }
-  inline Eigen::VectorXd IntCrdS() { return mIntCrdS; }
+  inline Eigen::VectorXd GrdRow(const int ind) { return mGrd.row(ind); }
+  inline Eigen::VectorXd GrdCol(const int ind) { return mGrd.col(ind); }
+
+  // Delegates.
+  std::tuple<Eigen::VectorXd, Eigen::VectorXd> buildNodalPoints() {
+    return Derived::buildNodalPoints(mIntCrdR, mIntCrdS, mVtxCrd);
+  };
 
 };
 

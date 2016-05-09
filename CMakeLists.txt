@@ -81,7 +81,7 @@ set(SALVUS_SOURCES
 
 add_executable(salvus
         ${SALVUS_SOURCES}
-        src/cxx/Main.cpp src/cxx/Element/ElementAdapter.h)
+        src/cxx/Main.cpp)
 
 add_executable(salvus_test
         ${SALVUS_SOURCES}
@@ -91,7 +91,9 @@ add_executable(salvus_test
         src/cxx/Testing/test_exactsolution.cpp
         src/cxx/Testing/test_source.cpp
         src/cxx/Testing/test_receiver.cpp
-        src/cxx/Testing/test_multi_field.cpp src/cxx/Testing/test_templates.cpp src/cxx/Testing/test_strides.cpp)
+        src/cxx/Testing/test_multi_field.cpp
+        src/cxx/Testing/test_templates.cpp
+        src/cxx/Testing/test_strides.cpp)
 
 # run `make` (or `make -j5`) to build `salvus` executable
 target_link_libraries(salvus ${MPI_LIBRARIES} petsc exodus netcdf hdf5)
