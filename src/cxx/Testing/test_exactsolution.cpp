@@ -45,7 +45,7 @@ std::vector<std::shared_ptr<ElementNew>> initialize_exact(Mesh *mesh,
     element->attachVertexCoordinates(mesh->DistributedMesh());
 
     // Add material parameters (velocity, Cij, etc...).
-    element->attachMaterialProperties(model);
+    element->attachMaterialPropertiesNew(model);
 
     // Set boundary conditions.
     element->setBoundaryConditions(mesh);
@@ -73,7 +73,7 @@ std::vector<std::shared_ptr<ElementNew>> initialize_exact(Mesh *mesh,
 
 }
 
-double solve_vs_exact(Options options, Mesh *mesh, std::vector<std::shared_ptr<Element>> &elements) {
+double solve_vs_exact(Options options, Mesh *mesh, std::vector<std::shared_ptr<ElementNew>> &elements) {
   PetscFunctionBegin;
   // Setup values.
   int it = 0;
@@ -153,7 +153,7 @@ double solve_vs_exact(Options options, Mesh *mesh, std::vector<std::shared_ptr<E
       // we can now apply boundary conditions (after fields are set)
       if (element->BndElm()) {
         // apply boundary condition
-        element->applyBoundaryConditions(mesh,
+        element->applyDirichletBoundaries(mesh,
                                          options,
                                          "a");
       }
@@ -266,9 +266,9 @@ TEST_CASE("Testing acoustic exact solutions for quadrilaterals", "[exact/quads]"
       "--IC-center-x", "0.0",
       "--IC-center-z", "0.0",
       "--IC-square-side-L", "2",
-      "--saveMovie","false",
+      "--saveMovie","true",
       "--saveFrameEvery","1",
-      "--output_movie_file_name","/scratch/salvus/output_files/movie.h5",
+      "--output_movie_file_name","./test.h5",
       NULL};
   char **argv = const_cast<char **> (arg);
   int argc = sizeof(arg) / sizeof(const char *) - 1;
@@ -291,9 +291,9 @@ TEST_CASE("Testing acoustic exact solutions for quadrilaterals", "[exact/quads]"
 
 
   std::vector<std::shared_ptr<ElementNew>> elements = initialize_exact(mesh, model, reference_element, options);
-//  double error = solve_vs_exact(options, mesh, elements);
+  double error = solve_vs_exact(options, mesh, elements);
   // allow 10% increase previously found in error, or fail.
-//  REQUIRE(error < (1.1*0.000180304));
+  REQUIRE(error < (1.1*0.000180304));
 
 }
 

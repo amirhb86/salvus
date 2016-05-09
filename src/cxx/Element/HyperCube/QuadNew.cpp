@@ -265,6 +265,23 @@ double QuadNew<Derived>::ParAtPnt(const double r, const double s, const std::str
   return Derived::interpolateAtPoint(r, s).dot(mPar[par]);
 }
 
+template <typename Derived>
+void QuadNew<Derived>::applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname) {
+
+  if (! mBndElm) return;
+
+  double value = 0;
+  auto dirchlet_boundary_names = options.DirichletBoundaries();
+  for (auto &bndry: dirchlet_boundary_names) {
+    auto faceids = mBnd[bndry];
+    for (auto &faceid: faceids) {
+      auto field = mesh->getFieldOnFace(fieldname, faceid);
+      field = 0 * field.array() + value;
+      mesh->setFieldFromFace(fieldname, faceid, field);
+    }
+  }
+}
+
 // Instantiate combinatorical cases.
 template class QuadNew<QuadP1>;
 

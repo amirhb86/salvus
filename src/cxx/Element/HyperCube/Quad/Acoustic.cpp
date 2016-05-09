@@ -165,9 +165,7 @@ Eigen::MatrixXd AcousticQuad::computeSourceTerm(double time) {
 }
 
 void AcousticQuad::computeSurfaceTerm() {
-
     std::cout << mElmNum << std::endl;
-
 }
 
 void AcousticQuad::assembleElementMassMatrix(Mesh *mesh) {
@@ -190,7 +188,6 @@ void AcousticQuad::assembleElementMassMatrix(Mesh *mesh) {
 }
 
 double AcousticQuad::checkTest(Mesh* mesh, Options options, const Eigen::MatrixXd &displacement, double time) {
-
     auto u_current = displacement.col(0);
     // exact solution
     Eigen::VectorXd pts_x,pts_z;
@@ -199,9 +196,7 @@ double AcousticQuad::checkTest(Mesh* mesh, Options options, const Eigen::MatrixX
                                   options.IC_SquareSide_L(),
                                   options.IC_Center_x(),options.IC_Center_z(),
                                   time);
-
-    auto element_error = (un_exact - u_current).array().abs().maxCoeff();
-
+    double element_error = (un_exact - u_current).array().abs().maxCoeff();
     return element_error;
 }
 

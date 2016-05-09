@@ -131,6 +131,7 @@ private:
   void attachVertexCoordinates(DM &distributed_mesh);
   void attachSource(std::vector<std::shared_ptr<Source>> sources);
   void attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers);
+  void applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname);
 
   // Setup.
   void attachMaterialProperties(ExodusModel *model) {};
@@ -152,9 +153,9 @@ private:
   inline void SetVtxCrd(const Eigen::Ref<const Eigen::Matrix<double,4,2>> &v) { mVtxCrd = v; }
 
   // Getters.
-  inline PetscInt ElmNum() { return mElmNum; }
+  inline PetscInt ElmNum() const { return mElmNum; }
   inline int NumDimNew() const { return mNumDim; }
-  inline int NumIntPnt() { return mNumIntPnt; }
+  inline int NumIntPnt() const { return mNumIntPnt; }
   inline int NumIntPtsR() { return mNumIntPtsR; }
   inline int NumIntPtsS() { return mNumIntPtsS; }
 
@@ -170,7 +171,8 @@ private:
   inline Eigen::VectorXd VecIntWgtR() { return mIntWgtR; }
   inline Eigen::VectorXd VecIntWgtS() { return mIntWgtS; }
 
-  inline Eigen::MatrixXi ClosureMap() { return mClsMap; }
+  inline bool BndElm() const { return mBndElm; }
+  inline Eigen::MatrixXi ClosureMap() const { return mClsMap; }
   inline Eigen::Matrix<double,mNumVtx,mNumDim> VtxCrd() { return mVtxCrd; }
   inline Eigen::VectorXd GrdRow(const int ind) { return mGrd.row(ind); }
   inline Eigen::VectorXd GrdCol(const int ind) { return mGrd.col(ind); }

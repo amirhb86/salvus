@@ -25,6 +25,8 @@ class AcousticNew: public Shape {
   std::vector<std::string> PushElementalFields() const;
 
   void setupEigenfunctionTest(Mesh *mesh, Options options);
+  double checkEigenfunctionTest(Mesh *mesh, Options options,
+                                const Eigen::Ref<const Eigen::MatrixXd>& u, double time);
   void assembleElementMassMatrix(Mesh *mesh);
   Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &displacement);
 
