@@ -58,7 +58,7 @@ void QuadNew<Derived>::attachVertexCoordinates(DM &distributed_mesh) {
 }
 
 template <typename Derived>
-void QuadNew<Derived>::attachMaterialPropertiesNew(ExodusModel *model, std::string parameter) {
+void QuadNew<Derived>::attachMaterialPropertiesNew(const ExodusModel *model, std::string parameter) {
   Vector4d material_at_vertices;
   for (int i = 0; i < mNumVtx; i++) {
     material_at_vertices(i) = model->getElementalMaterialParameterAtVertex(

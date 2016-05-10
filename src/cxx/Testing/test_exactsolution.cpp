@@ -266,7 +266,7 @@ TEST_CASE("Testing acoustic exact solutions for quadrilaterals", "[exact/quads]"
       "--IC-center-x", "0.0",
       "--IC-center-z", "0.0",
       "--IC-square-side-L", "2",
-      "--saveMovie","true",
+      "--saveMovie","false",
       "--saveFrameEvery","1",
       "--output_movie_file_name","./test.h5",
       NULL};
@@ -286,8 +286,7 @@ TEST_CASE("Testing acoustic exact solutions for quadrilaterals", "[exact/quads]"
   model->initializeParallel();
 
   // Setup reference element.
-//  std::shared_ptr<Element> reference_element = Element::factory(options);
-  std::shared_ptr<ElementNew> reference_element = std::make_shared<ElementAdapter<AcousticNew<QuadNew<QuadP1>>>>(options);
+  std::shared_ptr<ElementNew> reference_element = std::make_shared<AcousticQuadP1>(options);
 
 
   std::vector<std::shared_ptr<ElementNew>> elements = initialize_exact(mesh, model, reference_element, options);

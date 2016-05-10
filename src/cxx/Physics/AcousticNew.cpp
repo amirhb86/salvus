@@ -20,7 +20,7 @@ AcousticNew<Derived>::AcousticNew(Options options): Derived(options) {
 }
 
 template <typename Derived>
-void AcousticNew<Derived>::attachMaterialPropertiesNew(ExodusModel *model) {
+void AcousticNew<Derived>::attachMaterialPropertiesNew(const ExodusModel *model) {
   Derived::attachMaterialPropertiesNew(model, "VP");
 }
 
@@ -169,7 +169,6 @@ double AcousticNew<Element>::checkEigenfunctionTest(Mesh *mesh, Options options,
   VectorXd exact = un_t * un_xy;
   double element_error = (exact - u).array().abs().maxCoeff();
   if (!Element::ElmNum()) {
-//    std::cout << "EXACT:\n" << exact << "\nU:\n" << u << std::endl;
   }
 
   return element_error;

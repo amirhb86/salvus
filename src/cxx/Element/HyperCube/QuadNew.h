@@ -135,7 +135,7 @@ private:
 
   // Setup.
   void attachMaterialProperties(ExodusModel *model) {};
-  void attachMaterialPropertiesNew(ExodusModel *model, std::string parameter);
+  void attachMaterialPropertiesNew(const ExodusModel *model, std::string parameter);
   void assembleElementMassMatrix(Mesh *mesh) {};
   void setupTest(Mesh *mesh, Options options);
 

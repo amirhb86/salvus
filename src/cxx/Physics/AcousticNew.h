@@ -20,7 +20,7 @@ class AcousticNew: public Shape {
   // Delegates.
   AcousticNew<Shape>(Options options);
 
-  void attachMaterialPropertiesNew(ExodusModel *model);
+  void attachMaterialPropertiesNew(const ExodusModel *model);
   std::vector<std::string> PullElementalFields() const;
   std::vector<std::string> PushElementalFields() const;
 
