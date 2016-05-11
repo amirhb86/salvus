@@ -74,6 +74,8 @@ set(SALVUS_SOURCES
         src/cxx/Physics/AcousticNew.cpp
         src/cxx/Utilities/kdtree.c
         src/cxx/Utilities/PETScExtensions.c
+        src/cxx/Element/ElementNew.cpp
+        src/cxx/Physics/ElasticNew.cpp
         ${QuadAutoGen}
         ${TriAutoGen}
         ${TetAutoGen}

@@ -45,7 +45,7 @@ std::vector<std::shared_ptr<ElementNew>> initialize_exact(Mesh *mesh,
     element->attachVertexCoordinates(mesh->DistributedMesh());
 
     // Add material parameters (velocity, Cij, etc...).
-    element->attachMaterialPropertiesNew(model);
+    element->attachMaterialProperties(model);
 
     // Set boundary conditions.
     element->setBoundaryConditions(mesh);
@@ -286,7 +286,7 @@ TEST_CASE("Testing acoustic exact solutions for quadrilaterals", "[exact/quads]"
   model->initializeParallel();
 
   // Setup reference element.
-  std::shared_ptr<ElementNew> reference_element = std::make_shared<AcousticQuadP1>(options);
+  std::shared_ptr<ElementNew> reference_element = ElementNew::Factory(options);
 
 
   std::vector<std::shared_ptr<ElementNew>> elements = initialize_exact(mesh, model, reference_element, options);

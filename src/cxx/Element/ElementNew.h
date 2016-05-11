@@ -37,7 +37,7 @@ class ElementNew {
   /** Cleans up any heap-allocated memoroy. */
   virtual ~ElementNew() {};
   /** Returns a concrete elment type based on command line options */
-  static std::shared_ptr<ElementNew> Factory(Options options) {};
+  static std::shared_ptr<ElementNew> Factory(Options options);
   ///@}
 
   /** @name Element setup.
@@ -52,7 +52,7 @@ class ElementNew {
   /** Attach material parameters to the element given some model.
    * @param [in] model Model instance.
    */
-  virtual void attachMaterialPropertiesNew(const ExodusModel *model) = 0;
+  virtual void attachMaterialProperties(const ExodusModel *model) = 0;
   /** Attach receivers to the element (if required).
    * @param [in/out] receivers Vector of all receivers in the model. Receiver reference coordinates are attached.
    */

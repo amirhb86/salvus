@@ -8,11 +8,11 @@ class Options;
 class ExodusModel;
 
 template <typename Shape>
-class AcousticNew: public Shape {
+class ElasticNew: public Shape {
   /**
-   * \class AcousticNew
+   * \class ElasticNew
    *
-   * \brief Class in charge of handling wave propagation in acoustic regions.
+   * \brief Class in charge of handling wave propagation in elastic regions.
    *
    * This element expects to be templated on "Shape", which refers to a concrete element type.
    * Some examples might be "TensorQuad", or "Generic". Functionality from these derived classes
@@ -22,15 +22,15 @@ class AcousticNew: public Shape {
  private:
 
   /**** Workspace vectors (allocated in the constructor). ****/
-  Eigen::VectorXd mVpSquared;
-  Eigen::VectorXd mStiff;
+  Eigen::VectorXd mc11, mc12, mc13, mc22, mc23, mc33;
+  Eigen::MatrixXd mStiff;
   Eigen::MatrixXd mStress;
   Eigen::MatrixXd mStrain;
 
  public:
 
   /**** Initializers ****/
-  AcousticNew<Shape>(Options options);
+  ElasticNew<Shape>(Options options);
   std::vector<std::string> PullElementalFields() const;
   std::vector<std::string> PushElementalFields() const;
 

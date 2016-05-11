@@ -59,12 +59,12 @@ TEST_CASE("test_templates", "[template]") {
   auto receivers = Receiver::factory(options);
   auto sources = Source::factory(options);
 
-  elm->SetNumNew(0);
+  elm->SetNum(0);
   elm->attachVertexCoordinates(msh->DistributedMesh());
   elm->attachReceiver(receivers);
   elm->attachSource(sources);
-  elm->attachMaterialPropertiesNew(model);
-  elm->setBoundaryConditionsNew(msh);
+  elm->attachMaterialProperties(model);
+  elm->setBoundaryConditions(msh);
   elm->assembleElementMassMatrix(msh);
 
   msh->checkInFieldBegin("m");

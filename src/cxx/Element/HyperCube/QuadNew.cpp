@@ -23,89 +23,11 @@ QuadNew<Derived>::QuadNew(Options options) {
   mNumIntPtsR = mIntWgtR.size();
   mNumIntPnt = mNumIntPtsS * mNumIntPtsR;
 
-}
+  mDetJac.setZero(mNumIntPnt);
+  mParWork.setZero(mNumIntPnt);
+  mStiffWork.setZero(mNumIntPnt);
+  mGradWork.setZero(mNumIntPnt, mNumDim);
 
-template <typename Derived>
-void QuadNew<Derived>::prepareStiffness() {
-  std::cout << "Prepare Stiffness." << std::endl;
-}
-
-template <typename Derived>
-void QuadNew<Derived>::attachVertexCoordinates(DM &distributed_mesh) {
-
-  Vec coordinates_local;
-  PetscInt coordinate_buffer_size;
-  PetscSection coordinate_section;
-  PetscReal *coordinates_buffer = NULL;
-
-  DMGetCoordinatesLocal(distributed_mesh, &coordinates_local);
-  DMGetCoordinateSection(distributed_mesh, &coordinate_section);
-  DMPlexVecGetClosure(distributed_mesh, coordinate_section, coordinates_local, mElmNum,
-                      &coordinate_buffer_size, &coordinates_buffer);
-  std::vector<PetscReal> coordinates_element(coordinates_buffer, coordinates_buffer + coordinate_buffer_size);
-  DMPlexVecRestoreClosure(distributed_mesh, coordinate_section, coordinates_local, mElmNum,
-                          &coordinate_buffer_size, &coordinates_buffer);
-
-  for (int i = 0; i < mNumVtx; i++) {
-    mVtxCrd(i,0) = coordinates_element[mNumDim * i + 0];
-    mVtxCrd(i,1) = coordinates_element[mNumDim * i + 1];
-  }
-
-  // Save element center
-  mElmCtr << mVtxCrd.col(0).mean(),
-             mVtxCrd.col(1).mean();
-
-}
-
-template <typename Derived>
-void QuadNew<Derived>::attachMaterialPropertiesNew(const ExodusModel *model, std::string parameter) {
-  Vector4d material_at_vertices;
-  for (int i = 0; i < mNumVtx; i++) {
-    material_at_vertices(i) = model->getElementalMaterialParameterAtVertex(
-        mElmCtr, parameter, i);
-  }
-  mPar[parameter] = material_at_vertices;
-}
-
-//template <typename Derived>
-//Eigen::Vector4d QuadNew<Derived>::getMaterialPropertiesAtVertices(const ExodusModel *model,
-//                                                                  const std::string parameter_name)
-//                                                                  const {
-//  Vector4d material_at_vertices;
-//  for (int i = 0; i < mNumVtx; i++) {
-//    material_at_vertices(i) = model->getElementalMaterialParameterAtVertex(
-//        mElmCtr, parameter_name, i);
-//  }
-//  return material_at_vertices;
-//}
-
-template <typename Derived>
-void QuadNew<Derived>::attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers) {
-
-  for (auto &rec: receivers) {
-    double x1 = rec->PysLocX1();
-    double x2 = rec->PysLocX2();
-    if (Derived::checkHull(x1, x2, mVtxCrd)) {
-      Vector2d ref_loc = Derived::inverseCoordinateTransform(x1, x2, mVtxCrd);
-      rec->SetRefLocR(ref_loc(0));
-      rec->SetRefLocS(ref_loc(1));
-      mRec.push_back(rec);
-    }
-  }
-}
-
-template <typename Derived>
-void QuadNew<Derived>::attachSource(std::vector<std::shared_ptr<Source>> sources) {
-  for (auto &source: sources) {
-    double x1 = source->PhysicalLocationX();
-    double x2 = source->PhysicalLocationZ();
-    if (Derived::checkHull(x1, x2, mVtxCrd)) {
-      Vector2d ref_loc = Derived::inverseCoordinateTransform(x1, x2, mVtxCrd);
-      source->setReferenceLocationEps(ref_loc(0));
-      source->setReferenceLocationEta(ref_loc(1));
-      mSrc.push_back(source);
-    }
-  }
 }
 
 template <typename Derived>
@@ -189,6 +111,85 @@ VectorXi QuadNew<Derived>::ClosureMappingForOrder(const int order) {
   return closure_mapping;
 }
 
+template <typename ConcreteShape>
+VectorXd QuadNew<ConcreteShape>::rVectorStride(const Ref<const VectorXd>& f, const int s_ind,
+                                               const int numPtsS, const int numPtsR) {
+  return Map<const VectorXd> (f.data() + s_ind * numPtsS, numPtsR);
+}
+
+template <typename ConcreteShape>
+VectorXd QuadNew<ConcreteShape>::sVectorStride(const Ref<const VectorXd>& f, const int r_ind,
+                                               const int numPtsS, const int numPtsR) {
+  return Map<const VectorXd, 0, InnerStride<>> (f.data() + r_ind, numPtsS, InnerStride<>(numPtsR));
+}
+
+
+template <typename Derived>
+void QuadNew<Derived>::attachVertexCoordinates(DM &distributed_mesh) {
+
+  Vec coordinates_local;
+  PetscInt coordinate_buffer_size;
+  PetscSection coordinate_section;
+  PetscReal *coordinates_buffer = NULL;
+
+  DMGetCoordinatesLocal(distributed_mesh, &coordinates_local);
+  DMGetCoordinateSection(distributed_mesh, &coordinate_section);
+  DMPlexVecGetClosure(distributed_mesh, coordinate_section, coordinates_local, mElmNum,
+                      &coordinate_buffer_size, &coordinates_buffer);
+  std::vector<PetscReal> coordinates_element(coordinates_buffer, coordinates_buffer + coordinate_buffer_size);
+  DMPlexVecRestoreClosure(distributed_mesh, coordinate_section, coordinates_local, mElmNum,
+                          &coordinate_buffer_size, &coordinates_buffer);
+
+  for (int i = 0; i < mNumVtx; i++) {
+    mVtxCrd(i,0) = coordinates_element[mNumDim * i + 0];
+    mVtxCrd(i,1) = coordinates_element[mNumDim * i + 1];
+  }
+
+  // Save element center
+  mElmCtr << mVtxCrd.col(0).mean(),
+             mVtxCrd.col(1).mean();
+
+}
+
+template <typename Derived>
+void QuadNew<Derived>::attachMaterialProperties(const ExodusModel *model, std::string parameter) {
+  Vector4d material_at_vertices;
+  for (int i = 0; i < mNumVtx; i++) {
+    material_at_vertices(i) = model->getElementalMaterialParameterAtVertex(
+        mElmCtr, parameter, i);
+  }
+  mPar[parameter] = material_at_vertices;
+}
+
+template <typename Derived>
+void QuadNew<Derived>::attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers) {
+
+  for (auto &rec: receivers) {
+    double x1 = rec->PysLocX1();
+    double x2 = rec->PysLocX2();
+    if (Derived::checkHull(x1, x2, mVtxCrd)) {
+      Vector2d ref_loc = Derived::inverseCoordinateTransform(x1, x2, mVtxCrd);
+      rec->SetRefLocR(ref_loc(0));
+      rec->SetRefLocS(ref_loc(1));
+      mRec.push_back(rec);
+    }
+  }
+}
+
+template <typename Derived>
+void QuadNew<Derived>::attachSource(std::vector<std::shared_ptr<Source>> sources) {
+  for (auto &source: sources) {
+    double x1 = source->PhysicalLocationX();
+    double x2 = source->PhysicalLocationZ();
+    if (Derived::checkHull(x1, x2, mVtxCrd)) {
+      Vector2d ref_loc = Derived::inverseCoordinateTransform(x1, x2, mVtxCrd);
+      source->setReferenceLocationEps(ref_loc(0));
+      source->setReferenceLocationEta(ref_loc(1));
+      mSrc.push_back(source);
+    }
+  }
+}
+
 template <typename Derived>
 MatrixXd QuadNew<Derived>::setupGradientOperator(const int order) {
 
@@ -226,6 +227,127 @@ MatrixXd QuadNew<Derived>::setupGradientOperator(const int order) {
   return grad;
 }
 
+template <typename ConcreteShape>
+MatrixXd QuadNew<ConcreteShape>::computeGradient(const Ref<const MatrixXd> &field) {
+
+  Matrix2d invJac;
+  Vector2d refGrad;
+
+  // Loop over all GLL points.
+  for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
+    for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
+
+      // gll index.
+      int index = r_ind + s_ind * mNumIntPtsR;
+
+      // (r,s) coordinates for this point.
+      double r = mIntCrdR(r_ind);
+      double s = mIntCrdS(s_ind);
+
+      // Optimized gradient for tensorized GLL basis.
+      std::tie(invJac, mDetJac(index)) = ConcreteShape::inverseJacobianAtPoint(r, s, mVtxCrd);
+      mGradWork.row(index) = invJac * (refGrad <<
+        mGrd.row(r_ind).dot(rVectorStride(field, s_ind, mNumIntPtsS, mNumIntPtsR)),
+        mGrd.row(s_ind).dot(sVectorStride(field, r_ind, mNumIntPtsS, mNumIntPtsR))).finished();
+
+    }
+  }
+
+  return mGradWork;
+
+}
+
+template <typename ConcreteShape>
+VectorXd QuadNew<ConcreteShape>::ParAtIntPts(const std::string &par) {
+
+  for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
+    for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
+
+      double r = mIntCrdR(r_ind);
+      double s = mIntCrdS(s_ind);
+      mParWork(r_ind + s_ind*mNumIntPtsR) = ConcreteShape::interpolateAtPoint(r,s).dot(mPar[par]);
+
+    }
+  }
+
+  return mParWork;
+}
+
+template <typename ConcreteShape>
+VectorXd QuadNew<ConcreteShape>::applyTestAndIntegrate(const Ref<const VectorXd> &f) {
+
+  int i = 0;
+  double detJac;
+  Matrix2d invJac;
+  VectorXd result(mNumIntPnt);
+  for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
+    for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
+
+      // gll index.
+      int index = r_ind + s_ind * mNumIntPtsR;
+
+      // (r,s) coordinate at this point.
+      double r = mIntCrdR(r_ind);
+      double s = mIntCrdS(s_ind);
+
+      std::tie(invJac,detJac) = ConcreteShape::inverseJacobianAtPoint(r,s,mVtxCrd);
+      result(index) = f(index) * detJac * mIntWgtR(r_ind) * mIntWgtS(s_ind);
+
+    }
+  }
+
+  return result;
+
+}
+
+template <typename ConcreteShape>
+VectorXd QuadNew<ConcreteShape>::applyGradTestAndIntegrate(const Ref<const MatrixXd> &f) {
+
+  Matrix2d invJac;
+  for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
+    for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
+
+      double r = mIntCrdR(r_ind);
+      double s = mIntCrdS(s_ind);
+
+      double _;
+      std::tie(invJac, _) = ConcreteShape::inverseJacobianAtPoint(r,s,mVtxCrd);
+
+      double dphi_r_dfx = mIntWgtS(s_ind) *
+          mIntWgtR.dot(((rVectorStride(mDetJac, s_ind, mNumIntPtsS, mNumIntPtsR)).array() *
+          rVectorStride(f.col(0), s_ind, mNumIntPtsS, mNumIntPtsR).array() *
+          mGrd.col(r_ind).array()).matrix());
+
+      double dphi_s_dfx = mIntWgtR(r_ind) *
+          mIntWgtS.dot(((sVectorStride(mDetJac, r_ind, mNumIntPtsS, mNumIntPtsR)).array() *
+          sVectorStride(f.col(0), r_ind, mNumIntPtsS, mNumIntPtsR).array() *
+          mGrd.col(s_ind).array()).matrix());
+
+      double dphi_r_dfy = mIntWgtS(s_ind) *
+          mIntWgtR.dot(((rVectorStride(mDetJac, s_ind, mNumIntPtsS, mNumIntPtsR)).array() *
+          rVectorStride(f.col(1), s_ind, mNumIntPtsS, mNumIntPtsR).array() *
+          mGrd.col(r_ind).array()).matrix());
+
+      double dphi_s_dfy = mIntWgtR(r_ind) *
+          mIntWgtS.dot(((sVectorStride(mDetJac, r_ind, mNumIntPtsS, mNumIntPtsR)).array() *
+          sVectorStride(f.col(1), r_ind, mNumIntPtsS, mNumIntPtsR).array() *
+          mGrd.col(s_ind).array()).matrix());
+
+      Vector2d dphi_epseta_dfx, dphi_epseta_dfy;
+      dphi_epseta_dfx << dphi_r_dfx, dphi_s_dfx;
+      dphi_epseta_dfy << dphi_r_dfy, dphi_s_dfy;
+
+      mStiffWork(r_ind + s_ind * mNumIntPtsR) =
+        invJac.row(0).dot(dphi_epseta_dfx) +
+        invJac.row(1).dot(dphi_epseta_dfy);
+
+    }
+  }
+
+  return mStiffWork;
+
+}
+
 template <typename Derived>
 double QuadNew<Derived>::integrateField(const Eigen::Ref<const Eigen::VectorXd> &field) {
 
@@ -248,7 +370,7 @@ double QuadNew<Derived>::integrateField(const Eigen::Ref<const Eigen::VectorXd> 
 }
 
 template <typename Derived>
-void QuadNew<Derived>::setBoundaryConditionsNew(Mesh *mesh) {
+void QuadNew<Derived>::setBoundaryConditions(Mesh *mesh) {
   mBndElm = false;
   for (auto &keys: mesh ->BoundaryElementFaces()) {
     auto boundary_name = keys.first;
@@ -258,11 +380,6 @@ void QuadNew<Derived>::setBoundaryConditionsNew(Mesh *mesh) {
       mBnd[boundary_name] = element_in_boundary[mElmNum];
     }
   }
-}
-
-template <typename Derived>
-double QuadNew<Derived>::ParAtPnt(const double r, const double s, const std::string &par) {
-  return Derived::interpolateAtPoint(r, s).dot(mPar[par]);
 }
 
 template <typename Derived>

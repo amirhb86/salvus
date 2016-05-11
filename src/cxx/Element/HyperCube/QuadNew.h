@@ -46,13 +46,8 @@ class QuadNew: public Derived {
    * Pretty insane, right? But, it would allow us to do some neat things (like fixed-size arrays for all quadrature
    * orders). So, I dunno man.
    *
-   * You can see how the polymorphism is handled by looking at the 'Override' functions below. Basically, at the bottom
-   * of all element class hierarchies is a purely static class handling coordinate transforms. This class stores no
-   * information itself, it really just provides efficient routines for calculating the Jacobian, interpolation
-   * routines, etc. This is nice because it can be composed with anything, but also has the advantage of being purely
-   * standalone (i.e. you don't need to initialize it). This makes things like testing very easy. It also means that
-   * you need to pass down instance variables (such as the vertex coordinates) when you call these functions from
-   * within a class.
+   * Unless otherwise mentioned, all instances of `field` in function signatures refer to some function defiend
+   * at the GLL points.
    */
 
 private:
@@ -60,6 +55,12 @@ private:
   // Static variables.
   const static int mNumDim = 2;
   const static int mNumVtx = 4;
+
+  // Workspace.
+  Eigen::VectorXd mDetJac;
+  Eigen::VectorXd mParWork;
+  Eigen::VectorXd mStiffWork;
+  Eigen::MatrixXd mGradWork;
 
   // On Boundary.
   bool mBndElm;
@@ -103,79 +104,131 @@ private:
 
  public:
 
+  /** Allocates memory for work arrays, most private variables. */
   QuadNew<Derived>(Options options);
 
+  /** Sets up the test function parameters. */
   static Eigen::VectorXd GllPointsForOrder(const int order);
   static Eigen::VectorXi ClosureMappingForOrder(const int order);
   static Eigen::VectorXd GllIntegrationWeightsForOrder(const int order);
   static Eigen::MatrixXd setupGradientOperator(const int order);
 
-  // Helper functions.
+  /**
+   * Returns an optimized stride along the r direction.
+   * @param [in] f Function defined at GLL points.
+   * @param [in] s_ind Index of GLL points along s-axis.
+   * @param [in] numPtsS Number of integration points along the s-axis.
+   * @param [in] numPtsR Number of integration points along the r-axis.
+   */
   static Eigen::VectorXd rVectorStride(const Eigen::Ref<const Eigen::VectorXd>& f,
                                        const int s_ind, const int numPtsS,
-                                       const int numPtsR) {
-    return Eigen::Map<const Eigen::VectorXd> (
-        f.data() + s_ind * numPtsS, numPtsR);
-  };
+                                       const int numPtsR);
+  /**
+   * Returns an optimized stride along the s direction.
+   * @param [in] f Function defined at GLL points.
+   * @param [in] s_ind Index of GLL points along s-axis.
+   * @param [in] numPtsS Number of integration points along the s-axis.
+   * @param [in] numPtsR Number of integration points along the r-axis.
+   *
+   */
   static Eigen::VectorXd sVectorStride(const Eigen::Ref<const Eigen::VectorXd>& f,
                                        const int r_ind, const int numPtsS,
-                                       const int numPtsR) {
-    return Eigen::Map<const Eigen::VectorXd, 0, Eigen::InnerStride<>> (
-        f.data() + r_ind, numPtsS, Eigen::InnerStride<>(numPtsR));
-  };
+                                       const int numPtsR);
 
+  /**
+   * Compute the gradient of a field at all GLL points.
+   * @param [in] field Field to take the gradient of.
+   */
+  Eigen::MatrixXd computeGradient(const Eigen::Ref<const Eigen::MatrixXd>& field);
 
-  void setBoundaryConditionsNew(Mesh *mesh);
+  /**
+   * Interpolate a parameter from vertex to GLL point.
+   * @param [in] par Parameter to interpolate (i.e. VP, VS).
+   */
+  Eigen::VectorXd ParAtIntPts(const std::string& par);
+
+  /**
+   * Multiply a field by the test functions and integrate.
+   * @param [in] f Field to calculate on.
+   */
+  Eigen::VectorXd applyTestAndIntegrate(const Eigen::Ref<const Eigen::VectorXd>& f);
+
+  /**
+   * Multiply a field by the gradient of the test functions and integrate.
+   * @param [in] f Field to calculate on.
+   */
+  Eigen::VectorXd applyGradTestAndIntegrate(const Eigen::Ref<const Eigen::MatrixXd>& f);
+
+  /**
+   * Figure out and set boundaries.
+   * @param [in] mesh The mesh instance.
+   */
+  void setBoundaryConditions(Mesh *mesh);
+
+  /**
+   * Integrate a field over the element, returning a scalar.
+   * @param [in] field The field to integrate.
+   */
   double integrateField(const Eigen::Ref<const Eigen::VectorXd>& field);
-  void prepareStiffness();
+
+  /**
+   * Attach the (4) vertex coordinates to the element.
+   * @param [in] distributed_mesh The PETSc DM.
+   */
   void attachVertexCoordinates(DM &distributed_mesh);
+
+  /**
+   * Attach some abstract source instance to the element.
+   * Test to see whether or not the source exists in the current element. If it does,
+   * save a pointer to the source.
+   * @param [in] sources A vector of source objects.
+   */
   void attachSource(std::vector<std::shared_ptr<Source>> sources);
+
+  /**
+   * Attach some abstract receiver instance to the element.
+   * Test to see whether or not the receiver exists in the current element. If it does,
+   * save a pointer to the receiver.
+   * @param [in] sources A vector of receiver objects.
+   */
   void attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers);
+
+  /**
+   * If an element is detected to be on a boundary, apply the Dirichlet condition to the
+   * dofs on that boundary.
+   * @param [in] mesh The mesh instance.
+   * @param [in] options The options class.
+   * @param [in] fieldname The field to which the boundary must be applied.
+   */
   void applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname);
 
-  // Setup.
-  void attachMaterialProperties(ExodusModel *model) {};
-  void attachMaterialPropertiesNew(const ExodusModel *model, std::string parameter);
-  void assembleElementMassMatrix(Mesh *mesh) {};
-  void setupTest(Mesh *mesh, Options options);
+  /**
+   * Given a model, save the material parameters at the element vertices.
+   * @param [in] model The model containing the material parameters.
+   * @param [in] parameter The parameter to save.
+   */
+  void attachMaterialProperties(const ExodusModel *model, std::string parameter);
 
-  double ParAtPnt(const double r, const double s, const std::string &par);
-
-  // Time loop.
-  Eigen::MatrixXd computeSourceTerm(double time) { return Eigen::MatrixXd(1, 1); };
-
-
+  /**
+   * Given some field at the GLL points, interpolate the field to some general point.
+   * @param [in] pnt Position in reference coordinates.
+   */
   Eigen::MatrixXd interpolateFieldAtPoint(const Eigen::VectorXd &pnt) { return Eigen::MatrixXd(1, 1); }
-  void recordField(const Eigen::MatrixXd &u) {};
 
   // Setters.
   inline void SetNumNew(const PetscInt num) { mElmNum = num; }
   inline void SetVtxCrd(const Eigen::Ref<const Eigen::Matrix<double,4,2>> &v) { mVtxCrd = v; }
 
   // Getters.
-  inline PetscInt ElmNum() const { return mElmNum; }
-  inline int NumDimNew() const { return mNumDim; }
-  inline int NumIntPnt() const { return mNumIntPnt; }
-  inline int NumIntPtsR() { return mNumIntPtsR; }
-  inline int NumIntPtsS() { return mNumIntPtsS; }
-
-  inline int NumDofVolNew() const { return mNumDofVol; }
-  inline int NumDofFacNew() const { return mNumDofFac; }
-  inline int NumDofEdgNew() const { return mNumDofEdg; }
-  inline int NumDofVtxNew() const { return mNumDofVtx; }
-
-  inline double IntWgtR(const int ind) { return mIntWgtR[ind]; }
-  inline double IntWgtS(const int ind) { return mIntWgtS[ind]; }
-  inline double IntCrdR(const int ind) { return mIntCrdR[ind]; }
-  inline double IntCrdS(const int ind) { return mIntCrdS[ind]; }
-  inline Eigen::VectorXd VecIntWgtR() { return mIntWgtR; }
-  inline Eigen::VectorXd VecIntWgtS() { return mIntWgtS; }
-
   inline bool BndElm() const { return mBndElm; }
-  inline Eigen::MatrixXi ClosureMap() const { return mClsMap; }
-  inline Eigen::Matrix<double,mNumVtx,mNumDim> VtxCrd() { return mVtxCrd; }
-  inline Eigen::VectorXd GrdRow(const int ind) { return mGrd.row(ind); }
-  inline Eigen::VectorXd GrdCol(const int ind) { return mGrd.col(ind); }
+  inline int NumDim() const { return mNumDim; }
+  inline PetscInt ElmNum() const { return mElmNum; }
+  inline int NumIntPnt() const { return mNumIntPnt; }
+  inline int NumDofVol() const { return mNumDofVol; }
+  inline int NumDofFac() const { return mNumDofFac; }
+  inline int NumDofEdg() const { return mNumDofEdg; }
+  inline int NumDofVtx() const { return mNumDofVtx; }
+  inline Eigen::MatrixXi ClsMap() const { return mClsMap; }
 
   // Delegates.
   std::tuple<Eigen::VectorXd, Eigen::VectorXd> buildNodalPoints() {
