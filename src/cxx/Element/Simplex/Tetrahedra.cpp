@@ -5,6 +5,8 @@
 #include <tuple>
 #include "Tetrahedra.h"
 
+using namespace Eigen;
+
 // enables std::cout << vector;
 template<typename T>
 std::ostream& operator<< (std::ostream& out, const std::vector<T>& v) {
@@ -586,9 +588,9 @@ void Tetrahedra::attachSource(std::vector<std::shared_ptr<Source>> sources) {
       Eigen::Vector3d reference_location = inverseCoordinateTransform(source->PhysicalLocationX(),
                                                                       source->PhysicalLocationY(),
                                                                       source->PhysicalLocationZ());
-      source->setReferenceLocationEps(reference_location(0));
-      source->setReferenceLocationYname(reference_location(1));
-      source->setReferenceLocationEta(reference_location(2));
+      source->setReferenceLocationR(reference_location(0));
+      source->setReferenceLocationS(reference_location(1));
+      source->setReferenceLocationT(reference_location(2));
       mSrc.push_back(source);
     }
   }

@@ -41,6 +41,8 @@
 
 #include <Element/Simplex/Triangle.h>
 
+class ElementNew;
+
 class Problem {
 
  public:
@@ -50,7 +52,7 @@ class Problem {
   static Problem *factory(std::string solver_type);
 
   virtual void solve(Options options) = 0;
-  virtual void initialize(Mesh *mesh, ExodusModel *model, std::shared_ptr<Element> elem, Options options) = 0;
+  virtual void initialize(Mesh *mesh, ExodusModel *model, std::shared_ptr<ElementNew> elem, Options options) = 0;
 
 };
 

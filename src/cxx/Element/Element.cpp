@@ -10,6 +10,7 @@
 
 #include <Element/HyperCube/Hexahedra.h>
 #include "Element/HyperCube/Hex/AcousticHex.h"
+#include "ElementAdapter.h"
 
 // Default implementation
 void Element::setupTest(Mesh *mesh, Options options) {
@@ -38,6 +39,11 @@ std::shared_ptr<Element> Element::factory(Options options) {
         throw std::runtime_error("Runtime Error: Element physics " + physics + " not supported");
       }
     }
+    else if (options.ElementShape() == "quad_new") {
+      if (physics == "acoustic") {
+//        return std::make_shared<ElementAdapter<AcousticNew<QuadNew<QuadP1>>>>(options);
+      }
+    }
     else if (options.ElementShape() == "triangle") {
       if (physics == "acoustic") {
         return std::shared_ptr<Element> (new AcousticTri(options));
@@ -63,8 +69,7 @@ std::shared_ptr<Element> Element::factory(Options options) {
       }
     }
     else {
-      // throw std::runtime_error("Runtime Error: Element physics " + physics + " not supported");
-      throw std::runtime_error("Runtime Error: Element type " + options.ElementShape() + " not supported");      
+      throw std::runtime_error("Runtime Error: Element type " + options.ElementShape() + " not supported");
     }
   } catch (std::exception &e) {
     PRINT_ROOT() << e.what();

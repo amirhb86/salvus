@@ -1,4 +1,5 @@
 #include "catch.h"
+#include <Element/ElementNew.h>
 #include <Element/Element.h>
 #include <Problem/Problem.h>
 
@@ -30,7 +31,7 @@ TEST_CASE("test_receiver", "[receiver]") {
       "--exodus_file_name", "../../salvus_data/unit_test_meshes/homogeneous_iso_cartesian_2D_50s.e",
       "--exodus_model_file_name", "../../salvus_data/unit_test_meshes/homogeneous_iso_cartesian_2D_50s.e",
       "--mesh_type", "newmark",
-      "--element_shape", "quad",
+      "--element_shape", "quad_new",
       "--physics_system", "acoustic",
       "--polynomial_order", "4", NULL};
 
@@ -51,7 +52,7 @@ TEST_CASE("test_receiver", "[receiver]") {
     ExodusModel *model = new ExodusModel(options);
     model->initializeParallel();
 
-    std::shared_ptr<Element> reference_element = Element::factory(options);
+    std::shared_ptr<ElementNew> reference_element = ElementNew::Factory(options);
 
     Problem *problem = Problem::factory(options.ProblemType());
     problem->initialize(mesh, model, reference_element, options);

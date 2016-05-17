@@ -204,6 +204,7 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
                                     int num_dof_fac, int num_dof_vol,
                                     int num_dim, ExodusModel *model) {
 
+  std::cout << "DIM:" << num_dim << std::endl;
   assert(num_dim == mNumberDimensions);
 
   // Generic error code.
@@ -544,6 +545,7 @@ void Mesh::checkInFieldEnd(const std::string &name) {
   // Begin MPI broadcast local -> global.
   DMLocalToGlobalEnd(mDistributedMesh, mFields[name].loc, ADD_VALUES, mFields[name].glb);
 
+
 }
 
 void Mesh::zeroFields(const std::string &name) {
@@ -563,6 +565,7 @@ void Mesh::saveFrame(std::string name, PetscInt timestep) {
 
   DMSetOutputSequenceNumber(mDistributedMesh, timestep, timestep);
   VecView(mFields[name].glb, mViewer);
+  double max; VecMax(mFields[name].glb, NULL, &max);
 }
 
 void Mesh::finalizeMovie() {
@@ -602,7 +605,7 @@ int Mesh::numFieldPerPhysics(std::string physics) {
     if (physics == "fluid") { return 1; }
     else if (physics == "2delastic") { return 2; }
     else {
-      throw std::runtime_error("Physics type " + physics + " is not known.");
+      throw std::runtime_error("Derived type " + physics + " is not known.");
     }
   } catch (std::exception &e) {
     PRINT_ROOT() << e.what();

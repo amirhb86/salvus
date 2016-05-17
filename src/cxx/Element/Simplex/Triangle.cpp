@@ -200,8 +200,8 @@ void Triangle::attachSource(std::vector<std::shared_ptr<Source>> sources) {
         if (mCheckHull(source->PhysicalLocationX(), source->PhysicalLocationZ())) {
             Eigen::Vector2d reference_location = inverseCoordinateTransform(source->PhysicalLocationX(),
                                                                             source->PhysicalLocationZ());
-            source->setReferenceLocationEps(reference_location(0));
-            source->setReferenceLocationEta(reference_location(1));
+            source->setReferenceLocationR(reference_location(0));
+            source->setReferenceLocationS(reference_location(1));
             mSrc.push_back(source);
         }
     }

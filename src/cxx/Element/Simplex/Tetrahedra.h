@@ -123,11 +123,11 @@ class Tetrahedra: public Element {
   void BuildClosureMapping(DM &distributed_mesh);
   
   static Eigen::Vector4d interpolateAtPoint(double r, double s, double t);
-  Eigen::MatrixXd interpolateFieldAtPoint(const VectorXd &pnt) {
+  Eigen::MatrixXd interpolateFieldAtPoint(const Eigen::VectorXd &pnt) {
     return Eigen::Matrix<double, -1, -1, 0, -1, -1>();
   }
 
-  void recordField(const MatrixXd &u) {};
+  void recordField(const Eigen::MatrixXd &u) {};
 
   // currently not possible
   // /**
@@ -247,9 +247,9 @@ class Tetrahedra: public Element {
 
   // for testing
   inline int __GetNumIntPts() { return mIntegrationWeights.size(); }
-  inline VectorXd __GetIntCoordR() { return mIntegrationCoordinates_r; }
-  inline VectorXd __GetIntCoordS() { return mIntegrationCoordinates_s; }
-  inline VectorXd __GetIntCoordT() { return mIntegrationCoordinates_t; }
+  inline Eigen::VectorXd __GetIntCoordR() { return mIntegrationCoordinates_r; }
+  inline Eigen::VectorXd __GetIntCoordS() { return mIntegrationCoordinates_s; }
+  inline Eigen::VectorXd __GetIntCoordT() { return mIntegrationCoordinates_t; }
 
   
 };

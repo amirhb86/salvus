@@ -1,8 +1,9 @@
 #include "NewmarkTesting.h"
+#include <Element/ElementNew.h>
 
 void NewmarkTesting::initialize(Mesh *mesh,
                                 ExodusModel *model,
-                                std::shared_ptr<Element> elem,
+                                std::shared_ptr<ElementNew> elem,
                                 Options options) {
 
     // Save references to mesh and element base.
@@ -154,9 +155,9 @@ void NewmarkTesting::solve(Options options) {
             // we can now apply boundary conditions (after fields are set)
             if(element->BndElm()) {
                 // apply boundary condition
-                element->applyBoundaryConditions(mMesh,
-                                                 options,
-                                                 "a");
+                element->applyDirichletBoundaries(mMesh,
+                                                  options,
+                                                  "a");
             }
         }
 

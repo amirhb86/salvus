@@ -35,6 +35,7 @@ void ExodusModel::initializeParallel() {
   // Broadcast all vectors.
   mNodalX = utilities::broadcastStdVecFromRoot(mNodalX);
   mNodalY = utilities::broadcastStdVecFromRoot(mNodalY);
+  mVerticesPerElementPerBlock = utilities::broadcastStdVecFromRoot(mVerticesPerElementPerBlock);
   mElementConnectivity = utilities::broadcastStdVecFromRoot(mElementConnectivity);
   mElementalVariables = utilities::broadcastStdVecFromRoot(mElementalVariables);
   mElementalVariableNames = utilities::broadcastStringVecFromRank(mElementalVariableNames, 0);
@@ -46,6 +47,7 @@ void ExodusModel::initializeParallel() {
   // Create KdTree on each processor.
 //    createNodalKdTree();
   createElementalKdTree();
+
 
 }
 
@@ -147,7 +149,7 @@ void ExodusModel::createElementalKdTree() {
   mElementalKdTreeData.resize(mNumberElements);
 
     // TODO: Multiple blocks?
-    int num_vertex_per_elem = mVerticesPerElementPerBlock[0]; // first block
+  int num_vertex_per_elem = mVerticesPerElementPerBlock[0]; // first block
 
   if (mNumberDimension == 2) {
     mElementalKdTree = kd_create(2);
@@ -250,7 +252,8 @@ void ExodusModel::readConnectivity() {
 }
 
 double ExodusModel::getElementalMaterialParameterAtVertex(const Eigen::VectorXd &elem_center,
-                                                          const std::string &parameter_name, const int vertex_num) {
+                                                          const std::string &parameter_name,
+                                                          const int vertex_num) const {
   assert(elem_center.size() == mNumberDimension);
 
   // Get elemental spatial index.
@@ -288,6 +291,8 @@ std::string ExodusModel::getElementType(const Eigen::VectorXd &elem_center) {
   }
 
   if(parameter_index == -1) {
+    std::cout << "FLUID DEFAULT!!!!!!!" << std::endl;
+    return "fluid";
     throw std::runtime_error("ERROR: `fluid` field not found in mesh!");
   }
   

@@ -3,6 +3,7 @@
 #include <mpi.h>
 #include <petscsys.h>
 #include <memory>
+#include <Element/ElementNew.h>
 
 #include "Mesh/Mesh.h"
 #include "Problem/Problem.h"
@@ -21,15 +22,19 @@ int main(int argc, char *argv[]) {
   Mesh *mesh = Mesh::factory(options);
   mesh->read(options);
 
+//  std::cout << "HERE" << std::endl;
+//  MPI_Abort(PETSC_COMM_WORLD, -1);
+//  exit(0);
   // Get model.
   ExodusModel *model = new ExodusModel(options);
   model->initializeParallel();
+
 
   // Get sources.
   std::vector<std::shared_ptr<Source>> sources = Source::factory(options);
 
   // Setup reference element.
-  std::shared_ptr<Element> reference_element = Element::factory(options);
+  std::shared_ptr<ElementNew> reference_element = ElementNew::Factory(options);
 
   // Use above elements to define the problem.
   Problem *problem = Problem::factory(options.ProblemType());
