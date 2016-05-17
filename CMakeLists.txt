@@ -91,7 +91,6 @@ add_executable(salvus_test
         src/cxx/Testing/test_hexahedra.cpp
         src/cxx/Testing/test_tetrahedra.cpp
         src/cxx/Testing/test_exactsolution.cpp
-        src/cxx/Testing/test_source.cpp
         src/cxx/Testing/test_receiver.cpp
         src/cxx/Testing/test_multi_field.cpp
         src/cxx/Testing/test_strides.cpp

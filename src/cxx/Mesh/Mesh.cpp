@@ -21,7 +21,6 @@ extern "C" {
 Mesh *Mesh::factory(Options options) {
 
     std::string mesh_type(options.MeshType());
-  std::cout << "MESHL:" << mesh_type << std::endl;
     try {
         if (mesh_type == "newmark") {
             auto sc_nm_mesh = new ScalarNewmark2D();

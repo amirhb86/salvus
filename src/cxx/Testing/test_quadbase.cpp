@@ -71,7 +71,7 @@ TEST_CASE("test quadbase", "[quad]") {
 
     }
 
-    SECTION("Interpolation is correct.") {
+    SECTION("Source interpolation is correct.") {
 
       Eigen::VectorXd regression_source(25);
       regression_source <<
