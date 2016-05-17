@@ -124,8 +124,8 @@ VectorXd QuadNew<ConcreteShape>::sVectorStride(const Ref<const VectorXd>& f, con
 }
 
 
-template <typename Derived>
-void QuadNew<Derived>::attachVertexCoordinates(DM &distributed_mesh) {
+template <typename ConcreteShape>
+void QuadNew<ConcreteShape>::attachVertexCoordinates(DM &distributed_mesh) {
 
   Vec coordinates_local;
   PetscInt coordinate_buffer_size;
@@ -151,8 +151,8 @@ void QuadNew<Derived>::attachVertexCoordinates(DM &distributed_mesh) {
 
 }
 
-template <typename Derived>
-void QuadNew<Derived>::attachMaterialProperties(const ExodusModel *model, std::string parameter) {
+template <typename ConcreteShape>
+void QuadNew<ConcreteShape>::attachMaterialProperties(const ExodusModel *model, std::string parameter) {
   Vector4d material_at_vertices;
   for (int i = 0; i < mNumVtx; i++) {
     material_at_vertices(i) = model->getElementalMaterialParameterAtVertex(
@@ -161,14 +161,14 @@ void QuadNew<Derived>::attachMaterialProperties(const ExodusModel *model, std::s
   mPar[parameter] = material_at_vertices;
 }
 
-template <typename Derived>
-void QuadNew<Derived>::attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers) {
+template <typename ConcreteShape>
+void QuadNew<ConcreteShape>::attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers) {
 
   for (auto &rec: receivers) {
     double x1 = rec->PysLocX1();
     double x2 = rec->PysLocX2();
-    if (Derived::checkHull(x1, x2, mVtxCrd)) {
-      Vector2d ref_loc = Derived::inverseCoordinateTransform(x1, x2, mVtxCrd);
+    if (ConcreteShape::checkHull(x1, x2, mVtxCrd)) {
+      Vector2d ref_loc = ConcreteShape::inverseCoordinateTransform(x1, x2, mVtxCrd);
       rec->SetRefLocR(ref_loc(0));
       rec->SetRefLocS(ref_loc(1));
       mRec.push_back(rec);
@@ -176,13 +176,13 @@ void QuadNew<Derived>::attachReceiver(std::vector<std::shared_ptr<Receiver>> &re
   }
 }
 
-template <typename Derived>
-void QuadNew<Derived>::attachSource(std::vector<std::shared_ptr<Source>> sources) {
+template <typename ConcreteShape>
+void QuadNew<ConcreteShape>::attachSource(std::vector<std::shared_ptr<Source>> sources) {
   for (auto &source: sources) {
     double x1 = source->PhysicalLocationX();
     double x2 = source->PhysicalLocationZ();
-    if (Derived::checkHull(x1, x2, mVtxCrd)) {
-      Vector2d ref_loc = Derived::inverseCoordinateTransform(x1, x2, mVtxCrd);
+    if (ConcreteShape::checkHull(x1, x2, mVtxCrd)) {
+      Vector2d ref_loc = ConcreteShape::inverseCoordinateTransform(x1, x2, mVtxCrd);
       source->setReferenceLocationR(ref_loc(0));
       source->setReferenceLocationS(ref_loc(1));
       mSrc.push_back(source);
@@ -212,8 +212,8 @@ VectorXd QuadNew<ConcreteShape>::getDeltaFunctionCoefficients(const double r, co
   return mParWork;
 }
 
-template <typename Derived>
-VectorXd QuadNew<Derived>::interpolateLagrangePolynomials(const double r, const double s,
+template <typename ConcreteShape>
+VectorXd QuadNew<ConcreteShape>::interpolateLagrangePolynomials(const double r, const double s,
                                                           const int order) {
 
   assert(order > 0 && order < 11);

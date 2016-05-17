@@ -10,8 +10,8 @@ extern "C" {
 #include <Quad/Autogen/quad_autogen.h>
 }
 
-template <typename Derived>
-class QuadNew: public Derived {
+template <typename ConcreteShape>
+class QuadNew: public ConcreteShape {
 
   /** \class QuadNew
    *
@@ -105,12 +105,12 @@ private:
  public:
 
   /** Allocates memory for work arrays, most private variables. */
-  QuadNew<Derived>(Options options);
+  QuadNew<ConcreteShape>(Options options);
 
   /** Sets up the test function parameters. */
-  static Eigen::VectorXd GllPointsForOrder(const int order);
-  static Eigen::VectorXi ClosureMappingForOrder(const int order);
-  static Eigen::VectorXd GllIntegrationWeightsForOrder(const int order);
+  static Eigen::VectorXd GllPointsForOrder(const int order);    // GOOD
+  static Eigen::VectorXd GllIntegrationWeightsForOrder(const int order); // GOOD.
+  static Eigen::VectorXi ClosureMappingForOrder(const int order); // GOOD
   static Eigen::MatrixXd setupGradientOperator(const int order);
   static Eigen::VectorXd interpolateLagrangePolynomials(const double r, const double s, const int order);
 
@@ -239,7 +239,7 @@ private:
 
   // Delegates.
   std::tuple<Eigen::VectorXd, Eigen::VectorXd> buildNodalPoints() {
-    return Derived::buildNodalPoints(mIntCrdR, mIntCrdS, mVtxCrd);
+    return ConcreteShape::buildNodalPoints(mIntCrdR, mIntCrdS, mVtxCrd);
   };
 
 };

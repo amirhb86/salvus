@@ -76,6 +76,7 @@ set(SALVUS_SOURCES
         src/cxx/Utilities/PETScExtensions.c
         src/cxx/Element/ElementNew.cpp
         src/cxx/Physics/ElasticNew.cpp
+        src/cxx/Element/HyperCube/HexahedraNew.cpp
         ${QuadAutoGen}
         ${TriAutoGen}
         ${TetAutoGen}
