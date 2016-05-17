@@ -8,9 +8,9 @@ class Source {
   double mPhysicalLocationY;
   double mPhysicalLocationZ;
 
-  double mReferenceLocationEps;
-  double mReferenceLocationYname;
-  double mReferenceLocationEta;
+  double mReferenceLocationR;
+  double mReferenceLocationS;
+  double mReferenceLocationT;
 
  public:
 
@@ -34,25 +34,25 @@ class Source {
   /**
    * Set the source epsilon coordinate on the reference element.
    */
-  inline void setReferenceLocationEps(double location_eps) { mReferenceLocationEps = location_eps; }
+  inline void setReferenceLocationR(double location_r) { mReferenceLocationR = location_r; }
 
   /**
    * Set the source MAYBE WE SHOULD CHANGE COORDINATE NAMES coordinate on the reference element.
    */
-  inline void setReferenceLocationYname(double location_yname) { mReferenceLocationYname = location_yname; }
+  inline void setReferenceLocationS(double location_s) { mReferenceLocationS = location_s; }
 
   /**
    * Set the source eta coordinate on the reference element.
    */
-  inline void setReferenceLocationEta(double location_eta) { mReferenceLocationEta = location_eta; }
+  inline void setReferenceLocationT(double location_t) { mReferenceLocationT = location_t; }
 
   inline double PhysicalLocationX() { return mPhysicalLocationX; }
   inline double PhysicalLocationY() { return mPhysicalLocationY; }
   inline double PhysicalLocationZ() { return mPhysicalLocationZ; }
 
-  inline double ReferenceLocationEps() { return mReferenceLocationEps; }
-  inline double ReferenceLocationYname() { return mReferenceLocationYname; }
-  inline double ReferenceLocationEta() { return mReferenceLocationEta; }
+  inline double ReferenceLocationR() { return mReferenceLocationR; }
+  inline double ReferenceLocationS() { return mReferenceLocationS; }
+  inline double ReferenceLocationT() { return mReferenceLocationT; }
 
   /**
    * Returns a value for the force, given a certain time. This needs to be implemented by each derived class. For

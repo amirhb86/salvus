@@ -134,7 +134,7 @@ Eigen::MatrixXd AcousticQuad::computeSourceTerm(double time) {
         // TODO: May make this more efficient (i.e. allocation every loop)?
         // Evaluate shape functions at source (eps, eta). Save the lagrange coefficients in current_source.
         Eigen::VectorXd current_source = interpolateLagrangePolynomials(
-                source->ReferenceLocationEps(), source->ReferenceLocationEta(), mPlyOrd);
+                source->ReferenceLocationR(), source->ReferenceLocationS(), mPlyOrd);
 
         // Loop over gll points
         for (auto eta_index = 0; eta_index < mNumIntPtsEta; eta_index++) {

@@ -21,6 +21,7 @@ extern "C" {
 Mesh *Mesh::factory(Options options) {
 
     std::string mesh_type(options.MeshType());
+  std::cout << "MESHL:" << mesh_type << std::endl;
     try {
         if (mesh_type == "newmark") {
             auto sc_nm_mesh = new ScalarNewmark2D();
@@ -545,6 +546,7 @@ void Mesh::checkInFieldEnd(const std::string &name) {
   // Begin MPI broadcast local -> global.
   DMLocalToGlobalEnd(mDistributedMesh, mFields[name].loc, ADD_VALUES, mFields[name].glb);
 
+
 }
 
 void Mesh::zeroFields(const std::string &name) {
@@ -564,6 +566,7 @@ void Mesh::saveFrame(std::string name, PetscInt timestep) {
 
   DMSetOutputSequenceNumber(mDistributedMesh, timestep, timestep);
   VecView(mFields[name].glb, mViewer);
+  double max; VecMax(mFields[name].glb, NULL, &max);
 }
 
 void Mesh::finalizeMovie() {

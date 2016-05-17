@@ -183,12 +183,67 @@ void QuadNew<Derived>::attachSource(std::vector<std::shared_ptr<Source>> sources
     double x2 = source->PhysicalLocationZ();
     if (Derived::checkHull(x1, x2, mVtxCrd)) {
       Vector2d ref_loc = Derived::inverseCoordinateTransform(x1, x2, mVtxCrd);
-      source->setReferenceLocationEps(ref_loc(0));
-      source->setReferenceLocationEta(ref_loc(1));
+      source->setReferenceLocationR(ref_loc(0));
+      source->setReferenceLocationS(ref_loc(1));
       mSrc.push_back(source);
     }
   }
 }
+
+template <typename ConcreteShape>
+VectorXd QuadNew<ConcreteShape>::getDeltaFunctionCoefficients(const double r, const double s) {
+
+  Matrix2d _;
+  mParWork = interpolateLagrangePolynomials(r, s, mPlyOrd);
+  for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
+    for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
+
+      double r = mIntCrdR(r_ind);
+      double s = mIntCrdS(s_ind);
+
+      double detJac;
+      std::tie(_, detJac) = ConcreteShape::inverseJacobianAtPoint(r, s, mVtxCrd);
+
+      mParWork(r_ind + s_ind * mNumIntPtsR) /=
+          (mIntWgtR(r_ind) * mIntWgtS(s_ind) * detJac);
+
+    }
+  }
+  return mParWork;
+}
+
+template <typename Derived>
+VectorXd QuadNew<Derived>::interpolateLagrangePolynomials(const double r, const double s,
+                                                          const int order) {
+
+  assert(order > 0 && order < 11);
+
+  int n_points = (order + 1) * (order + 1);
+  VectorXd gll_coeffs(n_points);
+  if (order == 1) {
+    interpolate_order1_square(r, s, gll_coeffs.data());
+  } else if (order == 2) {
+    interpolate_order2_square(r, s, gll_coeffs.data());
+  } else if (order == 3) {
+    interpolate_order3_square(r, s, gll_coeffs.data());
+  } else if (order == 4) {
+    interpolate_order4_square(r, s, gll_coeffs.data());
+  } else if (order == 5) {
+    interpolate_order5_square(r, s, gll_coeffs.data());
+  } else if (order == 6) {
+    interpolate_order6_square(r, s, gll_coeffs.data());
+  } else if (order == 7) {
+    interpolate_order7_square(r, s, gll_coeffs.data());
+  } else if (order == 8) {
+    interpolate_order8_square(r, s, gll_coeffs.data());
+  } else if (order == 9) {
+    interpolate_order9_square(r, s, gll_coeffs.data());
+  } else if (order == 10) {
+    interpolate_order10_square(r, s, gll_coeffs.data());
+  }
+  return gll_coeffs;
+}
+
 
 template <typename Derived>
 MatrixXd QuadNew<Derived>::setupGradientOperator(const int order) {

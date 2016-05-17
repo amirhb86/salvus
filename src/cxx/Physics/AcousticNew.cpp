@@ -12,6 +12,7 @@ AcousticNew<Element>::AcousticNew(Options options): Element(options) {
   // Allocate all work arrays.
   mVpSquared.setZero(Element::NumIntPnt());
   mStiff.setZero(Element::NumIntPnt());
+  mSource.setZero(Element::NumIntPnt());
   mStress.setZero(Element::NumIntPnt(), Element::NumDim());
   mStrain.setZero(Element::NumIntPnt(), Element::NumDim());
 
@@ -40,18 +41,27 @@ void AcousticNew<Element>::assembleElementMassMatrix(Mesh *mesh) {
 }
 
 template <typename Element>
+MatrixXd AcousticNew<Element>::computeStress(const Ref<const MatrixXd> &strain) {
+
+  // Interpolate the (square) of the velocity at each integration point.
+  mVpSquared = Element::ParAtIntPts("VP").array().pow(2);
+
+  // Calculate sigma_ux and sigma_uy.
+  mStress.col(0) = mVpSquared.array().cwiseProduct(strain.col(0).array());
+  mStress.col(1) = mVpSquared.array().cwiseProduct(strain.col(1).array());
+  return mStress;
+
+}
+
+template <typename Element>
 MatrixXd AcousticNew<Element>::computeStiffnessTerm(
     const MatrixXd &u) {
 
   // Calculate gradient from displacement.
   mStrain = Element::computeGradient(u);
 
-  // Interpolate the (square) of velocity to each integration point.
-  mVpSquared = Element::ParAtIntPts("VP").array().pow(2);
-
-  // Calculate sigma_ux and sigma_uy.
-  mStress.col(0) = mVpSquared.array().cwiseProduct(mStrain.col(0).array());
-  mStress.col(1) = mVpSquared.array().cwiseProduct(mStrain.col(1).array());
+  // Stress from strain.
+  mStress = computeStress(mStrain);
 
   // Complete application of K->u.
   mStiff = Element::applyGradTestAndIntegrate(mStress);
@@ -61,7 +71,15 @@ MatrixXd AcousticNew<Element>::computeStiffnessTerm(
 }
 
 template <typename Element>
-MatrixXd AcousticNew<Element>::computeSourceTerm(const double time) { return Eigen::MatrixXd(1,1); }
+MatrixXd AcousticNew<Element>::computeSourceTerm(const double time) {
+  mSource.setZero();
+  for (auto source : Element::Sources()) {
+    mSource += (source->fire(time) * Element::getDeltaFunctionCoefficients(
+        source->ReferenceLocationR(), source->ReferenceLocationS()));
+  }
+  return mSource;
+}
+
 
 template <typename Element>
 void AcousticNew<Element>::setupEigenfunctionTest(Mesh *mesh, Options options) {

@@ -112,6 +112,7 @@ private:
   static Eigen::VectorXi ClosureMappingForOrder(const int order);
   static Eigen::VectorXd GllIntegrationWeightsForOrder(const int order);
   static Eigen::MatrixXd setupGradientOperator(const int order);
+  static Eigen::VectorXd interpolateLagrangePolynomials(const double r, const double s, const int order);
 
   /**
    * Returns an optimized stride along the r direction.
@@ -203,6 +204,11 @@ private:
   void applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname);
 
   /**
+   *
+   */
+  Eigen::VectorXd getDeltaFunctionCoefficients(const double r, const double s);
+
+  /**
    * Given a model, save the material parameters at the element vertices.
    * @param [in] model The model containing the material parameters.
    * @param [in] parameter The parameter to save.
@@ -229,6 +235,7 @@ private:
   inline int NumDofEdg() const { return mNumDofEdg; }
   inline int NumDofVtx() const { return mNumDofVtx; }
   inline Eigen::MatrixXi ClsMap() const { return mClsMap; }
+  std::vector<std::shared_ptr<Source>> Sources() { return mSrc; }
 
   // Delegates.
   std::tuple<Eigen::VectorXd, Eigen::VectorXd> buildNodalPoints() {

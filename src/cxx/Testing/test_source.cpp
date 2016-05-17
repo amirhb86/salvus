@@ -70,8 +70,8 @@ TEST_CASE("point_source_interpolation", "[source]") {
       for (auto source : sources) {
         REQUIRE(source->PhysicalLocationX() == Approx(76000));
         REQUIRE(source->PhysicalLocationZ() == Approx(76000));
-        REQUIRE(source->ReferenceLocationEps() == Approx(0.04));
-        REQUIRE(source->ReferenceLocationEta() == Approx(0.04));
+        REQUIRE(source->ReferenceLocationR() == Approx(0.04));
+        REQUIRE(source->ReferenceLocationS() == Approx(0.04));
       }
     }
 

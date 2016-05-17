@@ -24,6 +24,7 @@ class AcousticNew: public Shape {
   /**** Workspace vectors (allocated in the constructor). ****/
   Eigen::VectorXd mVpSquared;
   Eigen::VectorXd mStiff;
+  Eigen::VectorXd mSource;
   Eigen::MatrixXd mStress;
   Eigen::MatrixXd mStrain;
 
@@ -40,6 +41,7 @@ class AcousticNew: public Shape {
   void attachMaterialPropertiesNew(const ExodusModel *model);
 
   /**** Time loop functions ****/
+  Eigen::MatrixXd computeStress(const Eigen::Ref<const Eigen::MatrixXd>& strain);
   Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &u);
   Eigen::MatrixXd computeSourceTerm(const double time);
   void recordField(const Eigen::MatrixXd &u) {};

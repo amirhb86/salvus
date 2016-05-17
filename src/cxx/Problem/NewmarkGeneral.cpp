@@ -1,16 +1,16 @@
 #include "NewmarkGeneral.h"
+#include <Element/ElementNew.h>
 
 using namespace Eigen;
 
 void NewmarkGeneral::initialize(Mesh *mesh,
                                 ExodusModel *model,
-                                std::shared_ptr<Element> elem,
+                                std::shared_ptr<ElementNew> elem,
                                 Options options) {
 
   // Save references to mesh and element base.
   mMesh = mesh;
   mReferenceElem = elem;
-
   // Attach elements to mesh.
   mMesh->setupGlobalDof(mReferenceElem->NumDofVtx(),
                         mReferenceElem->NumDofEdg(),
@@ -153,7 +153,7 @@ void NewmarkGeneral::solve(Options options) {
 
     it++;
     time += timeStep;
-//    PRINT_ROOT() << "TIME: " << time;
+    PRINT_ROOT() << "TIME: " << time;
   }
 
   if (options.SaveMovie()) mMesh->finalizeMovie();

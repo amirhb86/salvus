@@ -12,15 +12,15 @@ class NewmarkGeneral: public Problem {
 private:
 
     Mesh *mMesh;
-    std::shared_ptr<Element> mReferenceElem;
-    std::vector<std::shared_ptr<Element>> mElements;
+    std::shared_ptr<ElementNew> mReferenceElem;
+    std::vector<std::shared_ptr<ElementNew>> mElements;
     std::vector<std::shared_ptr<Receiver>> mRecs;
 
 public:
 
     ~NewmarkGeneral() {};
     virtual void solve(Options options);
-    virtual void initialize(Mesh *mesh, ExodusModel *model, std::shared_ptr<Element> elem, Options options);
+    virtual void initialize(Mesh *mesh, ExodusModel *model, std::shared_ptr<ElementNew> elem, Options options);
 
 };
 
