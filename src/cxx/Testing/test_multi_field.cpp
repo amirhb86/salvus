@@ -3,10 +3,15 @@
 #include <Utilities/Options.h>
 #include <Mesh/Mesh.h>
 
+extern "C" {
+#include <Utilities/PETScExtensions.h>
+#include <Utilities/kdtree.h>
+}
+
 TEST_CASE("test_multi_field", "[multi_field]") {
 
-//  std::string e_file = "../../salvus_data/unit_test_meshes/fluid_layer_over_elastic_cartesian_2D_50s.e";
-  std::string e_file = "../../salvus_data/unit_test_meshes/simple_quadmesh_2x2.e";
+  std::string e_file = "../../salvus_data/unit_test_meshes/fluid_layer_over_elastic_cartesian_2D_50s.e";
+//  std::string e_file = "../../salvus_data/unit_test_meshes/simple_quadmesh_2x2.e";
 
   // Set up custom command line arguments.
   PetscOptionsClear();
@@ -33,5 +38,16 @@ TEST_CASE("test_multi_field", "[multi_field]") {
   model->initializeParallel();
 
   mesh->setupGlobalDof(1, 3, 9, 0, 2, model);
+
+  PetscScalar *buffer;
+  PetscInt bsize;
+  Vec test_dm;
+  DMCreateLocalVector(mesh->DistributedMesh(), &test_dm);
+//  DMPlexGetClosureWorkArray(mesh->DistributedMesh(), 4, mesh->MeshSection(), &bsize, &buffer);
+
+  PetscInt csize;
+  PetscInt *idx;
+  DMPlexGetClosureIndices(mesh->DistributedMesh(), mesh->MeshSection(), 0, &csize, &idx);
+
 
 }

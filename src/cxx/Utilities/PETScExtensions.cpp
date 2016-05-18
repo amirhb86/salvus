@@ -236,3 +236,4 @@ PetscErrorCode DMPlexGetClosureWorkArray(DM dm,PetscInt npoints,PetscSection sec
   PetscFunctionReturn(0);
 }
 
+
