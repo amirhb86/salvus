@@ -1,4 +1,5 @@
-#pragma once
+#if !defined(__PETSCEXTEN_H)
+#define __PETSCEXTEN_H
 
 #include <petsc.h>
 
@@ -18,6 +19,8 @@ PetscErrorCode DMPlexGetClosureIndices(DM dm, PetscSection section, PetscInt poi
 
 PetscErrorCode DMPlexGetClosureWorkArray(DM dm, PetscInt npoints,PetscSection section,
                                          PetscInt *bsize, PetscScalar **buffer);
+
+#endif
 
 
 

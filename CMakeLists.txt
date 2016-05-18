@@ -73,7 +73,7 @@ set(SALVUS_SOURCES
         src/cxx/Element/HyperCube/Quad/QuadP1.cpp
         src/cxx/Physics/AcousticNew.cpp
         src/cxx/Utilities/kdtree.c
-        src/cxx/Utilities/PETScExtensions.c
+        src/cxx/Utilities/PETScExtensions.cpp
         src/cxx/Element/ElementNew.cpp
         src/cxx/Physics/ElasticNew.cpp
         ${QuadAutoGen}
@@ -96,6 +96,7 @@ add_executable(salvus_test
         src/cxx/Testing/test_strides.cpp
         src/cxx/Testing/test_QuadP1.cpp
         src/cxx/Testing/test_quadbase.cpp)
+
 
 # run `make` (or `make -j5`) to build `salvus` executable
 target_link_libraries(salvus ${MPI_LIBRARIES} petsc exodus netcdf hdf5)

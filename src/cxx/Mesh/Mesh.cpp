@@ -262,6 +262,7 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
   int itr = 0;
   for (int f = 0; f < num_fields; f++) {
     ier = PetscSectionSetFieldComponents(mMeshSection, f, num_comp[f]);
+
     CHKERRQ(ier);
     ier = PetscSectionSetFieldName(mMeshSection, f, all_fields_vec[f].c_str());
     CHKERRQ(ier);
@@ -291,7 +292,6 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
                               &p_max[0]);CHKERRQ(ier);
 
   // dep = 0 -> fac; dep = 1 -> edg; dep = 2 -> vtx.
-//  assert(depth == 2); // Can only handle 2-D elements for now.
   for (int dep = 0; dep <= depth; dep++) {
     int num_dof = 0;
     if (dep == 0)      { num_dof = num_dof_vtx; }
@@ -318,11 +318,12 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
         // has already been set above.
         int num_dof_field_elem = exists ? num_dof : 0;
 
+
         // Actually set the DOFs into the section.
         ier = PetscSectionSetFieldDof(mMeshSection, p, f, num_dof_field_elem);CHKERRQ(ier);
 
         // Set a custom number of dofs for each field.
-        tot += num_dof;
+        tot += num_dof_field_elem;
       }
       // Total number of dofs per points is a sum of all the field dofs.
       ier = PetscSectionSetDof(mMeshSection, p, tot);CHKERRQ(ier);
@@ -339,32 +340,6 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
   // Improves performance of closure calls (for a 1.5x application perf. boost)
   DMPlexCreateClosureIndex(mDistributedMesh, mMeshSection);
 }
-
-// TODO: REMOVE.
-//void Mesh::setupGlobalDof(int number_dof_vertex, int number_dof_edge, int number_dof_face,
-//                          int number_dof_volume, int number_dimensions) {
-
-//  // Ensure that the mesh and the elements are the same dimension.
-//  assert(number_dimensions == mNumberDimensions);
-
-//  // Only define 1 field here because we're taking care of multiple fields manually.
-//  int number_fields = 1;
-//  int number_components = 1;
-//  int number_dof_per_element[mNumberDimensions + 1];
-
-//  // Num of dof on vertex, edge, face, volume.
-//  number_dof_per_element[0] = number_dof_vertex;
-//  number_dof_per_element[1] = number_dof_edge;
-//  number_dof_per_element[2] = number_dof_face;
-//  if (mNumberDimensions == 3) { number_dof_per_element[3] = number_dof_volume; }
-
-//  // Setup the global and local (distributed) degrees of freedom.
-//  DMPlexCreateSection(mDistributedMesh, mNumberDimensions, number_fields, &number_components,
-//                      number_dof_per_element, 0, NULL, NULL, NULL, NULL, &mMeshSection);
-//  DMSetDefaultSection(mDistributedMesh, mMeshSection);
-
-//  DMPlexCreateClosureIndex(mDistributedMesh, mMeshSection);
-//}
 
 void Mesh::registerFieldVectors(const std::string &name) {
 
