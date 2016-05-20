@@ -108,9 +108,9 @@ private:
   QuadNew<ConcreteShape>(Options options);
 
   /** Sets up the test function parameters. */
-  static Eigen::VectorXd GllPointsForOrder(const int order);    // GOOD
-  static Eigen::VectorXd GllIntegrationWeightsForOrder(const int order); // GOOD.
-  static Eigen::VectorXi ClosureMappingForOrder(const int order); // GOOD
+  static Eigen::VectorXd GllPointsForOrder(const int order);
+  static Eigen::VectorXi ClosureMappingForOrder(const int order);
+  static Eigen::VectorXd GllIntegrationWeightsForOrder(const int order);
   static Eigen::MatrixXd setupGradientOperator(const int order);
   static Eigen::VectorXd interpolateLagrangePolynomials(const double r, const double s, const int order);
 
