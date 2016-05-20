@@ -218,7 +218,6 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
                                     int num_dof_fac, int num_dof_vol,
                                     int num_dim, ExodusModel *model) {
 
-  std::cout << "DIM:" << num_dim << std::endl;
   assert(num_dim == mNumberDimensions);
 
   // Generic error code.
