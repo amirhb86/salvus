@@ -121,27 +121,10 @@ void Hexahedra::BuildClosureMapping(DM &distributed_mesh) {
 // }
 
 // given precomputed point set
-std::vector<int> getVertsFromPoint(int point, int numVerts, int numPoints, int* points) {
-  std::vector<int> verts(numVerts);
-  // vertices are the last `numVerts` entries in points
-  for(int i=numPoints-numVerts;i<numPoints;i++) {
-    verts[i-(numPoints-numVerts)] = points[2*i];
-  }
-  return verts;
-}
+std::vector<int> getVertsFromPoint(int point, int numVerts, int numPoints, int* points);
 
 // computes closure every time
-std::vector<int> getVertsFromPoint(int point, int numVerts, DM &distributed_mesh) {
-  int* points = NULL;
-  int numPoints;  
-  DMPlexGetTransitiveClosure(distributed_mesh,point,PETSC_TRUE,&numPoints,&points);
-  std::vector<int> verts(numVerts);
-  // vertices are the last `numVerts` entries in points
-  for(int i=numPoints-numVerts;i<numPoints;i++) {
-    verts[i-(numPoints-numVerts)] = points[2*i];
-  }
-  return verts;
-}
+std::vector<int> getVertsFromPoint(int point, int numVerts, DM &distributed_mesh);
 
 void edgeHandler(std::vector<std::vector<int>> canonical_edges,
                  std::vector<std::vector<int>> edge_verts,
@@ -149,56 +132,7 @@ void edgeHandler(std::vector<std::vector<int>> canonical_edges,
                  std::vector<std::vector<int>> std_layout,
                  int &dof_counter,
                  VectorXi &element_dof_map
-                 ) {
-  // Note: bottom & top have 4 edges, front & back only have 2, right
-  // & left none because edges are shared between faces.
-  int num_edges = canonical_edges.size();
-  // std::cout << "canonical_edge_vertices=[";
-  // for(int i=0;i<num_edges;i++) {
-  //   printf("(%d,%d),",canonical_edges[i][0],canonical_edges[i][1]);
-  // }
-  // std::cout << "\nthis_edge_vertices=[";
-  // for(int i=0;i<num_edges;i++) {
-  //   printf("(%d,%d;o=%d),",edge_verts[i][0],edge_verts[i][1],o[i]);
-  // }
-  // printf("]\n");
-  
-  for(int i=0;i<num_edges;i++) {
-    std::vector<int> oriented_edge_verts(2);
-    auto this_edge_verts = edge_verts[i];    
-    if(o[i] < 0 ) {
-      oriented_edge_verts = {this_edge_verts[0],this_edge_verts[1]};
-    }
-    else {
-      oriented_edge_verts = {this_edge_verts[1],this_edge_verts[0]};      
-    }
-    std::vector<int> reverse_oriented_edge_verts = {oriented_edge_verts[1],oriented_edge_verts[0]};
-    // forward match
-    if(oriented_edge_verts == canonical_edges[i]) {
-      for(int j=0;j<2;j++) {
-        element_dof_map[dof_counter] = std_layout[i][j];
-        dof_counter++;
-      }
-    }
-    // reverse match
-    else if(canonical_edges[i] == reverse_oriented_edge_verts) {
-      element_dof_map[dof_counter] = std_layout[i][1];
-      dof_counter++;
-      element_dof_map[dof_counter] = std_layout[i][0];
-      dof_counter++;
-      // for(int j=0;j<2;j++) {
-      //   element_dof_map[dof_counter] = std_layout[i][(2-1)-j];
-      //   dof_counter++;
-      // }
-    }
-    else {
-      std::cerr << "ERROR: vertices don't match at all, canonical:\n["
-                << canonical_edges[i]
-                << "], oriented_edge:[\n" << oriented_edge_verts << "]\n";
-      exit(1);
-    }
-  }
-}
+                 );
 
 void surfHandler(std::vector<int> canonical_verts, // the vertices as we expect them
                  std::vector<int> surf_verts, // vertices given from actual surface
@@ -206,311 +140,13 @@ void surfHandler(std::vector<int> canonical_verts, // the vertices as we expect 
                  std::vector<int> std_layout, // expected degrees of freedom layout for this surface
                  int &dof_counter, // current dof count
                  VectorXi &element_dof_map // final dof layout (output)
-                 ) {
+                 );
 
-  // std::cout << "canonical_verts=" << canonical_verts << "\n";
-  // std::cout << "surf_verts=" << surf_verts << "\n";
-  // int this_surf_count = 0;
-  std::vector<int> oriented_surf_verts;
-  // std::cout << "o=" << o << "\n";
-  if(o < 0) {
-    oriented_surf_verts = {surf_verts[3],surf_verts[2],surf_verts[1],surf_verts[0]};    
-  }
-  else {
-    oriented_surf_verts = {surf_verts[0],surf_verts[1],surf_verts[2],surf_verts[3]};
-  }  
-  // std::cout << "oriengted_verts=" << oriented_surf_verts << "\n";
-  std::vector<int> map_orig_to_desired(4);
-  for(int i=0;i<4;i++) {   
-    auto it = std::find(canonical_verts.begin(),canonical_verts.end(),oriented_surf_verts[i]);
-    int found_loc = it-canonical_verts.begin();
-    // map_orig_to_desired[found_loc] = i;
-    map_orig_to_desired[i] = found_loc;
-  }
-  // std::cout << "mapping:" << map_orig_to_desired << "\n";
-  for(int i=0;i<4;i++) {
-    element_dof_map[dof_counter] = std_layout[map_orig_to_desired[i]];
-    dof_counter++;
-  }  
-}
-
-VectorXi internalMapping(int element, DM &distributed_mesh) {
-  
-  auto canonical_element_vertices = getVertsFromPoint(element,8,distributed_mesh);
-  // std::cout << "canonical_element_vertices=" << canonical_element_vertices << "\n";
-  VectorXi element_dof_map(64);
-  element_dof_map.setZero();
-  std::vector<std::tuple<int,int>> surfaces(6); //(point_id,orientation)
-  std::vector<std::tuple<int,int>> edges(12); //(point_id,orientation)
-  
-  int* points = NULL;
-  int numPoints;    
-  std::vector<std::vector<int>> std_layout = {
-    {0,1,2,3,4,5,6,7},// internal dofs
-    // --- surfaces ---
-    {8,9,10,11}, // bottom (clockwise from inside)
-    {12,13,14,15}, // top (counter-clockwise from outside)
-    {16,17,18,19}, // front (counter-clockwise from outside)
-    {20,21,22,23}, // back (clockwise from inside)
-    {24,25,26,27}, // right (counter-clockwise from outside)
-    {28,29,30,31}, // left (clockwise from inside)
-    // --- edges --- (split into edge components)
-    {32,33},{34,35},{36,37},{38,39}, // bottom (clockwise from inside)
-    {40,41},{42,43},{44,45},{46,47}, // top (counter-clockwise from outside)
-    {48,49},{50,51}, // front (counter-clockwise from outside)
-    {52,53},{54,55}, // back (clockwise from inside)
-    // --- vertices ---
-    {56,57,58,59,60,61,62,63} // outward normals
-  };
-
-  int surf_bottom_id = 1; int surf_top_id = 2; int surf_front_id = 3;
-  int surf_back_id = 4; int surf_right_id = 5; int surf_left_id = 6;
-  int edge_bottom_0 = 7;
-  int edge_top_0 = 11;
-  int edge_front_0 = 15;
-  int edge_back_0 = 17;
-  int vertices_id = 19;
-  
-  DMPlexGetTransitiveClosure(distributed_mesh,element,PETSC_TRUE,&numPoints,&points);  
-  // get surfaces
-  for(int i=1;i<7;i++) {
-    surfaces[i-1] = std::make_tuple(points[2*i],points[2*i+1]);
-  }
-  // get edges
-  for(int i=7;i<19;i++) {
-    edges[i-7] = std::make_tuple(points[2*i],points[2*i+1]);
-  }
-  
-  int dof_counter = 0;
-  // 0-7 are internal points
-  for(int i=0;i<8;i++) { element_dof_map[dof_counter] = std_layout[0][i]; dof_counter++; }
-
-  // assign surface ids
-  int id,o;
-  // -------------------------
-  // ------- bottom ----------
-  // -------------------------
-  // std:: cout << "computing bottom surface mapping\n";
-  std::vector<int> canonical_bottom_verts =
-    {canonical_element_vertices[0], canonical_element_vertices[1],
-     canonical_element_vertices[2], canonical_element_vertices[3]};
-  std::tie(id,o) = surfaces[0];
-  auto bottom_surf_verts = getVertsFromPoint(id,4,distributed_mesh);
-  surfHandler(canonical_bottom_verts,
-              bottom_surf_verts,
-              o,
-              std_layout[surf_bottom_id],
-              dof_counter,
-              element_dof_map);
-
-  // -------------------------
-  // ------- top -------------
-  // -------------------------
-  // std:: cout << "computing top surface mapping\n";
-  std::vector<int> canonical_top_verts =
-    {canonical_element_vertices[4], canonical_element_vertices[5],
-     canonical_element_vertices[6], canonical_element_vertices[7]};
-  std::tie(id,o) = surfaces[1];
-  auto top_surf_verts = getVertsFromPoint(id,4,distributed_mesh);
-  surfHandler(canonical_top_verts,
-              top_surf_verts,
-              o,
-              std_layout[surf_top_id],
-              dof_counter,
-              element_dof_map);
-
-  // -------------------------
-  // ------- front -----------
-  // -------------------------
-  // std:: cout << "computing front surface mapping\n";
-  std::vector<int> canonical_front_verts =
-    {canonical_element_vertices[0], canonical_element_vertices[3],
-     canonical_element_vertices[5], canonical_element_vertices[4]};
-  std::tie(id,o) = surfaces[2];
-  auto front_surf_verts = getVertsFromPoint(id,4,distributed_mesh);
-  surfHandler(canonical_front_verts,
-              front_surf_verts,
-              o,
-              std_layout[surf_front_id],
-              dof_counter,
-              element_dof_map);
-
-  // -------------------------
-  // ------- back -----------
-  // -------------------------
-  // std:: cout << "computing back surface mapping\n";
-  std::vector<int> canonical_back_verts =
-    {canonical_element_vertices[2], canonical_element_vertices[1],
-     canonical_element_vertices[7], canonical_element_vertices[6]};
-  std::tie(id,o) = surfaces[3];
-  auto back_surf_verts = getVertsFromPoint(id,4,distributed_mesh);
-  surfHandler(canonical_back_verts,
-              back_surf_verts,
-              o,
-              std_layout[surf_back_id],
-              dof_counter,
-              element_dof_map);
-
-  // -------------------------
-  // ------- right -----------
-  // -------------------------
-  // std:: cout << "computing right surface mapping\n";
-  std::vector<int> canonical_right_verts =
-    {canonical_element_vertices[3], canonical_element_vertices[2],
-     canonical_element_vertices[6], canonical_element_vertices[5]};
-  std::tie(id,o) = surfaces[4];
-  auto right_surf_verts = getVertsFromPoint(id,4,distributed_mesh);
-  surfHandler(canonical_right_verts,
-              right_surf_verts,
-              o,
-              std_layout[surf_right_id],
-              dof_counter,
-              element_dof_map);
-
-  // -------------------------
-  // ------- left -----------
-  // -------------------------
-  // std:: cout << "computing left surface mapping\n";
-  std::vector<int> canonical_left_verts =
-    {canonical_element_vertices[0], canonical_element_vertices[4],
-     canonical_element_vertices[7], canonical_element_vertices[1]};
-  std::tie(id,o) = surfaces[5];
-  auto left_surf_verts = getVertsFromPoint(id,4,distributed_mesh);
-  surfHandler(canonical_left_verts,
-              left_surf_verts,
-              o,
-              std_layout[surf_left_id],
-              dof_counter,
-              element_dof_map);
-
-  // --------------------------
-  // ------ bottom edges ------
-  // --------------------------
-  // std::cout << "computing bottom edge mapping\n";
-  std::vector<std::vector<int>> canonical_bottom_edges =
-    {{canonical_element_vertices[0],canonical_element_vertices[1]},
-     {canonical_element_vertices[1],canonical_element_vertices[2]},
-     {canonical_element_vertices[2],canonical_element_vertices[3]},     
-     {canonical_element_vertices[3],canonical_element_vertices[0]}};               
-  std::vector<std::tuple<int,int>> bottom_edge_id_and_orientation =
-    {edges[0],edges[1],edges[2],edges[3]};
-  std::vector<int> o_bottom(4);
-  std::vector<std::vector<int>> bottom_edge_verts(4);
-  std::vector<std::vector<int>> std_layout_edge_bottom(4);
-  for(int i=0;i<4;i++) {
-    int id,o;
-    std::tie(id,o) = bottom_edge_id_and_orientation[i];
-    bottom_edge_verts[i] = getVertsFromPoint(id,2,distributed_mesh);
-    o_bottom[i] = o;
-    std_layout_edge_bottom[i] = std_layout[edge_bottom_0+i];
-  }
-
-  edgeHandler(canonical_bottom_edges,
-              bottom_edge_verts,
-              o_bottom,
-              std_layout_edge_bottom,
-              dof_counter,
-              element_dof_map);
-
-  // --------------------------
-  // ------ top edges ---------
-  // --------------------------
-  // std::cout << "computing top edge mapping\n";
-  std::vector<std::vector<int>> canonical_top_edges =
-    {{canonical_element_vertices[4],canonical_element_vertices[5]},
-     {canonical_element_vertices[5],canonical_element_vertices[6]},
-     {canonical_element_vertices[6],canonical_element_vertices[7]},     
-     {canonical_element_vertices[7],canonical_element_vertices[4]}};
-  std::vector<std::tuple<int,int>> top_edge_id_and_orientation =
-    {edges[4],edges[5],edges[6],edges[7]};
-  std::vector<int> o_top(4);
-  std::vector<std::vector<int>> top_edge_verts(4);
-  std::vector<std::vector<int>> std_layout_edge_top(4);
-  for(int i=0;i<4;i++) {
-    int id,o;
-    std::tie(id,o) = top_edge_id_and_orientation[i];
-    top_edge_verts[i] = getVertsFromPoint(id,2,distributed_mesh);
-    o_top[i] = o;
-    std_layout_edge_top[i] = std_layout[edge_top_0+i];
-  }
-  
-  edgeHandler(canonical_top_edges,
-              top_edge_verts,
-              o_top,
-              std_layout_edge_top,
-              dof_counter,
-              element_dof_map);
-
-  // --------------------------
-  // ------ front edges -------
-  // --------------------------
-  // std::cout << "computing front edge mapping\n";
-  std::vector<std::vector<int>> canonical_front_edges =
-    {{canonical_element_vertices[3],canonical_element_vertices[5]},
-     {canonical_element_vertices[4],canonical_element_vertices[0]}};
-  std::vector<std::tuple<int,int>> front_edge_id_and_orientation =
-    {edges[8],edges[9]};
-  std::vector<int> o_front(2);
-  std::vector<std::vector<int>> front_edge_verts(2);
-  std::vector<std::vector<int>> std_layout_edge_front(2);
-  for(int i=0;i<2;i++) {
-    int id,o;
-    std::tie(id,o) = front_edge_id_and_orientation[i];
-    front_edge_verts[i] = getVertsFromPoint(id,2,distributed_mesh);
-    o_front[i] = o;
-    std_layout_edge_front[i] = std_layout[edge_front_0+i];
-  }
-  
-  edgeHandler(canonical_front_edges,
-              front_edge_verts,
-              o_front,
-              std_layout_edge_front,
-              dof_counter,
-              element_dof_map);
-
-  // --------------------------
-  // ------ back edges --------
-  // --------------------------
-  // std::cout << "computing back edge mapping\n";
-  std::vector<std::vector<int>> canonical_back_edges =
-    {{canonical_element_vertices[1],canonical_element_vertices[7]},
-     {canonical_element_vertices[6],canonical_element_vertices[2]}};
-  std::vector<std::tuple<int,int>> back_edge_id_and_orientation =
-    {edges[10],edges[11]};
-  std::vector<int> o_back(2);
-  std::vector<std::vector<int>> back_edge_verts(2);
-  std::vector<std::vector<int>> std_layout_edge_back(2);
-  for(int i=0;i<2;i++) {
-    int id,o;
-    std::tie(id,o) = back_edge_id_and_orientation[i];
-    back_edge_verts[i] = getVertsFromPoint(id,2,distributed_mesh);
-    o_back[i] = o;
-    std_layout_edge_back[i] = std_layout[edge_back_0+i];
-  }
-  
-  edgeHandler(canonical_back_edges,
-              back_edge_verts,
-              o_back,
-              std_layout_edge_back,
-              dof_counter,
-              element_dof_map);
-  
-
-  // vertices
-  for(int i=0;i<8;i++) {
-    element_dof_map[dof_counter] = std_layout[vertices_id][i];
-    dof_counter++;
-  }
-  
-  // printf("dof_counter=%d\n",dof_counter);
-  // std::cout << "element_dof_map=" << element_dof_map << "\n";
-  return element_dof_map;
-}
-
+VectorXi internalMappingOrder3(int element, DM &distributed_mesh);
 
 VectorXi Hexahedra::ClosureMapping(int order, int numdim, DM &distributed_mesh) {
   if( order == 3) {
-    auto petsc_mapping = internalMapping(mElmNum,distributed_mesh);
+    auto petsc_mapping = internalMappingOrder3(mElmNum,distributed_mesh);
     
     /**
        |  DOFs are ordered: {cell, faces, edges, vertices}
@@ -804,12 +440,7 @@ void Hexahedra::attachVertexCoordinates(DM &distributed_mesh) {
  * g = e + (f-e)*(t+1.0)/2.0
  * using sympy to expand `g` as a function of only vertices v0..7 and r,s,t gives the formula below
  */
-PetscReal referenceToElementMapping(PetscReal v0, PetscReal v1, PetscReal v2, PetscReal v3, PetscReal v4, PetscReal v5, PetscReal v6, PetscReal v7, PetscReal r, PetscReal s, PetscReal t) {
-  // represents `g` from above
-  // return v0 - 0.5*(r + 1.0)*(v0 - v3) - 0.5*(s + 1.0)*(v0 - v1 - 0.5*(r + 1.0)*(v0 - v3) + 0.5*(r + 1.0)*(v1 - v2)) + 0.5*(t + 1.0)*(-v0 + v4 + 0.5*(r + 1.0)*(v0 - v3) - 0.5*(r + 1.0)*(v4 - v5) + 0.5*(s + 1.0)*(v0 - v1 - 0.5*(r + 1.0)*(v0 - v3) + 0.5*(r + 1.0)*(v1 - v2)) + 0.5*(s + 1.0)*(-v4 + v7 + 0.5*(r + 1.0)*(v4 - v5) + 0.5*(r + 1.0)*(v6 - v7)));
-  return v0 + 0.5*(r + 1.0)*(-v0 + v3) + 0.5*(s + 1.0)*(-v0 + v1 - 0.5*(r + 1.0)*(-v0 + v3) + 0.5*(r + 1.0)*(-v1 + v2)) + 0.5*(t + 1.0)*(-v0 + v4 - 0.5*(r + 1.0)*(-v0 + v3) + 0.5*(r + 1.0)*(-v4 + v5) - 0.5*(s + 1.0)*(-v0 + v1 - 0.5*(r + 1.0)*(-v0 + v3) + 0.5*(r + 1.0)*(-v1 + v2)) + 0.5*(s + 1.0)*(-v4 + v7 - 0.5*(r + 1.0)*(-v4 + v5) + 0.5*(r + 1.0)*(v6 - v7)));
-}
-
+PetscReal referenceToElementMapping(PetscReal v0, PetscReal v1, PetscReal v2, PetscReal v3, PetscReal v4, PetscReal v5, PetscReal v6, PetscReal v7, PetscReal r, PetscReal s, PetscReal t);
 
 std::tuple<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd> Hexahedra::buildNodalPoints() {
   assert(mNumIntPnt == mNumIntPtsR * mNumIntPtsS * mNumIntPtsT);
@@ -1110,4 +741,20 @@ void Hexahedra::attachMaterialProperties(ExodusModel *model) {
   exit(1);
 }
 
+
+void Hexahedra::applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname) {
+
+  if (! mBndElm) return;
+
+  double value = 0;
+  auto dirchlet_boundary_names = options.DirichletBoundaries();
+  for (auto &bndry: dirchlet_boundary_names) {
+    auto faceids = mBnd[bndry];
+    for (auto &faceid: faceids) {
+      auto field = mesh->getFieldOnFace(fieldname, faceid);
+      field = 0 * field.array() + value;
+      mesh->setFieldFromFace(fieldname, faceid, field);
+    }
+  }
+}
 

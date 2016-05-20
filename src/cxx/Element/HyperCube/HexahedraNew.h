@@ -1,7 +1,16 @@
 #pragma once
 
-#include <petsc.h>
 #include <Eigen/Dense>
+#include <Element/ElementNew.h>
+
+// Derived.
+#include <Physics/Acoustic3D.h>
+
+extern "C" {
+#include <Quad/Autogen/quad_autogen.h>
+#include <Hex/Autogen/hex_autogen.h>
+}
+
 template <typename ConcreteHex>
 class HexahedraNew: public ConcreteHex {
 
@@ -59,6 +68,7 @@ private:
   int mNumDofVol;
   int mNumIntPtsR;
   int mNumIntPtsS;
+  int mNumIntPtsT;
 
   // Vertex coordinates.
   Eigen::Matrix<double,mNumVtx,mNumDim> mVtxCrd;
@@ -96,21 +106,21 @@ private:
    * @param [in] order The polynmomial order.
    * @returns Vector of GLL points.
    */
-  static VectorXd GllPoints(const int order);
+  static Eigen::VectorXd GllPoints(const int order);
 
   /**
    * Returns the quadrature intergration weights for a polynomial order.
    * @param [in] order The polynomial order.
    * @returns Vector of quadrature weights.
    */
-  static VectorXd GllIntegrationWeight(const int order);
+  static Eigen::VectorXd GllIntegrationWeights(const int order);
 
   /**
    * Returns the mapping from the PETSc to Salvus closure.
    * @param [in] order The polynomial order.
    * @returns Vector containing the closure mapping (field(closure(i)) = petscField(i))
    */
-  static Eigen::VectorXi ClosureMapping(const int order,
+  static Eigen::VectorXi ClosureMapping(const int order, int elem_num,
                                         DM &distributed_mesh);
 
   /**
@@ -119,6 +129,14 @@ private:
    */
   static Eigen::MatrixXd setupGradientOperator(const int order);
 
+  /**
+   * 
+   */
+  static Eigen::VectorXd interpolateLagrangePolynomials(const double r,
+                                                        const double s,
+                                                        const double t,
+                                                        const int order);
+  
   /**
    * Returns an optimized stride along the r direction.
    * @param [in] f Function defined at GLL points.
@@ -225,11 +243,45 @@ private:
   void applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname);
 
   /**
+   *
+   */
+  Eigen::VectorXd getDeltaFunctionCoefficients(const double r, const double s, const double t);
+
+  /**
+   * Given a model, save the material parameters at the element vertices.
+   * @param [in] model The model containing the material parameters.
+   * @param [in] parameter The parameter to save.
+   */
+  void attachMaterialProperties(const ExodusModel *model, std::string parameter);
+
+  
+  /**
    * Given some field at the GLL points, interpolate the field to some general point.
    * @param [in] pnt Position in reference coordinates.
    */
   Eigen::MatrixXd interpolateFieldAtPoint(const Eigen::VectorXd &pnt) { return Eigen::MatrixXd(1, 1); }
 
+  // Setters.
+  inline void SetNumNew(const PetscInt num) { mElmNum = num; }
+  inline void SetVtxCrd(const Eigen::Ref<const Eigen::Matrix<double,8,3>> &v) { mVtxCrd = v; }
+
+  // Getters.
+  inline bool BndElm() const { return mBndElm; }
+  inline int NumDim() const { return mNumDim; }
+  inline PetscInt ElmNum() const { return mElmNum; }
+  inline int NumIntPnt() const { return mNumIntPnt; }
+  inline int NumDofVol() const { return mNumDofVol; }
+  inline int NumDofFac() const { return mNumDofFac; }
+  inline int NumDofEdg() const { return mNumDofEdg; }
+  inline int NumDofVtx() const { return mNumDofVtx; }
+  inline Eigen::MatrixXi ClsMap() const { return mClsMap; }
+  std::vector<std::shared_ptr<Source>> Sources() { return mSrc; }
+
+  // Delegates.
+  std::tuple<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd> buildNodalPoints() {
+    return ConcreteHex::buildNodalPoints(mIntCrdR, mIntCrdS, mIntCrdT, mVtxCrd);
+  };
+  
 };
 
 

@@ -41,7 +41,7 @@ void NewmarkGeneral::initialize(Mesh *mesh,
   for (auto &element : mElements) {
 
     // Give each element a number starting from zero.
-    element->SetNum(element_number++);
+    element->SetNum(element_number); element_number++;
 
     // Get vertex coordinates from the PETSc DMPLEX.
     element->attachVertexCoordinates(mMesh->DistributedMesh());
@@ -89,9 +89,9 @@ void NewmarkGeneral::solve(Options options) {
   Eigen::MatrixXd u(int_pnts, max_dims);
   Eigen::MatrixXd ku(int_pnts, max_dims);
   Eigen::MatrixXd fMinusKu(int_pnts, max_dims);
-
+  double max_Loo = 0.0;
   while (time < duration) {
-
+    max_Loo = 0.0;
     // Collect all global fields to the local partitions.
     for (auto &field : mReferenceElem->PullElementalFields()) {
       mMesh->checkOutField(field);
@@ -108,8 +108,11 @@ void NewmarkGeneral::solve(Options options) {
       int fitr = 0;
       for (auto &field : mReferenceElem->PullElementalFields()) {
         u.col(fitr) = mMesh->getFieldOnElement(field, element->Num(),
-                                               element->ClsMap());
+                                               element->ClsMap());        
         fitr++;
+        if(options.DisplayDiagnostics() && (it % options.DisplayDiagnosticsEvery() == 0 || it == 0)) {
+          max_Loo = fmax(max_Loo,u.col(fitr-1).array().abs().maxCoeff());
+        }
       }
 
       // Record displacement.
@@ -136,6 +139,10 @@ void NewmarkGeneral::solve(Options options) {
       }
     }
 
+    if(options.DisplayDiagnostics() && (it % options.DisplayDiagnosticsEvery() == 0 || it == 0)) {
+      if(MPI::COMM_WORLD.Get_rank() == 0) printf("|u|_oo=%f @ time=%f (%f%%)\n",max_Loo,time,100*(time/duration));
+    }
+    
     // Sum fields into global partitions.
     for (auto &field : mReferenceElem->PushElementalFields()) {
       mMesh->checkInFieldBegin(field);
@@ -148,12 +155,12 @@ void NewmarkGeneral::solve(Options options) {
 
     if (options.SaveMovie() && (it % options.SaveFrameEvery() == 0 || it == 0)) {
       // GlobalFields[0] == "u" for acoustic and == "ux" for elastic
+      if(MPI::COMM_WORLD.Get_rank() == 0) printf("Saving frame %d\n",it);
       mMesh->saveFrame(mMesh->GlobalFields()[0], it);
     }
 
     it++;
     time += timeStep;
-    PRINT_ROOT() << "TIME: " << time;
   }
 
   if (options.SaveMovie()) mMesh->finalizeMovie();

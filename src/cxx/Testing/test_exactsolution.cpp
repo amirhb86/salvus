@@ -7,9 +7,11 @@
 #include <Element/HyperCube/Quad/Acoustic.h>
 #include <Element/Simplex/Triangle/AcousticTri.h>
 #include <Element/HyperCube/Hex/AcousticHex.h>
-std::vector<std::shared_ptr<ElementNew>> initialize_exact(Mesh *mesh,
+
+template <typename ElementVersion>
+std::vector<std::shared_ptr<ElementVersion>> initialize_exact(Mesh *mesh,
                                                        ExodusModel *model,
-                                                       std::shared_ptr<ElementNew> reference_element,
+                                                       std::shared_ptr<ElementVersion> reference_element,
                                                        Options options) {
 
   // Setup the dofs on each mesh point.
@@ -28,7 +30,7 @@ std::vector<std::shared_ptr<ElementNew>> initialize_exact(Mesh *mesh,
     mesh->registerFieldVectors(field);
   }
 
-  std::vector<std::shared_ptr<ElementNew>> elements;
+  std::vector<std::shared_ptr<ElementVersion>> elements;
   // Get a list of all local elements.
   for (int i = 0; i < mesh->NumberElementsLocal(); i++) {
     elements.push_back(reference_element->clone());
@@ -73,7 +75,8 @@ std::vector<std::shared_ptr<ElementNew>> initialize_exact(Mesh *mesh,
 
 }
 
-double solve_vs_exact(Options options, Mesh *mesh, std::vector<std::shared_ptr<ElementNew>> &elements) {
+template <typename ElementVersion>
+double solve_vs_exact(Options options, Mesh *mesh, std::vector<std::shared_ptr<ElementVersion>> &elements) {
   PetscFunctionBegin;
   // Setup values.
   int it = 0;
@@ -116,7 +119,7 @@ double solve_vs_exact(Options options, Mesh *mesh, std::vector<std::shared_ptr<E
                                               element->ClsMap());
         fitr++;
       }
-
+      
       double element_error = element->checkTest(mesh, options, u.block(0, 0, int_pnts, fitr), time+timeStep/2);
 
       max_error = fmax(max_error,element_error);
@@ -128,7 +131,6 @@ double solve_vs_exact(Options options, Mesh *mesh, std::vector<std::shared_ptr<E
 
       // Compute acceleration.
       fMinusKu.block(0, 0, int_pnts, fitr) = -1 * ku.block(0, 0, int_pnts, fitr).array();
-
 
       // Sum fields into local partition.
       fitr = 0;
@@ -143,6 +145,7 @@ double solve_vs_exact(Options options, Mesh *mesh, std::vector<std::shared_ptr<E
     if(options.DisplayDiagnostics() && (it % options.DisplayDiagnosticsEvery() == 0 || it == 0)) {
       printf("max_error=%f @ time=%f (%f%%)\n",max_error,time,100*(time/duration));
     }
+    // exit(1);
     if (max_error > 5) {
       std::cerr << "ERROR: Solution blowing up!\n";
       exit(1);
@@ -289,66 +292,122 @@ TEST_CASE("Testing acoustic exact solutions for quadrilaterals", "[exact/quads]"
   std::shared_ptr<ElementNew> reference_element = ElementNew::Factory(options);
 
 
-  std::vector<std::shared_ptr<ElementNew>> elements = initialize_exact(mesh, model, reference_element, options);
-  double error = solve_vs_exact(options, mesh, elements);
+  std::vector<std::shared_ptr<ElementNew>> elements = initialize_exact<ElementNew>(mesh, model, reference_element, options);
+  double error = solve_vs_exact<ElementNew>(options, mesh, elements);
   // allow 10% increase previously found in error, or fail.
   REQUIRE(error < (1.1*0.000180304));
 
 }
 
-//TEST_CASE("Testing acoustic exact solutions for hexahedra", "[exact/hexahedra]") {
-//
-//  std::cout << "Testing exact acoustic hex solution.\n";
-//  PetscOptionsClear();
-//  const char *arg[] = {
-//    "salvus_test",
-//    "--testing","true",
-//    "--duration", "0.08838834764831843", // 30 steps
-//    "--time_step", "0.003",
-//    "--exodus_file_name", "simple_hexmesh_2x2x2.vp4.e",
-//    "--exodus_model_file_name", "simple_hexmesh_2x2x2.vp4.e",
-//    "--mesh_type", "newmark",
-//    "--element_shape", "hex",
-//    "--physics_system", "acoustic",
-//    "--polynomial_order", "3",
-//    "--dirichlet-boundaries", "x0,x1,y0,y1,z0,z1",
-//    "--testIC", "true",
-//    "--IC-center-x", "0.0",
-//    "--IC-center-z", "0.0",
-//    "--IC-square-side-L", "2",
-//    "--saveMovie","false",
-//    "--saveFrameEvery","1",
-//    "--output_movie_file_name","/scratch/salvus/output_files/movie.h5",
-//    // options.__SetSaveMovie(PETSC_FALSE);
-//    // options.__SetSaveFrameEvery(1);
-//    NULL};
-//  char **argv = const_cast<char **> (arg);
-//  int argc = sizeof(arg) / sizeof(const char *) - 1;
-//  PetscOptionsInsert(&argc, &argv, NULL);
-//
-//  // Set options for exact tests
-//  Options options;
-//  options.setOptions();
-//
-//  // Get mesh.
-//  Mesh *mesh = Mesh::factory(options);
-//  mesh->read(options);
-//
-//  // Get model.
-//  ExodusModel *model = new ExodusModel(options);
-//  model->initializeParallel();
-//
-//  // Setup reference element.
-//  auto reference_element = Element::factory(options);
-//
-//  auto elements = initialize_exact(mesh, model, reference_element, options);
-//
-//  double error = solve_vs_exact(options, mesh,elements);
-//
-//  // allow 10% increase in previously found error, or fail.
-//  REQUIRE(error < (1.1*0.000133237));
-//
-//}
+TEST_CASE("Testing acoustic exact solutions for hexahedra", "[exact/hexnew]") {
+
+ std::cout << "Testing exact acoustic hex solution.\n";
+ PetscOptionsClear();
+ const char *arg[] = {
+   "salvus_test",
+   "--testing","true",
+   "--duration", "0.08838834764831843", // 30 steps
+   "--time_step", "0.003",
+   "--exodus_file_name", "simple_hexmesh_2x2x2.vp4.e",
+   "--exodus_model_file_name", "simple_hexmesh_2x2x2.vp4.e",
+   "--mesh_type", "newmark",
+   "--element_shape", "hex_new",
+   "--physics_system", "acoustic",
+   "--polynomial_order", "3",
+   "--dirichlet-boundaries", "x0,x1,y0,y1,z0,z1",
+   "--testIC", "true",
+   "--IC-center-x", "0.0",
+   "--IC-center-z", "0.0",
+   "--IC-square-side-L", "2",
+   "--saveMovie","false",
+   "--saveFrameEvery","1",
+   "--output_movie_file_name","/scratch/salvus/output_files/movie.h5",
+   // "--displayDiagnosticsEvery","1",
+   // options.__SetSaveMovie(PETSC_FALSE);
+   // options.__SetSaveFrameEvery(1);
+   NULL};
+ char **argv = const_cast<char **> (arg);
+ int argc = sizeof(arg) / sizeof(const char *) - 1;
+ PetscOptionsInsert(&argc, &argv, NULL);
+
+ // Set options for exact tests
+ Options options;
+ options.setOptions();
+
+ // Get mesh.
+ Mesh *mesh = Mesh::factory(options);
+ mesh->read(options);
+
+ // Get model.
+ ExodusModel *model = new ExodusModel(options);
+ model->initializeParallel();
+
+ // Setup reference element.
+ auto reference_element = ElementNew::Factory(options);
+
+ auto elements = initialize_exact<ElementNew>(mesh, model, reference_element, options);
+
+ double error = solve_vs_exact<ElementNew>(options, mesh,elements);
+
+ // allow 10% increase in previously found error, or fail.
+ REQUIRE(error < (1.1*0.000133237));
+
+}
+
+TEST_CASE("Testing acoustic exact solutions for older hexahedra", "[exact/hexold]") {
+
+ std::cout << "Testing exact acoustic hex solution.\n";
+ PetscOptionsClear();
+ const char *arg[] = {
+   "salvus_test",
+   "--testing","true",
+   "--duration", "0.08838834764831843", // 30 steps
+   "--time_step", "0.003",
+   "--exodus_file_name", "simple_hexmesh_2x2x2.vp4.e",
+   "--exodus_model_file_name", "simple_hexmesh_2x2x2.vp4.e",
+   "--mesh_type", "newmark",
+   "--element_shape", "hex",
+   "--physics_system", "acoustic",
+   "--polynomial_order", "3",
+   "--dirichlet-boundaries", "x0,x1,y0,y1,z0,z1",
+   "--testIC", "true",
+   "--IC-center-x", "0.0",
+   "--IC-center-z", "0.0",
+   "--IC-square-side-L", "2",
+   "--saveMovie","false",
+   "--saveFrameEvery","1",
+   "--output_movie_file_name","/scratch/salvus/output_files/movie.h5",
+   // "--displayDiagnosticsEvery","1",
+   // options.__SetSaveMovie(PETSC_FALSE);
+   // options.__SetSaveFrameEvery(1);
+   NULL};
+ char **argv = const_cast<char **> (arg);
+ int argc = sizeof(arg) / sizeof(const char *) - 1;
+ PetscOptionsInsert(&argc, &argv, NULL);
+
+ // Set options for exact tests
+ Options options;
+ options.setOptions();
+
+ // Get mesh.
+ Mesh *mesh = Mesh::factory(options);
+ mesh->read(options);
+
+ // Get model.
+ ExodusModel *model = new ExodusModel(options);
+ model->initializeParallel();
+
+ // Setup reference element.
+ auto reference_element = Element::factory(options);
+
+ auto elements = initialize_exact<Element>(mesh, model, reference_element, options);
+
+ double error = solve_vs_exact<Element>(options, mesh,elements);
+
+ // allow 10% increase in previously found error, or fail.
+ REQUIRE(error < (1.1*0.000133237));
+
+}
 
 //TEST_CASE("Testing acoustic exact solutions for tetrahedra", "[exact/tetrahedra]") {
 //

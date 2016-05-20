@@ -231,6 +231,8 @@ public:
    */
   std::tuple<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd> buildNodalPoints();
 
+  void applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname);
+  
   // for testing
   inline int __GetNumIntPtsR() { return mNumIntPtsR; }
   inline int __GetNumIntPtsS() { return mNumIntPtsS; }

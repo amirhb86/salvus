@@ -24,6 +24,7 @@ find_package(MPI REQUIRED)
 link_directories(${PETSC_DIR}/lib)
 
 FILE(GLOB QuadAutoGen src/cxx/Element/HyperCube/Quad/Autogen/*.c)
+FILE(GLOB HexAutoGen src/cxx/Element/HyperCube/Hex/Autogen/*.c)
 FILE(GLOB TriAutoGen src/cxx/Element/Simplex/Triangle/Autogen/*.c)
 FILE(GLOB TetAutoGen src/cxx/Element/Simplex/Tetrahedra/Autogen/*.c)
 
@@ -43,7 +44,8 @@ include_directories(
         src/cxx/Element/Simplex/Triangle/Autogen
         src/cxx/Element/Simplex/Tetrahedra
         src/cxx/Element/Simplex/Tetrahedra/Autogen
-        src/cxx/Model)
+        src/cxx/Model
+        src/cxx/Physics)
 
 set(SALVUS_SOURCES
         src/cxx/Problem/Problem.cpp
@@ -71,13 +73,18 @@ set(SALVUS_SOURCES
         src/cxx/Receiver/ReceiverHdf5.cpp
         src/cxx/Element/HyperCube/QuadNew.cpp
         src/cxx/Element/HyperCube/Quad/QuadP1.cpp
+        src/cxx/Element/HyperCube/HexahedraNew.cpp
+        src/cxx/Element/HyperCube/Hex/HexP1.cpp
         src/cxx/Physics/AcousticNew.cpp
+        src/cxx/Physics/Acoustic3D.cpp
+        src/cxx/Physics/Acoustic3D_V.cpp
         src/cxx/Utilities/kdtree.c
         src/cxx/Utilities/PETScExtensions.c
         src/cxx/Element/ElementNew.cpp
         src/cxx/Physics/ElasticNew.cpp
         src/cxx/Element/HyperCube/HexahedraNew.cpp
         ${QuadAutoGen}
+        ${HexAutoGen}
         ${TriAutoGen}
         ${TetAutoGen}
         )

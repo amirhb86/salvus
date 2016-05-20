@@ -86,6 +86,41 @@ def generate_closure_mapping(N):
 
     return face + edge_0 + edge_1 + edge_2 + edge_3 + vertices
 
+def tensorized_basis_3D(order):
+    total_integration_points = (order + 1) * (order + 1)
+    r,s,t = sym.symbols('r,s,t')
+    r_gll = sym.symbols('r_0:%d' % (order + 1))
+    s_gll = sym.symbols('s_0:%d' % (order + 1))
+    t_gll = sym.symbols('t_0:%d' % (order + 1))
+
+    # Get N + 1 lagrange polynomials in each direction.
+    generator_r = generating_polynomial_lagrange(order, 'r', r_gll)
+    generator_s = generating_polynomial_lagrange(order, 's', s_gll)
+    generator_t = generating_polynomial_lagrange(order, 't', t_gll)
+
+    # Get tensorized basis.
+    basis = TensorProduct(generator_r, generator_s, generator_t)
+    gll_coordinates, gll_weights = gauss_lobatto_legendre_quadruature_points_weights(order + 1)
+    basis = basis.subs([(v, c) for v, c in zip(r_gll, gll_coordinates)])
+    basis = basis.subs([(v, c) for v, c in zip(s_gll, gll_coordinates)])
+    basis = basis.subs([(v, c) for v, c in zip(t_gll, gll_coordinates)])
+    routines = []
+    autocode = CCodeGen()
+    routines.append(autocode.routine(
+        'interpolate_order{}_hex'.format(order), basis,
+        argument_sequence=None,global_vars=None))
+
+    autocode.write(routines, 'order{}_hex'.format(order), to_files=True)
+    
+    # reformat some code.
+    for code, lend in zip(['order{}_hex.c', 'order{}_hex.h'], [' {', ';']):
+        with io.open(code.format(order), 'rt') as fh:
+            text = fh.readlines()
+            text = [line.replace('double', 'int') if 'closure' in line else line for line in text]
+
+        with io.open(code.format(order), 'wt') as fh:
+            fh.writelines(text)
+    
 def tensorized_basis_2D(order):
 
     total_integration_points = (order + 1) * (order + 1)

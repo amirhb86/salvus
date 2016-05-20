@@ -5,6 +5,7 @@
 #include "Model/ExodusModel.h"
 #include <Eigen/Dense>
 #include <set>
+#include <fstream>
 
 void exodusError(const int retval, std::string func_name) {
 
@@ -90,13 +91,24 @@ int Mesh::readBoundaryNames(Options options) {
 }
 
 #undef __FUNCT__
-#define __FUNCT__ "setupBoundaries"
+#define __FUNCT__ "read"
 void Mesh::read(Options options) {
 
   // Class variables.
   mDistributedMesh = NULL;
   mExodusFileName = options.ExodusMeshFile();
 
+  // check if file exists
+  if (MPI::COMM_WORLD.Get_rank() == 0) {    
+    std::ifstream f(mExodusFileName.c_str());
+    if (!f.good()) {
+      std::cerr << "ERROR: Mesh " << mExodusFileName << " does not exist!\n";
+      MPI::COMM_WORLD.Abort(-1);
+    }
+  }
+
+  MPI::COMM_WORLD.Barrier();
+  
   // Function variables.
   DM dm = NULL;
   PetscBool interpolate_edges = PETSC_TRUE;
@@ -145,6 +157,8 @@ void Mesh::read(int dim, int numCells, int numVerts, int numVertsPerElem,
   DMPlexGetDepthStratum(mDistributedMesh, mNumberDimensions, NULL, &mNumberElementsLocal);
 }
 
+#undef __FUNCT__
+#define __FUNCT__ "setupBoundaries"
 int Mesh::setupBoundaries(Options options) {
   PetscFunctionBegin;
 
@@ -564,7 +578,11 @@ void Mesh::setUpMovie(const std::string &movie_filename) {
 void Mesh::saveFrame(std::string name, PetscInt timestep) {
 
   DMSetOutputSequenceNumber(mDistributedMesh, timestep, timestep);
-  VecView(mFields[name].glb, mViewer);
+  int ierr = VecView(mFields[name].glb, mViewer);
+  if(ierr > 0) {
+    std::cerr << "ERROR @ saveFrame->VecView()\n";
+    exit(1);
+  }
   double max; VecMax(mFields[name].glb, NULL, &max);
 }
 

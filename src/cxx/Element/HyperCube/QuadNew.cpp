@@ -198,11 +198,11 @@ VectorXd QuadNew<ConcreteShape>::getDeltaFunctionCoefficients(const double r, co
   for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
     for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
 
-      double r = mIntCrdR(r_ind);
-      double s = mIntCrdS(s_ind);
+      double ri = mIntCrdR(r_ind);
+      double si = mIntCrdS(s_ind);
 
       double detJac;
-      std::tie(_, detJac) = ConcreteShape::inverseJacobianAtPoint(r, s, mVtxCrd);
+      std::tie(_, detJac) = ConcreteShape::inverseJacobianAtPoint(ri, si, mVtxCrd);
 
       mParWork(r_ind + s_ind * mNumIntPtsR) /=
           (mIntWgtR(r_ind) * mIntWgtS(s_ind) * detJac);
