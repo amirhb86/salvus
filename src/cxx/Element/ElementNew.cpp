@@ -5,11 +5,18 @@
 #include <HyperCube/QuadNew.h>
 #include <HyperCube/Quad/QuadP1.h>
 
+#include <HyperCube/HexahedraNew.h>
+#include <HyperCube/Hex/HexP1.h>
+
 #include <Physics/AcousticNew.h>
+#include <Physics/Acoustic3D.h>
+#include <Physics/Acoustic3D_V.h>
 #include <Physics/ElasticNew.h>
 
 /* Define all possible element classes as types here. */
 typedef class ElementAdapter<AcousticNew<QuadNew<QuadP1>>> AcousticQuadP1;
+typedef class ElementAdapter<Acoustic3D<HexahedraNew<HexP1>>> AcousticHexP1;
+typedef class ElementAdapter<Acoustic3D_V<HexahedraNew<HexP1>>> AcousticVHexP1;
 typedef class ElementAdapter<ElasticNew<QuadNew<QuadP1>>> ElasticQuadP1;
 
 std::shared_ptr<ElementNew> ElementNew::Factory(Options options) {
@@ -22,7 +29,17 @@ std::shared_ptr<ElementNew> ElementNew::Factory(Options options) {
       } else {
         throw std::runtime_error("Runtime Error: Element physics " + options.PhysicsSystem() + " not supported.");
       }
-    } else {
+    }
+    else if (options.ElementShape() == "hex_new") {
+      if (options.PhysicsSystem() == "acoustic") {
+        return std::make_shared<AcousticHexP1>(options);
+      } else if (options.PhysicsSystem() == "acoustic_v") {
+        return std::make_shared<AcousticVHexP1>(options);
+      } else {
+        throw std::runtime_error("Runtime Error: Element physics " + options.PhysicsSystem() + " not supported.");
+      }
+    }
+    else {
       throw std::runtime_error("Runtime Error: Element shape " + options.ElementShape() + " not supported.");
     }
   } catch (std::exception &e) {

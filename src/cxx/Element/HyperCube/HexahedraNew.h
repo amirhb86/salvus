@@ -4,57 +4,49 @@
 #include <Element/ElementNew.h>
 
 // Derived.
-#include <Physics/AcousticNew.h>
+#include <Physics/Acoustic3D.h>
 
 extern "C" {
 #include <Quad/Autogen/quad_autogen.h>
+#include <Hex/Autogen/hex_autogen.h>
 }
 
-template <typename ConcreteShape>
-class QuadNew: public ConcreteShape {
+template <typename ConcreteHex>
+class HexahedraNew: public ConcreteHex {
 
-  /** \class QuadNew
-   *
-   * \brief Base class for all Quads with a tensorized basis.
-   *
-   * This class is at the base mixin level for all tensorized Quad elements. It should concretely define things common
-   * to all Quads. For example, here we define specific methods to attach vertex coordinates to each element, as well
-   * as sources and receivers. These last two methods bring up an interesting point however. As you might notice, the
-   * mixin approach lets us be perform class nesting to an arbitrary depth, without incurring any runtime cost. So,
-   * for example, we could have a super class called something like Element2D, where source and receiver attachments
-   * are implemented. However, at one point we need to decide on an optimal level of complexity. Since Quad is the
-   * absolute base for all further derivations, this means that attachReceiver() and attachSource() will need to be
-   * duplicated for Triangles, and for all other 2D elements. Is this an acceptable level of code duplication, in order
-   * to cut down on the class heiarchy depth? Perhaps. Either way, we should discuss this, and also note that following
-   * these mixin principles, things are easily modified.
-   *
-   * To initialize a new Quad element, you'll need at least one template parameter. For instance:
-   *
-   * \code
-   * auto elem = Quad<QuadP1>
-   * auto elem = Quad<Acoustic<QuadP1>>
-   * auto elem = Quad<Gravity<Attenuation<Acoustic<QuadP1>>>>
-   * \endcode
-   *
-   * are all valid (provided that the relevant physics classes are written). Just as an example of what it would take
-   * for _full_ generality, as discussed above, we might have:
-   *
-   * \code
-   * auto elem = Elem2D<TensorQuad<GllQuadrature<Gravity<Attenuation<Acoustic<QuadP1>>>>>>.
-   * \endcode
-   *
-   * Pretty insane, right? But, it would allow us to do some neat things (like fixed-size arrays for all quadrature
-   * orders). So, I dunno man.
-   *
-   * Unless otherwise mentioned, all instances of `field` in function signatures refer to some function defiend
-   * at the GLL points.
-   */
+/**
+ * Base class of an abstract eight node hexahedra. The reference
+ * element is set up as below, where vertices are ordered with
+ * right-hand-rule normals pointing out.
+ *
+ *                                  (v7)                    (v6)
+ *                                    /---------------------/+
+ *                                 /--|                  /-- |
+ *                             /---   |              /---    |
+ *                          /--       |           /--        |
+ *                       /--          |         --           |
+ *                (v4) +------------------------+ (v5)       |
+ *                     |              |         |            |
+ *                     |              |         |            |
+ *                     |              |         |            |
+ *   ^                 |              |         |            |
+ *   | (t)             |              |         |            |
+ *   |                 |            --+-------- |------------+ (v2)
+ *   |                 |        ---/ (v1)       |         /--
+ *   |                 |     --/                |     /---
+ *   |         (s)     | ---/                   |  /--
+ *   |         /-      +/-----------------------+--
+ *   |     /---       (v0)                    (v3)
+ *   | /---
+ *   +-----------------> (r)
+ *
+ */
+
 
 private:
 
-  // Static variables.
-  const static int mNumDim = 2;
-  const static int mNumVtx = 4;
+  const static int mNumDim = 3;
+  const static int mNumVtx = 8;
 
   // Workspace.
   Eigen::VectorXd mDetJac;
@@ -76,12 +68,13 @@ private:
   int mNumDofVol;
   int mNumIntPtsR;
   int mNumIntPtsS;
+  int mNumIntPtsT;
 
   // Vertex coordinates.
   Eigen::Matrix<double,mNumVtx,mNumDim> mVtxCrd;
 
   // Element center.
-  Eigen::Vector2d mElmCtr;
+  Eigen::Vector3d mElmCtr;
 
   // Closure mapping.
   Eigen::VectorXi mClsMap;
@@ -89,14 +82,16 @@ private:
   // Quadrature parameters.
   Eigen::VectorXd mIntCrdR;
   Eigen::VectorXd mIntCrdS;
+  Eigen::VectorXd mIntCrdT;
   Eigen::VectorXd mIntWgtR;
   Eigen::VectorXd mIntWgtS;
+  Eigen::VectorXd mIntWgtT;
 
   // Matrix holding gradient information.
   Eigen::MatrixXd mGrd;
 
   // Material parameters.
-  std::map<std::string,Eigen::Vector4d> mPar;
+  std::map<std::string,Eigen::Matrix<double,8,1>> mPar;
 
   // Sources and receivers.
   std::vector<std::shared_ptr<Source>> mSrc;
@@ -104,16 +99,44 @@ private:
 
  public:
 
-  /** Allocates memory for work arrays, most private variables. */
-  QuadNew<ConcreteShape>(Options options);
+  HexahedraNew<ConcreteHex>(Options options);
 
-  /** Sets up the test function parameters. */
-  static Eigen::VectorXd GllPointsForOrder(const int order);
-  static Eigen::VectorXi ClosureMappingForOrder(const int order);
-  static Eigen::VectorXd GllIntegrationWeightsForOrder(const int order);
+  /**
+   * Returns the quadrature locations for a given polynomial order.
+   * @param [in] order The polynmomial order.
+   * @returns Vector of GLL points.
+   */
+  static Eigen::VectorXd GllPoints(const int order);
+
+  /**
+   * Returns the quadrature intergration weights for a polynomial order.
+   * @param [in] order The polynomial order.
+   * @returns Vector of quadrature weights.
+   */
+  static Eigen::VectorXd GllIntegrationWeights(const int order);
+
+  /**
+   * Returns the mapping from the PETSc to Salvus closure.
+   * @param [in] order The polynomial order.
+   * @returns Vector containing the closure mapping (field(closure(i)) = petscField(i))
+   */
+  static Eigen::VectorXi ClosureMapping(const int order, int elem_num,
+                                        DM &distributed_mesh);
+
+  /**
+   * Setup the auto-generated gradient operator, and stores the result in mGrd.
+   * @param [in] order The polynomial order.
+   */
   static Eigen::MatrixXd setupGradientOperator(const int order);
-  static Eigen::VectorXd interpolateLagrangePolynomials(const double r, const double s, const int order);
 
+  /**
+   * 
+   */
+  static Eigen::VectorXd interpolateLagrangePolynomials(const double r,
+                                                        const double s,
+                                                        const double t,
+                                                        const int order);
+  
   /**
    * Returns an optimized stride along the r direction.
    * @param [in] f Function defined at GLL points.
@@ -122,8 +145,9 @@ private:
    * @param [in] numPtsR Number of integration points along the r-axis.
    */
   static Eigen::VectorXd rVectorStride(const Eigen::Ref<const Eigen::VectorXd>& f,
-                                       const int s_ind, const int numPtsS,
-                                       const int numPtsR);
+                                       const int s_ind, const int t_ind,
+                                       const int numPtsR, const int numPtsS,
+                                       const int numPtsT);
   /**
    * Returns an optimized stride along the s direction.
    * @param [in] f Function defined at GLL points.
@@ -133,8 +157,22 @@ private:
    *
    */
   static Eigen::VectorXd sVectorStride(const Eigen::Ref<const Eigen::VectorXd>& f,
-                                       const int r_ind, const int numPtsS,
-                                       const int numPtsR);
+                                       const int r_ind, const int t_ind,
+                                       const int numPtsR, const int numPtsS,
+                                       const int numPtsT);
+
+  /**
+   * Returns an optimized stride along the s direction.
+   * @param [in] f Function defined at GLL points.
+   * @param [in] s_ind Index of GLL points along s-axis.
+   * @param [in] numPtsS Number of integration points along the s-axis.
+   * @param [in] numPtsR Number of integration points along the r-axis.
+   *
+   */
+  static Eigen::VectorXd tVectorStride(const Eigen::Ref<const Eigen::VectorXd>& f,
+                                       const int r_ind, const int s_ind,
+                                       const int numPtsR, const int numPtsS,
+                                       const int numPtsT);
 
   /**
    * Compute the gradient of a field at all GLL points.
@@ -147,6 +185,7 @@ private:
    * @param [in] par Parameter to interpolate (i.e. VP, VS).
    */
   Eigen::VectorXd ParAtIntPts(const std::string& par);
+
 
   /**
    * Multiply a field by the test functions and integrate.
@@ -206,7 +245,7 @@ private:
   /**
    *
    */
-  Eigen::VectorXd getDeltaFunctionCoefficients(const double r, const double s);
+  Eigen::VectorXd getDeltaFunctionCoefficients(const double r, const double s, const double t);
 
   /**
    * Given a model, save the material parameters at the element vertices.
@@ -215,6 +254,7 @@ private:
    */
   void attachMaterialProperties(const ExodusModel *model, std::string parameter);
 
+  
   /**
    * Given some field at the GLL points, interpolate the field to some general point.
    * @param [in] pnt Position in reference coordinates.
@@ -223,7 +263,7 @@ private:
 
   // Setters.
   inline void SetNumNew(const PetscInt num) { mElmNum = num; }
-  inline void SetVtxCrd(const Eigen::Ref<const Eigen::Matrix<double,4,2>> &v) { mVtxCrd = v; }
+  inline void SetVtxCrd(const Eigen::Ref<const Eigen::Matrix<double,8,3>> &v) { mVtxCrd = v; }
 
   // Getters.
   inline bool BndElm() const { return mBndElm; }
@@ -238,10 +278,10 @@ private:
   std::vector<std::shared_ptr<Source>> Sources() { return mSrc; }
 
   // Delegates.
-  std::tuple<Eigen::VectorXd, Eigen::VectorXd> buildNodalPoints() {
-    return ConcreteShape::buildNodalPoints(mIntCrdR, mIntCrdS, mVtxCrd);
+  std::tuple<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd> buildNodalPoints() {
+    return ConcreteHex::buildNodalPoints(mIntCrdR, mIntCrdS, mIntCrdT, mVtxCrd);
   };
-
+  
 };
 
 

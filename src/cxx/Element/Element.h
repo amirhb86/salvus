@@ -189,6 +189,8 @@ class Element {
                                        Options &options,
                                        std::string fieldname);
 
+  virtual void applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname) {}
+  
   /**
    * The fields which are required on the element level.
    * @returns A vector of strings with the field names.

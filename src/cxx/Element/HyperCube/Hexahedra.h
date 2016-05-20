@@ -76,7 +76,7 @@ protected:
   VectorXd mIntCoordT;/** < Integration points along `t` direction */
 
 public:
-  
+
   /**
    * TODO: Write...
    *
@@ -109,6 +109,7 @@ public:
                                                                            const int &r_index,
                                                                            const int &s_index);
 
+  // TODO: HEXP1
   /**
    * 3x3 inverse Jacobian matrix at a point (r, s, t).  This method returns an Eigen::Matrix
    * representation of the inverse Jacobian at a particular point.
@@ -120,6 +121,7 @@ public:
    */
   std::tuple<Matrix3d, PetscReal> inverseJacobianAtPoint(PetscReal r, PetscReal s, PetscReal t);
 
+  // TODO: HEXP1
   /**
    * Given a point in realspace, determines the equivalent location in the reference element.
    * Since the shape function are bilinear, the cross terms introduce nonlinearities into the shape function
@@ -229,6 +231,8 @@ public:
    */
   std::tuple<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd> buildNodalPoints();
 
+  void applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname);
+  
   // for testing
   inline int __GetNumIntPtsR() { return mNumIntPtsR; }
   inline int __GetNumIntPtsS() { return mNumIntPtsS; }
