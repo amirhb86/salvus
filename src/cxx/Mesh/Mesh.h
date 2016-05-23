@@ -58,11 +58,6 @@ class Mesh {
   PetscSection mMeshSection;      /** < Mesh section describing location of the integration points. In the future we
                                         * may have many of these per mesh. */
 
-  /**
-   * Returns the number of fields at a give DOF.
-   * For example numFieldPerPhysics(scalar) -> 1, numFieldPerPhysics(2delastic) - > 2.
-   */
-  int numFieldPerPhysics(std::string physics);
 
  protected:
 
@@ -97,6 +92,16 @@ class Mesh {
    * @return Some derived mesh class.
    */
   static Mesh *factory(Options options);
+
+  /**
+   * Given an existing vector of continuous fields, append a new set of fields based on a
+   * type of physics.
+   * @param [in] fields A pre-existing vector containing field names.
+   * @param [in] physics A string defining the physics you would like to add.
+   * @return An extended vector containing new field names.
+   */
+  static std::vector<std::string> appendPhysicalFields(const std::vector<std::string>& fields,
+                                                       const std::string& physics);
 
   virtual ~Mesh() { DMDestroy(&mDistributedMesh); }
 

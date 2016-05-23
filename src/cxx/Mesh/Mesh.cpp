@@ -248,45 +248,42 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
 
       // Make a map of pnt -> set of types at each graph point.
       PetscInt pnt = points[2*j];
-      std::set<std::string> phys = {type};
-      auto in = pnt_types.insert(std::make_pair(pnt, phys));
-      if (!in.second) { pnt_types[pnt].insert(type); }
+      for (auto &field: appendPhysicalFields({}, type)) {
+        std::set<std::string> phys = {field};
+        auto in = pnt_types.insert(std::make_pair(pnt, phys));
+        if (!in.second) { pnt_types[pnt].insert(field); }
 
-      // Save whatever field we've found to all_fields as well.
-      all_fields.insert(type);
+        // Save whatever field we've found to all_fields as well.
+        all_fields.insert(field);
+      }
     }
   }
 
   // Different number of components depending on which field.
   std::vector<PetscInt> num_comp;
   std::vector<std::string> all_fields_vec;
-  PetscInt num_fields = all_fields.size();
   for (auto f: all_fields) {
-    num_comp.push_back(numFieldPerPhysics(f));
     all_fields_vec.push_back(f);
   }
+  PetscInt num_fields = all_fields_vec.size();
 
   // Create the section and add the fields we've defined.
-  ier = PetscSectionCreate(PetscObjectComm((PetscObject) mDistributedMesh), &mMeshSection);
-  CHKERRQ(ier);
-  ier = PetscSectionSetNumFields(mMeshSection, num_fields);
-  CHKERRQ(ier);
+  ier = PetscSectionCreate(PetscObjectComm((PetscObject) mDistributedMesh), &mMeshSection);CHKERRQ(ier);
+  ier = PetscSectionSetNumFields(mMeshSection, num_fields);CHKERRQ(ier);
 
   int itr = 0;
+  int one_field = 1;
   for (int f = 0; f < num_fields; f++) {
-    ier = PetscSectionSetFieldComponents(mMeshSection, f, num_comp[f]);CHKERRQ(ier);
-
+    ier = PetscSectionSetFieldComponents(mMeshSection, f, one_field);CHKERRQ(ier);
     ier = PetscSectionSetFieldName(mMeshSection, f, all_fields_vec[f].c_str());CHKERRQ(ier);
   }
 
   // Get the indices of  the entire Hasse Diagram.
   PetscInt p_start, p_end;
-  ier = DMPlexGetChart(mDistributedMesh, &p_start, &p_end);
-  CHKERRQ(ier);
+  ier = DMPlexGetChart(mDistributedMesh, &p_start, &p_end);CHKERRQ(ier);
 
   // Tell the section about its' bounds.
-  ier = PetscSectionSetChart(mMeshSection, p_start, p_end);
-  CHKERRQ(ier);
+  ier = PetscSectionSetChart(mMeshSection, p_start, p_end);CHKERRQ(ier);
 
   // Get the number of levels of the Hasse diagram. Should be dimension + 1 (fac, edg, vtx. for 2D)
   PetscInt depth;
@@ -590,17 +587,18 @@ Eigen::MatrixXd Mesh::getElementCoordinateClosure(PetscInt elem_num) {
 
 }
 
-int Mesh::numFieldPerPhysics(std::string physics) {
-  try {
-    if (physics == "fluid") { return 1; }
-    else if (physics == "2delastic") { return 2; }
-    else {
-      throw std::runtime_error("Derived type " + physics + " is not known.");
-    }
-  } catch (std::exception &e) {
-    PRINT_ROOT() << e.what();
+std::vector<std::string> Mesh::appendPhysicalFields(const std::vector<std::string> &fields,
+                                                    const std::string &physics) {
+  std::vector<std::string> extend;
+  if (physics == "fluid") { extend = {"u"}; }
+  else if (physics == "2delastic") { extend = {"ux", "uy"}; }
+  else {
+    PRINT_ROOT() << "Physics " + physics + " not implemented!!";
     MPI_Abort(PETSC_COMM_WORLD, -1);
   }
+//  extend = {"u1", "u2"};
+  for (auto &field: fields) { extend.push_back(field); }
+  return extend;
 }
 
 // int Mesh::BoundarylementFaces(int elm, int ss_num) {
