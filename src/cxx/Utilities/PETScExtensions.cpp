@@ -83,6 +83,7 @@ PetscErrorCode _DMPlexVecGetClosure_Fields_Static_GetIndices(PetscSection sectio
     PetscInt fcomp, p;
 
     ierr = PetscSectionGetFieldComponents(section, f, &fcomp);CHKERRQ(ierr);
+
     for (p = 0; p < numPoints*2; p += 2) {
       const PetscInt point = points[p];
       const PetscInt o     = points[p+1];

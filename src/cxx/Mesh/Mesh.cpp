@@ -274,11 +274,9 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
 
   int itr = 0;
   for (int f = 0; f < num_fields; f++) {
-    ier = PetscSectionSetFieldComponents(mMeshSection, f, num_comp[f]);
+    ier = PetscSectionSetFieldComponents(mMeshSection, f, num_comp[f]);CHKERRQ(ier);
 
-    CHKERRQ(ier);
-    ier = PetscSectionSetFieldName(mMeshSection, f, all_fields_vec[f].c_str());
-    CHKERRQ(ier);
+    ier = PetscSectionSetFieldName(mMeshSection, f, all_fields_vec[f].c_str());CHKERRQ(ier);
   }
 
   // Get the indices of  the entire Hasse Diagram.
@@ -331,7 +329,6 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
         // has already been set above.
         int num_dof_field_elem = exists ? num_dof : 0;
 
-
         // Actually set the DOFs into the section.
         ier = PetscSectionSetFieldDof(mMeshSection, p, f, num_dof_field_elem);CHKERRQ(ier);
 
@@ -340,6 +337,7 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
       }
       // Total number of dofs per points is a sum of all the field dofs.
       ier = PetscSectionSetDof(mMeshSection, p, tot);CHKERRQ(ier);
+
     }
   }
 

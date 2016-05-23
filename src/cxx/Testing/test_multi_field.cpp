@@ -37,7 +37,7 @@ TEST_CASE("test_multi_field", "[multi_field]") {
   ExodusModel *model = new ExodusModel(options);
   model->initializeParallel();
 
-  mesh->setupGlobalDof(1, 3, 9, 0, 2, model);
+  mesh->setupGlobalDof(0, 0, 1, 0, 2, model);
 
   PetscScalar *buffer;
   PetscInt bsize;
@@ -47,7 +47,7 @@ TEST_CASE("test_multi_field", "[multi_field]") {
 
   PetscInt csize;
   PetscInt *idx;
-  DMPlexGetClosureIndices(mesh->DistributedMesh(), mesh->MeshSection(), 0, &csize, &idx);
+  DMPlexGetClosureIndices(mesh->DistributedMesh(), mesh->MeshSection(), 2, &csize, &idx);
 
 
 }
