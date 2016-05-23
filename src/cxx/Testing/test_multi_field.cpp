@@ -79,4 +79,15 @@ TEST_CASE("test_multi_field", "[multi_field]") {
 
 
 
+  PetscScalar *buffer;
+  PetscInt bsize;
+  Vec test_dm;
+  DMCreateLocalVector(mesh->DistributedMesh(), &test_dm);
+//  DMPlexGetClosureWorkArray(mesh->DistributedMesh(), 4, mesh->MeshSection(), &bsize, &buffer);
+
+  PetscInt csize;
+  PetscInt *idx;
+  DMPlexGetClosureIndices(mesh->DistributedMesh(), mesh->MeshSection(), 0, &csize, &idx);
+
+
 }
