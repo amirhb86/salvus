@@ -62,9 +62,13 @@ set(SALVUS_SOURCES
         src/cxx/Element/HyperCube/Hexahedra.cpp
         src/cxx/Element/HyperCube/Hex/AcousticHex.cpp
         src/cxx/Element/Simplex/Triangle.cpp
+        src/cxx/Element/Simplex/TriangleNew.cpp
+        src/cxx/Element/Simplex/Triangle/TriP1.cpp
         src/cxx/Element/Simplex/Triangle/AcousticTri.cpp
         src/cxx/Element/Simplex/Tetrahedra.cpp
+        src/cxx/Element/Simplex/TetrahedraNew.cpp
         src/cxx/Element/Simplex/Tetrahedra/AcousticTet.cpp
+        src/cxx/Element/Simplex/Tetrahedra/TetP1.cpp
         src/cxx/Model/ExodusModel.cpp
         src/cxx/Utilities/Utilities.cpp
         src/cxx/Utilities/Options.cpp
@@ -76,8 +80,10 @@ set(SALVUS_SOURCES
         src/cxx/Element/HyperCube/HexahedraNew.cpp
         src/cxx/Element/HyperCube/Hex/HexP1.cpp
         src/cxx/Physics/AcousticNew.cpp
+        src/cxx/Physics/AcousticTet3D.cpp
         src/cxx/Physics/Acoustic3D.cpp
         src/cxx/Physics/Acoustic3D_V.cpp
+        src/cxx/Physics/AcousticTriNew.cpp
         src/cxx/Utilities/kdtree.c
         src/cxx/Utilities/PETScExtensions.c
         src/cxx/Element/ElementNew.cpp

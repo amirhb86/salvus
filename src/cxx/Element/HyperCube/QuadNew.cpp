@@ -3,8 +3,8 @@
 
 using namespace Eigen;
 
-template <typename Derived>
-QuadNew<Derived>::QuadNew(Options options) {
+template <typename ConcreteShape>
+QuadNew<ConcreteShape>::QuadNew(Options options) {
 
   mPlyOrd = options.PolynomialOrder();
   mNumDofVtx = 1;
@@ -12,12 +12,12 @@ QuadNew<Derived>::QuadNew(Options options) {
   mNumDofFac = (mPlyOrd - 1) * (mPlyOrd - 1);
   mNumDofVol = 0;
 
-  mGrd = QuadNew<Derived>::setupGradientOperator(mPlyOrd);
-  mClsMap = QuadNew<Derived>::ClosureMappingForOrder(mPlyOrd);
-  mIntCrdR = QuadNew<Derived>::GllPointsForOrder(mPlyOrd);
-  mIntCrdS = QuadNew<Derived>::GllPointsForOrder(mPlyOrd);
-  mIntWgtR = QuadNew<Derived>::GllIntegrationWeightsForOrder(mPlyOrd);
-  mIntWgtS = QuadNew<Derived>::GllIntegrationWeightsForOrder(mPlyOrd);
+  mGrd = QuadNew<ConcreteShape>::setupGradientOperator(mPlyOrd);
+  mClsMap = QuadNew<ConcreteShape>::ClosureMappingForOrder(mPlyOrd);
+  mIntCrdR = QuadNew<ConcreteShape>::GllPointsForOrder(mPlyOrd);
+  mIntCrdS = QuadNew<ConcreteShape>::GllPointsForOrder(mPlyOrd);
+  mIntWgtR = QuadNew<ConcreteShape>::GllIntegrationWeightsForOrder(mPlyOrd);
+  mIntWgtS = QuadNew<ConcreteShape>::GllIntegrationWeightsForOrder(mPlyOrd);
 
   mNumIntPtsS = mIntCrdS.size();
   mNumIntPtsR = mIntWgtR.size();
@@ -30,8 +30,8 @@ QuadNew<Derived>::QuadNew(Options options) {
 
 }
 
-template <typename Derived>
-VectorXd QuadNew<Derived>::GllPointsForOrder(const int order) {
+template <typename ConcreteShape>
+VectorXd QuadNew<ConcreteShape>::GllPointsForOrder(const int order) {
   VectorXd gll_points(order + 1);
   if (order == 1) {
     gll_coordinates_order1_square(gll_points.data());
@@ -57,8 +57,8 @@ VectorXd QuadNew<Derived>::GllPointsForOrder(const int order) {
   return gll_points;
 }
 
-template <typename Derived>
-VectorXd QuadNew<Derived>::GllIntegrationWeightsForOrder(const int order) {
+template <typename ConcreteShape>
+VectorXd QuadNew<ConcreteShape>::GllIntegrationWeightsForOrder(const int order) {
   VectorXd integration_weights(order + 1);
   if (order == 1) {
     gll_weights_order1_square(integration_weights.data());
@@ -84,8 +84,8 @@ VectorXd QuadNew<Derived>::GllIntegrationWeightsForOrder(const int order) {
   return integration_weights;
 }
 
-template <typename Derived>
-VectorXi QuadNew<Derived>::ClosureMappingForOrder(const int order) {
+template <typename ConcreteShape>
+VectorXi QuadNew<ConcreteShape>::ClosureMappingForOrder(const int order) {
   VectorXi closure_mapping((order + 1) * (order + 1));
   if (order == 1) {
     closure_mapping_order1_square(closure_mapping.data());
@@ -245,17 +245,17 @@ VectorXd QuadNew<ConcreteShape>::interpolateLagrangePolynomials(const double r, 
 }
 
 
-template <typename Derived>
-MatrixXd QuadNew<Derived>::setupGradientOperator(const int order) {
+template <typename ConcreteShape>
+MatrixXd QuadNew<ConcreteShape>::setupGradientOperator(const int order) {
 
-  int num_pts_r = QuadNew<Derived>::GllPointsForOrder(order).size();
-  int num_pts_s = QuadNew<Derived>::GllPointsForOrder(order).size();
-  double eta = QuadNew<Derived>::GllPointsForOrder(order)(0);
+  int num_pts_r = QuadNew<ConcreteShape>::GllPointsForOrder(order).size();
+  int num_pts_s = QuadNew<ConcreteShape>::GllPointsForOrder(order).size();
+  double eta = QuadNew<ConcreteShape>::GllPointsForOrder(order)(0);
 
   MatrixXd grad(num_pts_s, num_pts_r);
   MatrixXd test(num_pts_s, num_pts_r);
   for (int i = 0; i < num_pts_r; i++) {
-    double eps = QuadNew<Derived>::GllPointsForOrder(order)(i);
+    double eps = QuadNew<ConcreteShape>::GllPointsForOrder(order)(i);
     if (order == 1) {
       interpolate_eps_derivative_order1_square(eta, test.data());
     } else if (order == 2) {
@@ -403,8 +403,8 @@ VectorXd QuadNew<ConcreteShape>::applyGradTestAndIntegrate(const Ref<const Matri
 
 }
 
-template <typename Derived>
-double QuadNew<Derived>::integrateField(const Eigen::Ref<const Eigen::VectorXd> &field) {
+template <typename ConcreteShape>
+double QuadNew<ConcreteShape>::integrateField(const Eigen::Ref<const Eigen::VectorXd> &field) {
 
   double val = 0;
   Matrix2d inverse_Jacobian;
@@ -414,7 +414,7 @@ double QuadNew<Derived>::integrateField(const Eigen::Ref<const Eigen::VectorXd> 
 
       double r = mIntCrdR(j);
       double s = mIntCrdS(i);
-      std::tie(inverse_Jacobian, detJ) = Derived::inverseJacobianAtPoint(r, s, mVtxCrd);
+      std::tie(inverse_Jacobian, detJ) = ConcreteShape::inverseJacobianAtPoint(r, s, mVtxCrd);
       val += field(j + i * mNumIntPtsR) * mIntWgtR(j) *
           mIntWgtS(i) * detJ;
 
@@ -424,8 +424,8 @@ double QuadNew<Derived>::integrateField(const Eigen::Ref<const Eigen::VectorXd> 
   return val;
 }
 
-template <typename Derived>
-void QuadNew<Derived>::setBoundaryConditions(Mesh *mesh) {
+template <typename ConcreteShape>
+void QuadNew<ConcreteShape>::setBoundaryConditions(Mesh *mesh) {
   mBndElm = false;
   for (auto &keys: mesh ->BoundaryElementFaces()) {
     auto boundary_name = keys.first;
@@ -437,8 +437,8 @@ void QuadNew<Derived>::setBoundaryConditions(Mesh *mesh) {
   }
 }
 
-template <typename Derived>
-void QuadNew<Derived>::applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname) {
+template <typename ConcreteShape>
+void QuadNew<ConcreteShape>::applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname) {
 
   if (! mBndElm) return;
 

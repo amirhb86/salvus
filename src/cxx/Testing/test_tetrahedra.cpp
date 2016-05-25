@@ -3,7 +3,9 @@
 #include <Eigen/Dense>
 #include <Element/Element.h>
 #include <Element/Simplex/Tetrahedra.h>
+#include <Element/Simplex/TetrahedraNew.h>
 #include <Element/Simplex/Tetrahedra/AcousticTet.h>
+#include <Element/Simplex/Tetrahedra/TetP1.h>
 
 using namespace Eigen;
 
@@ -24,63 +26,46 @@ std::vector<int> getVertsFromPoint(int point, int numVerts, DM &distributed_mesh
 
 TEST_CASE("Test mapping from reference tet to physical coords and back","[element/tetrahedra]") {
 
-  PetscOptionsClear();
-  const char *arg[] = {
-    "salvus_test",
-    "--testing","true",
-    "--element_shape", "tet",
-    "--physics_system", "acoustic",
-    "--polynomial_order", "3",NULL};
-  int order = 3;
-  char **argv = const_cast<char **> (arg);
-  int argc = sizeof(arg) / sizeof(const char *) - 1;
-  PetscOptionsInsert(&argc, &argv, NULL);
-  
-  // Set options for exact tests
-  Options options;
-  options.setOptions();
-    
-  auto reference_element = Element::factory(options);  
-  auto ref_tet = std::dynamic_pointer_cast<AcousticTet> (reference_element);
-  int num_pts = ref_tet->__GetNumIntPts();
+  VectorXd rn,sn,tn;
+  std::tie(rn,sn,tn) = TetrahedraNew<TetP1>::QuadraturePoints(3);
+  int num_pts = rn.size();
   // A distorted element
-  Eigen::Matrix<double,3,4> coord;
+  Matrix<double,4,3> coord;
 
   // tet with standard base, but 4th vertex is at (0.5,0.5,0.5) instead of (0,0,1)
   coord <<
-    0, 0, 1, 0.5, // x
-    0, 1, 0, 0.5, // y
-    0, 0, 0, 0.5; // z
+    0,0,0,
+    0,1,0,    
+    1,0,0,    
+    0.5,0.5,0.5;
     
-  ref_tet->SetVtxCrd(coord);
-
   Eigen::VectorXd pts_x,pts_y,pts_z;
-  std::tie(pts_x,pts_y,pts_z) = ref_tet->buildNodalPoints();
+  std::tie(pts_x,pts_y,pts_z) = TetP1::buildNodalPoints(rn,sn,tn,coord);
 
   VectorXd ref_pts_x(num_pts);
   VectorXd ref_pts_y(num_pts);
   VectorXd ref_pts_z(num_pts);
 
   auto x1 = coord(0,0);
-  auto x2 = coord(0,1);
-  auto x3 = coord(0,2);
-  auto x4 = coord(0,3);
+  auto x2 = coord(1,0);
+  auto x3 = coord(2,0);
+  auto x4 = coord(3,0);
             
-  auto y1 = coord(1,0);
+  auto y1 = coord(0,1);
   auto y2 = coord(1,1);
-  auto y3 = coord(1,2);
-  auto y4 = coord(1,3);
+  auto y3 = coord(2,1);
+  auto y4 = coord(3,1);
             
-  auto z1 = coord(2,0);
-  auto z2 = coord(2,1);
+  auto z1 = coord(0,2);
+  auto z2 = coord(1,2);
   auto z3 = coord(2,2);
-  auto z4 = coord(2,3);
+  auto z4 = coord(3,2);
   
   for (auto i = 0; i < num_pts; i++) {
         
-    double r = ref_tet->__GetIntCoordR()[i];
-    double s = ref_tet->__GetIntCoordS()[i];
-    double t = ref_tet->__GetIntCoordT()[i];
+    double r = rn[i];
+    double s = sn[i];
+    double t = tn[i];
     
     ref_pts_x[i] = r*x3 + s*x2 + t*x4 - x1*(r + s + t - 1);
     ref_pts_y[i] = r*y3 + s*y2 + t*y4 - y1*(r + s + t - 1);
@@ -95,11 +80,9 @@ TEST_CASE("Test mapping from reference tet to physical coords and back","[elemen
   VectorXd ref_pts_r(num_pts);
   VectorXd ref_pts_s(num_pts);
   VectorXd ref_pts_t(num_pts);
-  auto rn = ref_tet->__GetIntCoordR();
-  auto sn = ref_tet->__GetIntCoordS();
-  auto tn = ref_tet->__GetIntCoordT();
+  
   for (auto i = 0; i < num_pts; i++) {
-    auto rst = ref_tet->inverseCoordinateTransform(pts_x[i],pts_y[i],pts_z[i]);
+    auto rst = TetP1::inverseCoordinateTransform(pts_x[i],pts_y[i],pts_z[i],coord);
     ref_pts_r[i] = rst[0];
     ref_pts_s[i] = rst[1];
     ref_pts_t[i] = rst[2];
@@ -108,9 +91,9 @@ TEST_CASE("Test mapping from reference tet to physical coords and back","[elemen
   
   // std::cout << "ref_pts_r=\n" << ref_pts_r << "\n";
   
-  REQUIRE((ref_tet->__GetIntCoordR()-ref_pts_r).array().abs().maxCoeff() < 1e-4);
-  REQUIRE((ref_tet->__GetIntCoordS()-ref_pts_s).array().abs().maxCoeff() < 1e-4);
-  REQUIRE((ref_tet->__GetIntCoordT()-ref_pts_t).array().abs().maxCoeff() < 1e-4);
+  REQUIRE((rn-ref_pts_r).array().abs().maxCoeff() < 1e-4);
+  REQUIRE((sn-ref_pts_s).array().abs().maxCoeff() < 1e-4);
+  REQUIRE((tn-ref_pts_t).array().abs().maxCoeff() < 1e-4);
   
 }
 

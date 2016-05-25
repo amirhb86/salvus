@@ -1,4 +1,4 @@
-#include "Acoustic3D.h"
+#include "AcousticTet3D.h"
 
 #include <Mesh/Mesh.h>
 #include <Utilities/Options.h>
@@ -7,7 +7,7 @@
 using namespace Eigen;
 
 template <typename Element>
-Acoustic3D<Element>::Acoustic3D(Options options): Element(options) {
+AcousticTet3D<Element>::AcousticTet3D(Options options): Element(options) {
 
   // Allocate all work arrays.
   mVpSquared.setZero(Element::NumIntPnt());
@@ -19,18 +19,18 @@ Acoustic3D<Element>::Acoustic3D(Options options): Element(options) {
 }
 
 template <typename Element>
-void Acoustic3D<Element>::attachMaterialPropertiesNew(const ExodusModel *model) {
+void AcousticTet3D<Element>::attachMaterialPropertiesNew(const ExodusModel *model) {
   Element::attachMaterialProperties(model, "VP");
 }
 
 template <typename Element>
-std::vector<std::string> Acoustic3D<Element>::PullElementalFields() const { return { "u" }; }
+std::vector<std::string> AcousticTet3D<Element>::PullElementalFields() const { return { "u" }; }
 
 template <typename Element>
-std::vector<std::string> Acoustic3D<Element>::PushElementalFields() const { return { "a" }; }
+std::vector<std::string> AcousticTet3D<Element>::PushElementalFields() const { return { "a" }; }
 
 template <typename Element>
-void Acoustic3D<Element>::assembleElementMassMatrix(Mesh *mesh) {
+void AcousticTet3D<Element>::assembleElementMassMatrix(Mesh *mesh) {
 
   // In this acoustic formulation we just multiply shape functions together.
   VectorXd mass_matrix = Element::applyTestAndIntegrate(VectorXd::Ones(Element::NumIntPnt()));
@@ -40,39 +40,72 @@ void Acoustic3D<Element>::assembleElementMassMatrix(Mesh *mesh) {
 
 }
 
+
 template <typename Element>
-MatrixXd Acoustic3D<Element>::computeStress(const Ref<const MatrixXd> &strain) {
+MatrixXd AcousticTet3D<Element>::computeStress(const Ref<const MatrixXd> &strain) {
 
-  // Interpolate the (square) of the velocity at each integration point.
-  mVpSquared = Element::ParAtIntPts("VP").array().pow(2);
+  // Interpolate the velocity at each integration point.
+  auto vp = Element::ParAtIntPts("VP");
 
-  // Calculate sigma_ux and sigma_uy.
-  mStress.col(0) = mVpSquared.array().cwiseProduct(strain.col(0).array());
-  mStress.col(1) = mVpSquared.array().cwiseProduct(strain.col(1).array());
-  mStress.col(2) = mVpSquared.array().cwiseProduct(strain.col(2).array());
+  // Calculate sigma_ux and sigma_uy. (note vp^2)
+  mStress.col(0) = vp.array().pow(2).cwiseProduct(strain.col(0).array());
+  mStress.col(1) = vp.array().pow(2).cwiseProduct(strain.col(1).array());
+  mStress.col(2) = vp.array().pow(2).cwiseProduct(strain.col(2).array());
+  
+  // 5% faster
+  // for(int i=0;i<strain.rows();i++) {
+  //   double vpi = vp(i);
+  //   mStress(i,0) *= vpi*vpi;
+  //   mStress(i,1) *= vpi*vpi;
+  //   mStress(i,2) *= vpi*vpi;
+  // }
+
   return mStress;
 
 }
 
+
 template <typename Element>
-MatrixXd Acoustic3D<Element>::computeStiffnessTerm(
-    const MatrixXd &u) {
-
-  // Calculate gradient from displacement.
-  mStrain = Element::computeGradient(u.col(0));
-
-  // Stress from strain.
-  mStress = computeStress(mStrain);
-
-  // Complete application of K->u.
-  mStiff = Element::applyGradTestAndIntegrate(mStress);
-
-  return mStiff;
-
+void AcousticTet3D<Element>::prepareStiffness() {
+  auto velocity = Element::ParAtIntPts("VP");
+  mElementStiffnessMatrix = Element::buildStiffnessMatrix(velocity);
 }
 
 template <typename Element>
-MatrixXd Acoustic3D<Element>::computeSourceTerm(const double time) {
+MatrixXd AcousticTet3D<Element>::computeStiffnessTerm(
+    const MatrixXd &u) {
+
+  // Ku version
+  mStiff.noalias() = mElementStiffnessMatrix*u.col(0);
+  
+  // Calculate gradient from displacement.
+  mStrain = Element::computeGradient(u.col(0));
+  
+  // Seperated version
+  // Stress from strain.
+  // mStress = computeStress(mStrain);
+  
+  // Complete application of K->u.
+  // mStiff = Element::applyGradTestAndIntegrate(mStress);
+  
+  // if(Element::ElmNum() == 0) {
+  //   std::cout << "mStiffv1=" << mStiff.transpose() << "\n";
+  //   std::cout << "mStiffv2=" << mStiffv2.transpose() << "\n";
+  // }
+  //   VectorXd delta; delta.setZero(mStiffv2.size());
+  //   delta(0) = 1.0;
+  //   MatrixXd mStrain_delta = Element::computeGradient(delta);
+  //   MatrixXd mStress_delta = computeStress(mStrain_delta);
+  //   VectorXd mStiff_delta = Element::applyGradTestAndIntegrate(mStress_delta);
+  //   std::cout << "K[:,0] = " << mElementStiffnessMatrix.col(0).transpose() << "\n";
+  //   std::cout << "mStiff_delta=" << mStiff_delta.transpose() << "\n";
+  // }
+  
+  return mStiff;
+}
+
+template <typename Element>
+MatrixXd AcousticTet3D<Element>::computeSourceTerm(const double time) {
   mSource.setZero();  
   for (auto source : Element::Sources()) {
     mSource += (source->fire(time) * Element::getDeltaFunctionCoefficients(source->ReferenceLocationR(),
@@ -84,7 +117,7 @@ MatrixXd Acoustic3D<Element>::computeSourceTerm(const double time) {
 
 
 template <typename Element>
-void Acoustic3D<Element>::setupEigenfunctionTest(Mesh *mesh, Options options) {
+void AcousticTet3D<Element>::setupEigenfunctionTest(Mesh *mesh, Options options) {
 
   double L, Lx, Ly, Lz;
   double x0 = options.IC_Center_x();
@@ -107,7 +140,7 @@ void Acoustic3D<Element>::setupEigenfunctionTest(Mesh *mesh, Options options) {
 }
 
 template <typename Element>
-double Acoustic3D<Element>::checkEigenfunctionTest(Mesh *mesh, Options options,
+double AcousticTet3D<Element>::checkEigenfunctionTest(Mesh *mesh, Options options,
                                                   const Ref<const MatrixXd>& u, double time) {
 
   double L, Lx, Ly, Lz;
@@ -132,7 +165,7 @@ double Acoustic3D<Element>::checkEigenfunctionTest(Mesh *mesh, Options options,
 
 }
 
-#include <HexahedraNew.h>
-#include <HexP1.h>
-template class Acoustic3D<HexahedraNew<HexP1>>;
+#include <Element/Simplex/TetrahedraNew.h>
+#include <Element/Simplex/Tetrahedra/TetP1.h>
+template class AcousticTet3D<TetrahedraNew<TetP1>>;
 
