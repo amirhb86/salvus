@@ -3,12 +3,8 @@
 #include <petsc.h>
 #include <chrono>
 
-//#include <Element/Element.h>
-#include <Element/ElementNew.h>
+#include <Element/Element.h>
 #include <ElementAdapter.h>
-#include <Element/HyperCube/Quad/Acoustic.h>
-#include <Element/Simplex/Triangle/AcousticTri.h>
-#include <Element/HyperCube/Hex/AcousticHex.h>
 
 template <typename ElementVersion>
 std::vector<std::shared_ptr<ElementVersion>> initialize_exact(Mesh *mesh,

@@ -1,54 +1,85 @@
 #pragma once
 
 #include <Eigen/Dense>
-#include <Model/ExodusModel.h>
-#include <Source/Source.h>
-#include <Mesh/Mesh.h>
 #include <Element/Element.h>
+
+// Derived.
+// #include <Physics/Acoustic2D.h>
+
 
 extern "C" {
 #include <Triangle/Autogen/p3_triangle.h>
 }
 
+template <typename ConcreteShape>
+class Triangle: public ConcreteShape {
 
-/**
- * Base class of an abstract three node triangle. The reference element is set up as below.
- * 
- *        (-1,1)                          
- *         (v2)                           
- *          | \--                         
- *          |    \-                       
- *          |      \--                    
- *          |         \--                 
- *          |            \--              
- *   (s)    |               \--           
- *    ^     |                  \-         
- *    |     |                    \--      
- *    |    (v0)----------------------(v1) 
- *    |   (-1,-1)                    (1,-1)
- *    |
- *    |--------> (r)
- *
- */
-
-class Triangle: public Element {
-
- protected:
+  /** \class Triangle
+   * Base class of an abstract three node triangle. The reference element is set up as below.
+   * 
+   *        (-1,1)                          
+   *         (v2)                           
+   *          | \--                         
+   *          |    \-                       
+   *          |      \--                    
+   *          |         \--                 
+   *          |            \--              
+   *   (s)    |               \--           
+   *    ^     |                  \-         
+   *    |     |                    \--      
+   *    |    (v0)----------------------(v1) 
+   *    |   (-1,-1)                    (1,-1)
+   *    |
+   *    |--------> (r)
+   *
+   */
+ private:
 
   /*****************************************************************************
    * STATIC MEMBERS. THESE VARIABLES AND FUNCTIONS SHOULD APPLY TO ALL ELEMENTS.
    *****************************************************************************/
 
-  static int mNumberVertex;
-  /** < Num of element vertices. */
+  // Static variables.
+  const static int mNumDim = 2;
+  const static int mNumVtx = 3;  /** < Num of element vertices. */  
 
-  static Eigen::MatrixXd mGradientOperator;
+  // Instance variables.
+  PetscInt mElmNum;
+  int mPlyOrd;
+  int mNumIntPnt;
+  int mNumDofVtx;
+  int mNumDofEdg;
+  int mNumDofFac;
+  int mNumDofVol;
+
+  // Vertex coordinates.
+  Eigen::Matrix<double,mNumVtx,mNumDim> mVtxCrd;
+
+  // Element center.
+  Eigen::Vector2d mElmCtr;
+
+  // Closure mapping.
+  Eigen::VectorXi mClsMap;
+
+  // Workspace.
+  Eigen::VectorXd mDetJac;
+  Eigen::VectorXd mParWork;
+  Eigen::VectorXd mStiffWork;
+  Eigen::MatrixXd mGradWork;
+
+  // On Boundary.
+  bool mBndElm;
+  std::map<std::string,std::vector<int>> mBnd;
+  
+
+
+  Eigen::MatrixXd mGradientOperator;
   /** < Derivative of shape function n (col) at pos. m (row) */
-  static Eigen::VectorXd mIntegrationWeights;
+  Eigen::VectorXd mIntegrationWeights;
   /** < Integration weights along epsilon direction. */
-  static Eigen::VectorXd mIntegrationCoordinates_r;
+  Eigen::VectorXd mIntegrationCoordinates_r;
   /** < Nodal location direction */
-  static Eigen::VectorXd mIntegrationCoordinates_s;  /** < Nodal location direction */
+  Eigen::VectorXd mIntegrationCoordinates_s;  /** < Nodal location direction */
 
   /** r-derivative of Lagrange poly Phi [row: phi_i, col: phi @ nth point]*/
   static Eigen::MatrixXd mGradientPhi_dr;
@@ -59,32 +90,31 @@ class Triangle: public Element {
    * OBJECT MEMBERS. THESE VARIABLES AND FUNCTIONS SHOULD APPLY TO SPECIFIC ELEMENTS.
    ***********************************************************************************/
 
- public:
+  // Material parameters.
+  std::map<std::string,Eigen::Vector3d> mPar;
 
-  /**
-   * Factory return the proper element physics based on the command line options.
-   * @return Some derived element class.
-   */
-  static Triangle *factory(Options options);
+  // Sources and receivers.
+  std::vector<std::shared_ptr<Source>> mSrc;
+  std::vector<std::shared_ptr<Receiver>> mRec;
+  
+  // precomputed element stiffness matrix (with velocities)
+  Eigen::MatrixXd mElementStiffnessMatrix;
+  
+ public:
 
   /**
    * Constructor.
    * Sets quantities such as number of dofs, among other things, from the options class.
    * @param [in] options Populated options class.
    */
-  Triangle(Options options);
-
-  /**
-   * Destructor.
-   */
-  ~Triangle() {};
+  Triangle<ConcreteShape>(Options options);
 
   /**
    * Returns the gll locations for a given polynomial order.
    * @param [in] order The polynmomial order.
    * @returns tuple of quadrature points (r,s).
    */
-  static std::tuple<Eigen::VectorXd, Eigen::VectorXd> QuadraturePointsForOrder(const int order);
+  static std::tuple<Eigen::VectorXd, Eigen::VectorXd> QuadraturePoints(const int order);
 
   /**
    * Returns the quadrature intergration weights for a polynomial order.
@@ -92,7 +122,7 @@ class Triangle: public Element {
    * @returns Vector of quadrature weights.
    * TODO: Move to autogenerated code.
    */
-  static Eigen::VectorXd QuadratureIntegrationWeightForOrder(const int order);
+  static Eigen::VectorXd QuadratureIntegrationWeight(const int order);
 
   /**
    * Returns the mapping from the PETSc to Salvus closure.
@@ -103,11 +133,8 @@ class Triangle: public Element {
   static Eigen::VectorXi ClosureMapping(const int order, const int dimension);
 
   static Eigen::Vector3d interpolateAtPoint(double r, double s);
-  Eigen::MatrixXd interpolateFieldAtPoint(const Eigen::VectorXd &pnt) {
-    return Eigen::Matrix<double, -1, -1, 0, -1, -1>();
-  }
 
-  void recordField(const Eigen::MatrixXd &u) {};
+  void recordField(const Eigen::MatrixXd &u) { std::cerr << "ERROR: recordField not implemented\n"; exit(1); };
 
   // currently not possible
   // /**
@@ -129,34 +156,11 @@ class Triangle: public Element {
    ********************************************************/
 
   /**
-   * Checks whether a given point in realspace (x, z) is within the current element.
-   * A simple convex hull algorithm is implemented. Should work as long as the sides of the element are straight
-   * lines, but will likely fail for higher order shape functions.
-   * @param [in] x X-coordinate in real space.
-   * @param [in] z Z-coordinate in real space.
-   * @returns True if point is inside, False if not.
+   * Interpolate a parameter from vertex to GLL point.
+   * @param [in] par Parameter to interpolate (i.e. VP, VS).
    */
-  bool mCheckHull(double x, double z);
-
-  /**
-   * 2x2 inverse Jacobian matrix at a point (eps, eta).  This method returns an Eigen::Matrix
-   * representation of the inverse Jacobian at a particular point.
-   * @param [in] eps Epsilon position on the reference element.
-   * @param [in] eta Eta position on the reference element.
-   * @returns (inverse Jacobian matrix,determinant of that matrix) as a `std::tuple`. Tuples can be
-   * "destructured" using a `std::tie`.
-   */
-  std::tuple<Eigen::Matrix2d, PetscReal> inverseJacobianAtPoint(PetscReal eps, PetscReal eta);
-
-  /**
-   * Given a point in realspace, determines the equivalent location in the reference element.
-   * Since the shape function is linear, the inverse transform is a simple analytic formula.
-   * @param [in] x_real X-coordinate in real space.
-   * @param [in] z_real Z-coordinate in real space.
-   * @return A Vector (eps, eta) containing the coordinates in the reference element.
-   */
-  Eigen::Vector2d inverseCoordinateTransform(const double &x_real, const double &z_real);
-
+  Eigen::VectorXd ParAtIntPts(const std::string& par);
+  
   /**
    * Attaches a material parameter to the vertices on the current element.
    * Given an exodus model object, we use a kD-tree to find the closest parameter to a vertex. In practice, this
@@ -164,10 +168,9 @@ class Triangle: public Element {
    * as we do for our parameters.
    * @param [in] model An exodus model object.
    * @param [in] parameter_name The name of the field to be added (i.e. velocity, c11).
-   * @returns A Vector with 4-entries... one for each Element vertex, in the ordering described above.
    */
-  Eigen::Vector3d __attachMaterialProperties(ExodusModel *model,
-                                             std::string parameter_name);
+  void attachMaterialProperties(const ExodusModel *model,
+                                std::string parameter_name);
 
   /**
    * Utility function to integrate a field over the element. This could probably be made static, but for now I'm
@@ -200,7 +203,7 @@ class Triangle: public Element {
    * @param [in] sources A vector of all the sources defined for a simulation run.
    */
   void attachSource(std::vector<std::shared_ptr<Source>> sources);
-
+  
   /**
    * Atttach receiver.
    * Given a vector of abstract receiver objects, this function will query each for its spatial location. After
@@ -212,14 +215,64 @@ class Triangle: public Element {
   void attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers);
 
   /**
-   * Simple function to set the (remembered) element number.
+   * If an element is detected to be on a boundary, apply the Dirichlet condition to the
+   * dofs on that boundary.
+   * @param [in] mesh The mesh instance.
+   * @param [in] options The options class.
+   * @param [in] fieldname The field to which the boundary must be applied.
    */
-  void SetNum(int element_number) { mElmNum = element_number; }
+  void applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname);
 
+  /**
+   * Given some field at the GLL points, interpolate the field to some general point.
+   * @param [in] pnt Position in reference coordinates.
+   */
+  Eigen::MatrixXd interpolateFieldAtPoint(const Eigen::VectorXd &pnt) { std::cerr << "ERROR: Not implemented"; exit(1); }
+
+  /**
+   *
+   */
+  Eigen::VectorXd getDeltaFunctionCoefficients(const double r, const double s);
+
+  Eigen::MatrixXd buildStiffnessMatrix(Eigen::VectorXd velocity);
+  
+  // Setters
+  inline void SetNumNew(const PetscInt num) { mElmNum = num; }
+  inline void SetVtxCrd(const Eigen::Ref<const Eigen::Matrix<double,3,2>> &v) { mVtxCrd = v; }
+
+  /**
+   * Multiply a field by the test functions and integrate.
+   * @param [in] f Field to calculate on.
+   */
+  Eigen::VectorXd applyTestAndIntegrate(const Eigen::Ref<const Eigen::VectorXd>& f);
+
+  /**
+   * Figure out and set boundaries.
+   * @param [in] mesh The mesh instance.
+   */
+  void setBoundaryConditions(Mesh *mesh);
+
+  
+  // Getters.
+  inline PetscInt ElmNum() const { return mElmNum; }
+  inline bool BndElm() const { return mBndElm; }
+  inline int NumDim() const { return mNumDim; }
+  inline int NumIntPnt() const { return mNumIntPnt; }
+  inline int NumDofVol() const { return mNumDofVol; }
+  inline int NumDofFac() const { return mNumDofFac; }
+  inline int NumDofEdg() const { return mNumDofEdg; }
+  inline int NumDofVtx() const { return mNumDofVtx; }
+  inline Eigen::MatrixXi ClsMap() const { return mClsMap; }
+  std::vector<std::shared_ptr<Source>> Sources() { return mSrc; }
+
+  
   /**
    * Builds nodal coordinates (x,z) on all mesh degrees of freedom.
    * @param mesh [in] The mesh.
    */
-  std::tuple<Eigen::VectorXd, Eigen::VectorXd> buildNodalPoints();
+  // Delegates.
+  std::tuple<Eigen::VectorXd, Eigen::VectorXd> buildNodalPoints() {
+    return ConcreteShape::buildNodalPoints(mIntegrationCoordinates_r, mIntegrationCoordinates_s, mVtxCrd);
+  };
 
 };

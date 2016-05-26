@@ -1,5 +1,6 @@
 #include <vector>
-#include "TriP1.h"
+
+#include <TriP1.h>
 
 using namespace Eigen;
 

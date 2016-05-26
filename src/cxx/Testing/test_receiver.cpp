@@ -1,5 +1,4 @@
 #include "catch.h"
-#include <Element/ElementNew.h>
 #include <Element/Element.h>
 #include <Problem/Problem.h>
 

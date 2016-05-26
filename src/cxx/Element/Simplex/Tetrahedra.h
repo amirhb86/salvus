@@ -10,52 +10,61 @@ extern "C" {
 #include <Tetrahedra/Autogen/p3_tetrahedra.h>
 }
 
-
-/**
- * Base class of an abstract four node tetrahedra. The reference element is set up as below.
- * 
- *              (v3)
- *                +--
- *                | \----
- *                |   \--\----
- *                |      \--  \----
- *                |         \-     \---  (v1)
- *                |           \--      \--
- *  ^             |              \--/---  \
- *  |             |             /---\-     \
- *  | (t)         |         /---      \--   \
- *  |             |     /---             \-- \
- *  |      (s)    | /---                    \-\
- *  |       /-    +---------------------------\--
- *  |    /--     (v0)                        (v2)
- *  | /--
- *  +-----------------> (r)
- * 
- * Faces are organized like: bottom (r-s), left (s-t), front (r-t), right (r-s-t)
- * More precisely, faces are composed of vertices and ordered
- * 0: 0 1 2
- * 1: 0 3 1
- * 2: 0 2 3
- * 3: 2 1 3
- * Edge ordering
- * (v0,v1)
- * (v1,v2)
- * (v2,v0)
- * (v0,v3)
- * (v3,v1)
- * (v2,v3)
- */
-
-class Tetrahedra: public Element {
-
- protected:
+template <typename ConcreteShape>
+class Tetrahedra: public ConcreteShape {
+  /**
+   * Base class of an abstract four node tetrahedra. The reference element is set up as below.
+   * 
+   *              (v3)
+   *                +--
+   *                | \----
+   *                |   \--\----
+   *                |      \--  \----
+   *                |         \-     \---  (v1)
+   *                |           \--      \--
+   *  ^             |              \--/---  \
+   *  |             |             /---\-     \
+   *  | (t)         |         /---      \--   \
+   *  |             |     /---             \-- \
+   *  |      (s)    | /---                    \-\
+   *  |       /-    +---------------------------\--
+   *  |    /--     (v0)                        (v2)
+   *  | /--
+   *  +-----------------> (r)
+   * 
+   * Faces are organized like: bottom (r-s), left (s-t), front (r-t), right (r-s-t)
+   * More precisely, faces are composed of vertices and ordered
+   * 0: 0 1 2
+   * 1: 0 3 1
+   * 2: 0 2 3
+   * 3: 2 1 3
+   * Edge ordering
+   * (v0,v1)
+   * (v1,v2)
+   * (v2,v0)
+   * (v0,v3)
+   * (v3,v1)
+   * (v2,v3)
+   */
+    
+ private:
 
   /*****************************************************************************
    * STATIC MEMBERS. THESE VARIABLES AND FUNCTIONS SHOULD APPLY TO ALL ELEMENTS.
    *****************************************************************************/
 
-  static int mNumberVertex;
-  /** < Num of element vertices. */
+  // Static variables.
+  const static int mNumDim = 3;
+  const static int mNumVtx = 4;
+
+  // Instance variables.
+  PetscInt mElmNum;
+  int mPlyOrd;
+  int mNumIntPnt;
+  int mNumDofVtx;
+  int mNumDofEdg;
+  int mNumDofFac;
+  int mNumDofVol;
 
   static Eigen::MatrixXd mGradientOperator;
   /** < Derivative of shape function n (col) at pos. m (row) */
@@ -71,11 +80,51 @@ class Tetrahedra: public Element {
   /** s-derivative of Lagrange poly Phi [row: phi_i, col: phi @ nth point]*/
   static Eigen::MatrixXd mGradientPhi_ds;
   static Eigen::MatrixXd mGradientPhi_dt;
-
+  
   /**********************************************************************************
    * OBJECT MEMBERS. THESE VARIABLES AND FUNCTIONS SHOULD APPLY TO SPECIFIC ELEMENTS.
    ***********************************************************************************/
 
+  Eigen::MatrixXd mGradientPhi_dx;
+  Eigen::MatrixXd mGradientPhi_dy;
+  Eigen::MatrixXd mGradientPhi_dz;
+  Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> mGradientPhi_dx_t;
+  Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> mGradientPhi_dy_t;
+  Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> mGradientPhi_dz_t;
+
+  Eigen::MatrixXd mWiDPhi_x;
+  Eigen::MatrixXd mWiDPhi_y;
+  Eigen::MatrixXd mWiDPhi_z;
+  
+  // Vertex coordinates.
+  Eigen::Matrix<double,mNumVtx,mNumDim> mVtxCrd;
+  
+  // Element center.
+  Eigen::Vector3d mElmCtr;
+
+  // Closure mapping.
+  Eigen::VectorXi mClsMap;
+  
+  // Workspace.
+  double mDetJac;
+  Eigen::VectorXd mParWork;
+  Eigen::VectorXd mStiffWork;
+  Eigen::MatrixXd mGradWork;  
+  
+  // On Boundary.
+  bool mBndElm;
+  std::map<std::string,std::vector<int>> mBnd;
+
+  // Material parameters.
+  std::map<std::string,Eigen::Vector4d> mPar;
+
+  // Sources and receivers.
+  std::vector<std::shared_ptr<Source>> mSrc;
+  std::vector<std::shared_ptr<Receiver>> mRec;
+  
+  // precomputed element stiffness matrix (with velocities)
+  Eigen::MatrixXd mElementStiffnessMatrix;
+  
  public:
 
   /**
@@ -92,16 +141,11 @@ class Tetrahedra: public Element {
   Tetrahedra(Options options);
 
   /**
-   * Destructor.
-   */
-  ~Tetrahedra() {};
-
-  /**
    * Returns the gll locations for a given polynomial order.
    * @param [in] order The polynmomial order.
    * @returns tuple of quadrature points (r,s).
    */
-  static std::tuple<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd> QuadraturePointsForOrder(const int order);
+  static std::tuple<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd> QuadraturePoints(const int order);
 
   /**
    * Returns the quadrature intergration weights for a polynomial order.
@@ -109,7 +153,7 @@ class Tetrahedra: public Element {
    * @returns Vector of quadrature weights.
    * TODO: Move to autogenerated code.
    */
-  static Eigen::VectorXd QuadratureIntegrationWeightForOrder(const int order);
+  static Eigen::VectorXd QuadratureIntegrationWeights(const int order);
 
   /**
    * Returns the mapping from the PETSc to Salvus closure.
@@ -120,14 +164,13 @@ class Tetrahedra: public Element {
   Eigen::VectorXi ClosureMapping(const int order, const int dimension,
                                  DM &distributed_mesh);
 
-  void BuildClosureMapping(DM &distributed_mesh);
-  
   static Eigen::Vector4d interpolateAtPoint(double r, double s, double t);
   Eigen::MatrixXd interpolateFieldAtPoint(const Eigen::VectorXd &pnt) {
+    std::cerr << "ERROR: interpolateFieldAtPoint not implemented\n"; exit(1);
     return Eigen::Matrix<double, -1, -1, 0, -1, -1>();
   }
 
-  void recordField(const Eigen::MatrixXd &u) {};
+  void recordField(const Eigen::MatrixXd &u) { std::cerr << "ERROR: recordField not implemented\n"; exit(1); };
 
   // currently not possible
   // /**
@@ -149,37 +192,17 @@ class Tetrahedra: public Element {
    ********************************************************/
 
   /**
-   * Checks whether a given point in realspace (x, z) is within the current element.
-   * A simple convex hull algorithm is implemented. Should work as long as the sides of the element are straight
-   * lines, but will likely fail for higher order shape functions.
-   * @param [in] x X-coordinate in real space.
-   * @param [in] z Z-coordinate in real space.
-   * @returns True if point is inside, False if not.
+   * Compute the gradient of a field at all GLL points.
+   * @param [in] field Field to take the gradient of.
    */
-  bool mCheckHull(double x, double y, double z);
-
+  Eigen::MatrixXd computeGradient(const Eigen::Ref<const Eigen::VectorXd>& field);
+  
   /**
-   * 2x2 inverse Jacobian matrix at a point (r,s,t).  This method returns an Eigen::Matrix
-   * representation of the inverse Jacobian at a particular point.
-   * @param [in] eps Epsilon position on the reference element.
-   * @param [in] eta Eta position on the reference element.
-   * @returns (inverse Jacobian matrix,determinant of that matrix) as a `std::tuple`. Tuples can be
-   * "destructured" using a `std::tie`.
+   * Interpolate a parameter from vertex to GLL point.
+   * @param [in] par Parameter to interpolate (i.e. VP, VS).
    */
-  std::tuple<Eigen::Matrix3d, PetscReal> inverseJacobianAtPoint(PetscReal r, PetscReal s, PetscReal t);
-
-  /**
-   * Given a point in realspace, determines the equivalent location in the reference element.
-   * Since the shape function is linear, the inverse transform is a simple analytic formula.
-   * @param [in] x_real X-coordinate in real space.
-   * @param [in] y_real Y-coordinate in real space.
-   * @param [in] z_real Z-coordinate in real space.
-   * @return A Vector (eps, eta) containing the coordinates in the reference element.
-   */
-  Eigen::Vector3d inverseCoordinateTransform(const double &x_real,
-                                             const double &y_real,
-                                             const double &z_real);
-
+  Eigen::VectorXd ParAtIntPts(const std::string& par);
+  
   /**
    * Attaches a material parameter to the vertices on the current element.
    * Given an exodus model object, we use a kD-tree to find the closest parameter to a vertex. In practice, this
@@ -187,11 +210,10 @@ class Tetrahedra: public Element {
    * as we do for our parameters.
    * @param [in] model An exodus model object.
    * @param [in] parameter_name The name of the field to be added (i.e. velocity, c11).
-   * @returns A Vector with 4-entries... one for each Element vertex, in the ordering described above.
    */
-  Eigen::Vector4d __attachMaterialProperties(ExodusModel *model,
-                                             std::string parameter_name);
-
+  void attachMaterialProperties(const ExodusModel *model,
+                                std::string parameter_name);
+  
   /**
    * Utility function to integrate a field over the element. This could probably be made static, but for now I'm
    * just using it to check some values.
@@ -235,23 +257,69 @@ class Tetrahedra: public Element {
   void attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers);
 
   /**
+   * If an element is detected to be on a boundary, apply the Dirichlet condition to the
+   * dofs on that boundary.
+   * @param [in] mesh The mesh instance.
+   * @param [in] options The options class.
+   * @param [in] fieldname The field to which the boundary must be applied.
+   */
+  void applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname);
+
+  /**
+   *
+   */
+  Eigen::VectorXd getDeltaFunctionCoefficients(double r, double s, double t) { std::cerr << "ERROR: Not implemented"; exit(1); }
+
+  Eigen::MatrixXd buildStiffnessMatrix(Eigen::VectorXd velocity);
+
+  /**
+   * Multiply a field by the test functions and integrate.
+   * @param [in] f Field to calculate on.
+   */
+  Eigen::VectorXd applyTestAndIntegrate(const Eigen::Ref<const Eigen::VectorXd>& f);
+
+  /**
+   * Multiply a field by the gradient of the test functions and integrate.
+   * @param [in] f Field to calculate on.
+   */
+  Eigen::VectorXd applyGradTestAndIntegrate(const Eigen::Ref<const Eigen::MatrixXd>& f);
+  
+  /**
+   * Figure out and set boundaries.
+   * @param [in] mesh The mesh instance.
+   */
+  void setBoundaryConditions(Mesh *mesh);
+
+  
+  /**
    * Simple function to set the (remembered) element number.
    */
   void SetNum(int element_number) { mElmNum = element_number; }
+  inline void SetNumNew(const PetscInt num) { mElmNum = num; }
+  inline void SetVtxCrd(const Eigen::Ref<const Eigen::Matrix<double,mNumVtx,mNumDim>> &v) { mVtxCrd = v; }
+
+  inline PetscInt ElmNum() const { return mElmNum; }
+  inline bool BndElm() const { return mBndElm; }
+  inline int NumDim() const { return mNumDim; }
+  inline int NumIntPnt() const { return mNumIntPnt; }
+  inline int NumDofVol() const { return mNumDofVol; }
+  inline int NumDofFac() const { return mNumDofFac; }
+  inline int NumDofEdg() const { return mNumDofEdg; }
+  inline int NumDofVtx() const { return mNumDofVtx; }
+  inline Eigen::MatrixXi ClsMap() const { return mClsMap; }
+  std::vector<std::shared_ptr<Source>> Sources() { return mSrc; }  
 
   /**
    * Builds nodal coordinates (x,z) on all mesh degrees of freedom.
    * @param mesh [in] The mesh.
    */
-  std::tuple<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd> buildNodalPoints();
+  // Delegates.
+  std::tuple<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd> buildNodalPoints() {
+    return ConcreteShape::buildNodalPoints(mIntegrationCoordinates_r,
+                                           mIntegrationCoordinates_s,
+                                           mIntegrationCoordinates_t,
+                                           mVtxCrd);
+  };
 
-  // for testing
-  inline int __GetNumIntPts() { return mIntegrationWeights.size(); }
-  inline Eigen::VectorXd __GetIntCoordR() { return mIntegrationCoordinates_r; }
-  inline Eigen::VectorXd __GetIntCoordS() { return mIntegrationCoordinates_s; }
-  inline Eigen::VectorXd __GetIntCoordT() { return mIntegrationCoordinates_t; }
-
-
-  void applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname);
   
 };

@@ -1,16 +1,11 @@
-//
-// Created by Michael Afanasiev on 2016-02-01.
-//
+#include <ExodusModel.h>
 
-#include <Eigen/Dense>
-#include "ExodusModel.h"
+#include <Utilities/Options.h>
+#include <Utilities/Utilities.h>
 
 ExodusModel::ExodusModel(Options options) {
-
   mExodusFileName = options.ExodusModelFile();
   mNumberElementVertex = 4;
-
-
 }
 
 void ExodusModel::initializeParallel() {
@@ -45,7 +40,6 @@ void ExodusModel::initializeParallel() {
   if (mNumberDimension > 2) { mNodalZ = utilities::broadcastStdVecFromRoot(mNodalZ); }
 
   // Create KdTree on each processor.
-//    createNodalKdTree();
   createElementalKdTree();
 
 

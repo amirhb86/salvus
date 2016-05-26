@@ -8,9 +8,9 @@ class Options;
 class ExodusModel;
 
 template <typename Shape>
-class ElasticNew: public Shape {
+class Elastic2D: public Shape {
   /**
-   * \class ElasticNew
+   * \class Elastic2D
    *
    * \brief Class in charge of handling wave propagation in elastic regions.
    *
@@ -30,7 +30,7 @@ class ElasticNew: public Shape {
  public:
 
   /**** Initializers ****/
-  ElasticNew<Shape>(Options options);
+  Elastic2D<Shape>(Options options);
   std::vector<std::string> PullElementalFields() const;
   std::vector<std::string> PushElementalFields() const;
 

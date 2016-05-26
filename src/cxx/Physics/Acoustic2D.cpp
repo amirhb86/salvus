@@ -1,36 +1,37 @@
-#include "AcousticTriNew.h"
+#include "Acoustic2D.h"
 
 #include <Mesh/Mesh.h>
 #include <Utilities/Options.h>
+#include <Source/Source.h>
 #include <Model/ExodusModel.h>
 
 using namespace Eigen;
 
 template <typename Element>
-AcousticTriNew<Element>::AcousticTriNew(Options options): Element(options) {
+Acoustic2D<Element>::Acoustic2D(Options options): Element(options) {
 
   // Allocate all work arrays.
   mVpSquared.setZero(Element::NumIntPnt());
   mStiff.setZero(Element::NumIntPnt());
   mSource.setZero(Element::NumIntPnt());
-  mStress.setZero(Element::NumIntPnt(), 2);
-  mStrain.setZero(Element::NumIntPnt(), 2);
+  mStress.setZero(Element::NumIntPnt(), Element::NumDim());
+  mStrain.setZero(Element::NumIntPnt(), Element::NumDim());
 
 }
 
 template <typename Element>
-void AcousticTriNew<Element>::attachMaterialPropertiesNew(const ExodusModel *model) {
+void Acoustic2D<Element>::attachMaterialPropertiesNew(const ExodusModel *model) {
   Element::attachMaterialProperties(model, "VP");
 }
 
 template <typename Element>
-std::vector<std::string> AcousticTriNew<Element>::PullElementalFields() const { return { "u" }; }
+std::vector<std::string> Acoustic2D<Element>::PullElementalFields() const { return { "u" }; }
 
 template <typename Element>
-std::vector<std::string> AcousticTriNew<Element>::PushElementalFields() const { return { "a" }; }
+std::vector<std::string> Acoustic2D<Element>::PushElementalFields() const { return { "a" }; }
 
 template <typename Element>
-void AcousticTriNew<Element>::assembleElementMassMatrix(Mesh *mesh) {
+void Acoustic2D<Element>::assembleElementMassMatrix(Mesh *mesh) {
 
   // In this acoustic formulation we just multiply shape functions together.
   VectorXd mass_matrix = Element::applyTestAndIntegrate(VectorXd::Ones(Element::NumIntPnt()));
@@ -41,7 +42,7 @@ void AcousticTriNew<Element>::assembleElementMassMatrix(Mesh *mesh) {
 }
 
 template <typename Element>
-MatrixXd AcousticTriNew<Element>::computeStress(const Ref<const MatrixXd> &strain) {
+MatrixXd Acoustic2D<Element>::computeStress(const Ref<const MatrixXd> &strain) {
 
   // Interpolate the (square) of the velocity at each integration point.
   mVpSquared = Element::ParAtIntPts("VP").array().pow(2);
@@ -54,34 +55,24 @@ MatrixXd AcousticTriNew<Element>::computeStress(const Ref<const MatrixXd> &strai
 }
 
 template <typename Element>
-void AcousticTriNew<Element>::prepareStiffness() {
-  auto velocity = Element::ParAtIntPts("VP");
-  mElementStiffnessMatrix = Element::buildStiffnessMatrix(velocity);    
-}
-
-
-template <typename Element>
-MatrixXd AcousticTriNew<Element>::computeStiffnessTerm(
+MatrixXd Acoustic2D<Element>::computeStiffnessTerm(
     const MatrixXd &u) {
 
-  mStiff = mElementStiffnessMatrix*u.col(0);
+  // Calculate gradient from displacement.
+  mStrain = Element::computeGradient(u.col(0));
+
+  // Stress from strain.
+  mStress = computeStress(mStrain);
+
+  // Complete application of K->u.
+  mStiff = Element::applyGradTestAndIntegrate(mStress);
+
   return mStiff;
-  
-  // // Calculate gradient from displacement.
-  // mStrain = Element::computeGradient(u);
 
-  // // Stress from strain.
-  // mStress = computeStress(mStrain);
-
-  // // Complete application of K->u.
-  // mStiff = Element::applyGradTestAndIntegrate(mStress);
-
-  // return mStiff;
-  
 }
 
 template <typename Element>
-MatrixXd AcousticTriNew<Element>::computeSourceTerm(const double time) {
+MatrixXd Acoustic2D<Element>::computeSourceTerm(const double time) {
   mSource.setZero();
   for (auto source : Element::Sources()) {
     mSource += (source->fire(time) * Element::getDeltaFunctionCoefficients(
@@ -92,7 +83,7 @@ MatrixXd AcousticTriNew<Element>::computeSourceTerm(const double time) {
 
 
 template <typename Element>
-void AcousticTriNew<Element>::setupEigenfunctionTest(Mesh *mesh, Options options) {
+void Acoustic2D<Element>::setupEigenfunctionTest(Mesh *mesh, Options options) {
 
   double L, Lx, Ly;
   double x0 = options.IC_Center_x();
@@ -110,7 +101,7 @@ void AcousticTriNew<Element>::setupEigenfunctionTest(Mesh *mesh, Options options
 }
 
 template <typename Element>
-double AcousticTriNew<Element>::checkEigenfunctionTest(Mesh *mesh, Options options,
+double Acoustic2D<Element>::checkEigenfunctionTest(Mesh *mesh, Options options,
                                                   const Ref<const MatrixXd>& u, double time) {
 
   double L, Lx, Ly;
@@ -131,8 +122,7 @@ double AcousticTriNew<Element>::checkEigenfunctionTest(Mesh *mesh, Options optio
 
 }
 
-
-#include <Element/Simplex/TriangleNew.h>
-#include <Element/Simplex/Triangle/TriP1.h>
-template class AcousticTriNew<TriangleNew<TriP1>>;
+#include <Quad.h>
+#include <QuadP1.h>
+template class Acoustic2D<Quad<QuadP1>>;
 

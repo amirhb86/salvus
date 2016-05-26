@@ -35,12 +35,6 @@
 #include <Mesh/ScalarNewmark2D.h>
 #include <Mesh/ElasticNewmark2D.h>
 
-#include <Element/HyperCube/Quad.h>
-#include <Element/HyperCube/Quad/Elastic.h>
-#include <Element/HyperCube/Quad/Acoustic.h>
-
-#include <Element/Simplex/Triangle.h>
-
 class ElementNew;
 
 class Problem {

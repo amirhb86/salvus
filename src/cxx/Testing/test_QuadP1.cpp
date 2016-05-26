@@ -1,6 +1,6 @@
 #include "catch.h"
 #include <Eigen/Dense>
-#include <Element/HyperCube/QuadNew.h>
+#include <Element/HyperCube/Quad.h>
 #include <Element/HyperCube/Quad/QuadP1.h>
 
 TEST_CASE("test quadP1", "[quad/quadP1]") {
@@ -59,8 +59,8 @@ TEST_CASE("test quadP1", "[quad/quadP1]") {
 
     Eigen::Matrix<double,num_vtx,num_dim> vtx;
 
-    Eigen::VectorXd crd_r = QuadNew<QuadP1>::GllPointsForOrder(4);
-    Eigen::VectorXd crd_s = QuadNew<QuadP1>::GllPointsForOrder(4);
+    Eigen::VectorXd crd_r = Quad<QuadP1>::GllPointsForOrder(4);
+    Eigen::VectorXd crd_s = Quad<QuadP1>::GllPointsForOrder(4);
 
     vtx << -1, -1,
            +1, -1,

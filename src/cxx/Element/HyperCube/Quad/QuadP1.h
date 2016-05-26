@@ -1,8 +1,9 @@
 #pragma once
 
+#include <iostream>
+
 #include <petsc.h>
 #include <Eigen/Dense>
-#include <iostream>
 
 class QuadP1 {
 

@@ -8,9 +8,9 @@ class Options;
 class ExodusModel;
 
 template <typename Shape>
-class AcousticTet3D: public Shape {
+class Acoustic2D: public Shape {
   /**
-   * \class AcousticTet3D
+   * \class Acoustic2D
    *
    * \brief Class in charge of handling wave propagation in acoustic regions.
    *
@@ -27,16 +27,16 @@ class AcousticTet3D: public Shape {
   Eigen::VectorXd mSource;
   Eigen::MatrixXd mStress;
   Eigen::MatrixXd mStrain;
-  Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> mElementStiffnessMatrix;
+
  public:
 
   /**** Initializers ****/
-  AcousticTet3D<Shape>(Options options);
+  Acoustic2D<Shape>(Options options);
   std::vector<std::string> PullElementalFields() const;
   std::vector<std::string> PushElementalFields() const;
 
   /**** Setup functions ****/
-  void prepareStiffness();
+  void prepareStiffness() {};
   void assembleElementMassMatrix(Mesh *mesh);
   void attachMaterialPropertiesNew(const ExodusModel *model);
 

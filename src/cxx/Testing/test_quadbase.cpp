@@ -1,7 +1,7 @@
 #include "catch.h"
-#include <Element/ElementNew.h>
+#include <Element/Element.h>
 #include <Element/ElementAdapter.h>
-#include <Element/HyperCube/QuadNew.h>
+#include <Element/HyperCube/Quad.h>
 #include <Element/HyperCube/Quad/QuadP1.h>
 
 TEST_CASE("test quadbase", "[quad]") {

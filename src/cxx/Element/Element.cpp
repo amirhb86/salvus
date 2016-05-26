@@ -1,118 +1,74 @@
-#include "Element.h"
 
-#include <Eigen/Dense>
+#include <Element.h>
+#include <ElementAdapter.h>
 
-#include "Element/HyperCube/Quad/Acoustic.h"
-#include "Element/HyperCube/Quad/Elastic.h"
+#include <HyperCube/Quad.h>
+#include <HyperCube/Quad/QuadP1.h>
 
-#include "Element/Simplex/Triangle/AcousticTri.h"
-#include "Element/Simplex/Tetrahedra/AcousticTet.h"
+#include <Simplex/Triangle.h>
+#include <Simplex/Triangle/TriP1.h>
 
-#include <Element/HyperCube/Hexahedra.h>
-#include "Element/HyperCube/Hex/AcousticHex.h"
-#include "ElementAdapter.h"
+#include <Simplex/Tetrahedra.h>
+#include <Simplex/Tetrahedra/TetP1.h>
 
-// Default implementation
-void Element::setupTest(Mesh *mesh, Options options) {
-  printf("ERROR: No test implemented\n");
-  MPI::COMM_WORLD.Abort(-1);
-}
+#include <HyperCube/Hexahedra.h>
+#include <HyperCube/Hex/HexP1.h>
 
-double Element::checkTest(Mesh *mesh, Options options, const Eigen::MatrixXd &displacement, double time) {
-  printf("ERROR: No test implemented\n");
-  MPI::COMM_WORLD.Abort(-1);
-  return -1;
-}
+#include <Physics/Acoustic2D.h>
+#include <Physics/AcousticTri.h>
+#include <Physics/Acoustic3D.h>
+#include <Physics/AcousticTet.h>
+#include <Physics/Acoustic3D_V.h>
+#include <Physics/Elastic2D.h>
 
-std::shared_ptr<Element> Element::factory(Options options) {
+/* Define all possible element classes as types here. */
+typedef class ElementAdapter<Acoustic2D<Quad<QuadP1>>> AcousticQuadP1;
+typedef class ElementAdapter<AcousticTri<Triangle<TriP1>>> AcousticTriP1;
+typedef class ElementAdapter<Acoustic3D<Hexahedra<HexP1>>> AcousticHexP1;
+typedef class ElementAdapter<Acoustic3D<Tetrahedra<TetP1>>> AcousticTetP1v2;
+typedef class ElementAdapter<Acoustic3D_V<Hexahedra<HexP1>>> AcousticVHexP1;
+typedef class ElementAdapter<AcousticTet<Tetrahedra<TetP1>>> AcousticTetP1;
+typedef class ElementAdapter<Elastic2D<Quad<QuadP1>>> ElasticQuadP1;
 
-  std::string physics(options.PhysicsSystem());
-
+std::shared_ptr<ElementNew> ElementNew::Factory(Options options) {
   try {
-    if (options.ElementShape() == "quad") {
-      if (physics == "acoustic") {
-        return std::shared_ptr<Element> (new AcousticQuad(options));
-      } else if (physics == "elastic") {
-        return std::shared_ptr<Element> (new Elastic(options));
-      }
-      else {
-        throw std::runtime_error("Runtime Error: Element physics " + physics + " not supported");
-      }
-    }
-    else if (options.ElementShape() == "quad_new") {
-      if (physics == "acoustic") {
-//        return std::make_shared<ElementAdapter<AcousticNew<QuadNew<QuadP1>>>>(options);
+    if (options.ElementShape() == "quad_new") {
+      if (options.PhysicsSystem() == "acoustic") {
+        return std::make_shared<AcousticQuadP1>(options);
+      } else if (options.PhysicsSystem() == "elastic") {
+        return std::make_shared<ElasticQuadP1>(options);
+      } else {
+        throw std::runtime_error("Runtime Error: Element physics " + options.PhysicsSystem() + " not supported.");
       }
     }
-    else if (options.ElementShape() == "triangle") {
-      if (physics == "acoustic") {
-        return std::shared_ptr<Element> (new AcousticTri(options));
+    else if (options.ElementShape() == "triangle_new") {
+      if (options.PhysicsSystem() == "acoustic") {
+        return std::make_shared<AcousticTriP1>(options);
+      } else {
+        throw std::runtime_error("Runtime Error: Element physics " + options.PhysicsSystem() + " not supported.");
       }
-      else {
-        throw std::runtime_error("Runtime Error: Element physics " + physics + " not supported");
+    }      
+    else if (options.ElementShape() == "hex_new") {
+      if (options.PhysicsSystem() == "acoustic") {
+        return std::make_shared<AcousticHexP1>(options);
+      } else if (options.PhysicsSystem() == "acoustic_v") {
+        return std::make_shared<AcousticVHexP1>(options);
+      } else {
+        throw std::runtime_error("Runtime Error: Element physics " + options.PhysicsSystem() + " not supported.");
       }
-    }
-    else if(options.ElementShape() == "hex") {
-      if(physics == "acoustic") {
-        return std::shared_ptr<Element> (new AcousticHex(options));
+    } else if (options.ElementShape() == "tet_new") {
+      if (options.PhysicsSystem() == "acoustic") {
+        return std::make_shared<AcousticTetP1>(options);
+      } else {
+        throw std::runtime_error("Runtime Error: Element physics " + options.PhysicsSystem() + " not supported.");
       }
-      else {
-        throw std::runtime_error("Runtime Error: Element physics " + physics + " not supported");
-      }
-    }
-    else if(options.ElementShape() == "tet") {
-      if(physics == "acoustic") {
-        return std::shared_ptr<Element> (new AcousticTet(options));
-      }
-      else {
-        throw std::runtime_error("Runtime Error: Element physics " + physics + " not supported");
-      }
-    }
-    else {
-      throw std::runtime_error("Runtime Error: Element type " + options.ElementShape() + " not supported");
+    } else {
+      throw std::runtime_error("Runtime Error: Element shape " + options.ElementShape() + " not supported.");
     }
   } catch (std::exception &e) {
     PRINT_ROOT() << e.what();
-    MPI::COMM_WORLD.Abort(-1);
+    MPI_Abort(PETSC_COMM_WORLD, -1);
   }
-  // Should never get here.
+
   return nullptr;
 }
-
-void Element::setBoundaryConditions(Mesh *mesh) {
-
-  mBndElm = false;
-  for (auto &keys : mesh->BoundaryElementFaces()) {
-    auto boundary_name = keys.first;
-    auto elements_in_boundary = keys.second;
-    if (elements_in_boundary.find(mElmNum) != elements_in_boundary.end()) {
-      // found this element on some boundary
-      mBndElm = true;
-      // assign boundary_name -> {face_ids}
-      mBnd[boundary_name] = elements_in_boundary[mElmNum];
-    }
-  }
-}
-
-void Element::applyBoundaryConditions(Mesh *mesh,
-                                      Options &options,
-                                      std::string fieldname) {
-
-  if (!mBndElm) return;
-
-  // dirichlet boundaries
-  double value = 0; // value to set
-  auto dirichlet_boundary_names = options.DirichletBoundaries();
-  for (auto &bndry : dirichlet_boundary_names) {
-    auto faceids = mBnd[bndry];
-    for (auto &faceid : faceids) {
-      auto field = mesh->getFieldOnFace(fieldname, faceid);
-      // apply dirichlet condition
-      field = 0 * field.array() + value;
-      mesh->setFieldFromFace(fieldname, faceid, field);
-    }
-  }
-}
-
-
-

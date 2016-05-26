@@ -1,4 +1,4 @@
-#include "ElasticNew.h"
+#include "Elastic2D.h"
 
 #include <Mesh/Mesh.h>
 #include <Utilities/Options.h>
@@ -7,7 +7,7 @@
 using namespace Eigen;
 
 template <typename Element>
-ElasticNew<Element>::ElasticNew(Options options): Element(options) {
+Elastic2D<Element>::Elastic2D(Options options): Element(options) {
 
   int num_grad_cmps = 3;
 
@@ -25,7 +25,7 @@ ElasticNew<Element>::ElasticNew(Options options): Element(options) {
 }
 
 template <typename Element>
-void ElasticNew<Element>::attachMaterialPropertiesNew(const ExodusModel *model) {
+void Elastic2D<Element>::attachMaterialPropertiesNew(const ExodusModel *model) {
   Element::attachMaterialProperties(model, "RHO");
   Element::attachMaterialProperties(model, "C11");
   Element::attachMaterialProperties(model, "C12");
@@ -36,13 +36,13 @@ void ElasticNew<Element>::attachMaterialPropertiesNew(const ExodusModel *model) 
 }
 
 template <typename Element>
-std::vector<std::string> ElasticNew<Element>::PullElementalFields() const { return { "ux", "uy"}; }
+std::vector<std::string> Elastic2D<Element>::PullElementalFields() const { return { "ux", "uy"}; }
 
 template <typename Element>
-std::vector<std::string> ElasticNew<Element>::PushElementalFields() const { return { "ax", "ay"}; }
+std::vector<std::string> Elastic2D<Element>::PushElementalFields() const { return { "ax", "ay"}; }
 
 template <typename Element>
-void ElasticNew<Element>::assembleElementMassMatrix(Mesh *mesh) {
+void Elastic2D<Element>::assembleElementMassMatrix(Mesh *mesh) {
 
   VectorXd mass_matrix = Element::applyTestAndIntegrate(Element::ParAtIntPts("RHO"));
   mesh->addFieldFromElement("m", Element::ElmNum(), Element::ClsMap(), mass_matrix);
@@ -50,7 +50,7 @@ void ElasticNew<Element>::assembleElementMassMatrix(Mesh *mesh) {
 }
 
 template <typename Element>
-MatrixXd ElasticNew<Element>::computeStiffnessTerm(const Eigen::MatrixXd &u) {
+MatrixXd Elastic2D<Element>::computeStiffnessTerm(const Eigen::MatrixXd &u) {
 
   // strain ux_x, uy_y, uy_x.
   mStrain.col(0) = Element::computeGradient(u.col(0)).col(0);
@@ -89,10 +89,10 @@ MatrixXd ElasticNew<Element>::computeStiffnessTerm(const Eigen::MatrixXd &u) {
 }
 
 template <typename Element>
-MatrixXd ElasticNew<Element>::computeSourceTerm(const double time) { return Eigen::MatrixXd(1,1); }
+MatrixXd Elastic2D<Element>::computeSourceTerm(const double time) { return Eigen::MatrixXd(1,1); }
 
 template <typename Element>
-void ElasticNew<Element>::setupEigenfunctionTest(Mesh *mesh, Options options) {
+void Elastic2D<Element>::setupEigenfunctionTest(Mesh *mesh, Options options) {
   
   
   double L, Lx, Ly, Lz;
@@ -122,7 +122,7 @@ void ElasticNew<Element>::setupEigenfunctionTest(Mesh *mesh, Options options) {
 };
 
 template <typename Element>
-double ElasticNew<Element>::checkEigenfunctionTest(Mesh *mesh, Options options,
+double Elastic2D<Element>::checkEigenfunctionTest(Mesh *mesh, Options options,
                                                     const Ref<const MatrixXd>& u, double time) {
 
 
@@ -154,7 +154,7 @@ double ElasticNew<Element>::checkEigenfunctionTest(Mesh *mesh, Options options,
   
 };
 
-#include <QuadNew.h>
+#include <Quad.h>
 #include <QuadP1.h>
-template class ElasticNew<QuadNew<QuadP1>>;
+template class Elastic2D<Quad<QuadP1>>;
 

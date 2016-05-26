@@ -55,19 +55,9 @@ set(SALVUS_SOURCES
         src/cxx/Mesh/Mesh.cpp
         src/cxx/Mesh/ElasticNewmark2D.cpp
         src/cxx/Mesh/ScalarNewmark2D.cpp
-        src/cxx/Element/Element.cpp
-        src/cxx/Element/HyperCube/Quad.cpp
-        src/cxx/Element/HyperCube/Quad/Elastic.cpp
-        src/cxx/Element/HyperCube/Quad/Acoustic.cpp
-        src/cxx/Element/HyperCube/Hexahedra.cpp
-        src/cxx/Element/HyperCube/Hex/AcousticHex.cpp
         src/cxx/Element/Simplex/Triangle.cpp
-        src/cxx/Element/Simplex/TriangleNew.cpp
         src/cxx/Element/Simplex/Triangle/TriP1.cpp
-        src/cxx/Element/Simplex/Triangle/AcousticTri.cpp
         src/cxx/Element/Simplex/Tetrahedra.cpp
-        src/cxx/Element/Simplex/TetrahedraNew.cpp
-        src/cxx/Element/Simplex/Tetrahedra/AcousticTet.cpp
         src/cxx/Element/Simplex/Tetrahedra/TetP1.cpp
         src/cxx/Model/ExodusModel.cpp
         src/cxx/Utilities/Utilities.cpp
@@ -75,20 +65,20 @@ set(SALVUS_SOURCES
         src/cxx/Source/Source.cpp
         src/cxx/Receiver/Receiver.cpp
         src/cxx/Receiver/ReceiverHdf5.cpp
-        src/cxx/Element/HyperCube/QuadNew.cpp
+        src/cxx/Element/HyperCube/Quad.cpp
         src/cxx/Element/HyperCube/Quad/QuadP1.cpp
-        src/cxx/Element/HyperCube/HexahedraNew.cpp
+        src/cxx/Element/HyperCube/Hexahedra.cpp
         src/cxx/Element/HyperCube/Hex/HexP1.cpp
-        src/cxx/Physics/AcousticNew.cpp
-        src/cxx/Physics/AcousticTet3D.cpp
+        src/cxx/Physics/Acoustic2D.cpp
+        src/cxx/Physics/AcousticTet.cpp
         src/cxx/Physics/Acoustic3D.cpp
         src/cxx/Physics/Acoustic3D_V.cpp
-        src/cxx/Physics/AcousticTriNew.cpp
+        src/cxx/Physics/AcousticTri.cpp
         src/cxx/Utilities/kdtree.c
         src/cxx/Utilities/PETScExtensions.c
-        src/cxx/Element/ElementNew.cpp
-        src/cxx/Physics/ElasticNew.cpp
-        src/cxx/Element/HyperCube/HexahedraNew.cpp
+        src/cxx/Element/Element.cpp
+        src/cxx/Physics/Elastic2D.cpp
+        src/cxx/Element/HyperCube/Hexahedra.cpp
         ${QuadAutoGen}
         ${HexAutoGen}
         ${TriAutoGen}

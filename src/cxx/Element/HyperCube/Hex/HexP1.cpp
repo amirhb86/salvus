@@ -1,5 +1,5 @@
 #include <vector>
-#include "HexP1.h"
+#include <HexP1.h>
 
 using namespace Eigen;
 
@@ -94,8 +94,8 @@ bool HexP1::checkHull(const double x, const double y, const double z,
   return true;
 }
 
-/* Derivation for reference to "real" element mapping
-/*  reference hex, with r,s,t=[-1,1]x[-1,1]x[-1,1]
+/** Derivation for reference to "real" element mapping
+ *  reference hex, with r,s,t=[-1,1]x[-1,1]x[-1,1]
  *  
  *                                   (v7)                    (v6)
  *                                     /--------------d------/+

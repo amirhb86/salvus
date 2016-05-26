@@ -1,20 +1,20 @@
-//
-// Created by Michael Afanasiev on 2016-02-01.
-//
-
 #pragma once
+
 #include <vector>
 #include <assert.h>
-#include <mpi.h>
-#include <Eigen/src/Core/Matrix.h>
 
-#include "../Utilities/Options.h"
-#include "../Utilities/Utilities.h"
+#include <mpi.h>
+#include <petsc.h>
+#include <Eigen/Dense>
 
 extern "C" {
 #include "../Utilities/kdtree.h"
 #include "exodusII.h"
 };
+
+// forward decl.
+class Options;
+class Utilities;
 
 class ExodusModel {
 

@@ -8,9 +8,9 @@ class Options;
 class ExodusModel;
 
 template <typename Shape>
-class AcousticTriNew: public Shape {
+class AcousticTri: public Shape {
   /**
-   * \class AcousticNew
+   * \class Acoustic2D
    *
    * \brief Class in charge of handling wave propagation in acoustic regions.
    *
@@ -31,7 +31,7 @@ class AcousticTriNew: public Shape {
  public:
 
   /**** Initializers ****/
-  AcousticTriNew<Shape>(Options options);
+  AcousticTri<Shape>(Options options);
   std::vector<std::string> PullElementalFields() const;
   std::vector<std::string> PushElementalFields() const;
 

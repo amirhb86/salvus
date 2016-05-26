@@ -1,10 +1,7 @@
 #include "catch.h"
 #include <petsc.h>
 #include <Eigen/Dense>
-#include <Element/Element.h>
 #include <Element/Simplex/Tetrahedra.h>
-#include <Element/Simplex/TetrahedraNew.h>
-#include <Element/Simplex/Tetrahedra/AcousticTet.h>
 #include <Element/Simplex/Tetrahedra/TetP1.h>
 
 using namespace Eigen;
@@ -27,7 +24,7 @@ std::vector<int> getVertsFromPoint(int point, int numVerts, DM &distributed_mesh
 TEST_CASE("Test mapping from reference tet to physical coords and back","[element/tetrahedra]") {
 
   VectorXd rn,sn,tn;
-  std::tie(rn,sn,tn) = TetrahedraNew<TetP1>::QuadraturePoints(3);
+  std::tie(rn,sn,tn) = Tetrahedra<TetP1>::QuadraturePoints(3);
   int num_pts = rn.size();
   // A distorted element
   Matrix<double,4,3> coord;

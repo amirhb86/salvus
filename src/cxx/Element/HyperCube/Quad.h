@@ -1,282 +1,251 @@
 #pragma once
 
+#include <map>
+#include <memory>
+#include <vector>
+
+#include <petsc.h>
 #include <Eigen/Dense>
-#include <Model/ExodusModel.h>
-#include <Source/Source.h>
-#include <Mesh/Mesh.h>
-#include <Element/Element.h>
 
-extern "C" {
-#include "Quad/Autogen/quad_autogen.h"
-};
+// forward decl.
+class Mesh;
+class Source;
+class Options;
+class Receiver;
+class ExodusModel;
 
-using namespace Eigen;
+template <typename ConcreteShape>
+class Quad: public ConcreteShape {
 
-/**
- * Base class of an abstract four node quadrilateral. The reference element is set up as below.
- *
- * (n3)______________(n2)
- * |                    |
- * |                    |
- * |                    |
- * |                    |
- * |                    |
- * |                    |
- * |                    |
- * |                    |
- * |                    |
- * (n0)______________(n1)
- *
- * (eta)
- *   ^
- *   |
- *   |
- *   |______> (eps)
-*/
-
-class Quad: public Element {
-
-  /****************************************************************************
-   *                         P1 Shape Functions.
-  *****************************************************************************/
-
-  /**
-   * Shape function contribution from node zero.
-   * @param [in] eps Epsilon position in reference quad [-1, 1]
-   * @param [in] eta Eta position in reference quad [-1, 1]
-   * @returns n0 evaluated at (eps, eta)
-   */
-  static double p1n0(const double &eps, const double &eta);
-
-  /**
-   * Shape function contribution from node one.
-   * @param [in] eps Epsilon position in reference quad [-1, 1]
-   * @param [in] eta Eta position in reference quad [-1, 1]
-   * @returns n1 evaluated at (eps, eta)
-   */
-  static double p1n1(const double &eps, const double &eta);
-
-  /**
-   * Shape function contribution from node two.
-   * @param [in] eps Epsilon position in reference quad [-1, 1]
-   * @param [in] eta Eta position in reference quad [-1, 1]
-   * @returns n2 evaluated at (eps, eta)
-   */
-  static double p1n2(const double &eps, const double &eta);
-
-  /**
-   * Shape function contribution from node three.
-   * @param [in] eps Epsilon position in reference quad [-1, 1]
-   * @param [in] eta Eta position in reference quad [-1, 1]
-   * @returns n3 evaluated at (eps, eta)
-   */
-  static double p1n3(const double &eps, const double &eta);
-
-  /**
-   * Checks whether a given point in realspace (x, z) is within the current element.
-   * A simple convex hull algorithm is implemented. Should work as long as the sides of the element are straight
-   * lines, but will likely fail for higher order shape functions.
-   * @param [in] x X-coordinate in real space.
-   * @param [in] z Z-coordinate in real space.
-   * @returns True if point is inside, False if not.
-   */
-  bool mCheckHull(double x, double z);
-
-  /**
-   * Given a point in realspace, determines the equivalent location in the reference element.
-   * Since the shape function are bilinear, the cross terms introduce nonlinearities into the shape function
-   * interpolation. As such, we used a simple implementation of Newton's method to minimize the objective function:
-   * z = x_real - shape_functions * vertex_coordinates(eta, eps), for each coordinate, where (eps, eta) are the
-   * primal variables.
-   * @param [in] x_real X-coordinate in real space.
-   * @param [in] z_real Z-coordinate in real space.
-   * @return A Vector (eps, eta) containing the coordinates in the reference element.
-   */
-  Vector2d inverseCoordinateTransform(const double &x_real, const double &z_real);
-
-
- protected:
-
-  int mNumIntPtsEps;
-  /** < Num of integration points in the epsilon direction (e.g. 5 for a 4th order gll basis) */
-  int mNumIntPtsEta;
-  /** < Num of integration points in the eta direction (e.g. 5 for a 4th order gll basis) */
-  MatrixXd mGrd;
-  /** < Derivative of shape function n (col) at pos. m (row) */
-  VectorXd mIntWgtEps;
-  /** < Integration weights along epsilon direction. */
-  VectorXd mIntWgtEta;
-  /** < Integration weights along eta direction. */
-  VectorXd mIntCrdEps;
-  /** < Integration points along epsilon direction */
-  VectorXd mIntCrdEta;
-  /** < Integration points along eta direction */
-
-  /**
-   * Sets up the proper stride for a field in the epsilon direction, on the tensorized gll basis.
-   * In many instances, the only non-zero contributions to integrals or derivatives on the gll basis are those
-   * contributions which lie along a specific direction in the reference element. Given a properly ordered field
-   * defined on all the gll points, this function returns a `const` view into that vector. This view includes all
-   * points of the given field along a certain 'row' (as we are working in the epsilon here), from the beginning to
-   * end of that 'row'.
+  /** \class Quad
    *
-   * As an example, consider the 4th order gll basis. If a field u is defined in an ordered manner across all 25
-   * gll points, a call to epsVectorStride(u, 1) would return the field at indices 5, 6, 7, 8, and 9 -- the row
-   * which the eta_index refers to.
+   * \brief Base class for all Quads with a tensorized basis.
    *
-   * @param [in] function Field defined across an element, for which a view is desired.
-   * @param [in] eta_index Eta_index in the reference element -- to determine which epsilon 'row' we're on.
-   * @returns A const pointer with the proper stride and starting point for the desired field points.
-   */
-  Eigen::Map<const Eigen::VectorXd> epsVectorStride(
-      const Eigen::VectorXd &function, const int &eta_index);
-
-  /**
-   * Sets up the proper stride for a field in the eta direction, on the tensorized gll basis.
-   * In many instances, the only non-zero contributions to integrals or derivatives on the gll basis are those
-   * contributions which lie along a specific direction in the reference element. Given a properly ordered field
-   * defined on all the gll points, this function returns a `const` view into that vector. This view includes all
-   * points of the given field along a certain 'column' (as we are working in the eta here), from the beginning to
-   * end of that 'column'.
+   * This class is at the base mixin level for all tensorized Quad elements. It should concretely define things common
+   * to all Quads. For example, here we define specific methods to attach vertex coordinates to each element, as well
+   * as sources and receivers. These last two methods bring up an interesting point however. As you might notice, the
+   * mixin approach lets us be perform class nesting to an arbitrary depth, without incurring any runtime cost. So,
+   * for example, we could have a super class called something like Element2D, where source and receiver attachments
+   * are implemented. However, at one point we need to decide on an optimal level of complexity. Since Quad is the
+   * absolute base for all further derivations, this means that attachReceiver() and attachSource() will need to be
+   * duplicated for Triangles, and for all other 2D elements. Is this an acceptable level of code duplication, in order
+   * to cut down on the class heiarchy depth? Perhaps. Either way, we should discuss this, and also note that following
+   * these mixin principles, things are easily modified.
    *
-   * As an example, consider the 4th order gll basis. If a field u is defined in an ordered manner across all 25
-   * gll points, a call to etaVectorStride(u, 1) would return the field at indices 1, 6, 11, 16, and 21 -- the column
-   * which the eta_index refers to.
+   * To initialize a new Quad element, you'll need at least one template parameter. For instance:
    *
-   * @param [in] function Field defined across an element, for which a view is desired.
-   * @param [in] eps_index Eps_index in the reference element -- to determine which eta 'column' we're on.
-   * @returns A const pointer with the proper stride and starting point for the desired field points.
+   * \code
+   * auto elem = Quad<QuadP1>
+   * auto elem = Quad<Acoustic<QuadP1>>
+   * auto elem = Quad<Gravity<Attenuation<Acoustic<QuadP1>>>>
+   * \endcode
+   *
+   * are all valid (provided that the relevant physics classes are written). Just as an example of what it would take
+   * for _full_ generality, as discussed above, we might have:
+   *
+   * \code
+   * auto elem = Elem2D<TensorQuad<GllQuadrature<Gravity<Attenuation<Acoustic<QuadP1>>>>>>.
+   * \endcode
+   *
+   * Pretty insane, right? But, it would allow us to do some neat things (like fixed-size arrays for all quadrature
+   * orders). So, I dunno man.
+   *
+   * Unless otherwise mentioned, all instances of `field` in function signatures refer to some function defiend
+   * at the GLL points.
    */
-  Eigen::Map<const Eigen::VectorXd, 0, Eigen::InnerStride<>> etaVectorStride(
-      const Eigen::VectorXd &function, const int &eps_index);
 
-  /**
-   * 2x2 inverse Jacobian matrix at a point (eps, eta).  This method returns an Eigen::Matrix
-   * representation of the inverse Jacobian at a particular point.
-   * @param [in] eps Epsilon position on the reference element.
-   * @param [in] eta Eta position on the reference element.
-   * @returns (inverse Jacobian matrix,determinant of that matrix) as a `std::tuple`. Tuples can be
-   * "destructured" using a `std::tie`.
-   */
-  std::tuple<Matrix2d, PetscReal> inverseJacobianAtPoint(PetscReal eps, PetscReal eta);
+private:
 
+  // Static variables.
+  const static int mNumDim = 2;
+  const static int mNumVtx = 4;
+
+  // Workspace.
+  Eigen::VectorXd mDetJac;
+  Eigen::VectorXd mParWork;
+  Eigen::VectorXd mStiffWork;
+  Eigen::MatrixXd mGradWork;
+
+  // On Boundary.
+  bool mBndElm;
+  std::map<std::string,std::vector<int>> mBnd;
+
+  // Instance variables.
+  PetscInt mElmNum;
+  int mPlyOrd;
+  int mNumIntPnt;
+  int mNumDofVtx;
+  int mNumDofEdg;
+  int mNumDofFac;
+  int mNumDofVol;
+  int mNumIntPtsR;
+  int mNumIntPtsS;
+
+  // Vertex coordinates.
+  Eigen::Matrix<double,mNumVtx,mNumDim> mVtxCrd;
+
+  // Element center.
+  Eigen::Vector2d mElmCtr;
+
+  // Closure mapping.
+  Eigen::VectorXi mClsMap;
+
+  // Quadrature parameters.
+  Eigen::VectorXd mIntCrdR;
+  Eigen::VectorXd mIntCrdS;
+  Eigen::VectorXd mIntWgtR;
+  Eigen::VectorXd mIntWgtS;
+
+  // Matrix holding gradient information.
+  Eigen::MatrixXd mGrd;
+
+  // Material parameters.
+  std::map<std::string,Eigen::Vector4d> mPar;
+
+  // Sources and receivers.
+  std::vector<std::shared_ptr<Source>> mSrc;
+  std::vector<std::shared_ptr<Receiver>> mRec;
 
  public:
 
+  /** Allocates memory for work arrays, most private variables. */
+  Quad<ConcreteShape>(Options options);
+
+  /** Sets up the test function parameters. */
+  static Eigen::VectorXd GllPointsForOrder(const int order);
+  static Eigen::VectorXi ClosureMappingForOrder(const int order);
+  static Eigen::VectorXd GllIntegrationWeightsForOrder(const int order);
+  static Eigen::MatrixXd setupGradientOperator(const int order);
+  static Eigen::VectorXd interpolateLagrangePolynomials(const double r, const double s, const int order);
+
   /**
-   * Constructor.
-   * Sets quantities such as number of dofs, among other things, from the options class.
-   * @param [in] options Populated options class.
+   * Returns an optimized stride along the r direction.
+   * @param [in] f Function defined at GLL points.
+   * @param [in] s_ind Index of GLL points along s-axis.
+   * @param [in] numPtsS Number of integration points along the s-axis.
+   * @param [in] numPtsR Number of integration points along the r-axis.
    */
-  Quad(Options options);
-
+  static Eigen::VectorXd rVectorStride(const Eigen::Ref<const Eigen::VectorXd>& f,
+                                       const int s_ind, const int numPtsS,
+                                       const int numPtsR);
   /**
-   * Destructor.
+   * Returns an optimized stride along the s direction.
+   * @param [in] f Function defined at GLL points.
+   * @param [in] s_ind Index of GLL points along s-axis.
+   * @param [in] numPtsS Number of integration points along the s-axis.
+   * @param [in] numPtsR Number of integration points along the r-axis.
+   *
    */
-  virtual ~Quad() {};
-
-  /****************************************************************************
-   *                       STATIC UTILITY FUNCTIONS
-  *****************************************************************************/
+  static Eigen::VectorXd sVectorStride(const Eigen::Ref<const Eigen::VectorXd>& f,
+                                       const int r_ind, const int numPtsS,
+                                       const int numPtsR);
 
   /**
-   * Returns the quadrature locations for a given polynomial order.
-   * @param [in] order The polynmomial order.
-   * @returns Vector of GLL points.
+   * Compute the gradient of a field at all GLL points.
+   * @param [in] field Field to take the gradient of.
    */
-  static VectorXd GllPointsForOrder(const int order);
+  Eigen::MatrixXd computeGradient(const Eigen::Ref<const Eigen::VectorXd>& field);
 
   /**
-   * Returns the quadrature intergration weights for a polynomial order.
-   * @param [in] order The polynomial order.
-   * @returns Vector of quadrature weights.
+   * Interpolate a parameter from vertex to GLL point.
+   * @param [in] par Parameter to interpolate (i.e. VP, VS).
    */
-  static VectorXd GllIntegrationWeightForOrder(const int order);
+  Eigen::VectorXd ParAtIntPts(const std::string& par);
 
   /**
-   * Returns the mapping from the PETSc to Salvus closure.
-   * @param [in] order The polynomial order.
-   * @param [in] dimension Element dimension.
-   * @returns Vector containing the closure mapping (field(closure(i)) = petscField(i))
+   * Multiply a field by the test functions and integrate.
+   * @param [in] f Field to calculate on.
    */
-  static VectorXi ClosureMapping(const int order, const int dimension);
+  Eigen::VectorXd applyTestAndIntegrate(const Eigen::Ref<const Eigen::VectorXd>& f);
 
   /**
-   * Provides interpolation vector for quadrilaterals with vertex velocities based on right hand rule.
-   * @param [in] eps Epsilon in the reference element.
-   * @param [in] eta Eta in the reference element.
-   * @returns A vector containing the [4] coefficients from each shape function.
-   * Usage: double velocity_at_eps_eta = interpolateAtPoint(eps,eta).dot(mMaterialVelocityAtVertices);
+   * Multiply a field by the gradient of the test functions and integrate.
+   * @param [in] f Field to calculate on.
    */
-  static Vector4d interpolateAtPoint(double eps, double eta);
-  
+  Eigen::VectorXd applyGradTestAndIntegrate(const Eigen::Ref<const Eigen::MatrixXd>& f);
+
   /**
-   * Returns the lagrange polynomial coefficients for a given location (eps, eta) in the reference cube.
-   * @param [in] eps Epsilon on the reference element.
-   * @param [in] eta Eta on the reference element.
-   * @returns A vector containing the polynomial coefficient at each gll point.
+   * Figure out and set boundaries.
+   * @param [in] mesh The mesh instance.
    */
-  static VectorXd interpolateLagrangePolynomials(const double eps, const double eta, const int p_order);
-  MatrixXd interpolateFieldAtPoint(const VectorXd &pnt);
+  void setBoundaryConditions(Mesh *mesh);
 
   /**
-   * Attaches a material parameter to the vertices on the current element.
-   * Given an exodus model object, we use a kD-tree to find the closest parameter to a vertex. In practice, this
-   * closest parameter is often exactly coincident with the vertex, as we use the same exodus model for our mesh
-   * as we do for our parameters.
-   * @param [in] model An exodus model object.
-   * @param [in] parameter_name The name of the field to be added (i.e. velocity, c11).
-   * @returns A Vector with 4-entries... one for each Element vertex, in the ordering described above.
+   * Integrate a field over the element, returning a scalar.
+   * @param [in] field The field to integrate.
    */
-  Vector4d __attachMaterialProperties(ExodusModel *model,
-                                           std::string parameter_name);
+  double integrateField(const Eigen::Ref<const Eigen::VectorXd>& field);
 
   /**
-   * Utility function to integrate a field over the element. This could probably be made static, but for now I'm
-   * just using it to check some values.
-   * @param [in] field The field which to integrate, defined on each of the gll points.
-   * @returns The scalar value of the field integrated over the element.
-   */
-  double integrateField(const Eigen::VectorXd &field);
-
-  /**
-   * Setup the auto-generated gradient operator, and stores the result in mGrd.
-   */
-  void setupGradientOperator();
-
-
-  /**
-   * Queries the passed DM for the vertex coordinates of the specific element. These coordinates are saved
-   * in mVertexCoordiantes.
-   * @param [in] distributed_mesh PETSc DM object.
+   * Attach the (4) vertex coordinates to the element.
+   * @param [in] distributed_mesh The PETSc DM.
    */
   void attachVertexCoordinates(DM &distributed_mesh);
 
   /**
-   * Attach source.
-   * Given a vector of abstract source objects, this function will query each for its spatial location. After
-   * performing a convex hull test, it will perform a quick inverse problem to determine the position of any sources
-   * within each element in reference coordinates. These reference coordinates are then saved in the source object.
-   * References to any sources which lie within the element are saved in the mSrc vector.
-   * @param [in] sources A vector of all the sources defined for a simulation run.
+   * Attach some abstract source instance to the element.
+   * Test to see whether or not the source exists in the current element. If it does,
+   * save a pointer to the source.
+   * @param [in] sources A vector of source objects.
    */
   void attachSource(std::vector<std::shared_ptr<Source>> sources);
 
   /**
-   * Attach receiver.
-   * Given a vector of abstract receiver objects, this function will query each for its spatial location. After
-   * performing a convex hull test, it will perform a quick inverse problem to determine the position of any
-   * sources within each element in reference coordiantes. These reference coordinates are then saved in the
-   * receiver object. References to any receivers which lie within the element are saved in the mRec vector.
-   * @param [in] receivers A vector of all the receivers defined for a simulation run.
+   * Attach some abstract receiver instance to the element.
+   * Test to see whether or not the receiver exists in the current element. If it does,
+   * save a pointer to the receiver.
+   * @param [in] sources A vector of receiver objects.
    */
   void attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers);
 
-  void recordField(const MatrixXd &u);
+  /**
+   * If an element is detected to be on a boundary, apply the Dirichlet condition to the
+   * dofs on that boundary.
+   * @param [in] mesh The mesh instance.
+   * @param [in] options The options class.
+   * @param [in] fieldname The field to which the boundary must be applied.
+   */
+  void applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname);
 
   /**
-   * Builds nodal coordinates (x,z) on all mesh degrees of freedom.
+   *
    */
-  std::tuple<Eigen::VectorXd, Eigen::VectorXd> buildNodalPoints();
-  
+  Eigen::VectorXd getDeltaFunctionCoefficients(const double r, const double s);
+
+  /**
+   * Given a model, save the material parameters at the element vertices.
+   * @param [in] model The model containing the material parameters.
+   * @param [in] parameter The parameter to save.
+   */
+  void attachMaterialProperties(const ExodusModel *model, std::string parameter);
+
+  /**
+   * Given some field at the GLL points, interpolate the field to some general point.
+   * @param [in] pnt Position in reference coordinates.
+   */
+  Eigen::MatrixXd interpolateFieldAtPoint(const Eigen::VectorXd &pnt) { return Eigen::MatrixXd(1, 1); }
+
+  // Setters.
+  inline void SetNumNew(const PetscInt num) { mElmNum = num; }
+  inline void SetVtxCrd(const Eigen::Ref<const Eigen::Matrix<double,4,2>> &v) { mVtxCrd = v; }
+
+  // Getters.
+  inline bool BndElm() const { return mBndElm; }
+  inline int NumDim() const { return mNumDim; }
+  inline PetscInt ElmNum() const { return mElmNum; }
+  inline int NumIntPnt() const { return mNumIntPnt; }
+  inline int NumDofVol() const { return mNumDofVol; }
+  inline int NumDofFac() const { return mNumDofFac; }
+  inline int NumDofEdg() const { return mNumDofEdg; }
+  inline int NumDofVtx() const { return mNumDofVtx; }
+  inline Eigen::MatrixXi ClsMap() const { return mClsMap; }
+  std::vector<std::shared_ptr<Source>> Sources() { return mSrc; }
+
+  // Delegates.
+  std::tuple<Eigen::VectorXd, Eigen::VectorXd> buildNodalPoints() {
+    return ConcreteShape::buildNodalPoints(mIntCrdR, mIntCrdS, mVtxCrd);
+  };
+
 };
+
+

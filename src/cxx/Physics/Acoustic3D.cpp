@@ -1,8 +1,11 @@
-#include "Acoustic3D.h"
+#include <Acoustic3D.h>
 
-#include <Mesh/Mesh.h>
+// Dependencies.
 #include <Utilities/Options.h>
 #include <Model/ExodusModel.h>
+#include <Receiver/Receiver.h>
+#include <Source/Source.h>
+#include <Mesh/Mesh.h>
 
 using namespace Eigen;
 
@@ -132,7 +135,7 @@ double Acoustic3D<Element>::checkEigenfunctionTest(Mesh *mesh, Options options,
 
 }
 
-#include <HexahedraNew.h>
+#include <Hexahedra.h>
 #include <HexP1.h>
-template class Acoustic3D<HexahedraNew<HexP1>>;
+template class Acoustic3D<Hexahedra<HexP1>>;
 

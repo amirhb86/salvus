@@ -1,52 +1,52 @@
-//
-// Created by Michael Afanasiev on 2016-01-30.
-//
+// Derived.
+#include <Element/HyperCube/Quad/QuadP1.h>
 
-#include <mpi.h>
+// Self.
+#include <Quad.h>
 
-#include <petscdm.h>
-#include <petscdmplex.h>
-#include "Quad.h"
+// Dependencies.
+#include <Utilities/Options.h>
+#include <Model/ExodusModel.h>
+#include <Receiver/Receiver.h>
+#include <Source/Source.h>
+#include <Mesh/Mesh.h>
 
-double Quad::p1n0(const double &eps, const double &eta) { return 0.25 * (1.0 - eps) * (1.0 - eta); }
-double Quad::p1n1(const double &eps, const double &eta) { return 0.25 * (1.0 + eps) * (1.0 - eta); }
-double Quad::p1n2(const double &eps, const double &eta) { return 0.25 * (1.0 - eps) * (1.0 + eta); }
-double Quad::p1n3(const double &eps, const double &eta) { return 0.25 * (1.0 + eps) * (1.0 + eta); }
+// Extern.
+extern "C" {
+#include <Quad/Autogen/quad_autogen.h>
+}
 
-Quad::Quad(Options options) {
+using namespace Eigen;
 
-  // Basic properties.
-  mNumDim = 2;
-  mNumVtx = 4;
+template <typename ConcreteShape>
+Quad<ConcreteShape>::Quad(Options options) {
+
   mPlyOrd = options.PolynomialOrder();
-
-  // mVtxCrd has 4 vertices.
-  mElmCtr.resize(2, 1);
-  mVtxCrd.resize(2, mNumVtx);
-
-  // Gll points.  
   mNumDofVtx = 1;
   mNumDofEdg = mPlyOrd - 1;
   mNumDofFac = (mPlyOrd - 1) * (mPlyOrd - 1);
   mNumDofVol = 0;
 
-  // Integration points.
-  mClsMap = Quad::ClosureMapping(options.PolynomialOrder(), mNumDim);
-  mIntCrdEps = Quad::GllPointsForOrder(options.PolynomialOrder());
-  mIntCrdEta = Quad::GllPointsForOrder(options.PolynomialOrder());
-  mIntWgtEps = Quad::GllIntegrationWeightForOrder(options.PolynomialOrder());
-  mIntWgtEta = Quad::GllIntegrationWeightForOrder(options.PolynomialOrder());
+  mGrd = Quad<ConcreteShape>::setupGradientOperator(mPlyOrd);
+  mClsMap = Quad<ConcreteShape>::ClosureMappingForOrder(mPlyOrd);
+  mIntCrdR = Quad<ConcreteShape>::GllPointsForOrder(mPlyOrd);
+  mIntCrdS = Quad<ConcreteShape>::GllPointsForOrder(mPlyOrd);
+  mIntWgtR = Quad<ConcreteShape>::GllIntegrationWeightsForOrder(mPlyOrd);
+  mIntWgtS = Quad<ConcreteShape>::GllIntegrationWeightsForOrder(mPlyOrd);
 
-  // Save number of integration points.
-  mNumIntPtsEps = mIntCrdEps.size();
-  mNumIntPtsEta = mIntCrdEta.size();
-  mNumIntPnt = mNumIntPtsEps * mNumIntPtsEta;
+  mNumIntPtsS = mIntCrdS.size();
+  mNumIntPtsR = mIntWgtR.size();
+  mNumIntPnt = mNumIntPtsS * mNumIntPtsR;
 
-  // setup evaluated derivatives of test functions
-  setupGradientOperator();
+  mDetJac.setZero(mNumIntPnt);
+  mParWork.setZero(mNumIntPnt);
+  mStiffWork.setZero(mNumIntPnt);
+  mGradWork.setZero(mNumIntPnt, mNumDim);
+
 }
 
-VectorXd Quad::GllPointsForOrder(const int order) {
+template <typename ConcreteShape>
+VectorXd Quad<ConcreteShape>::GllPointsForOrder(const int order) {
   VectorXd gll_points(order + 1);
   if (order == 1) {
     gll_coordinates_order1_square(gll_points.data());
@@ -72,7 +72,8 @@ VectorXd Quad::GllPointsForOrder(const int order) {
   return gll_points;
 }
 
-VectorXd Quad::GllIntegrationWeightForOrder(const int order) {
+template <typename ConcreteShape>
+VectorXd Quad<ConcreteShape>::GllIntegrationWeightsForOrder(const int order) {
   VectorXd integration_weights(order + 1);
   if (order == 1) {
     gll_weights_order1_square(integration_weights.data());
@@ -98,7 +99,8 @@ VectorXd Quad::GllIntegrationWeightForOrder(const int order) {
   return integration_weights;
 }
 
-VectorXi Quad::ClosureMapping(const int order, const int dimension) {
+template <typename ConcreteShape>
+VectorXi Quad<ConcreteShape>::ClosureMappingForOrder(const int order) {
   VectorXi closure_mapping((order + 1) * (order + 1));
   if (order == 1) {
     closure_mapping_order1_square(closure_mapping.data());
@@ -124,21 +126,21 @@ VectorXi Quad::ClosureMapping(const int order, const int dimension) {
   return closure_mapping;
 }
 
-Map<const VectorXd> Quad::epsVectorStride(const VectorXd &function,
-                                          const int &eta_index) {
-  return Map<const VectorXd>(
-      function.data() + eta_index * mNumIntPtsEta,
-      mNumIntPtsEps);
+template <typename ConcreteShape>
+VectorXd Quad<ConcreteShape>::rVectorStride(const Ref<const VectorXd>& f, const int s_ind,
+                                               const int numPtsS, const int numPtsR) {
+  return Map<const VectorXd> (f.data() + s_ind * numPtsS, numPtsR);
 }
 
-Map<const VectorXd, 0, InnerStride<>> Quad::etaVectorStride(const VectorXd &function,
-                                                            const int &eta_index) {
-  return Map<const VectorXd, 0, InnerStride<>>(
-                                               function.data() + eta_index, mNumIntPtsEta,
-                                               InnerStride<>(mNumIntPtsEps));
+template <typename ConcreteShape>
+VectorXd Quad<ConcreteShape>::sVectorStride(const Ref<const VectorXd>& f, const int r_ind,
+                                               const int numPtsS, const int numPtsR) {
+  return Map<const VectorXd, 0, InnerStride<>> (f.data() + r_ind, numPtsS, InnerStride<>(numPtsR));
 }
 
-void Quad::attachVertexCoordinates(DM &distributed_mesh) {
+
+template <typename ConcreteShape>
+void Quad<ConcreteShape>::attachVertexCoordinates(DM &distributed_mesh) {
 
   Vec coordinates_local;
   PetscInt coordinate_buffer_size;
@@ -153,339 +155,359 @@ void Quad::attachVertexCoordinates(DM &distributed_mesh) {
   DMPlexVecRestoreClosure(distributed_mesh, coordinate_section, coordinates_local, mElmNum,
                           &coordinate_buffer_size, &coordinates_buffer);
 
+
   for (int i = 0; i < mNumVtx; i++) {
-    mVtxCrd(0, i) = coordinates_element[mNumDim * i + 0];
-    mVtxCrd(1, i) = coordinates_element[mNumDim * i + 1];
+    mVtxCrd(i,0) = coordinates_element[mNumDim * i + 0];
+    mVtxCrd(i,1) = coordinates_element[mNumDim * i + 1];
   }
 
   // Save element center
-  mElmCtr << mVtxCrd.row(0).mean(),
-      mVtxCrd.row(1).mean();
+  mElmCtr << mVtxCrd.col(0).mean(),
+             mVtxCrd.col(1).mean();
 
 }
 
-std::tuple<Matrix2d, PetscReal> Quad::inverseJacobianAtPoint(
-    PetscReal eps, PetscReal eta) {
-
-  double v1x = mVtxCrd(0, 0);
-  double v2x = mVtxCrd(0, 1);
-  double v3x = mVtxCrd(0, 2);
-  double v4x = mVtxCrd(0, 3);
-  double v1z = mVtxCrd(1, 0);
-  double v2z = mVtxCrd(1, 1);
-  double v3z = mVtxCrd(1, 2);
-  double v4z = mVtxCrd(1, 3);
-
-  double r = (eps + 1.0);
-  double s = (eta + 1.0);
-  double detJ = -r * v1x * v3z / 8 + r * v1x * v4z / 8 + r * v1z * v3x / 8 - r * v1z * v4x / 8 + r * v2x * v3z / 8 -
-      r * v2x * v4z / 8 - r * v2z * v3x / 8 + r * v2z * v4x / 8 - s * v1x * v2z / 8 + s * v1x * v3z / 8 +
-      s * v1z * v2x / 8 - s * v1z * v3x / 8 - s * v2x * v4z / 8 + s * v2z * v4x / 8 + s * v3x * v4z / 8 -
-      s * v3z * v4x / 8 + v1x * v2z / 4 - v1x * v4z / 4 - v1z * v2x / 4 + v1z * v4x / 4 + v2x * v4z / 4 -
-      v2z * v4x / 4;
-
-  // J        =   [dx/dr, dy/dr;
-  //               dx/ds, dy/ds]
-  // J^{-1}   =   [dr/dx ds/dx;
-  //               dr/dz ds/dz]
-  double rx = (1 / detJ) * (r * (v1z - v2z) / 4 + r * (v3z - v4z) / 4 - v1z / 2 + v4z / 2);
-  double rz = (1 / detJ) * (-r * (v1x - v2x) / 4 - r * (v3x - v4x) / 4 + v1x / 2 - v4x / 2);
-  double sx = (1 / detJ) * (-s * (v1z - v2z + v3z - v4z) / 4 + v1z / 2 - v2z / 2);
-  double sz = (1 / detJ) * (s * (v1x - v2x + v3x - v4x) / 4 - v1x / 2 + v2x / 2);
-
-  Matrix2d inverseJacobian;
-  inverseJacobian <<  rx, sx,
-                      rz, sz;
-
-  return std::make_tuple(inverseJacobian, detJ);
-}
-
-Eigen::Vector4d Quad::interpolateAtPoint(double eps, double eta) {
-  // see element_metrics.py
-  //  interpolation for quadrilaterals based on right-hand rule quad with
-  // velocity v0,v1,v2,v3 and eps(x) eta(y,or,z)
-  //
-  //  v3               vb          v2
-  //  +-----------------+----------+ \eta
-  //  |                 |          |   ^       \alpha = (eps-(-1))/2
-  //  |                 |          |   |       \beta  = (eta-(-1))/2
-  //  |              vf + \beta    |   |       va = alpha(v1) + (1-alpha)v0
-  //  |                 |  ^       |   |       vb = alpha(v2) + (1-alpha)v3
-  //  |                 |  |       |           vf = beta va + (1-beta) vb
-  //  |                 |  |       |           group vf by terms v0..v3
-  //  |                 |  |       |           = [v0,v1,v2,v3].dot([-0.25*eps*eta - 0.25*eps + 0.25*eta + 0.25,
-  //  |              va |  |       |                                0.25*eps*eta + 0.25*eps + 0.25*eta + 0.25,
-  //  +-----------------+----------+                                -0.25*eps*eta + 0.25*eps - 0.25*eta + 0.25,
-  //  v0 -------------->\alpha    v1  --->\eps                      0.25*eps*eta - 0.25*eps - 0.25*eta + 0.25]
-  // ----------------------------------------------------------------------------------------------------------
-  Eigen::Vector4d interpolator;
-  interpolator <<        
-    0.25*eps*eta - 0.25*eps - 0.25*eta + 0.25,
-    -0.25*eps*eta + 0.25*eps - 0.25*eta + 0.25,
-    0.25*eps*eta + 0.25*eps + 0.25*eta + 0.25,
-    -0.25*eps*eta - 0.25*eps + 0.25*eta + 0.25;
-  return interpolator;
-}
-
-Eigen::Vector4d Quad::__attachMaterialProperties(ExodusModel *model, std::string parameter_name) {
-
-  Eigen::Vector4d material_at_vertices(mNumVtx);
-
-  for (auto i = 0; i < mNumVtx; i++) {
+template <typename ConcreteShape>
+void Quad<ConcreteShape>::attachMaterialProperties(const ExodusModel *model, std::string parameter) {
+  Vector4d material_at_vertices;
+  for (int i = 0; i < mNumVtx; i++) {
     material_at_vertices(i) = model->getElementalMaterialParameterAtVertex(
-        mElmCtr, parameter_name, i);
+        mElmCtr, parameter, i);
   }
-  return material_at_vertices;
-
+  mPar[parameter] = material_at_vertices;
 }
 
-void Quad::attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers) {
+template <typename ConcreteShape>
+void Quad<ConcreteShape>::attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers) {
 
   for (auto &rec: receivers) {
-    if (mCheckHull(rec->PysLocX1(), rec->PysLocX2())) {
-      Vector2d ref_loc = inverseCoordinateTransform(rec->PysLocX1(), rec->PysLocX2());
+    double x1 = rec->PysLocX1();
+    double x2 = rec->PysLocX2();
+    if (ConcreteShape::checkHull(x1, x2, mVtxCrd)) {
+      Vector2d ref_loc = ConcreteShape::inverseCoordinateTransform(x1, x2, mVtxCrd);
       rec->SetRefLocR(ref_loc(0));
       rec->SetRefLocS(ref_loc(1));
       mRec.push_back(rec);
     }
   }
-
 }
 
-
-void Quad::attachSource(std::vector<std::shared_ptr<Source>> sources) {
-
+template <typename ConcreteShape>
+void Quad<ConcreteShape>::attachSource(std::vector<std::shared_ptr<Source>> sources) {
   for (auto &source: sources) {
-    if (mCheckHull(source->PhysicalLocationX(), source->PhysicalLocationZ())) {
-      Vector2d reference_location = inverseCoordinateTransform(source->PhysicalLocationX(),
-                                                               source->PhysicalLocationZ());
-      source->setReferenceLocationR(reference_location(0));
-      source->setReferenceLocationS(reference_location(1));
+    double x1 = source->PhysicalLocationX();
+    double x2 = source->PhysicalLocationZ();
+    if (ConcreteShape::checkHull(x1, x2, mVtxCrd)) {
+      Vector2d ref_loc = ConcreteShape::inverseCoordinateTransform(x1, x2, mVtxCrd);
+      source->setReferenceLocationR(ref_loc(0));
+      source->setReferenceLocationS(ref_loc(1));
       mSrc.push_back(source);
     }
   }
-
 }
 
-bool Quad::mCheckHull(double x, double z) {
-  int n_neg = 0;
-  int n_pos = 0;
-  std::vector<int> edge_mapping{0, 1, 2, 3, 0};
-  Vector2d test_point;
-  test_point << x, z;
-  for (auto i = 0; i < mNumVtx; i++) {
-    Vector2d p0 = mVtxCrd.col(edge_mapping[i + 0]);
-    Vector2d p1 = mVtxCrd.col(edge_mapping[i + 1]);
-    Vector2d v_seg = p1 - p0;
-    Vector2d p_seg = test_point - p0;
-    double x_0 = v_seg(0) * p_seg(1) - v_seg(1) * p_seg(0);
-    if (x_0 <= 0) {
-      n_neg++;
-    } else {
-      n_pos++;
+template <typename ConcreteShape>
+VectorXd Quad<ConcreteShape>::getDeltaFunctionCoefficients(const double r, const double s) {
+
+  Matrix2d _;
+  mParWork = interpolateLagrangePolynomials(r, s, mPlyOrd);
+  for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
+    for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
+
+      double ri = mIntCrdR(r_ind);
+      double si = mIntCrdS(s_ind);
+
+      double detJac;
+      std::tie(_, detJac) = ConcreteShape::inverseJacobianAtPoint(ri, si, mVtxCrd);
+
+      mParWork(r_ind + s_ind * mNumIntPtsR) /=
+          (mIntWgtR(r_ind) * mIntWgtS(s_ind) * detJac);
+
     }
   }
-  return n_neg == mNumVtx || n_pos == mNumVtx;
+  return mParWork;
 }
 
-Vector2d Quad::inverseCoordinateTransform(const double &x_real, const double &z_real) {
+template <typename ConcreteShape>
+VectorXd Quad<ConcreteShape>::interpolateLagrangePolynomials(const double r, const double s,
+                                                          const int order) {
 
-  double v1x = mVtxCrd.row(0)[0];
-  double v2x = mVtxCrd.row(0)[1];
-  double v3x = mVtxCrd.row(0)[2];
-  double v4x = mVtxCrd.row(0)[3];
-  double v1z = mVtxCrd.row(1)[0];
-  double v2z = mVtxCrd.row(1)[1];
-  double v3z = mVtxCrd.row(1)[2];
-  double v4z = mVtxCrd.row(1)[3];
+  assert(order > 0 && order < 11);
 
-  // Using Newton iterations
-  // https://en.wikipedia.org/wiki/Newton%27s_method#Nonlinear_systems_of_equations
-  // J_F(xn)(x_{n+1} - x_n) = -F(x_n)
-  // Solve for x_{n+1}
-  // where J_F(x_n) is jacobian:
-  // https://en.wikipedia.org/wiki/Jacobian_matrix_and_determinant
-  double tol = 1e-6;
-  int num_iter = 0;
-  Vector2d solution{0.0, 0.0}; // initial guess at (0.0,0.0)
-  while (true) {
-
-    double r = solution(0);
-    double s = solution(1);
-
-    Matrix2d jacobian;
-
-    // mapping from reference quad [-1,1]x[-1,1] to *this* element
-    double Tx = v1x + (v2x - v1x) * (r + 1) / 2
-        + (v4x + (v3x - v4x) * (r + 1) / 2 - v1x - (v2x - v1x) * (r + 1) / 2) * (s + 1) / 2;
-    double Tz = v1z + (v2z - v1z) * (r + 1) / 2
-        + (v4z + (v3z - v4z) * (r + 1) / 2 - v1z - (v2z - v1z) * (r + 1) / 2) * (s + 1) / 2;
-    Vector2d objective_function{x_real - Tx, z_real - Tz};
-
-    // see element_matrices.py
-    // J = [-v1x/2 + v2x/2 + (s + 1)*(v1x/2 - v2x/2 + v3x/2 - v4x/2)/2, -v1x/2 + v4x/2 -
-    // (r + 1)*(-v1x + v2x)/4 + (r + 1)*(v3x - v4x)/4],
-    // [-v1z/2 + v2z/2 + (s + 1)*(v1z/2 - v2z/2 + v3z/2 - v4z/2)/2,
-    // -v1z/2 + v4z/2 - (r + 1)*(-v1z + v2z)/4 + (r + 1)*(v3z - v4z)/4]])
-
-    jacobian << (-v1x / 2 + v2x / 2 + (s + 1) * (v1x / 2 - v2x / 2 + v3x / 2 - v4x / 2) / 2), -v1x / 2 + v4x / 2
-        - (r + 1) * (-v1x + v2x) / 4 + (r + 1) * (v3x - v4x) / 4, -v1z / 2 + v2z / 2
-        + (s + 1) * (v1z / 2 - v2z / 2 + v3z / 2 - v4z / 2) / 2, -v1z / 2 + v4z / 2 - (r + 1) * (-v1z + v2z) / 4
-        + (r + 1) * (v3z - v4z) / 4;
-
-    if ((objective_function.array().abs() < tol).all()) {
-      return solution;
-    } else {
-      solution += (jacobian.inverse() * objective_function);
-    }
-    if (num_iter > 10) {
-      std::cerr << "inverseCoordinateTransform: TOO MANY ITERATIONS!\n";
-      exit(1);
-    }
-    num_iter++;
-
-  }
-
-}
-
-// TODO: Maybe should be moved to the constructor and made static.
-void Quad::setupGradientOperator() {
-
-  double eta = mIntCrdEta[0];
-  mGrd.resize(mNumIntPtsEta, mNumIntPtsEps);
-  Eigen::MatrixXd test(mNumIntPtsEta, mNumIntPtsEps);
-  for (auto i = 0; i < mNumIntPtsEps; i++) {
-    double eps = mIntCrdEps[i];
-    if (mPlyOrd == 1) {
-      interpolate_eps_derivative_order1_square(eta, test.data());
-    } else if (mPlyOrd == 2) {
-      interpolate_eps_derivative_order2_square(eps, eta, test.data());
-    } else if (mPlyOrd == 3) {
-      interpolate_eps_derivative_order3_square(eps, eta, test.data());
-    } else if (mPlyOrd == 4) {
-      interpolate_eps_derivative_order4_square(eps, eta, test.data());
-    } else if (mPlyOrd == 5) {
-      interpolate_eps_derivative_order5_square(eps, eta, test.data());
-    } else if (mPlyOrd == 6) {
-      interpolate_eps_derivative_order6_square(eps, eta, test.data());
-    } else if (mPlyOrd == 7) {
-      interpolate_eps_derivative_order7_square(eps, eta, test.data());
-    } else if (mPlyOrd == 8) {
-      interpolate_eps_derivative_order8_square(eps, eta, test.data());
-    } else if (mPlyOrd == 9) {
-      interpolate_eps_derivative_order9_square(eps, eta, test.data());
-    } else if (mPlyOrd == 10) {
-      interpolate_eps_derivative_order10_square(eps, eta, test.data());
-    }
-    mGrd.row(i) = test.col(0);
-  }
-}
-
-std::tuple<VectorXd, VectorXd> Quad::buildNodalPoints() {
-
-  assert(mNumIntPnt == mNumIntPtsEps * mNumIntPtsEta);
-
-  VectorXd nodalPoints_x(mNumIntPnt);
-  VectorXd nodalPoints_z(mNumIntPnt);
-
-  int idx = 0;
-  for (auto i = 0; i < mNumIntPtsEta; i++) {
-    for (auto j = 0; j < mNumIntPtsEps; j++) {
-
-      double eps = mIntCrdEps(j);
-      double eta = mIntCrdEta(i);
-
-      // reference mapping below uses [0,1]x[0,1] reference square
-      double r = (eps + 1) / 2;
-      double s = (eta + 1) / 2;
-
-      // assumes right-hand rule vertex layout (same as PETSc)
-      double v1x = mVtxCrd.row(0)[0];
-      double v2x = mVtxCrd.row(0)[1];
-      double v3x = mVtxCrd.row(0)[2];
-      double v4x = mVtxCrd.row(0)[3];
-      double v1z = mVtxCrd.row(1)[0];
-      double v2z = mVtxCrd.row(1)[1];
-      double v3z = mVtxCrd.row(1)[2];
-      double v4z = mVtxCrd.row(1)[3];
-
-      nodalPoints_x(idx) = v1x + (v2x - v1x) * r + (v4x + (v3x - v4x) * r - v1x - (v2x - v1x) * r) * s;
-      nodalPoints_z(idx) = v1z + (v2z - v1z) * r + (v4z + (v3z - v4z) * r - v1z - (v2z - v1z) * r) * s;
-
-      idx++;
-    }
-  }
-
-  return std::make_tuple(nodalPoints_x, nodalPoints_z);
-}
-
-
-VectorXd Quad::interpolateLagrangePolynomials(
-    const double eps, const double eta, const int p_order) {
-
-  assert(p_order > 0 && p_order < 11);
-
-  int n_points = (p_order + 1) * (p_order + 1);
+  int n_points = (order + 1) * (order + 1);
   VectorXd gll_coeffs(n_points);
-  if (p_order == 1) {
-    interpolate_order1_square(eps, eta, gll_coeffs.data());
-  } else if (p_order == 2) {
-    interpolate_order2_square(eps, eta, gll_coeffs.data());
-  } else if (p_order == 3) {
-    interpolate_order3_square(eps, eta, gll_coeffs.data());
-  } else if (p_order == 4) {
-    interpolate_order4_square(eps, eta, gll_coeffs.data());
-  } else if (p_order == 5) {
-    interpolate_order5_square(eps, eta, gll_coeffs.data());
-  } else if (p_order == 6) {
-    interpolate_order6_square(eps, eta, gll_coeffs.data());
-  } else if (p_order == 7) {
-    interpolate_order7_square(eps, eta, gll_coeffs.data());
-  } else if (p_order == 8) {
-    interpolate_order8_square(eps, eta, gll_coeffs.data());
-  } else if (p_order == 9) {
-    interpolate_order9_square(eps, eta, gll_coeffs.data());
-  } else if (p_order == 10) {
-    interpolate_order10_square(eps, eta, gll_coeffs.data());
+  if (order == 1) {
+    interpolate_order1_square(r, s, gll_coeffs.data());
+  } else if (order == 2) {
+    interpolate_order2_square(r, s, gll_coeffs.data());
+  } else if (order == 3) {
+    interpolate_order3_square(r, s, gll_coeffs.data());
+  } else if (order == 4) {
+    interpolate_order4_square(r, s, gll_coeffs.data());
+  } else if (order == 5) {
+    interpolate_order5_square(r, s, gll_coeffs.data());
+  } else if (order == 6) {
+    interpolate_order6_square(r, s, gll_coeffs.data());
+  } else if (order == 7) {
+    interpolate_order7_square(r, s, gll_coeffs.data());
+  } else if (order == 8) {
+    interpolate_order8_square(r, s, gll_coeffs.data());
+  } else if (order == 9) {
+    interpolate_order9_square(r, s, gll_coeffs.data());
+  } else if (order == 10) {
+    interpolate_order10_square(r, s, gll_coeffs.data());
   }
   return gll_coeffs;
 }
 
-double Quad::integrateField(const Eigen::VectorXd &field) {
+
+template <typename ConcreteShape>
+MatrixXd Quad<ConcreteShape>::setupGradientOperator(const int order) {
+
+  int num_pts_r = Quad<ConcreteShape>::GllPointsForOrder(order).size();
+  int num_pts_s = Quad<ConcreteShape>::GllPointsForOrder(order).size();
+  double eta = Quad<ConcreteShape>::GllPointsForOrder(order)(0);
+
+  MatrixXd grad(num_pts_s, num_pts_r);
+  MatrixXd test(num_pts_s, num_pts_r);
+  for (int i = 0; i < num_pts_r; i++) {
+    double eps = Quad<ConcreteShape>::GllPointsForOrder(order)(i);
+    if (order == 1) {
+      interpolate_eps_derivative_order1_square(eta, test.data());
+    } else if (order == 2) {
+      interpolate_eps_derivative_order2_square(eps, eta, test.data());
+    } else if (order == 3) {
+      interpolate_eps_derivative_order3_square(eps, eta, test.data());
+    } else if (order == 4) {
+      interpolate_eps_derivative_order4_square(eps, eta, test.data());
+    } else if (order == 5) {
+      interpolate_eps_derivative_order5_square(eps, eta, test.data());
+    } else if (order == 6) {
+      interpolate_eps_derivative_order6_square(eps, eta, test.data());
+    } else if (order == 7) {
+      interpolate_eps_derivative_order7_square(eps, eta, test.data());
+    } else if (order == 8) {
+      interpolate_eps_derivative_order8_square(eps, eta, test.data());
+    } else if (order == 9) {
+      interpolate_eps_derivative_order9_square(eps, eta, test.data());
+    } else if (order == 10) {
+      interpolate_eps_derivative_order10_square(eps, eta, test.data());
+    }
+    grad.row(i) = test.col(0);
+  }
+  return grad;
+}
+
+template <typename ConcreteShape>
+MatrixXd Quad<ConcreteShape>::computeGradient(const Ref<const VectorXd> &field) {
+
+  Matrix2d invJac;
+  Vector2d refGrad;
+
+  // Loop over all GLL points.
+  for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
+    for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
+
+      // gll index.
+      int index = r_ind + s_ind * mNumIntPtsR;
+
+      // (r,s) coordinates for this point.
+      double r = mIntCrdR(r_ind);
+      double s = mIntCrdS(s_ind);
+      std::tie(invJac, mDetJac(index)) = ConcreteShape::inverseJacobianAtPoint(r, s, mVtxCrd);
+      
+      // Optimized gradient for tensorized GLL basis.
+      
+      // mGradWork.row(index) = invJac * (refGrad <<
+      //   mGrd.row(r_ind).dot(rVectorStride(field, s_ind, mNumIntPtsS, mNumIntPtsR)),
+      //                                  mGrd.row(s_ind).dot(sVectorStride(field, r_ind, mNumIntPtsS, mNumIntPtsR))).finished();
+      
+      // optimized version (17us->13us)
+      refGrad.setZero(2);
+      for(int i=0;i<mNumIntPtsR;i++) {
+        refGrad(0) += mGrd(r_ind,i)*field(i + s_ind * mNumIntPtsR);
+        refGrad(1) += mGrd(s_ind,i)*field(r_ind + i * mNumIntPtsR);
+      }
+      mGradWork.row(index).noalias() = invJac * refGrad;        
+      
+    }
+  }
+
+  return mGradWork;
+
+}
+
+template <typename ConcreteShape>
+VectorXd Quad<ConcreteShape>::ParAtIntPts(const std::string &par) {
+
+  for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
+    for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
+
+      double r = mIntCrdR(r_ind);
+      double s = mIntCrdS(s_ind);
+      mParWork(r_ind + s_ind*mNumIntPtsR) = ConcreteShape::interpolateAtPoint(r,s).dot(mPar[par]);
+
+    }
+  }
+
+  return mParWork;
+}
+
+template <typename ConcreteShape>
+VectorXd Quad<ConcreteShape>::applyTestAndIntegrate(const Ref<const VectorXd> &f) {
+
+  int i = 0;
+  double detJac;
+  Matrix2d invJac;
+  VectorXd result(mNumIntPnt);
+  for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
+    for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
+
+      // gll index.
+      int index = r_ind + s_ind * mNumIntPtsR;
+
+      // (r,s) coordinate at this point.
+      double r = mIntCrdR(r_ind);
+      double s = mIntCrdS(s_ind);
+
+      std::tie(invJac,detJac) = ConcreteShape::inverseJacobianAtPoint(r,s,mVtxCrd);
+      result(index) = f(index) * detJac * mIntWgtR(r_ind) * mIntWgtS(s_ind);
+
+    }
+  }
+
+  return result;
+
+}
+
+template <typename ConcreteShape>
+VectorXd Quad<ConcreteShape>::applyGradTestAndIntegrate(const Ref<const MatrixXd> &f) {
+
+  Matrix2d invJac;
+  for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
+    
+    for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
+
+      double r = mIntCrdR(r_ind);
+      double s = mIntCrdS(s_ind);
+
+      double _;
+      std::tie(invJac, _) = ConcreteShape::inverseJacobianAtPoint(r,s,mVtxCrd);
+
+      // double dphi_r_dfx = mIntWgtS(s_ind) *
+      //     mIntWgtR.dot(((rVectorStride(mDetJac, s_ind, mNumIntPtsS, mNumIntPtsR)).array() *
+      //     rVectorStride(f.col(0), s_ind, mNumIntPtsS, mNumIntPtsR).array() *
+      //     mGrd.col(r_ind).array()).matrix());
+
+      // double dphi_s_dfx = mIntWgtR(r_ind) *
+      //     mIntWgtS.dot(((sVectorStride(mDetJac, r_ind, mNumIntPtsS, mNumIntPtsR)).array() *
+      //     sVectorStride(f.col(0), r_ind, mNumIntPtsS, mNumIntPtsR).array() *
+      //     mGrd.col(s_ind).array()).matrix());
+
+      // double dphi_r_dfy = mIntWgtS(s_ind) *
+      //     mIntWgtR.dot(((rVectorStride(mDetJac, s_ind, mNumIntPtsS, mNumIntPtsR)).array() *
+      //     rVectorStride(f.col(1), s_ind, mNumIntPtsS, mNumIntPtsR).array() *
+      //     mGrd.col(r_ind).array()).matrix());
+
+      // double dphi_s_dfy = mIntWgtR(r_ind) *
+      //     mIntWgtS.dot(((sVectorStride(mDetJac, r_ind, mNumIntPtsS, mNumIntPtsR)).array() *
+      //     sVectorStride(f.col(1), r_ind, mNumIntPtsS, mNumIntPtsR).array() *
+      //     mGrd.col(s_ind).array()).matrix());
+      
+      auto lr = mGrd.col(r_ind);
+      auto ls = mGrd.col(s_ind);
+      
+      double dphi_r_dfx = 0;
+      double dphi_s_dfx = 0;
+      
+      double dphi_r_dfy = 0;
+      double dphi_s_dfy = 0;
+      
+      for(int i=0;i<mNumIntPtsR;i++) {
+        int r_index = i + s_ind * mNumIntPtsR;
+        int s_index = r_ind + i * mNumIntPtsR;
+
+        dphi_r_dfx += mDetJac[r_index] * f(r_index,0) * lr[i] * mIntWgtR[i];
+        dphi_s_dfx += mDetJac[s_index] * f(s_index,0) * ls[i] * mIntWgtS[i];
+
+        // -- y --
+        dphi_r_dfy += mDetJac[r_index] * f(r_index,1) * lr[i] * mIntWgtR[i];
+        dphi_s_dfy += mDetJac[s_index] * f(s_index,1) * ls[i] * mIntWgtS[i];
+
+      }
+
+      dphi_r_dfx *= mIntWgtS(s_ind);
+      dphi_s_dfx *= mIntWgtR(r_ind);
+      
+      dphi_r_dfy *= mIntWgtS(s_ind);
+      dphi_s_dfy *= mIntWgtR(r_ind);
+      
+      Vector2d dphi_epseta_dfx, dphi_epseta_dfy;
+      dphi_epseta_dfx << dphi_r_dfx, dphi_s_dfx;
+      dphi_epseta_dfy << dphi_r_dfy, dphi_s_dfy;
+
+      mStiffWork(r_ind + s_ind * mNumIntPtsR) =
+        invJac.row(0).dot(dphi_epseta_dfx) +
+        invJac.row(1).dot(dphi_epseta_dfy);
+
+    }
+  }
+
+  return mStiffWork;
+
+}
+
+template <typename ConcreteShape>
+double Quad<ConcreteShape>::integrateField(const Eigen::Ref<const Eigen::VectorXd> &field) {
 
   double val = 0;
   Matrix2d inverse_Jacobian;
   double detJ;
-  for (int i = 0; i < mNumIntPtsEta; i++) {
-    for (int j = 0; j < mNumIntPtsEps; j++) {
+  for (int i = 0; i < mNumIntPtsS; i++) {
+    for (int j = 0; j < mNumIntPtsR; j++) {
 
-      double eps = mIntCrdEps(j);
-      double eta = mIntCrdEta(i);
-      std::tie(inverse_Jacobian, detJ) = inverseJacobianAtPoint(eps, eta);
-      val += field(j + i * mNumIntPtsEps) * mIntWgtEps(j) *
-          mIntWgtEta(i) * detJ;
+      double r = mIntCrdR(j);
+      double s = mIntCrdS(i);
+      std::tie(inverse_Jacobian, detJ) = ConcreteShape::inverseJacobianAtPoint(r, s, mVtxCrd);
+      val += field(j + i * mNumIntPtsR) * mIntWgtR(j) *
+          mIntWgtS(i) * detJ;
 
     }
   }
 
   return val;
-
 }
-MatrixXd Quad::interpolateFieldAtPoint(const VectorXd &pnt) {
-  return interpolateLagrangePolynomials(pnt(0), pnt(1), mPlyOrd);
-}
-void Quad::recordField(const MatrixXd &u) {
 
-  for (auto &rec : mRec) {
-    for (int i = 0; i < u.cols(); i++) {
-      rec->record(interpolateLagrangePolynomials(rec->RefLocR(), rec->RefLocS(), mPlyOrd).dot(u.col(i)),
-                  PullElementalFields()[i]);
+template <typename ConcreteShape>
+void Quad<ConcreteShape>::setBoundaryConditions(Mesh *mesh) {
+  mBndElm = false;
+  for (auto &keys: mesh ->BoundaryElementFaces()) {
+    auto boundary_name = keys.first;
+    auto element_in_boundary = keys.second;
+    if (element_in_boundary.find(mElmNum) != element_in_boundary.end()) {
+      mBndElm = true;
+      mBnd[boundary_name] = element_in_boundary[mElmNum];
     }
   }
-
 }
 
+template <typename ConcreteShape>
+void Quad<ConcreteShape>::applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname) {
 
+  if (! mBndElm) return;
 
+  double value = 0;
+  auto dirchlet_boundary_names = options.DirichletBoundaries();
+  for (auto &bndry: dirchlet_boundary_names) {
+    auto faceids = mBnd[bndry];
+    for (auto &faceid: faceids) {
+      auto field = mesh->getFieldOnFace(fieldname, faceid);
+      field = 0 * field.array() + value;
+      mesh->setFieldFromFace(fieldname, faceid, field);
+    }
+  }
+}
 
+// Instantiate combinatorical cases.
+template class Quad<QuadP1>;
 

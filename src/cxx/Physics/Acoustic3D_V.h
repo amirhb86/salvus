@@ -10,7 +10,7 @@ class ExodusModel;
 template <typename Shape>
 class Acoustic3D_V: public Shape {
   /**
-   * \class AcousticNew
+   * \class Acoustic2D
    *
    * \brief Class in charge of handling wave propagation in acoustic regions.
    *

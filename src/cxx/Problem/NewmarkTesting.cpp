@@ -1,5 +1,5 @@
 #include "NewmarkTesting.h"
-#include <Element/ElementNew.h>
+#include <Element/Element.h>
 
 void NewmarkTesting::initialize(Mesh *mesh,
                                 ExodusModel *model,

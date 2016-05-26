@@ -1,5 +1,6 @@
 #include <vector>
-#include "QuadP1.h"
+
+#include <QuadP1.h>
 
 using namespace Eigen;
 
