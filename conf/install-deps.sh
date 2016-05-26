@@ -11,9 +11,9 @@ cd petsc-src
 make 
 make install
 
-# Eigen
+# Eigen 3.2
 cd
-hg clone https://bitbucket.org/eigen/eigen
+hg clone https://bitbucket.org/eigen/eigen -r 3.2
 
 # Back into salvus directory
 cd

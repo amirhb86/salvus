@@ -26,7 +26,7 @@ what you can do for your spectral element wave propagator.
     ```
 
 3. Eigen: <https://eigen.tuxfamily.org>  
-    You will need to install version 3.x of the     `eigen` library
+    You will need to install version 3.x of the     `eigen` library (we use 3.2.x for the automated builds and tests)
 
     ```bash
     brew install eigen                  # OSX

@@ -823,13 +823,23 @@ MatrixXd HexahedraNew<ConcreteHex>::computeGradient(const Ref<const VectorXd> &f
 
         // Optimized gradient for tensorized GLL basis.
         std::tie(invJac, mDetJac(index)) = ConcreteHex::inverseJacobianAtPoint(r, s, t, mVtxCrd);
-        mGradWork.row(index) = invJac * (refGrad <<
-                                         mGrd.row(r_ind).dot(rVectorStride(field,s_ind,t_ind,
-                                                                           mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)),
-                                         mGrd.row(s_ind).dot(sVectorStride(field, r_ind, t_ind,
-                                                                           mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)),
-                                         mGrd.row(t_ind).dot(tVectorStride(field, r_ind, s_ind,
-                                                                           mNumIntPtsR,mNumIntPtsS,mNumIntPtsT))).finished();
+        // mGradWork.row(index) = invJac * (refGrad <<
+        //                                  mGrd.row(r_ind).dot(rVectorStride(field,s_ind,t_ind,
+        //                                                                    mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)),
+        //                                  mGrd.row(s_ind).dot(sVectorStride(field, r_ind, t_ind,
+        //                                                                    mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)),
+        //                                  mGrd.row(t_ind).dot(tVectorStride(field, r_ind, s_ind,
+        //                                                                    mNumIntPtsR,mNumIntPtsS,mNumIntPtsT))).finished();
+        
+        // loop by hand is 10 us faster (27 -> 17)
+        refGrad.setZero(3);
+        for(int i=0;i<mNumIntPtsR;i++) {
+          refGrad(0) += mGrd(r_ind,i)*field(i + s_ind * mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS);
+          refGrad(1) += mGrd(s_ind,i)*field(r_ind + i * mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS);
+          refGrad(2) += mGrd(t_ind,i)*field(r_ind + s_ind * mNumIntPtsR + i * mNumIntPtsR * mNumIntPtsS);
+        }
+        
+        mGradWork.row(index).noalias() = invJac * refGrad;        
 
       }
     }
@@ -914,63 +924,106 @@ VectorXd HexahedraNew<ConcreteHex>::applyGradTestAndIntegrate(const Ref<const Ma
         auto lr = mGrd.col(r_ind);
         auto ls = mGrd.col(s_ind);
         auto lt = mGrd.col(t_ind);
-        
-        auto dphi_r_dfx = mIntWgtS(s_ind) * mIntWgtT(t_ind) *
-          mIntWgtR.dot(((rVectorStride(mDetJac, s_ind, t_ind,
-                                       mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
-                        rVectorStride(f.col(0), s_ind,t_ind,
-                                      mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
-                            lr.array()).matrix());
-        auto dphi_s_dfx = mIntWgtR(r_ind) * mIntWgtT(t_ind) *
-          mIntWgtS.dot(((sVectorStride(mDetJac, r_ind, t_ind,
-                                       mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
-                        sVectorStride(f.col(0), r_ind,t_ind,
-                                      mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
-                            ls.array()).matrix());
-        auto dphi_t_dfx = mIntWgtR(r_ind) * mIntWgtS(s_ind) *
-          mIntWgtT.dot(((tVectorStride(mDetJac, r_ind, s_ind,
-                                       mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
-                        tVectorStride(f.col(0), r_ind,s_ind,
-                                      mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
-                            lt.array()).matrix());
 
-        auto dphi_r_dfy = mIntWgtS(s_ind) * mIntWgtT(t_ind) *
-          mIntWgtR.dot(((rVectorStride(mDetJac, s_ind, t_ind,
-                                       mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
-                        rVectorStride(f.col(1), s_ind,t_ind,
-                                      mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
-                            lr.array()).matrix());
-        auto dphi_s_dfy = mIntWgtR(r_ind) * mIntWgtT(t_ind) *
-          mIntWgtS.dot(((sVectorStride(mDetJac, r_ind, t_ind,
-                                       mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
-                        sVectorStride(f.col(1), r_ind,t_ind,
-                                      mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
-                            ls.array()).matrix());
-        auto dphi_t_dfy = mIntWgtR(r_ind) * mIntWgtS(s_ind) *
-          mIntWgtT.dot(((tVectorStride(mDetJac, r_ind, s_ind,
-                                       mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
-                        tVectorStride(f.col(1), r_ind,s_ind,
-                                      mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
-                            lt.array()).matrix());
+        // this version is dramatically slower (102us vs. 17us) relative to the looped/unrolled version below.
+        // --- x ---
+        // auto dphi_r_dfx2 = mIntWgtS(s_ind) * mIntWgtT(t_ind) *
+        //   mIntWgtR.dot(((rVectorStride(mDetJac, s_ind, t_ind,
+        //                                mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
+        //                 rVectorStride(f.col(0), s_ind,t_ind,
+        //                               mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
+        //                     lr.array()).matrix());
+
+        // auto dphi_s_dfx2 = mIntWgtR(r_ind) * mIntWgtT(t_ind) *
+        //   mIntWgtS.dot(((sVectorStride(mDetJac, r_ind, t_ind,
+        //                                mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
+        //                 sVectorStride(f.col(0), r_ind,t_ind,
+        //                               mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
+        //                 ls.array()).matrix());
+        // auto dphi_t_dfx2 = mIntWgtR(r_ind) * mIntWgtS(s_ind) *
+        //   mIntWgtT.dot(((tVectorStride(mDetJac, r_ind, s_ind,
+        //                                mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
+        //                 tVectorStride(f.col(0), r_ind,s_ind,
+        //                               mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
+        //                 lt.array()).matrix());
         
-        auto dphi_r_dfz = mIntWgtS(s_ind) * mIntWgtT(t_ind) *
-          mIntWgtR.dot(((rVectorStride(mDetJac, s_ind, t_ind,
-                                       mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
-                        rVectorStride(f.col(2), s_ind,t_ind,
-                                      mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
-                            lr.array()).matrix());
-        auto dphi_s_dfz = mIntWgtR(r_ind) * mIntWgtT(t_ind) *
-          mIntWgtS.dot(((sVectorStride(mDetJac, r_ind, t_ind,
-                                       mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
-                        sVectorStride(f.col(2), r_ind,t_ind,
-                                      mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
-                            ls.array()).matrix());
-        auto dphi_t_dfz = mIntWgtR(r_ind) * mIntWgtS(s_ind) *
-          mIntWgtT.dot(((tVectorStride(mDetJac, r_ind, s_ind,
-                                       mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
-                        tVectorStride(f.col(2), r_ind,s_ind,
-                                      mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
-                            lt.array()).matrix());
+        // // // --- y ---
+        // auto dphi_r_dfy2 = mIntWgtS(s_ind) * mIntWgtT(t_ind) *
+        //   mIntWgtR.dot(((rVectorStride(mDetJac, s_ind, t_ind,
+        //                                mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
+        //                 rVectorStride(f.col(1), s_ind,t_ind,
+        //                               mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
+        //                     lr.array()).matrix());
+        // auto dphi_s_dfy2 = mIntWgtR(r_ind) * mIntWgtT(t_ind) *
+        //   mIntWgtS.dot(((sVectorStride(mDetJac, r_ind, t_ind,
+        //                                mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
+        //                 sVectorStride(f.col(1), r_ind,t_ind,
+        //                               mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
+        //                     ls.array()).matrix());
+        // auto dphi_t_dfy2 = mIntWgtR(r_ind) * mIntWgtS(s_ind) *
+        //   mIntWgtT.dot(((tVectorStride(mDetJac, r_ind, s_ind,
+        //                                mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
+        //                 tVectorStride(f.col(1), r_ind,s_ind,
+        //                               mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
+        //                     lt.array()).matrix());
+        
+        // // // --- z ---
+        // auto dphi_r_dfz2 = mIntWgtS(s_ind) * mIntWgtT(t_ind) *
+        //   mIntWgtR.dot(((rVectorStride(mDetJac, s_ind, t_ind,
+        //                                mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
+        //                 rVectorStride(f.col(2), s_ind,t_ind,
+        //                               mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
+        //                     lr.array()).matrix());
+        // auto dphi_s_dfz2 = mIntWgtR(r_ind) * mIntWgtT(t_ind) *
+        //   mIntWgtS.dot(((sVectorStride(mDetJac, r_ind, t_ind,
+        //                                mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
+        //                 sVectorStride(f.col(2), r_ind,t_ind,
+        //                               mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
+        //                     ls.array()).matrix());
+        // auto dphi_t_dfz2 = mIntWgtR(r_ind) * mIntWgtS(s_ind) *
+        //   mIntWgtT.dot(((tVectorStride(mDetJac, r_ind, s_ind,
+        //                                mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
+        //                 tVectorStride(f.col(2), r_ind,s_ind,
+        //                               mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
+        //                     lt.array()).matrix());
+        
+        double dphi_r_dfx = 0;
+        double dphi_s_dfx = 0;
+        double dphi_t_dfx = 0;
+        double dphi_r_dfy = 0;
+        double dphi_s_dfy = 0;
+        double dphi_t_dfy = 0;
+        double dphi_r_dfz = 0;
+        double dphi_s_dfz = 0;
+        double dphi_t_dfz = 0;
+        for(int i=0;i<mNumIntPtsR;i++) {
+          int r_index = i + s_ind * mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS;
+          int s_index = r_ind + i * mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS;
+          int t_index = r_ind + s_ind * mNumIntPtsR + i * mNumIntPtsR * mNumIntPtsS;
+
+          dphi_r_dfx += mDetJac[r_index] * f(r_index,0) * lr[i] * mIntWgtR[i];
+          dphi_s_dfx += mDetJac[s_index] * f(s_index,0) * ls[i] * mIntWgtS[i];
+          dphi_t_dfx += mDetJac[t_index] * f(t_index,0) * lt[i] * mIntWgtT[i];
+
+          // -- y --
+          dphi_r_dfy += mDetJac[r_index] * f(r_index,1) * lr[i] * mIntWgtR[i];
+          dphi_s_dfy += mDetJac[s_index] * f(s_index,1) * ls[i] * mIntWgtS[i];
+          dphi_t_dfy += mDetJac[t_index] * f(t_index,1) * lt[i] * mIntWgtT[i];
+
+          // -- z --
+          dphi_r_dfz += mDetJac[r_index] * f(r_index,2) * lr[i] * mIntWgtR[i];
+          dphi_s_dfz += mDetJac[s_index] * f(s_index,2) * ls[i] * mIntWgtS[i];
+          dphi_t_dfz += mDetJac[t_index] * f(t_index,2) * lt[i] * mIntWgtT[i];
+        }
+        dphi_r_dfx *= mIntWgtS(s_ind) * mIntWgtT(t_ind);
+        dphi_s_dfx *= mIntWgtR(r_ind) * mIntWgtT(t_ind);
+        dphi_t_dfx *= mIntWgtR(r_ind) * mIntWgtS(s_ind);
+        dphi_r_dfy *= mIntWgtS(s_ind) * mIntWgtT(t_ind);
+        dphi_s_dfy *= mIntWgtR(r_ind) * mIntWgtT(t_ind);
+        dphi_t_dfy *= mIntWgtR(r_ind) * mIntWgtS(s_ind);
+        dphi_r_dfz *= mIntWgtS(s_ind) * mIntWgtT(t_ind);
+        dphi_s_dfz *= mIntWgtR(r_ind) * mIntWgtT(t_ind);
+        dphi_t_dfz *= mIntWgtR(r_ind) * mIntWgtS(s_ind);
 
         Vector3d dphi_rst_dfx;
         dphi_rst_dfx <<

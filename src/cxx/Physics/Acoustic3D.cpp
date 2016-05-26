@@ -47,9 +47,9 @@ MatrixXd Acoustic3D<Element>::computeStress(const Ref<const MatrixXd> &strain) {
   mVpSquared = Element::ParAtIntPts("VP").array().pow(2);
 
   // Calculate sigma_ux and sigma_uy.
-  mStress.col(0) = mVpSquared.array().cwiseProduct(strain.col(0).array());
-  mStress.col(1) = mVpSquared.array().cwiseProduct(strain.col(1).array());
-  mStress.col(2) = mVpSquared.array().cwiseProduct(strain.col(2).array());
+  mStress.col(0) = mVpSquared.array() * strain.col(0).array();
+  mStress.col(1) = mVpSquared.array() * strain.col(1).array();
+  mStress.col(2) = mVpSquared.array() * strain.col(2).array();
   return mStress;
 
 }

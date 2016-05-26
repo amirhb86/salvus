@@ -58,7 +58,7 @@ MatrixXd AcousticNew<Element>::computeStiffnessTerm(
     const MatrixXd &u) {
 
   // Calculate gradient from displacement.
-  mStrain = Element::computeGradient(u);
+  mStrain = Element::computeGradient(u.col(0));
 
   // Stress from strain.
   mStress = computeStress(mStrain);

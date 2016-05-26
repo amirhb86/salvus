@@ -119,15 +119,15 @@ void NewmarkGeneral::solve(Options options) {
       element->recordField(u.block(0, 0, int_pnts, fitr));
 
       // Compute stiffness, only passing those rows which are occupied.
-      ku.block(0, 0, int_pnts, fitr) = element->computeStiffnessTerm(
-          u.block(0, 0, int_pnts, fitr));
+      ku.leftCols(fitr) =
+        element->computeStiffnessTerm(u.leftCols(fitr));
 
       // Compute source term.
-      f.block(0, 0, int_pnts, fitr) = element->computeSourceTerm(time);
+      f.leftCols(fitr) = element->computeSourceTerm(time);
 
       // Compute acceleration.
-      fMinusKu.block(0, 0, int_pnts, fitr) = f.block(0, 0, int_pnts, fitr).array() -
-          ku.block(0, 0, int_pnts, fitr).array();
+      fMinusKu.leftCols(fitr) = f.leftCols(fitr).array() -
+        ku.leftCols(fitr).array();
 
       // Sum fields into local partition.
       fitr = 0;

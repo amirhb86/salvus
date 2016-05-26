@@ -283,7 +283,7 @@ MatrixXd QuadNew<ConcreteShape>::setupGradientOperator(const int order) {
 }
 
 template <typename ConcreteShape>
-MatrixXd QuadNew<ConcreteShape>::computeGradient(const Ref<const MatrixXd> &field) {
+MatrixXd QuadNew<ConcreteShape>::computeGradient(const Ref<const VectorXd> &field) {
 
   Matrix2d invJac;
   Vector2d refGrad;
@@ -298,13 +298,22 @@ MatrixXd QuadNew<ConcreteShape>::computeGradient(const Ref<const MatrixXd> &fiel
       // (r,s) coordinates for this point.
       double r = mIntCrdR(r_ind);
       double s = mIntCrdS(s_ind);
-
-      // Optimized gradient for tensorized GLL basis.
       std::tie(invJac, mDetJac(index)) = ConcreteShape::inverseJacobianAtPoint(r, s, mVtxCrd);
-      mGradWork.row(index) = invJac * (refGrad <<
-        mGrd.row(r_ind).dot(rVectorStride(field, s_ind, mNumIntPtsS, mNumIntPtsR)),
-        mGrd.row(s_ind).dot(sVectorStride(field, r_ind, mNumIntPtsS, mNumIntPtsR))).finished();
-
+      
+      // Optimized gradient for tensorized GLL basis.
+      
+      // mGradWork.row(index) = invJac * (refGrad <<
+      //   mGrd.row(r_ind).dot(rVectorStride(field, s_ind, mNumIntPtsS, mNumIntPtsR)),
+      //                                  mGrd.row(s_ind).dot(sVectorStride(field, r_ind, mNumIntPtsS, mNumIntPtsR))).finished();
+      
+      // optimized version (17us->13us)
+      refGrad.setZero(2);
+      for(int i=0;i<mNumIntPtsR;i++) {
+        refGrad(0) += mGrd(r_ind,i)*field(i + s_ind * mNumIntPtsR);
+        refGrad(1) += mGrd(s_ind,i)*field(r_ind + i * mNumIntPtsR);
+      }
+      mGradWork.row(index).noalias() = invJac * refGrad;        
+      
     }
   }
 
@@ -360,6 +369,7 @@ VectorXd QuadNew<ConcreteShape>::applyGradTestAndIntegrate(const Ref<const Matri
 
   Matrix2d invJac;
   for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
+    
     for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
 
       double r = mIntCrdR(r_ind);
@@ -368,26 +378,54 @@ VectorXd QuadNew<ConcreteShape>::applyGradTestAndIntegrate(const Ref<const Matri
       double _;
       std::tie(invJac, _) = ConcreteShape::inverseJacobianAtPoint(r,s,mVtxCrd);
 
-      double dphi_r_dfx = mIntWgtS(s_ind) *
-          mIntWgtR.dot(((rVectorStride(mDetJac, s_ind, mNumIntPtsS, mNumIntPtsR)).array() *
-          rVectorStride(f.col(0), s_ind, mNumIntPtsS, mNumIntPtsR).array() *
-          mGrd.col(r_ind).array()).matrix());
+      // double dphi_r_dfx = mIntWgtS(s_ind) *
+      //     mIntWgtR.dot(((rVectorStride(mDetJac, s_ind, mNumIntPtsS, mNumIntPtsR)).array() *
+      //     rVectorStride(f.col(0), s_ind, mNumIntPtsS, mNumIntPtsR).array() *
+      //     mGrd.col(r_ind).array()).matrix());
 
-      double dphi_s_dfx = mIntWgtR(r_ind) *
-          mIntWgtS.dot(((sVectorStride(mDetJac, r_ind, mNumIntPtsS, mNumIntPtsR)).array() *
-          sVectorStride(f.col(0), r_ind, mNumIntPtsS, mNumIntPtsR).array() *
-          mGrd.col(s_ind).array()).matrix());
+      // double dphi_s_dfx = mIntWgtR(r_ind) *
+      //     mIntWgtS.dot(((sVectorStride(mDetJac, r_ind, mNumIntPtsS, mNumIntPtsR)).array() *
+      //     sVectorStride(f.col(0), r_ind, mNumIntPtsS, mNumIntPtsR).array() *
+      //     mGrd.col(s_ind).array()).matrix());
 
-      double dphi_r_dfy = mIntWgtS(s_ind) *
-          mIntWgtR.dot(((rVectorStride(mDetJac, s_ind, mNumIntPtsS, mNumIntPtsR)).array() *
-          rVectorStride(f.col(1), s_ind, mNumIntPtsS, mNumIntPtsR).array() *
-          mGrd.col(r_ind).array()).matrix());
+      // double dphi_r_dfy = mIntWgtS(s_ind) *
+      //     mIntWgtR.dot(((rVectorStride(mDetJac, s_ind, mNumIntPtsS, mNumIntPtsR)).array() *
+      //     rVectorStride(f.col(1), s_ind, mNumIntPtsS, mNumIntPtsR).array() *
+      //     mGrd.col(r_ind).array()).matrix());
 
-      double dphi_s_dfy = mIntWgtR(r_ind) *
-          mIntWgtS.dot(((sVectorStride(mDetJac, r_ind, mNumIntPtsS, mNumIntPtsR)).array() *
-          sVectorStride(f.col(1), r_ind, mNumIntPtsS, mNumIntPtsR).array() *
-          mGrd.col(s_ind).array()).matrix());
+      // double dphi_s_dfy = mIntWgtR(r_ind) *
+      //     mIntWgtS.dot(((sVectorStride(mDetJac, r_ind, mNumIntPtsS, mNumIntPtsR)).array() *
+      //     sVectorStride(f.col(1), r_ind, mNumIntPtsS, mNumIntPtsR).array() *
+      //     mGrd.col(s_ind).array()).matrix());
+      
+      auto lr = mGrd.col(r_ind);
+      auto ls = mGrd.col(s_ind);
+      
+      double dphi_r_dfx = 0;
+      double dphi_s_dfx = 0;
+      
+      double dphi_r_dfy = 0;
+      double dphi_s_dfy = 0;
+      
+      for(int i=0;i<mNumIntPtsR;i++) {
+        int r_index = i + s_ind * mNumIntPtsR;
+        int s_index = r_ind + i * mNumIntPtsR;
 
+        dphi_r_dfx += mDetJac[r_index] * f(r_index,0) * lr[i] * mIntWgtR[i];
+        dphi_s_dfx += mDetJac[s_index] * f(s_index,0) * ls[i] * mIntWgtS[i];
+
+        // -- y --
+        dphi_r_dfy += mDetJac[r_index] * f(r_index,1) * lr[i] * mIntWgtR[i];
+        dphi_s_dfy += mDetJac[s_index] * f(s_index,1) * ls[i] * mIntWgtS[i];
+
+      }
+
+      dphi_r_dfx *= mIntWgtS(s_ind);
+      dphi_s_dfx *= mIntWgtR(r_ind);
+      
+      dphi_r_dfy *= mIntWgtS(s_ind);
+      dphi_s_dfy *= mIntWgtR(r_ind);
+      
       Vector2d dphi_epseta_dfx, dphi_epseta_dfy;
       dphi_epseta_dfx << dphi_r_dfx, dphi_s_dfx;
       dphi_epseta_dfy << dphi_r_dfy, dphi_s_dfy;
