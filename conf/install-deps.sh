@@ -2,15 +2,21 @@
 
 # PETSc
 cd
-git clone -b maint-3.6 https://bitbucket.org/petsc/petsc petsc-src;
-cd petsc-src
+# check if petsc has been installed before
+if [ ! -f /home/travis/petsc/include/petsc.h ]; then
+    echo "Installing petsc to $HOME/petsc"    
+    git clone -b maint-3.6 https://bitbucket.org/petsc/petsc petsc-src;
+    cd petsc-src
 
-# Configure and install.
-./configure --download-exodusii --download-netcdf --download-hdf5 --download-chaco \
-            --prefix=/home/travis/petsc
-make 
-make install
-
+    # Configure and install.
+    ./configure --download-exodusii --download-netcdf --download-hdf5 --download-chaco \
+                --prefix=/home/travis/petsc
+    make 
+    # $HOME/petsc will be cached
+    make install
+else
+    echo "Using cached PETSC install"
+fi
 # Eigen 3.2
 cd
 hg clone https://bitbucket.org/eigen/eigen -r 3.2
