@@ -178,7 +178,7 @@ private:
    * Compute the gradient of a field at all GLL points.
    * @param [in] field Field to take the gradient of.
    */
-  Eigen::MatrixXd computeGradient(const Eigen::Ref<const Eigen::MatrixXd>& field);
+  Eigen::MatrixXd computeGradient(const Eigen::Ref<const Eigen::VectorXd>& field);
 
   /**
    * Interpolate a parameter from vertex to GLL point.

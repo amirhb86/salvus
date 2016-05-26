@@ -803,7 +803,7 @@ MatrixXd HexahedraNew<ConcreteHex>::setupGradientOperator(const int order) {
 }
 
 template <typename ConcreteHex>
-MatrixXd HexahedraNew<ConcreteHex>::computeGradient(const Ref<const MatrixXd> &field) {
+MatrixXd HexahedraNew<ConcreteHex>::computeGradient(const Ref<const VectorXd> &field) {
 
   Matrix3d invJac;
   Vector3d refGrad;

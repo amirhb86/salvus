@@ -53,18 +53,18 @@ void AcousticTri::buildStiffnessMatrix() {
     
 }
 
-Eigen::MatrixXd AcousticTri::computeStiffnessTerm(const Eigen::MatrixXd &displacement) {
-
-    Eigen::VectorXd Ku = mElementStiffnessMatrix*displacement.col(0);
-    return Ku;
-    
-}
-
 void AcousticTri::attachMaterialProperties(ExodusModel *model) {
 
     // Vp (m/s).
     mMaterialVelocityAtVertices = __attachMaterialProperties(model, "VP");
 
+}
+
+Eigen::MatrixXd AcousticTri::computeStiffnessTerm(const Eigen::MatrixXd &displacement) {
+
+  std::cerr << "ERROR: Not here anymore\n";
+  exit(1);
+  
 }
 
 Eigen::MatrixXd AcousticTri::computeSourceTerm(double time) {

@@ -165,6 +165,16 @@ std::tuple<VectorXd,VectorXd> QuadP1::buildNodalPoints(const Eigen::Ref<const Ei
   VectorXd nodalPoints_x(num_pnt);
   VectorXd nodalPoints_z(num_pnt);
 
+  // assumes right-hand rule vertex layout (same as PETSc)
+  double v1x = vtx(0, 0);
+  double v2x = vtx(1, 0);
+  double v3x = vtx(2, 0);
+  double v4x = vtx(3, 0);
+  double v1z = vtx(0, 1);
+  double v2z = vtx(1, 1);
+  double v3z = vtx(2, 1);
+  double v4z = vtx(3, 1);
+  
   int idx = 0;
   for (auto i = 0; i < num_pnt_s; i++) {
     for (auto j = 0; j < num_pnt_r; j++) {
@@ -175,17 +185,7 @@ std::tuple<VectorXd,VectorXd> QuadP1::buildNodalPoints(const Eigen::Ref<const Ei
       // reference mapping below uses [0,1]x[0,1] reference square
       double r = (eps + 1) / 2;
       double s = (eta + 1) / 2;
-
-      // assumes right-hand rule vertex layout (same as PETSc)
-      double v1x = vtx(0, 0);
-      double v2x = vtx(1, 0);
-      double v3x = vtx(2, 0);
-      double v4x = vtx(3, 0);
-      double v1z = vtx(0, 1);
-      double v2z = vtx(1, 1);
-      double v3z = vtx(2, 1);
-      double v4z = vtx(3, 1);
-
+      
       nodalPoints_x(idx) = v1x + (v2x - v1x) * r + (v4x + (v3x - v4x) * r - v1x - (v2x - v1x) * r) * s;
       nodalPoints_z(idx) = v1z + (v2z - v1z) * r + (v4z + (v3z - v4z) * r - v1z - (v2z - v1z) * r) * s;
 

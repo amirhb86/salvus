@@ -1,6 +1,8 @@
 #include "catch.h"
 #include <Eigen/Dense>
 #include <petsc.h>
+#include <chrono>
+
 //#include <Element/Element.h>
 #include <Element/ElementNew.h>
 #include <ElementAdapter.h>
@@ -97,6 +99,7 @@ double solve_vs_exact(Options options, Mesh *mesh, std::vector<std::shared_ptr<E
 
   double max_error = 0.0;
   double max_error_all = 0.0;
+  
   while (time < duration) {
     max_error = 0.0;
     // Collect all global fields to the local partitions.
@@ -108,7 +111,7 @@ double solve_vs_exact(Options options, Mesh *mesh, std::vector<std::shared_ptr<E
     for (auto &field : elements[0]->PushElementalFields()) {
       mesh->zeroFields(field);
     }
-
+    std::chrono::duration<double, std::micro> totaltime_Ku(0.0);
     for (auto &element : elements) {
 
       // Get fields on element, store in successive rows. (e.g.,
@@ -125,10 +128,14 @@ double solve_vs_exact(Options options, Mesh *mesh, std::vector<std::shared_ptr<E
       max_error = fmax(max_error,element_error);
       max_error_all = fmax(max_error,max_error_all);
 
+      auto start = std::chrono::high_resolution_clock::now();
       // Compute stiffness, only passing those rows which are occupied.
       ku.block(0, 0, int_pnts, fitr) = element->computeStiffnessTerm(
           u.block(0, 0, int_pnts, fitr));
-
+      auto elapsed = std::chrono::high_resolution_clock::now() - start;
+      totaltime_Ku += elapsed;
+      
+      
       // Compute acceleration.
       fMinusKu.block(0, 0, int_pnts, fitr) = -1 * ku.block(0, 0, int_pnts, fitr).array();
 
@@ -144,6 +151,7 @@ double solve_vs_exact(Options options, Mesh *mesh, std::vector<std::shared_ptr<E
 
     if(options.DisplayDiagnostics() && (it % options.DisplayDiagnosticsEvery() == 0 || it == 0)) {
       printf("max_error=%f @ time=%f (%f%%)\n",max_error,time,100*(time/duration));
+      printf("Time per Ku on element = %f us\n", totaltime_Ku.count()/(elements.size()));
     }
     // exit(1);
     if (max_error > 5) {
@@ -175,7 +183,7 @@ double solve_vs_exact(Options options, Mesh *mesh, std::vector<std::shared_ptr<E
 
     if (options.SaveMovie() && (it % options.SaveFrameEvery() == 0 || it == 0)) {
       // GlobalFields[0] == "u" for acoustic and == "ux" for elastic
-      mesh->saveFrame(mesh->GlobalFields()[0], it);
+      mesh->saveFrame("a", it);
       // mesh->setLocalFieldToGlobal("u_exact");
       // mesh->saveFrame("u_exact", it);      
       PRINT_ROOT() << "TIME: " << time;
@@ -187,66 +195,67 @@ double solve_vs_exact(Options options, Mesh *mesh, std::vector<std::shared_ptr<E
   }
 
   PRINT_ROOT() << "Max Error @ T=end: " << max_error << std::endl;
+  PRINT_ROOT() << "Max Error T=1:end: " << max_error_all << std::endl;
 
   if (options.SaveMovie()) mesh->finalizeMovie();
   // cumulative max error
   return max_error_all;
 }
 
-//TEST_CASE("Testing acoustic exact solutions for triangles", "[exact/triangles]") {
-//
-//  // Mock command line arguments.
-//  PetscOptionsClear();
-//  const char *arg[] = {
-//      "salvus_test",
-//      "--testing","true",
-//      "--duration", "0.7071067811865475",
-//      "--time_step", "0.003",
-//      "--exodus_file_name", "simple_trimesh_2x2.e",
-//      "--exodus_model_file_name", "simple_trimesh_2x2.e",
-//      "--mesh_type", "newmark",
-//      "--element_shape", "triangle",
-//      "--physics_system", "acoustic",
-//      "--polynomial_order", "3",
-//      "--dirichlet-boundaries", "dirichlet",
-//      "--testIC", "true",
-//      "--IC-center-x", "0.0",
-//      "--IC-center-z", "0.0",
-//      "--IC-square-side-L", "2",
-//      "--saveMovie","false",
-//      "--saveFrameEvery","1",
-//      "--output_movie_file_name","/scratch/salvus/output_files/movie.h5",
-//      NULL};
-//  char **argv = const_cast<char **> (arg);
-//  int argc = sizeof(arg) / sizeof(const char *) - 1;
-//  PetscOptionsInsert(&argc, &argv, NULL);
-//
-//  // Set options for exact tests
-//  Options options;
-//  options.setOptions();
-//
-//  // Triangles
-//
-//  // Get mesh.
-//  Mesh *mesh = Mesh::factory(options);
-//  mesh->read(options);
-//
-//  // Get model.
-//  ExodusModel *model = new ExodusModel(options);
-//  model->initializeParallel();
-//
-//  // Setup reference element.
-//  std::shared_ptr<Element> reference_element = Element::factory(options);
-//
-//  std::vector<std::shared_ptr<Element>> elements = initialize_exact(
-//      mesh, model, reference_element, options);
-//
-//  double error = solve_vs_exact(options, mesh, elements);
-//
-//  // allow 10% increase previously found in error, or fail.
-//  REQUIRE(error < (1.1*0.000183694));
-//
-//}
+TEST_CASE("Testing acoustic exact solutions for triangles", "[exact/triangles]") {
+
+ // Mock command line arguments.
+ PetscOptionsClear();
+ const char *arg[] = {
+     "salvus_test",
+     "--testing","true",
+     "--duration", "0.7071067811865475",
+     "--time_step", "0.003",
+     "--exodus_file_name", "simple_trimesh_2x2.e",
+     "--exodus_model_file_name", "simple_trimesh_2x2.e",
+     "--mesh_type", "newmark",
+     "--element_shape", "triangle_new",
+     "--physics_system", "acoustic",
+     "--polynomial_order", "3",
+     "--dirichlet-boundaries", "dirichlet",
+     "--testIC", "true",
+     "--IC-center-x", "0.0",
+     "--IC-center-z", "0.0",
+     "--IC-square-side-L", "2",
+     "--saveMovie","false",
+     "--saveFrameEvery","1",
+     "--output_movie_file_name","/scratch/salvus/output_files/movie.h5",
+     NULL};
+ char **argv = const_cast<char **> (arg);
+ int argc = sizeof(arg) / sizeof(const char *) - 1;
+ PetscOptionsInsert(&argc, &argv, NULL);
+
+ // Set options for exact tests
+ Options options;
+ options.setOptions();
+
+ // Triangles
+
+ // Get mesh.
+ Mesh *mesh = Mesh::factory(options);
+ mesh->read(options);
+
+ // Get model.
+ ExodusModel *model = new ExodusModel(options);
+ model->initializeParallel();
+
+ // Setup reference element.
+ std::shared_ptr<ElementNew> reference_element = ElementNew::Factory(options);
+
+ std::vector<std::shared_ptr<ElementNew>> elements = initialize_exact<ElementNew>(
+     mesh, model, reference_element, options);
+
+ double error = solve_vs_exact<ElementNew>(options, mesh, elements);
+
+ // allow 10% increase previously found in error, or fail.
+ REQUIRE(error < (1.1*0.000183694));
+
+}
 
 TEST_CASE("Testing acoustic exact solutions for quadrilaterals", "[exact/quads]") {
 
@@ -299,7 +308,7 @@ TEST_CASE("Testing acoustic exact solutions for quadrilaterals", "[exact/quads]"
 
 }
 
-TEST_CASE("Testing acoustic exact solutions for hexahedra", "[exact/hexnew]") {
+TEST_CASE("Testing acoustic exact solutions for hexahedra", "[exact/hexahedra]") {
 
  std::cout << "Testing exact acoustic hex solution.\n";
  PetscOptionsClear();
@@ -354,32 +363,40 @@ TEST_CASE("Testing acoustic exact solutions for hexahedra", "[exact/hexnew]") {
 
 }
 
-TEST_CASE("Testing acoustic exact solutions for older hexahedra", "[exact/hexold]") {
 
- std::cout << "Testing exact acoustic hex solution.\n";
+TEST_CASE("Testing acoustic exact solutions for new tetrahedra", "[exact/tetrahedra]") {
+
+ std::cout << "Testing exact acoustic tet solution.\n";
  PetscOptionsClear();
  const char *arg[] = {
    "salvus_test",
    "--testing","true",
-   "--duration", "0.08838834764831843", // 30 steps
-   "--time_step", "0.003",
-   "--exodus_file_name", "simple_hexmesh_2x2x2.vp4.e",
-   "--exodus_model_file_name", "simple_hexmesh_2x2x2.vp4.e",
+   "--duration", "0.08838834764831843", // 98 steps
+   // "--duration", "0.004510548978043952", // 5 steps
+   // "--duration", "0.0009021097956087903", // 1 step
+   // dt=0.0036084391824351613 is stable for V=1
+   // dt/4 = 0.0009021097956087903
+   "--time_step", "0.0009021097956087903",
+   // "--time_step", "0.0001",
+   "--exodus_file_name", "simple_tetmesh_2x2x2.vp4.fluid.e",
+   "--exodus_model_file_name", "simple_tetmesh_2x2x2.vp4.fluid.e",
+   // "--exodus_file_name", "simple_tetmesh_2x2x2_30elements.vp4.fluid.e",
+   // "--exodus_model_file_name", "simple_tetmesh_2x2x2_30elements.vp4.fluid.e",
    "--mesh_type", "newmark",
-   "--element_shape", "hex",
+   "--element_shape", "tet_new",
    "--physics_system", "acoustic",
    "--polynomial_order", "3",
    "--dirichlet-boundaries", "x0,x1,y0,y1,z0,z1",
    "--testIC", "true",
    "--IC-center-x", "0.0",
+   "--IC-center-y", "0.0",
    "--IC-center-z", "0.0",
    "--IC-square-side-L", "2",
    "--saveMovie","false",
    "--saveFrameEvery","1",
-   "--output_movie_file_name","/scratch/salvus/output_files/movie.h5",
-   // "--displayDiagnosticsEvery","1",
-   // options.__SetSaveMovie(PETSC_FALSE);
-   // options.__SetSaveFrameEvery(1);
+   "--output_movie_file_name","/scratch/salvus/output_files_new/movie.h5",
+   "--displayDiagnostics", "true",
+   "--displayDiagnosticsEvery", "10",
    NULL};
  char **argv = const_cast<char **> (arg);
  int argc = sizeof(arg) / sizeof(const char *) - 1;
@@ -398,72 +415,15 @@ TEST_CASE("Testing acoustic exact solutions for older hexahedra", "[exact/hexold
  model->initializeParallel();
 
  // Setup reference element.
- auto reference_element = Element::factory(options);
+ auto reference_element = ElementNew::Factory(options);
 
- auto elements = initialize_exact<Element>(mesh, model, reference_element, options);
+ auto elements = initialize_exact<ElementNew>(mesh, model, reference_element, options);
 
- double error = solve_vs_exact<Element>(options, mesh,elements);
+ double error = solve_vs_exact<ElementNew>(options, mesh,elements);
 
  // allow 10% increase in previously found error, or fail.
- REQUIRE(error < (1.1*0.000133237));
+ REQUIRE(error < (1.1*0.000304241));
 
 }
 
-//TEST_CASE("Testing acoustic exact solutions for tetrahedra", "[exact/tetrahedra]") {
-//
-//  std::cout << "Testing exact acoustic tet solution.\n";
-//  PetscOptionsClear();
-//  const char *arg[] = {
-//    "salvus_test",
-//    "--testing","true",
-//    "--duration", "0.08838834764831843", // 120 steps
-//    // dt=0.0036084391824351613 is stable for V=1
-//    // dt/4 = 0.0009021097956087903
-//    "--time_step", "0.0009021097956087903",
-//    // "--time_step", "0.0001",
-//    "--exodus_file_name", "simple_tetmesh_2x2x2.vp4.fluid.e",
-//    "--exodus_model_file_name", "simple_tetmesh_2x2x2.vp4.fluid.e",
-//    "--mesh_type", "newmark",
-//    "--element_shape", "tet",
-//    "--physics_system", "acoustic",
-//    "--polynomial_order", "3",
-//    "--dirichlet-boundaries", "x0,x1,y0,y1,z0,z1",
-//    "--testIC", "true",
-//    "--IC-center-x", "0.0",
-//    "--IC-center-y", "0.0",
-//    "--IC-center-z", "0.0",
-//    "--IC-square-side-L", "2",
-//    "--saveMovie","false",
-//    "--saveFrameEvery","1",
-//    "--output_movie_file_name","/scratch/salvus/output_files/movie.h5",
-//    "--displayDiagnostics", "true",
-//    "--displayDiagnosticsEvery", "10",
-//    NULL};
-//  char **argv = const_cast<char **> (arg);
-//  int argc = sizeof(arg) / sizeof(const char *) - 1;
-//  PetscOptionsInsert(&argc, &argv, NULL);
-//
-//  // Set options for exact tests
-//  Options options;
-//  options.setOptions();
-//
-//  // Get mesh.
-//  Mesh *mesh = Mesh::factory(options);
-//  mesh->read(options);
-//
-//  // Get model.
-//  ExodusModel *model = new ExodusModel(options);
-//  model->initializeParallel();
-//
-//  // Setup reference element.
-//  auto reference_element = Element::factory(options);
-//
-//  auto elements = initialize_exact(mesh, model, reference_element, options);
-//
-//  double error = solve_vs_exact(options, mesh,elements);
-//
-//  // allow 10% increase in previously found error, or fail.
-//  REQUIRE(error < (1.1*0.000304241));
-//
-//}
 
