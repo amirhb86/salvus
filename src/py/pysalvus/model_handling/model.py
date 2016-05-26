@@ -4,37 +4,58 @@ import os
 import shutil
 import exodus
 
+from sets import Set
+
+import numpy as np
+
 DEFAULT_BLOCK = 1
 TIMESTEP_ZERO = 1
 
-def getExodusCopy(exodus_file_existing,exodus_file_new):
-    return exodus.copyTransfer(exodus_file_existing,exodus_file_new)
-    
-def addMaterialParameter(exoObj,parameter_name, parameter_values):
+
+def getElemsAndNodes(input_file):
+    "Gets the number of elements and nodes per elements in `input_file`"
+    exo_from = exodus.exodus(input_file,"r",array_type='ctype')
     BLOCK_ID = 1
-    if parameter_name in exoObj.get_node_variable_names():        
-        raise RuntimeError("Parameter already exists. Use updateMaterialParameter() to overwrite.")
+    _, _, nNodeElm, _ = exo_from.elem_blk_info(BLOCK_ID)
+    num_elems = exo_from.num_elems()
+    return (num_elems,nNodeElm)
+
+def getExodusCopy(exodus_file_existing,exodus_file_new,parameter_names):
+    '''
+    Gets a copy of an existing exodus file, for the purpose of adding or changing existing parameter values (VP,VS,etc)
+    :param exodus_file_existing Existing file
+    :param exodus_file_new Exodus cannot write to an existing file, so write to a new one.
+    :param parameter_names The variable names being added to the file. We cannot add these after the fact, so they are added now at file creation.
+    :return The newly created exodus file
+    '''
+    
+    exo_from = exodus.exodus(exodus_file_existing,"r",array_type='ctype')
+    num_vars_from = exo_from.get_element_variable_number()
+    
+    if num_vars_from == 0:
+        addElementVariables = parameter_names
     else:
-        _, _, nNodeElm, _ = exoObj.elem_blk_info(BLOCK_ID)
-        exoObj.set_element_variable_number(nNodeElm)
-        for node in range(nNodeElm):
-            var_name = "{}_{}".format(parameter_name, node)
-            exoObj.put_element_variable_name(var_name, node+1)
-            exoObj.put_element_variable_values(BLOCK_ID, var_name, TIMESTEP_ZERO, parameter_values)
+        existing_names = exo_from.get_element_variable_names()
+        set_existing_names = Set(existing_names)
+        set_parameter_names = Set(parameter_names)
+        set_new_names = set_parameter_names - set_existing_names
+        addElementVariables = list(set_new_names)
 
-def updateMaterialParameter(exoObj,parameter_name, parameter_values):
-    BLOCK_ID = DEFAULT_BLOCK
-    if "{}_0".format(parameter_name) in exoObj.get_element_variable_names():        
-        _, _, nNodeElm, _ = exoObj.elem_blk_info(BLOCK_ID)
-        if nNodeElm != exoObj.get_element_variable_number():
-            raise RuntimeError("Number of element parameters and nodes doesn't match!")
-        for node in range(nNodeElm):
-            var_name = "{}_{}".format(parameter_name, node)
-            exoObj.put_element_variable_values(BLOCK_ID, var_name, TIMESTEP_ZERO, parameter_values)        
-    else:
-        raise RuntimeError("Parameter doesn't exist. Use addMaterialParameter() to add it.")
+    return exodus.copyTransfer(exodus_file_existing,exodus_file_new,additionalElementVariables=addElementVariables)
 
-def addMaterialFlag(exoObj,fluid=True):
-    BLOCK_ID = DEFAULT_BLOCK
-    var_name = 'fluid'
 
+def setMaterialParameter(exoObj,parameter_names, parameter_values):
+    # type: (exoObj: Any ,parameter_names: [str], parameter_values: [[double]])
+    '''
+    Sets value to an element parameter. The parameter name must already be in the file.
+    :param exoObj Exodus file object
+    :param paramter_names Ex: ["VP_0","VP_1","VP_2","fluid"]
+    :param paramter_values Ex: For 3-element mesh "[[4,4,4],[4,4,4],[4,4,4],[0,0,0]]" (fluid=0 is elastic)
+    '''
+    BLOCK_ID = 1
+    if not (parameter_names[0] in exoObj.get_element_variable_names()):
+        raise Exception("ERROR: paramter name not in exodus file -- add it using getExodusCopy(,,parameter_names=names)!")
+        
+    for (i,(parameter_name,parameter_value)) in enumerate(zip(parameter_names,parameter_values)):        
+        exoObj.put_element_variable_values(BLOCK_ID, parameter_name, TIMESTEP_ZERO, parameter_value)
+        
