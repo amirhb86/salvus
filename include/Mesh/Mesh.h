@@ -1,14 +1,15 @@
 #pragma once
 
 // stl.
+#include <set>
 #include <map>
 #include <iosfwd>
 #include <string>
 #include <vector>
 #include <assert.h>
+#include <iostream>
 
 // 3rd party.
-#include <mpi.h>
 #include <petsc.h>
 #include <Eigen/Dense>
 
@@ -31,6 +32,18 @@ struct vec_struct {
 };
 
 class Mesh {
+
+  /** Keeps track of all the fields defined in the mesh. **/
+  std::set<std::string> mMeshFields;
+
+  /** Keeps track of the primary field on each element. **/
+  std::vector<std::set<std::string>> mElmFields;
+
+  /** Keeps track of any (possible) coupling fields on each element. **/
+  std::map<PetscInt,std::set<std::string>> mCouplingFields;
+
+  /** Keeps (sparse) track of any specific couplings. **/
+  std::map<PetscInt,std::vector<std::tuple<PetscInt,std::vector<std::string>>>> mCpl;
 
   int mNumberElementsLocal;
   /** < Num of elements on this processor. */
@@ -341,7 +354,9 @@ class Mesh {
    */
   Eigen::MatrixXd getElementCoordinateClosure(PetscInt elem_num);
 
+  int numFieldPerPhysics(std::string physics);
 
+  inline std::set<std::string> ElementFields(const PetscInt num) { return mElmFields[num]; }
   inline DM &DistributedMesh() { return mDistributedMesh; }
   inline PetscSection &MeshSection() { return mMeshSection; }
   virtual std::map<PetscInt, std::string> &BoundaryIds() { return mBoundaryIds; }

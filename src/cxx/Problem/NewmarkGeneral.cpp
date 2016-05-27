@@ -1,3 +1,4 @@
+#include <mpi.h>
 #include <Mesh/Mesh.h>
 #include <Source/Source.h>
 #include <Element/Element.h>
@@ -144,8 +145,9 @@ void NewmarkGeneral::solve(Options options) {
       }
     }
 
+    PetscInt rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     if(options.DisplayDiagnostics() && (it % options.DisplayDiagnosticsEvery() == 0 || it == 0)) {
-      if(MPI::COMM_WORLD.Get_rank() == 0) printf("|u|_oo=%f @ time=%f (%f%%)\n",max_Loo,time,100*(time/duration));
+      if(rank == 0) printf("|u|_oo=%f @ time=%f (%f%%)\n",max_Loo,time,100*(time/duration));
     }
     
     // Sum fields into global partitions.

@@ -3,11 +3,14 @@
 #include <Utilities/Options.h>
 #include <Mesh/Mesh.h>
 #include <Model/ExodusModel.h>
+#include <iostream>
 
 extern "C" {
 #include <Utilities/PETScExtensions.h>
 #include <Utilities/kdtree.h>
 }
+
+using namespace std;
 
 TEST_CASE("test_multi_field", "[multi_field]") {
 
@@ -32,63 +35,17 @@ TEST_CASE("test_multi_field", "[multi_field]") {
   Options options;
   options.setOptions();
 
-  Mesh *mesh = Mesh::factory(options);
-  mesh->read(options);
-
   ExodusModel *model = new ExodusModel(options);
   model->initializeParallel();
 
+  Mesh *mesh = Mesh::factory(options);
+  mesh->read(options);
   mesh->setupGlobalDof(1, 1, 1, 0, 2, model);
 
-  PetscInt csize;
-  PetscInt *idx;
-
-  // Use this for Csize.
-  DMPlexGetClosureIndices(mesh->DistributedMesh(), mesh->MeshSection(), 0, &csize, &idx);
-  DMPlexGetClosureIndices(mesh->DistributedMesh(), mesh->MeshSection(), 0, &csize, &idx);
-  std::vector<PetscInt> idx_0(idx, idx+csize);
-  DMPlexGetClosureIndices(mesh->DistributedMesh(), mesh->MeshSection(), 1, &csize, &idx);
-  std::vector<PetscInt> idx_1(idx, idx+csize);
-  DMPlexGetClosureIndices(mesh->DistributedMesh(), mesh->MeshSection(), 2, &csize, &idx);
-  std::vector<PetscInt> idx_2(idx, idx+csize);
-  DMPlexGetClosureIndices(mesh->DistributedMesh(), mesh->MeshSection(), 3, &csize, &idx);
-  std::vector<PetscInt> idx_3(idx, idx+csize);
-
-  std::vector<double> dat_0(idx_0.size()), dat_1(idx_1.size()), dat_2(idx_2.size()), dat_3(idx_3.size());
-  std::fill(dat_0.begin(), dat_0.end(), -1.0);
-  std::fill(dat_1.begin(), dat_1.end(), 1.0);
-  std::fill(dat_2.begin(), dat_2.end(), 2.0);
-  std::fill(dat_3.begin(), dat_3.end(), 3.0);
-
-
-  std::cout << idx_0.size() << ' '  << idx_2.size() << std::endl;
-  Vec test_dm;
-  DMCreateLocalVector(mesh->DistributedMesh(), &test_dm);
-//  VecSetValues(test_dm, idx_0.size(), idx_0.data(), dat_0.data(), INSERT_VALUES);
-  VecSetValues(test_dm, idx_3.size(), idx_3.data(), dat_3.data(), INSERT_VALUES);
-//  VecSetValues(test_dm, idx_2.size(), idx_2.data(), dat_2.data(), INSERT_VALUES);
-
-
-
-  std::vector<double> dat_scratch(idx_1.size());
-  VecGetValues(test_dm, idx_1.size(), idx_1.data(), dat_scratch.data());
-  for (auto i : dat_scratch) { std::cout << "DAT: " << i << std::endl; }
-  std::cout << "SIZE: " << dat_scratch.size() << std::endl;
-
-//  std::cout << mesh->getElementCoordinateClosure(13) << std::endl;
-
-
-
-
-  PetscScalar *buffer;
-  PetscInt bsize;
-  Vec test_dm;
-  DMCreateLocalVector(mesh->DistributedMesh(), &test_dm);
-//  DMPlexGetClosureWorkArray(mesh->DistributedMesh(), 4, mesh->MeshSection(), &bsize, &buffer);
-
-  PetscInt csize;
-  PetscInt *idx;
-  DMPlexGetClosureIndices(mesh->DistributedMesh(), mesh->MeshSection(), 0, &csize, &idx);
-
+  // Setup elements.
+  for (PetscInt i = 0; i < mesh->NumberElementsLocal(); i++) {
+    std::cout << "ELEMENT: " << i << "\n";
+    for (auto f : mesh->ElementFields(i)) { std::cout << f << std::endl; }
+  }
 
 }
