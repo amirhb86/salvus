@@ -45,7 +45,7 @@ TEST_CASE("test quadbase", "[quad]") {
     auto sources = Source::factory(options);
     Mesh *msh = Mesh::factory(options);
     msh->read(options);
-    std::shared_ptr<Element> elm = Element::Factory(options);
+    std::shared_ptr<Element> elm = Element::Factory({"u"}, {}, options);
     std::vector<std::shared_ptr<Element>> elms;
 
     ExodusModel *model = new ExodusModel(options);

@@ -317,7 +317,6 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
   CHKERRQ(ier);
 
   // dep = 0 -> fac; dep = 1 -> edg; dep = 2 -> vtx.
-//  assert(depth == 2); // Can only handle 2-D elements for now.
   for (int dep = 0; dep <= depth; dep++) {
     int num_dof = 0;
     if (dep == 0) { num_dof = num_dof_vtx; }
@@ -380,18 +379,53 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
     for (PetscInt j = 0; j < num_pnts; j++) {
       std::vector<std::string> v(8);
       PetscInt pnt = points[2 * j];
-      std::cout << "PNT: " << pnt << std::endl;
-      std::set_difference(mElmFields[i].begin(), mElmFields[i].end(),
-                          mCouplingFields[pnt].begin(), mCouplingFields[pnt].end(),
-                          v.begin());
-//      mCouplingFields[pnt] - mElmFields[i];
-//      for (auto vi: v) { std::cout << vi << std::endl; }
     }
 
   }
 
 
   return ier;
+}
+
+std::vector<std::tuple<PetscInt,std::vector<std::string>>> Mesh::CouplingFields(const PetscInt elm) {
+
+  std::vector<std::tuple<PetscInt,std::vector<std::string>>> couple;
+  std::set<std::string> elm_fields = mElmFields[elm];
+
+  PetscInt num_pts;
+  PetscInt *points = NULL;
+  PetscErrorCode ier = DMPlexGetTransitiveClosure(mDistributedMesh, elm, PETSC_TRUE, &num_pts, &points);
+  for (PetscInt j = 0; j < num_pts; j++) {
+    std::vector<std::string> field;
+    PetscInt pnt = points[2*j];
+    for (auto f: mCouplingFields[pnt]) {
+      bool coupling_edge = mElmFields[elm].find(f) == mElmFields[elm].end();
+      if (coupling_edge) { field.push_back(f); }
+    }
+    if (field.size()) {
+      couple.push_back(std::make_tuple(pnt, field));
+    }
+  }
+  return couple;
+}
+
+std::vector<std::string> Mesh::TotalCouplingFields(const PetscInt elm) {
+
+  std::set<std::string> fields;
+  std::set<std::string> elm_fields = mElmFields[elm];
+
+  PetscInt num_pts;
+  PetscInt *points = NULL;
+  PetscErrorCode ier = DMPlexGetTransitiveClosure(mDistributedMesh, elm, PETSC_TRUE, &num_pts, &points);
+  for (PetscInt j = 0; j < num_pts; j++) {
+    std::vector<std::string> field;
+    PetscInt pnt = points[2 * j];
+    for (auto f: mCouplingFields[pnt]) {
+      bool coupling_edge = mElmFields[elm].find(f) == mElmFields[elm].end();
+      if (coupling_edge) { fields.insert(f); }
+    }
+  }
+  return std::vector<std::string> (fields.begin(), fields.end());
 }
 
 void Mesh::registerFieldVectors(const std::string &name) {

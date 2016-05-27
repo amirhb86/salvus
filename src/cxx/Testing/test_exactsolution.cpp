@@ -245,7 +245,7 @@ TEST_CASE("Testing acoustic exact solutions for triangles", "[exact/triangles]")
  model->initializeParallel();
 
  // Setup reference element.
- std::shared_ptr<Element> reference_element = Element::Factory(options);
+ std::shared_ptr<Element> reference_element = Element::Factory({"u"}, {}, options);
 
  std::vector<std::shared_ptr<Element>> elements = initialize_exact<Element>(
      mesh, model, reference_element, options);
@@ -298,7 +298,7 @@ TEST_CASE("Testing acoustic exact solutions for quadrilaterals", "[exact/quads]"
   model->initializeParallel();
 
   // Setup reference element.
-  std::shared_ptr<Element> reference_element = Element::Factory(options);
+  std::shared_ptr<Element> reference_element = Element::Factory({"u"}, {}, options);
 
 
   std::vector<std::shared_ptr<Element>> elements = initialize_exact<Element>(mesh, model, reference_element, options);
@@ -352,7 +352,7 @@ TEST_CASE("Testing acoustic exact solutions for hexahedra", "[exact/hexahedra]")
  model->initializeParallel();
 
  // Setup reference element.
- auto reference_element = Element::Factory(options);
+ auto reference_element = Element::Factory({"u"}, {}, options);
 
  auto elements = initialize_exact<Element>(mesh, model, reference_element, options);
 
@@ -415,7 +415,7 @@ TEST_CASE("Testing acoustic exact solutions for new tetrahedra", "[exact/tetrahe
  model->initializeParallel();
 
  // Setup reference element.
- auto reference_element = Element::Factory(options);
+ auto reference_element = Element::Factory({"u"}, {}, options);
 
  auto elements = initialize_exact<Element>(mesh, model, reference_element, options);
 

@@ -41,7 +41,9 @@ class Element {
   /** Cleans up any heap-allocated memoroy. */
   virtual ~Element() {};
   /** Returns a concrete elment type based on command line options */
-  static std::shared_ptr<Element> Factory(Options options);
+  static std::shared_ptr<Element> Factory(const std::vector<std::string>& physics_base,
+                                          const std::vector<std::string>& physics_couple,
+                                          Options options);
   ///@}
 
   /** @name Element setup.

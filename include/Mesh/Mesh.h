@@ -356,7 +356,10 @@ class Mesh {
 
   int numFieldPerPhysics(std::string physics);
 
-  inline std::set<std::string> ElementFields(const PetscInt num) { return mElmFields[num]; }
+  inline std::vector<std::string> ElementFields(const PetscInt num) {
+    return std::vector<std::string> (mElmFields[num].begin(), mElmFields[num].end());
+  }
+
   inline DM &DistributedMesh() { return mDistributedMesh; }
   inline PetscSection &MeshSection() { return mMeshSection; }
   virtual std::map<PetscInt, std::string> &BoundaryIds() { return mBoundaryIds; }
@@ -366,5 +369,9 @@ class Mesh {
 
   inline std::map<std::string, std::map<int, std::vector<int>>>
   BoundaryElementFaces() { return mBoundaryElementFaces; }
+  std::set<std::string> AllFields() const { return mMeshFields; }
+
+  std::vector<std::tuple<PetscInt,std::vector<std::string>>> CouplingFields(const PetscInt elm);
+  std::vector<std::string> TotalCouplingFields(const PetscInt elm);
 
 };

@@ -1,18 +1,15 @@
 #include "catch.h"
-#include <petsc.h>
-#include <Utilities/Options.h>
-#include <Mesh/Mesh.h>
-#include <Model/ExodusModel.h>
+
 #include <iostream>
 
-extern "C" {
-#include <Utilities/PETScExtensions.h>
-#include <Utilities/kdtree.h>
-}
+#include <petsc.h>
+#include <Mesh/Mesh.h>
+#include <Element/Element.h>
+#include <Model/ExodusModel.h>
+#include <Utilities/Options.h>
 
-using namespace std;
 
-TEST_CASE("test_multi_field", "[multi_field]") {
+TEST_CASE("test_coupling", "[coupling]") {
 
   std::string e_file = "../../salvus_data/unit_test_meshes/fluid_layer_over_elastic_cartesian_2D_50s.e";
 
@@ -24,7 +21,8 @@ TEST_CASE("test_multi_field", "[multi_field]") {
       "--exodus_file_name", e_file.c_str(),
       "--exodus_model_file_name", e_file.c_str(),
       "--mesh_type", "newmark",
-      "--polynomial_order", "4"
+      "--element_shape", "quad_new",
+      "--polynomial_order", "4", NULL
   };
 
   char **argv = const_cast<char **> (arg);
@@ -39,22 +37,13 @@ TEST_CASE("test_multi_field", "[multi_field]") {
 
   Mesh *mesh = Mesh::factory(options);
   mesh->read(options);
-  mesh->setupGlobalDof(1, 1, 1, 0, 2, model);
+  mesh->setupGlobalDof(1, 3, 9, 0, 2, model);
 
-  // Setup elements.
   for (PetscInt i = 0; i < mesh->NumberElementsLocal(); i++) {
-    std::vector<std::tuple<PetscInt,std::vector<std::string>>> test = mesh->CouplingFields(i);
-    if (test.size()) {
-      for (auto t: test) {
-        PetscInt num;
-        std::vector<std::string> field;
-        std::tie(num, field) = t;
-        std::cout << "MAIN FIELD:\n";
-        for (auto f: mesh->ElementFields(i)) { std::cout << f << std::endl; }
-        std::cout << "COUPLES TO\n";
-        for (auto f: field) { std::cout << f << std::endl; }
-      }
-    }
+    Element::Factory(mesh->ElementFields(i),
+                     mesh->TotalCouplingFields(i),
+                     options);
+    for (auto f: mesh->ElementFields(i)) { std::cout << f << std::endl; }
   }
 
 }

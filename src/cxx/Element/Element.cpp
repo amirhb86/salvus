@@ -16,6 +16,8 @@
 #include <Physics/AcousticTet.h>
 #include <Physics/Acoustic3D_V.h>
 #include <Physics/Elastic2D.h>
+#include <Physics/AcousticElastic2D.h>
+#include <Physics/ElasticAcoustic2D.h>
 #include <Utilities/Utilities.h>
 
 /* Define all possible element classes as types here. */
@@ -27,13 +29,42 @@ typedef class ElementAdapter<Acoustic3D_V<Hexahedra<HexP1>>> AcousticVHexP1;
 typedef class ElementAdapter<AcousticTet<Tetrahedra<TetP1>>> AcousticTetP1;
 typedef class ElementAdapter<Elastic2D<Quad<QuadP1>>> ElasticQuadP1;
 
-std::shared_ptr<Element> Element::Factory(Options options) {
+/* Coupled classes. */
+typedef class ElementAdapter<AcousticElastic2D<Acoustic2D<Quad<QuadP1>>>> AcousticCplElasticQuadP1;
+typedef class ElementAdapter<ElasticAcoustic2D<Elastic2D<Quad<QuadP1>>>> ElasticCplAcousticQuadP1;
+
+std::shared_ptr<Element> Element::Factory(const std::vector<std::string>& physics_base,
+                                          const std::vector<std::string>& physics_couple,
+                                          Options options) {
+
+  // define field combinations.
+  std::vector<std::string> acoustic_fields = {"u"};
+  std::vector<std::string> elastic_2d_fields = {"ux", "uy"};
+
   try {
     if (options.ElementShape() == "quad_new") {
-      if (options.PhysicsSystem() == "acoustic") {
-        return std::make_shared<AcousticQuadP1>(options);
-      } else if (options.PhysicsSystem() == "elastic") {
-        return std::make_shared<ElasticQuadP1>(options);
+      if (physics_base == acoustic_fields) {
+        /* If only acoustic, return a base acoustic. */
+        if (!physics_couple.size()) {
+          std::cout << "BASE!" << std::endl;
+          return std::make_shared<AcousticQuadP1>(options);
+        }
+        /* If elastic fields detected, return a coupled elastic element. */
+        else if (physics_couple == elastic_2d_fields) {
+          std::cout << "ACOUSTIC COUPLE!" << std::endl;
+          return std::make_shared<AcousticCplElasticQuadP1>(options);
+        }
+      } else if (physics_base == elastic_2d_fields) {
+        /* If only elastic, return a base elastic. */
+        if (!physics_couple.size()) {
+          std::cout << "PURE ELASTIC!" << std::endl;
+          return std::make_shared<ElasticQuadP1>(options);
+        }
+        /* If acoustic fields are detected, return a coupled acoustic element. */
+        else if (physics_couple == acoustic_fields) {
+          std::cout << "ELASTIC COUPLE!" << std::endl;
+          return std::make_shared<ElasticCplAcousticQuadP1>(options);
+        }
       } else {
         throw std::runtime_error("Runtime Error: Element physics " + options.PhysicsSystem() + " not supported.");
       }
