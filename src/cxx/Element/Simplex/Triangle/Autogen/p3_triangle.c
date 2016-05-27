@@ -5,7 +5,7 @@
  *                                                                            *
  *                       This file is part of 'Salvus'                        *
  ******************************************************************************/
-#include "p3_triangle.h"
+#include "Element/Simplex/Autogen/p3_triangle.h"
 #include <math.h>
 
 void coordinates_p3_triangle_rn(double *out_3397332268056792470) {

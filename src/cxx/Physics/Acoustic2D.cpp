@@ -1,8 +1,7 @@
-#include "Acoustic2D.h"
-
 #include <Mesh/Mesh.h>
-#include <Utilities/Options.h>
 #include <Source/Source.h>
+#include <Physics/Acoustic2D.h>
+#include <Utilities/Options.h>
 #include <Model/ExodusModel.h>
 
 using namespace Eigen;
@@ -122,7 +121,7 @@ double Acoustic2D<Element>::checkEigenfunctionTest(Mesh *mesh, Options options,
 
 }
 
-#include <Quad.h>
-#include <QuadP1.h>
+#include <Element/HyperCube/Quad.h>
+#include <Element/HyperCube/QuadP1.h>
 template class Acoustic2D<Quad<QuadP1>>;
 

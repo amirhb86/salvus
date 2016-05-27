@@ -1,11 +1,14 @@
-
 #include <mpi.h>
-#include <iostream>
-#include <petscdm.h>
-#include <petscdmplex.h>
-#include <tuple>
-#include "Triangle.h"
-#include <Element/Simplex/Triangle/TriP1.h>
+#include <Mesh/Mesh.h>
+#include <Source/Source.h>
+#include <Utilities/Options.h>
+#include <Model/ExodusModel.h>
+#include <Element/Simplex/TriP1.h>
+#include <Element/Simplex/Triangle.h>
+
+extern "C" {
+#include <Element/Simplex/Autogen/p3_triangle.h>
+}
 
 using namespace Eigen;
 /*
@@ -19,50 +22,52 @@ MatrixXd Triangle<ConcreteShape>::mGradientPhi_ds;
 template <typename ConcreteShape>    
 std::tuple<VectorXd,VectorXd> Triangle<ConcreteShape>::QuadraturePoints(const int order) {
 
+  VectorXd rn, sn;
   if(order == 3) {
     int num_pts = 12;
-    VectorXd rn(num_pts);
-    VectorXd sn(num_pts);
+    rn.setZero(num_pts);
+    sn.setZero(num_pts);
     coordinates_p3_triangle_rn(rn.data());
     coordinates_p3_triangle_sn(sn.data());
-    return std::make_tuple(rn,sn);
   }
   else {
     std::cerr << "ERROR: Order NOT implemented!...\n";
     MPI::COMM_WORLD.Abort(-1);
   }
-    
+  return std::make_tuple(rn,sn);
 }
 
 template <typename ConcreteShape>
 VectorXd Triangle<ConcreteShape>::QuadratureIntegrationWeight(const int order) {
-    
+
+  VectorXd wn;
   if(order == 3) {
     int num_pts = 12;
-    VectorXd wn(num_pts);
+    wn.setZero(num_pts);
     quadrature_weights_p3_triangle(wn.data());
-    return wn;
   } else {
     std::cerr << "ERROR: Order NOT implemented!\n";
     MPI::COMM_WORLD.Abort(-1);
   }
+  return wn;
 }
 
 template <typename ConcreteShape>
 VectorXi Triangle<ConcreteShape>::ClosureMapping(const int order, const int dimension) {
 
+  VectorXi closure;
   if(order == 3) {
 
     int num_pts = 12;
 
-    VectorXi closure(num_pts);
+    closure.setZero(num_pts);
     closure << 0,1,2,3,4,5,6,7,8,9,10,11;
-    return closure;
-        
+
   } else {
     std::cerr << "ERROR: Order NOT implemented!\n";
     MPI::COMM_WORLD.Abort(-1);
   }
+  return closure;
     
 }
 

@@ -1,4 +1,4 @@
-#include "Acoustic3D_V.h"
+#include <Physics/Acoustic3D_V.h>
 
 // Dependencies.
 #include <Utilities/Options.h>
@@ -135,7 +135,7 @@ double Acoustic3D_V<Element>::checkEigenfunctionTest(Mesh *mesh, Options options
 
 }
 
-#include <Hexahedra.h>
-#include <HexP1.h>
+#include <Element/HyperCube/Hexahedra.h>
+#include <Element/HyperCube/HexP1.h>
 template class Acoustic3D_V<Hexahedra<HexP1>>;
 

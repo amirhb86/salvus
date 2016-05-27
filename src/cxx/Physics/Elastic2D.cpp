@@ -1,8 +1,7 @@
-#include "Elastic2D.h"
-
 #include <Mesh/Mesh.h>
 #include <Utilities/Options.h>
 #include <Model/ExodusModel.h>
+#include <Physics/Elastic2D.h>
 
 using namespace Eigen;
 
@@ -154,7 +153,7 @@ double Elastic2D<Element>::checkEigenfunctionTest(Mesh *mesh, Options options,
   
 };
 
-#include <Quad.h>
-#include <QuadP1.h>
+#include <Element/HyperCube/Quad.h>
+#include <Element/HyperCube/QuadP1.h>
 template class Elastic2D<Quad<QuadP1>>;
 

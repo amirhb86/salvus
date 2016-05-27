@@ -1,14 +1,17 @@
 #include <mpi.h>
-#include <iostream>
-#include <petscdm.h>
-#include <petscdmplex.h>
-#include <tuple>
-#include "Tetrahedra.h"
-#include <Element/Simplex/Tetrahedra/TetP1.h>
+#include <Mesh/Mesh.h>
+#include <Source/Source.h>
+#include <Model/ExodusModel.h>
+#include <Utilities/Options.h>
+#include <Element/Simplex/TetP1.h>
+#include <Element/Simplex/Tetrahedra.h>
+
+extern "C" {
+#include <Element/Simplex/Autogen/p3_tetrahedra.h>
+}
 
 using namespace Eigen;
 
-// enables std::cout << vector;
 template<typename T>
 std::ostream& operator<< (std::ostream& out, const std::vector<T>& v) {
   out << "[";
@@ -44,35 +47,37 @@ std::vector<int> getVertsFromPoint(int point, int numVerts, DM &distributed_mesh
 template <typename ConcreteShape>
 std::tuple<VectorXd,VectorXd,VectorXd> Tetrahedra<ConcreteShape>::QuadraturePoints(const int order) {
 
+  VectorXd rn, sn, tn;
   if(order == 3) {
     int num_pts = 50;
-    VectorXd rn(num_pts);
-    VectorXd sn(num_pts);
-    VectorXd tn(num_pts);
-    coordinates_p3_tetrahedra_rn(rn.data());   
+    rn.setZero(num_pts);
+    sn.setZero(num_pts);
+    tn.setZero(num_pts);
+    coordinates_p3_tetrahedra_rn(rn.data());
     coordinates_p3_tetrahedra_sn(sn.data());
     coordinates_p3_tetrahedra_tn(tn.data());
-    return std::make_tuple(rn,sn,tn);
   }
   else {
     std::cerr << "ERROR: Order NOT implemented!...\n";
     MPI::COMM_WORLD.Abort(-1);
   }
-    
+  return std::make_tuple(rn,sn,tn);
+
 }
 
 template <typename ConcreteShape>
 VectorXd Tetrahedra<ConcreteShape>::QuadratureIntegrationWeights(const int order) {
-    
+
+  VectorXd wn;
   if(order == 3) {
     int num_pts = 50;
-    VectorXd wn(num_pts);
+    wn.setZero(num_pts);
     quadrature_weights_p3_tetrahedra(wn.data());
-    return wn;
   } else {
     std::cerr << "ERROR: Order NOT implemented!\n";
     MPI::COMM_WORLD.Abort(-1);
   }
+  return wn;
 }
 
 void tetEdgeHandler(std::vector<std::vector<int>> canonical_edges,
@@ -395,6 +400,7 @@ template <typename ConcreteShape>
 VectorXi Tetrahedra<ConcreteShape>::ClosureMapping(const int order, const int dimension,
                                            DM &distributed_mesh) {
 
+  VectorXi new_mapping;
   if(order == 3) {
 
     VectorXi linear_mapping(50);
@@ -405,18 +411,18 @@ VectorXi Tetrahedra<ConcreteShape>::ClosureMapping(const int order, const int di
     // for(int i=0;i<25;i++) {
     //   printf("%d:%d\n",i,petsc_mapping[i]);
     // }
-    
-    VectorXi new_mapping(50);
+
+    new_mapping.setZero(50);
     for(int i=0;i<50;i++) {
       new_mapping[i] = petsc_mapping[i];
     }
     // return linear_mapping;
-    return new_mapping;
-    
+
   } else {
     std::cerr << "ERROR: Order NOT implemented!\n";
     MPI::COMM_WORLD.Abort(-1);
   }
+  return new_mapping;
     
 }
 

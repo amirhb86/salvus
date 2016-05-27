@@ -1,11 +1,14 @@
-#include <vector>
-#include "Mesh.h"
-#include "ScalarNewmark2D.h"
-#include "ElasticNewmark2D.h"
-#include "Model/ExodusModel.h"
-#include <Eigen/Dense>
 #include <set>
+#include <mpi.h>
 #include <fstream>
+#include <petscviewerhdf5.h>
+
+#include <Mesh/Mesh.h>
+#include <Mesh/ScalarNewmark2D.h>
+#include <Mesh/ElasticNewmark2D.h>
+#include <Model/ExodusModel.h>
+#include <Utilities/Options.h>
+#include <Utilities/Utilities.h>
 
 void exodusError(const int retval, std::string func_name) {
 
@@ -351,33 +354,9 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
 
   // Improves performance of closure calls (for a 1.5x application perf. boost)
   DMPlexCreateClosureIndex(mDistributedMesh, mMeshSection);
+
+  return ier;
 }
-
-// TODO: REMOVE.
-//void Mesh::setupGlobalDof(int number_dof_vertex, int number_dof_edge, int number_dof_face,
-//                          int number_dof_volume, int number_dimensions) {
-
-//  // Ensure that the mesh and the elements are the same dimension.
-//  assert(number_dimensions == mNumberDimensions);
-
-//  // Only define 1 field here because we're taking care of multiple fields manually.
-//  int number_fields = 1;
-//  int number_components = 1;
-//  int number_dof_per_element[mNumberDimensions + 1];
-
-//  // Num of dof on vertex, edge, face, volume.
-//  number_dof_per_element[0] = number_dof_vertex;
-//  number_dof_per_element[1] = number_dof_edge;
-//  number_dof_per_element[2] = number_dof_face;
-//  if (mNumberDimensions == 3) { number_dof_per_element[3] = number_dof_volume; }
-
-//  // Setup the global and local (distributed) degrees of freedom.
-//  DMPlexCreateSection(mDistributedMesh, mNumberDimensions, number_fields, &number_components,
-//                      number_dof_per_element, 0, NULL, NULL, NULL, NULL, &mMeshSection);
-//  DMSetDefaultSection(mDistributedMesh, mMeshSection);
-
-//  DMPlexCreateClosureIndex(mDistributedMesh, mMeshSection);
-//}
 
 void Mesh::registerFieldVectors(const std::string &name) {
 
@@ -618,9 +597,10 @@ Eigen::MatrixXd Mesh::getElementCoordinateClosure(PetscInt elem_num) {
 }
 
 int Mesh::numFieldPerPhysics(std::string physics) {
+  int num;
   try {
-    if (physics == "fluid") { return 1; }
-    else if (physics == "2delastic") { return 2; }
+    if (physics == "fluid") { num = 1; }
+    else if (physics == "2delastic") { num = 2; }
     else {
       throw std::runtime_error("Derived type " + physics + " is not known.");
     }
@@ -628,6 +608,7 @@ int Mesh::numFieldPerPhysics(std::string physics) {
     PRINT_ROOT() << e.what();
     MPI_Abort(PETSC_COMM_WORLD, -1);
   }
+  return num;
 }
 
 // int Mesh::BoundarylementFaces(int elm, int ss_num) {

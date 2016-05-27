@@ -1,8 +1,8 @@
-#include "AcousticTri.h"
-
 #include <Mesh/Mesh.h>
+#include <Source/Source.h>
 #include <Utilities/Options.h>
 #include <Model/ExodusModel.h>
+#include <Physics/AcousticTri.h>
 
 using namespace Eigen;
 
@@ -133,6 +133,6 @@ double AcousticTri<Element>::checkEigenfunctionTest(Mesh *mesh, Options options,
 
 
 #include <Element/Simplex/Triangle.h>
-#include <Element/Simplex/Triangle/TriP1.h>
+#include <Element/Simplex/TriP1.h>
 template class AcousticTri<Triangle<TriP1>>;
 

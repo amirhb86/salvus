@@ -1,11 +1,4 @@
-//
-// Created by Michael Afanasiev on 2016-02-23.
-//
-
-#include "ScalarNewmark2D.h"
-
-// Required fields for timestepping.
-
+#include <Mesh/ScalarNewmark2D.h>
 void ScalarNewmark2D::advanceField(double dt) {
     
     double pre_factor_acceleration = (1.0/2.0) * dt;

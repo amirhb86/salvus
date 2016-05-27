@@ -1,7 +1,7 @@
 #include <iostream>
 #include <Physics/Acoustic2D.h>
 #include <Element/HyperCube/Quad.h>
-#include <Element/HyperCube/Quad/QuadP1.h>
+#include <Element/HyperCube/QuadP1.h>
 #include "catch.h"
 
 TEST_CASE("test_stride", "[stride/quad]") {

@@ -1,7 +1,6 @@
-#include <iostream>
 #include <mpi.h>
-#include <vector>
-#include "Source.h"
+#include <Source/Source.h>
+#include <Utilities/Options.h>
 
 std::vector<std::shared_ptr<Source>> Source::factory(Options options) {
 

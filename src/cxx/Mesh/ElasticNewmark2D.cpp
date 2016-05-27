@@ -1,8 +1,4 @@
-//
-// Created by Michael Afanasiev on 2016-02-23.
-//
-
-#include "ElasticNewmark2D.h"
+#include <Mesh/ElasticNewmark2D.h>
 
 void ElasticNewmark2D::advanceField(double dt) {
 

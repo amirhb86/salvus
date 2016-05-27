@@ -1,8 +1,8 @@
-#include "AcousticTet.h"
-
 #include <Mesh/Mesh.h>
+#include <Source/Source.h>
 #include <Utilities/Options.h>
 #include <Model/ExodusModel.h>
+#include <Physics/AcousticTet.h>
 
 using namespace Eigen;
 
@@ -166,6 +166,6 @@ double AcousticTet<Element>::checkEigenfunctionTest(Mesh *mesh, Options options,
 }
 
 #include <Element/Simplex/Tetrahedra.h>
-#include <Element/Simplex/Tetrahedra/TetP1.h>
+#include <Element/Simplex/TetP1.h>
 template class AcousticTet<Tetrahedra<TetP1>>;
 

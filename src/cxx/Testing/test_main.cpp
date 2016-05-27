@@ -2,13 +2,14 @@
 #include "catch.h"
 #include <Eigen/Dense>
 #include <petsc.h>
-#include <Element/ElementAdapter.h>
+#include "../../../include/Element/ElementAdapter.h"
 #include <Element/HyperCube/Quad.h>
-#include <Element/HyperCube/Quad/QuadP1.h>
+#include <Element/HyperCube/QuadP1.h>
 #include <Physics/Acoustic2D.h>
 #include <Element/Simplex/Triangle.h>
-#include <Element/Simplex/Triangle/TriP1.h>
+#include <Element/Simplex/TriP1.h>
 #include <Element/HyperCube/Quad.h>
+#include <Model/ExodusModel.h>
 
 int main(int argc, char *argv[]) {
 

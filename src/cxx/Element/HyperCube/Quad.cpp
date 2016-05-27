@@ -1,19 +1,13 @@
-// Derived.
-#include <Element/HyperCube/Quad/QuadP1.h>
-
-// Self.
-#include <Quad.h>
-
-// Dependencies.
+#include <Mesh/Mesh.h>
+#include <Source/Source.h>
 #include <Utilities/Options.h>
 #include <Model/ExodusModel.h>
 #include <Receiver/Receiver.h>
-#include <Source/Source.h>
-#include <Mesh/Mesh.h>
+#include <Element/HyperCube/Quad.h>
+#include <Element/HyperCube/QuadP1.h>
 
-// Extern.
 extern "C" {
-#include <Quad/Autogen/quad_autogen.h>
+#include <Element/HyperCube/Autogen/quad_autogen.h>
 }
 
 using namespace Eigen;

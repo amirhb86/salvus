@@ -1,7 +1,7 @@
 #include "catch.h"
 #include <Eigen/Dense>
 #include <Element/HyperCube/Quad.h>
-#include <Element/HyperCube/Quad/QuadP1.h>
+#include <Element/HyperCube/QuadP1.h>
 
 TEST_CASE("test quadP1", "[quad/quadP1]") {
 

@@ -5,7 +5,7 @@
  *                                                                            *
  *                       This file is part of 'project'                       *
  ******************************************************************************/
-#include "order3_square.h"
+#include "Element/HyperCube/Autogen/order3_square.h"
 #include <math.h>
 
 void interpolate_order3_square(double epsilon, double eta, double *out_5520632088669242493) {

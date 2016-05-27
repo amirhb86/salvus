@@ -3,8 +3,12 @@
 #include <petsc.h>
 #include <chrono>
 
+#include <iostream>
+#include <Mesh/Mesh.h>
 #include <Element/Element.h>
-#include <ElementAdapter.h>
+#include <Utilities/Utilities.h>
+#include <Element/ElementAdapter.h>
+#include <Model/ExodusModel.h>
 
 template <typename ElementVersion>
 std::vector<std::shared_ptr<ElementVersion>> initialize_exact(Mesh *mesh,
@@ -241,12 +245,12 @@ TEST_CASE("Testing acoustic exact solutions for triangles", "[exact/triangles]")
  model->initializeParallel();
 
  // Setup reference element.
- std::shared_ptr<ElementNew> reference_element = ElementNew::Factory(options);
+ std::shared_ptr<Element> reference_element = Element::Factory(options);
 
- std::vector<std::shared_ptr<ElementNew>> elements = initialize_exact<ElementNew>(
+ std::vector<std::shared_ptr<Element>> elements = initialize_exact<Element>(
      mesh, model, reference_element, options);
 
- double error = solve_vs_exact<ElementNew>(options, mesh, elements);
+ double error = solve_vs_exact<Element>(options, mesh, elements);
 
  // allow 10% increase previously found in error, or fail.
  REQUIRE(error < (1.1*0.000183694));
@@ -294,11 +298,11 @@ TEST_CASE("Testing acoustic exact solutions for quadrilaterals", "[exact/quads]"
   model->initializeParallel();
 
   // Setup reference element.
-  std::shared_ptr<ElementNew> reference_element = ElementNew::Factory(options);
+  std::shared_ptr<Element> reference_element = Element::Factory(options);
 
 
-  std::vector<std::shared_ptr<ElementNew>> elements = initialize_exact<ElementNew>(mesh, model, reference_element, options);
-  double error = solve_vs_exact<ElementNew>(options, mesh, elements);
+  std::vector<std::shared_ptr<Element>> elements = initialize_exact<Element>(mesh, model, reference_element, options);
+  double error = solve_vs_exact<Element>(options, mesh, elements);
   // allow 10% increase previously found in error, or fail.
   REQUIRE(error < (1.1*0.000180304));
 
@@ -348,11 +352,11 @@ TEST_CASE("Testing acoustic exact solutions for hexahedra", "[exact/hexahedra]")
  model->initializeParallel();
 
  // Setup reference element.
- auto reference_element = ElementNew::Factory(options);
+ auto reference_element = Element::Factory(options);
 
- auto elements = initialize_exact<ElementNew>(mesh, model, reference_element, options);
+ auto elements = initialize_exact<Element>(mesh, model, reference_element, options);
 
- double error = solve_vs_exact<ElementNew>(options, mesh,elements);
+ double error = solve_vs_exact<Element>(options, mesh,elements);
 
  // allow 10% increase in previously found error, or fail.
  REQUIRE(error < (1.1*0.000133237));
@@ -411,11 +415,11 @@ TEST_CASE("Testing acoustic exact solutions for new tetrahedra", "[exact/tetrahe
  model->initializeParallel();
 
  // Setup reference element.
- auto reference_element = ElementNew::Factory(options);
+ auto reference_element = Element::Factory(options);
 
- auto elements = initialize_exact<ElementNew>(mesh, model, reference_element, options);
+ auto elements = initialize_exact<Element>(mesh, model, reference_element, options);
 
- double error = solve_vs_exact<ElementNew>(options, mesh,elements);
+ double error = solve_vs_exact<Element>(options, mesh,elements);
 
  // allow 10% increase in previously found error, or fail.
  REQUIRE(error < (1.1*0.000304241));

@@ -1,6 +1,6 @@
 #include <petscsys.h>
-#include "Options.h"
-#include "Utilities.h"
+#include <Utilities/Options.h>
+#include <Utilities/Utilities.h>
 
 
 PetscErrorCode Options::setOptions() {

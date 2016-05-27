@@ -32,26 +32,12 @@ include_directories(
         ${MPI_INCLUDE_PATH}
         ${PETSC_DIR}/include/
         ${EIGEN_INCLUDE}
-        src/cxx
-        src/cxx/Testing
-        src/cxx/Element
-        src/cxx/Element/HyperCube
-        src/cxx/Element/HyperCube/Quad
-        src/cxx/Element/HyperCube/Quad/Autogen
-        src/cxx/Element/HyperCube/Hex
-        src/cxx/Element/Simplex
-        src/cxx/Element/Simplex/Triangle
-        src/cxx/Element/Simplex/Triangle/Autogen
-        src/cxx/Element/Simplex/Tetrahedra
-        src/cxx/Element/Simplex/Tetrahedra/Autogen
-        src/cxx/Model
-        src/cxx/Physics)
+        include/)
 
 set(SALVUS_SOURCES
         src/cxx/Problem/Problem.cpp
         src/cxx/Problem/FieldIo.cpp
         src/cxx/Problem/NewmarkGeneral.cpp
-        src/cxx/Problem/NewmarkTesting.cpp
         src/cxx/Mesh/Mesh.cpp
         src/cxx/Mesh/ElasticNewmark2D.cpp
         src/cxx/Mesh/ScalarNewmark2D.cpp

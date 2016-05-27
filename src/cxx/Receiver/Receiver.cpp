@@ -1,8 +1,8 @@
-#include <Utilities/Options.h>
-#include "Receiver.h"
-#include "ReceiverHdf5.h"
 #include <iostream>
 #include <assert.h>
+#include <Utilities/Options.h>
+#include <Receiver/Receiver.h>
+#include <Receiver/ReceiverHdf5.h>
 
 // Initialize counter to zero.
 long Receiver::num = 0;

@@ -2,7 +2,7 @@
 #include <petsc.h>
 #include <Eigen/Dense>
 #include <Element/Simplex/Tetrahedra.h>
-#include <Element/Simplex/Tetrahedra/TetP1.h>
+#include <Element/Simplex/TetP1.h>
 
 using namespace Eigen;
 

@@ -5,7 +5,7 @@
  *                                                                            *
  *                       This file is part of 'project'                       *
  ******************************************************************************/
-#include "order3_hex.h"
+#include "Element/HyperCube/Autogen/order3_hex.h"
 #include <math.h>
 
 void interpolate_order3_hex(double r, double s, double t, double *out_2302040630951546599) {

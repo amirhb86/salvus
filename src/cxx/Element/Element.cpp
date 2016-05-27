@@ -1,18 +1,14 @@
+#include <Element/Element.h>
+#include <Element/ElementAdapter.h>
 
-#include <Element.h>
-#include <ElementAdapter.h>
-
-#include <HyperCube/Quad.h>
-#include <HyperCube/Quad/QuadP1.h>
-
-#include <Simplex/Triangle.h>
-#include <Simplex/Triangle/TriP1.h>
-
-#include <Simplex/Tetrahedra.h>
-#include <Simplex/Tetrahedra/TetP1.h>
-
-#include <HyperCube/Hexahedra.h>
-#include <HyperCube/Hex/HexP1.h>
+#include <Element/HyperCube/Quad.h>
+#include <Element/HyperCube/QuadP1.h>
+#include <Element/Simplex/Triangle.h>
+#include <Element/Simplex/TriP1.h>
+#include <Element/Simplex/Tetrahedra.h>
+#include <Element/Simplex/TetP1.h>
+#include <Element/HyperCube/Hexahedra.h>
+#include <Element/HyperCube/HexP1.h>
 
 #include <Physics/Acoustic2D.h>
 #include <Physics/AcousticTri.h>
@@ -20,6 +16,7 @@
 #include <Physics/AcousticTet.h>
 #include <Physics/Acoustic3D_V.h>
 #include <Physics/Elastic2D.h>
+#include <Utilities/Utilities.h>
 
 /* Define all possible element classes as types here. */
 typedef class ElementAdapter<Acoustic2D<Quad<QuadP1>>> AcousticQuadP1;
@@ -30,7 +27,7 @@ typedef class ElementAdapter<Acoustic3D_V<Hexahedra<HexP1>>> AcousticVHexP1;
 typedef class ElementAdapter<AcousticTet<Tetrahedra<TetP1>>> AcousticTetP1;
 typedef class ElementAdapter<Elastic2D<Quad<QuadP1>>> ElasticQuadP1;
 
-std::shared_ptr<ElementNew> ElementNew::Factory(Options options) {
+std::shared_ptr<Element> Element::Factory(Options options) {
   try {
     if (options.ElementShape() == "quad_new") {
       if (options.PhysicsSystem() == "acoustic") {

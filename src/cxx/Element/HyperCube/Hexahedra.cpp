@@ -1,20 +1,15 @@
-// Derived.
-#include <Element/HyperCube/Hex/HexP1.h>
-
-// Self.
-#include <Hexahedra.h>
-
-// Dependencies.
+#include <Mesh/Mesh.h>
+#include <Source/Source.h>
 #include <Utilities/Options.h>
 #include <Model/ExodusModel.h>
 #include <Receiver/Receiver.h>
-#include <Source/Source.h>
-#include <Mesh/Mesh.h>
+#include <Element/HyperCube/HexP1.h>
+#include <Element/HyperCube/Hexahedra.h>
 
 // Extern.
 extern "C" {
-#include <Quad/Autogen/quad_autogen.h>
-#include <Hex/Autogen/hex_autogen.h>
+#include <Element/HyperCube/Autogen/quad_autogen.h>
+#include <Element/HyperCube/Autogen/hex_autogen.h>
 }
 
 using namespace Eigen;

@@ -1,11 +1,16 @@
-#include "NewmarkGeneral.h"
+#include <Mesh/Mesh.h>
+#include <Source/Source.h>
 #include <Element/Element.h>
+#include <Receiver/Receiver.h>
+#include <Model/ExodusModel.h>
+#include <Utilities/Options.h>
+#include <Problem/NewmarkGeneral.h>
 
 using namespace Eigen;
 
 void NewmarkGeneral::initialize(Mesh *mesh,
                                 ExodusModel *model,
-                                std::shared_ptr<ElementNew> elem,
+                                std::shared_ptr<Element> elem,
                                 Options options) {
 
   // Save references to mesh and element base.

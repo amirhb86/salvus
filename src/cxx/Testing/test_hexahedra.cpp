@@ -4,7 +4,9 @@
 #include <Element/Element.h>
 #include <Element/ElementAdapter.h>
 #include <Element/HyperCube/Hexahedra.h>
-#include <Element/HyperCube/Hex/HexP1.h>
+#include <Element/HyperCube/HexP1.h>
+#include <Model/ExodusModel.h>
+#include <Mesh/Mesh.h>
 
 #include <Physics/Acoustic3D.h>
 #include <Physics/Acoustic3D_V.h>
@@ -391,9 +393,9 @@ TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
   }
   
   // Setup reference element.
-  auto reference_element = ElementNew::Factory(options);
+  auto reference_element = Element::Factory(options);
 
-  std::vector<std::shared_ptr<ElementNew>> elements;
+  std::vector<std::shared_ptr<Element>> elements;
   // Get a list of all local elements.
   for (int i = 0; i < mesh->NumberElementsLocal(); i++) {
     elements.push_back(reference_element->clone());

@@ -5,7 +5,7 @@
  *                                                                            *
  *                       This file is part of 'Salvus'                        *
  ******************************************************************************/
-#include "p3_tetrahedra.h"
+#include "Element/Simplex/Autogen/p3_tetrahedra.h"
 #include <math.h>
 
 void coordinates_p3_tetrahedra_rn(double *out_3285422979283012325) {

@@ -2,7 +2,10 @@
 #include <Element/Element.h>
 #include <Element/ElementAdapter.h>
 #include <Element/HyperCube/Quad.h>
-#include <Element/HyperCube/Quad/QuadP1.h>
+#include <Element/HyperCube/QuadP1.h>
+#include <Source/Source.h>
+#include <Mesh/Mesh.h>
+#include <Model/ExodusModel.h>
 
 TEST_CASE("test quadbase", "[quad]") {
 
@@ -42,8 +45,8 @@ TEST_CASE("test quadbase", "[quad]") {
     auto sources = Source::factory(options);
     Mesh *msh = Mesh::factory(options);
     msh->read(options);
-    std::shared_ptr<ElementNew> elm = ElementNew::Factory(options);
-    std::vector<std::shared_ptr<ElementNew>> elms;
+    std::shared_ptr<Element> elm = Element::Factory(options);
+    std::vector<std::shared_ptr<Element>> elms;
 
     ExodusModel *model = new ExodusModel(options);
     model->initializeParallel();

@@ -2,6 +2,7 @@
 #include <petsc.h>
 #include <Utilities/Options.h>
 #include <Mesh/Mesh.h>
+#include <Model/ExodusModel.h>
 
 TEST_CASE("test_multi_field", "[multi_field]") {
 
