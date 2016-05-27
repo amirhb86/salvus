@@ -5,6 +5,7 @@
 #include <iostream>
 #include <iosfwd>
 #include <string>
+#include <memory>
 
 // 3rd party.
 #include <mpi.h>

@@ -2,6 +2,7 @@
 
 // stl.
 #include <vector>
+#include <memory>
 
 // parents.
 #include <Problem/Problem.h>
