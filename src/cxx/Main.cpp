@@ -1,12 +1,18 @@
+// stl.
 #include <iostream>
 #include <vector>
-#include <mpi.h>
-#include <petscsys.h>
 #include <memory>
-#include "../../include/Element/Element.h"
 
-#include "Mesh/Mesh.h"
-#include "Problem/Problem.h"
+// 3rd party.
+#include <mpi.h>
+#include <petsc.h>
+#include <Element/Element.h>
+
+#include <Mesh/Mesh.h>
+#include <Source/Source.h>
+#include <Problem/Problem.h>
+#include <Utilities/Options.h>
+#include <Model/ExodusModel.h>
 
 static constexpr char help[] = "Welcome to Salvus.";
 
@@ -22,13 +28,9 @@ int main(int argc, char *argv[]) {
   Mesh *mesh = Mesh::factory(options);
   mesh->read(options);
 
-//  std::cout << "HERE" << std::endl;
-//  MPI_Abort(PETSC_COMM_WORLD, -1);
-//  exit(0);
   // Get model.
   ExodusModel *model = new ExodusModel(options);
   model->initializeParallel();
-
 
   // Get sources.
   std::vector<std::shared_ptr<Source>> sources = Source::factory(options);
