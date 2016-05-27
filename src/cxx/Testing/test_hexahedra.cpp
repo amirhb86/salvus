@@ -2,12 +2,16 @@
 #include <petsc.h>
 #include <Eigen/Dense>
 #include <Element/Element.h>
-#include <Element/ElementNew.h>
 #include <Element/ElementAdapter.h>
 #include <Element/HyperCube/Hexahedra.h>
-#include <Element/HyperCube/HexahedraNew.h>
-#include <Element/HyperCube/Hex/AcousticHex.h>
-#include <Element/HyperCube/Hex/HexP1.h>
+#include <Element/HyperCube/HexP1.h>
+#include <Model/ExodusModel.h>
+#include <Mesh/Mesh.h>
+
+#include <Physics/Acoustic3D.h>
+#include <Physics/Acoustic3D_V.h>
+
+using namespace Eigen;
 
 template<typename T>
 std::ostream& operator<< (std::ostream& out, const std::vector<T>& v) {
@@ -29,9 +33,9 @@ TEST_CASE("Test hexahedra strides","[element/hexahedra_new]") {
   
   int order = 4;
 
-  auto rn = HexahedraNew<HexP1>::GllPoints(order);
-  auto sn = HexahedraNew<HexP1>::GllPoints(order);
-  auto tn = HexahedraNew<HexP1>::GllPoints(order);
+  auto rn = Hexahedra<HexP1>::GllPoints(order);
+  auto sn = Hexahedra<HexP1>::GllPoints(order);
+  auto tn = Hexahedra<HexP1>::GllPoints(order);
   auto num_pts_r = rn.size();
   auto num_pts_s = sn.size();
   auto num_pts_t = tn.size();
@@ -60,9 +64,9 @@ TEST_CASE("Test hexahedra strides","[element/hexahedra_new]") {
     }
   }
   
-  VectorXd index_r = HexahedraNew<HexP1>::rVectorStride(hexRn,2,4,num_pts_r,num_pts_s,num_pts_t);
-  VectorXd index_s = HexahedraNew<HexP1>::sVectorStride(hexSn,1,3,num_pts_r,num_pts_s,num_pts_t);
-  VectorXd index_t = HexahedraNew<HexP1>::tVectorStride(hexTn,4,2,num_pts_r,num_pts_s,num_pts_t);
+  VectorXd index_r = Hexahedra<HexP1>::rVectorStride(hexRn,2,4,num_pts_r,num_pts_s,num_pts_t);
+  VectorXd index_s = Hexahedra<HexP1>::sVectorStride(hexSn,1,3,num_pts_r,num_pts_s,num_pts_t);
+  VectorXd index_t = Hexahedra<HexP1>::tVectorStride(hexTn,4,2,num_pts_r,num_pts_s,num_pts_t);
   REQUIRE(index_r == rn);
   REQUIRE(index_s == sn);
   REQUIRE(index_t == tn);
@@ -93,17 +97,17 @@ TEST_CASE("Test hexahedra strides","[element/hexahedra_new]") {
   for(int n=0;n<3;n++) {
     s_n = checkIndexST(n,0);
     t_n = checkIndexST(n,1);
-    VectorXd rd = HexahedraNew<HexP1>::rVectorStride(hexDataLayout,s_n,t_n,num_pts_r,num_pts_s,num_pts_t);
+    VectorXd rd = Hexahedra<HexP1>::rVectorStride(hexDataLayout,s_n,t_n,num_pts_r,num_pts_s,num_pts_t);
     REQUIRE(rd == index_r_n.row(n).transpose());
     
     r_n = checkIndexST(n,0);
     t_n = checkIndexST(n,1);
-    VectorXd sd = HexahedraNew<HexP1>::sVectorStride(hexDataLayout,r_n,t_n,num_pts_r,num_pts_s,num_pts_t);
+    VectorXd sd = Hexahedra<HexP1>::sVectorStride(hexDataLayout,r_n,t_n,num_pts_r,num_pts_s,num_pts_t);
     REQUIRE(sd == index_s_n.row(n).transpose());
     
     r_n = checkIndexST(n,0);
     s_n = checkIndexST(n,1);
-    VectorXd td = HexahedraNew<HexP1>::tVectorStride(hexDataLayout,r_n,s_n,num_pts_r,num_pts_s,num_pts_t);
+    VectorXd td = Hexahedra<HexP1>::tVectorStride(hexDataLayout,r_n,s_n,num_pts_r,num_pts_s,num_pts_t);
     REQUIRE(td == index_t_n.row(n).transpose());
     
   }
@@ -335,7 +339,7 @@ double five_places(double in) {
 //   printf("-------------------------------------------\n");
 // }
 
-typedef class ElementAdapter<Acoustic3D<HexahedraNew<HexP1>>> AcousticHexP1;
+typedef class ElementAdapter<Acoustic3D<Hexahedra<HexP1>>> AcousticHexP1;
 
 TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
 
@@ -361,9 +365,9 @@ TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
   options.setOptions();
   
   AcousticHexP1 ref_hex(options);
-  auto rn = HexahedraNew<HexP1>::GllPoints(order);
-  auto sn = HexahedraNew<HexP1>::GllPoints(order);
-  auto tn = HexahedraNew<HexP1>::GllPoints(order);
+  auto rn = Hexahedra<HexP1>::GllPoints(order);
+  auto sn = Hexahedra<HexP1>::GllPoints(order);
+  auto tn = Hexahedra<HexP1>::GllPoints(order);
   auto num_pts_r = rn.size();
   auto num_pts_s = sn.size();
   auto num_pts_t = tn.size();
@@ -389,9 +393,9 @@ TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
   }
   
   // Setup reference element.
-  auto reference_element = ElementNew::Factory(options);
+  auto reference_element = Element::Factory(options);
 
-  std::vector<std::shared_ptr<ElementNew>> elements;
+  std::vector<std::shared_ptr<Element>> elements;
   // Get a list of all local elements.
   for (int i = 0; i < mesh->NumberElementsLocal(); i++) {
     elements.push_back(reference_element->clone());
@@ -522,7 +526,7 @@ TEST_CASE("Test Jacobian mapping","[element/hexahedra_new]") {
   
   Matrix3d inv_jacobian_1,inv_jacobian_ref1;
   PetscReal detJ;
-  std::tie(inv_jacobian_1,detJ) = HexahedraNew<HexP1>::inverseJacobianAtPoint(0,0,0,coord);
+  std::tie(inv_jacobian_1,detJ) = Hexahedra<HexP1>::inverseJacobianAtPoint(0,0,0,coord);
   inv_jacobian_ref1 <<
     2,0,0,
     0,2,0,
@@ -543,7 +547,7 @@ TEST_CASE("Test Jacobian mapping","[element/hexahedra_new]") {
     1,0,0;
     
   Matrix3d inv_jacobian_2,inv_jacobian_ref2;
-  std::tie(inv_jacobian_2,detJ) = HexahedraNew<HexP1>::inverseJacobianAtPoint(0,0,0,coord);
+  std::tie(inv_jacobian_2,detJ) = Hexahedra<HexP1>::inverseJacobianAtPoint(0,0,0,coord);
   inv_jacobian_ref2 <<
     0,2,0,
     2,0,0,
@@ -570,9 +574,9 @@ TEST_CASE("Test inverse coordinate transform mapping","[element/hexahedra_new]")
     3.0/2.0,3.0/2.0,1.0/2.0,
     1.0/2.0,3.0/2.0,1.0/2.0;
 
-  auto rn = HexahedraNew<HexP1>::GllPoints(3);
-  auto sn = HexahedraNew<HexP1>::GllPoints(3);
-  auto tn = HexahedraNew<HexP1>::GllPoints(3);
+  auto rn = Hexahedra<HexP1>::GllPoints(3);
+  auto sn = Hexahedra<HexP1>::GllPoints(3);
+  auto tn = Hexahedra<HexP1>::GllPoints(3);
   
   VectorXd pts_x,pts_y,pts_z;
   std::tie(pts_x,pts_y,pts_z) = HexP1::buildNodalPoints(rn,sn,tn,coord);
@@ -603,7 +607,7 @@ TEST_CASE("Test inverse coordinate transform mapping","[element/hexahedra_new]")
         ref_pts_s[idx] = s;
         ref_pts_t[idx] = t;
         
-        auto vec3 = HexahedraNew<HexP1>::inverseCoordinateTransform(pts_x[idx],pts_y[idx],pts_z[idx],coord);
+        auto vec3 = Hexahedra<HexP1>::inverseCoordinateTransform(pts_x[idx],pts_y[idx],pts_z[idx],coord);
         pts_r[idx] = vec3[0];
         pts_s[idx] = vec3[1];
         pts_t[idx] = vec3[2];
@@ -637,9 +641,9 @@ TEST_CASE("Test reference mapping","[element/hexahedra_new]") {
     3.0/2.0,3.0/2.0,1.0/2.0,
     1.0/2.0,3.0/2.0,1.0/2.0;
 
-  auto rn = HexahedraNew<HexP1>::GllPoints(3);
-  auto sn = HexahedraNew<HexP1>::GllPoints(3);
-  auto tn = HexahedraNew<HexP1>::GllPoints(3);
+  auto rn = Hexahedra<HexP1>::GllPoints(3);
+  auto sn = Hexahedra<HexP1>::GllPoints(3);
+  auto tn = Hexahedra<HexP1>::GllPoints(3);
   
   VectorXd pts_x,pts_y,pts_z;
   std::tie(pts_x,pts_y,pts_z) = HexP1::buildNodalPoints(rn,sn,tn,coord);
@@ -693,9 +697,9 @@ TEST_CASE("Test reference mapping new","[element/hexahedra_new]") {
     3.0/2.0,3.0/2.0,1.0/2.0,
     1.0/2.0,3.0/2.0,1.0/2.0;
 
-  auto rn = HexahedraNew<HexP1>::GllPoints(3);
-  auto sn = HexahedraNew<HexP1>::GllPoints(3);
-  auto tn = HexahedraNew<HexP1>::GllPoints(3);
+  auto rn = Hexahedra<HexP1>::GllPoints(3);
+  auto sn = Hexahedra<HexP1>::GllPoints(3);
+  auto tn = Hexahedra<HexP1>::GllPoints(3);
   
   VectorXd pts_x,pts_y,pts_z;
   std::tie(pts_x,pts_y,pts_z) = HexP1::buildNodalPoints(rn,sn,tn,coord);
@@ -762,9 +766,9 @@ TEST_CASE("Test hex velocity interpolation", "[element/hexahedra_new]") {
     Eigen::VectorXd mMaterialVelocityAtVertices = mMaterialVelocityAtVertices_i.row(i);
     Eigen::VectorXd check_velocity = check_velocity_i.row(i);
     
-    auto mIntegrationCoordinatesR = HexahedraNew<HexP1>::GllPoints(2);
-    auto mIntegrationCoordinatesS = HexahedraNew<HexP1>::GllPoints(2);
-    auto mIntegrationCoordinatesT = HexahedraNew<HexP1>::GllPoints(2);
+    auto mIntegrationCoordinatesR = Hexahedra<HexP1>::GllPoints(2);
+    auto mIntegrationCoordinatesS = Hexahedra<HexP1>::GllPoints(2);
+    auto mIntegrationCoordinatesT = Hexahedra<HexP1>::GllPoints(2);
     auto numpts_r = mIntegrationCoordinatesR.size();
     auto numpts_s = mIntegrationCoordinatesS.size();
     auto numpts_t = mIntegrationCoordinatesT.size();
@@ -782,7 +786,7 @@ TEST_CASE("Test hex velocity interpolation", "[element/hexahedra_new]") {
           double r = mIntegrationCoordinatesR[r_index];
           // Get material parameters at this node.
           // new way
-          auto interpolate1 = HexahedraNew<HexP1>::interpolateAtPoint(r, s, t);              
+          auto interpolate1 = Hexahedra<HexP1>::interpolateAtPoint(r, s, t);
           velocity[n] = interpolate1.dot(mMaterialVelocityAtVertices);
           n++;
         }

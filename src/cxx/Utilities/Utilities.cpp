@@ -1,5 +1,5 @@
 #include <petscsys.h>
-#include "Utilities.h"
+#include <Utilities/Utilities.h>
 
 void utilities::print_from_root_mpi(const std::string msg) {
   int rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);

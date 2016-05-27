@@ -5,7 +5,7 @@
  *                                                                            *
  *                       This file is part of 'project'                       *
  ******************************************************************************/
-#include "order5_square.h"
+#include "Element/HyperCube/Autogen/order5_square.h"
 #include <math.h>
 
 void interpolate_order5_square(double epsilon, double eta, double *out_4953907929813173491) {

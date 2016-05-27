@@ -1,18 +1,12 @@
-//
-// Created by Michael Afanasiev on 2016-01-27.
-//
-
-#include "Problem.h"
-#include "NewmarkGeneral.h"
-#include "NewmarkTesting.h"
+#include <Problem/Problem.h>
+#include <Utilities/Utilities.h>
+#include <Problem/NewmarkGeneral.h>
 
 Problem *Problem::factory(std::string solver_type) {
     try {
 
         if (solver_type == "newmark_general") {
             return new NewmarkGeneral;
-        } else if(solver_type == "newmark_testing") {
-            return new NewmarkTesting;
         } else {
             throw std::runtime_error("Runtime Error: Problem type " + solver_type + " not supported.");
         }

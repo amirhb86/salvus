@@ -1,8 +1,11 @@
-#include "Acoustic3D.h"
+#include <Physics/Acoustic3D.h>
 
-#include <Mesh/Mesh.h>
+// Dependencies.
 #include <Utilities/Options.h>
 #include <Model/ExodusModel.h>
+#include <Receiver/Receiver.h>
+#include <Source/Source.h>
+#include <Mesh/Mesh.h>
 
 using namespace Eigen;
 
@@ -47,9 +50,9 @@ MatrixXd Acoustic3D<Element>::computeStress(const Ref<const MatrixXd> &strain) {
   mVpSquared = Element::ParAtIntPts("VP").array().pow(2);
 
   // Calculate sigma_ux and sigma_uy.
-  mStress.col(0) = mVpSquared.array().cwiseProduct(strain.col(0).array());
-  mStress.col(1) = mVpSquared.array().cwiseProduct(strain.col(1).array());
-  mStress.col(2) = mVpSquared.array().cwiseProduct(strain.col(2).array());
+  mStress.col(0) = mVpSquared.array() * strain.col(0).array();
+  mStress.col(1) = mVpSquared.array() * strain.col(1).array();
+  mStress.col(2) = mVpSquared.array() * strain.col(2).array();
   return mStress;
 
 }
@@ -59,7 +62,7 @@ MatrixXd Acoustic3D<Element>::computeStiffnessTerm(
     const MatrixXd &u) {
 
   // Calculate gradient from displacement.
-  mStrain = Element::computeGradient(u);
+  mStrain = Element::computeGradient(u.col(0));
 
   // Stress from strain.
   mStress = computeStress(mStrain);
@@ -132,7 +135,7 @@ double Acoustic3D<Element>::checkEigenfunctionTest(Mesh *mesh, Options options,
 
 }
 
-#include <HexahedraNew.h>
-#include <HexP1.h>
-template class Acoustic3D<HexahedraNew<HexP1>>;
+#include <Element/HyperCube/Hexahedra.h>
+#include <Element/HyperCube/HexP1.h>
+template class Acoustic3D<Hexahedra<HexP1>>;
 

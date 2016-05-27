@@ -1,13 +1,17 @@
 #include <mpi.h>
-#include <iostream>
-#include <petscdm.h>
-#include <petscdmplex.h>
-#include <tuple>
-#include "Tetrahedra.h"
+#include <Mesh/Mesh.h>
+#include <Source/Source.h>
+#include <Model/ExodusModel.h>
+#include <Utilities/Options.h>
+#include <Element/Simplex/TetP1.h>
+#include <Element/Simplex/Tetrahedra.h>
+
+extern "C" {
+#include <Element/Simplex/Autogen/p3_tetrahedra.h>
+}
 
 using namespace Eigen;
 
-// enables std::cout << vector;
 template<typename T>
 std::ostream& operator<< (std::ostream& out, const std::vector<T>& v) {
   out << "[";
@@ -21,48 +25,59 @@ std::ostream& operator<< (std::ostream& out, const std::vector<T>& v) {
   return out;
 }
 
-int Tetrahedra::mNumberVertex = 4;
-Eigen::MatrixXd Tetrahedra::mGradientOperator;
-Eigen::VectorXd Tetrahedra::mIntegrationWeights;
-Eigen::VectorXd Tetrahedra::mIntegrationCoordinates_r;
-Eigen::VectorXd Tetrahedra::mIntegrationCoordinates_s;
-Eigen::VectorXd Tetrahedra::mIntegrationCoordinates_t;
-Eigen::MatrixXd Tetrahedra::mGradientPhi_dr;
-Eigen::MatrixXd Tetrahedra::mGradientPhi_ds;
-Eigen::MatrixXd Tetrahedra::mGradientPhi_dt;
+template <typename ConcreteShape>
+MatrixXd Tetrahedra<ConcreteShape>::mGradientOperator;
+template <typename ConcreteShape>
+VectorXd Tetrahedra<ConcreteShape>::mIntegrationWeights;
+template <typename ConcreteShape>
+VectorXd Tetrahedra<ConcreteShape>::mIntegrationCoordinates_r;
+template <typename ConcreteShape>
+VectorXd Tetrahedra<ConcreteShape>::mIntegrationCoordinates_s;
+template <typename ConcreteShape>
+VectorXd Tetrahedra<ConcreteShape>::mIntegrationCoordinates_t;
+template <typename ConcreteShape>
+MatrixXd Tetrahedra<ConcreteShape>::mGradientPhi_dr;
+template <typename ConcreteShape>
+MatrixXd Tetrahedra<ConcreteShape>::mGradientPhi_ds;
+template <typename ConcreteShape>
+MatrixXd Tetrahedra<ConcreteShape>::mGradientPhi_dt;
 
 std::vector<int> getVertsFromPoint(int point, int numVerts, DM &distributed_mesh);
 
-std::tuple<Eigen::VectorXd,Eigen::VectorXd,Eigen::VectorXd> Tetrahedra::QuadraturePointsForOrder(const int order) {
+template <typename ConcreteShape>
+std::tuple<VectorXd,VectorXd,VectorXd> Tetrahedra<ConcreteShape>::QuadraturePoints(const int order) {
 
+  VectorXd rn, sn, tn;
   if(order == 3) {
     int num_pts = 50;
-    Eigen::VectorXd rn(num_pts);
-    Eigen::VectorXd sn(num_pts);
-    Eigen::VectorXd tn(num_pts);
-    coordinates_p3_tetrahedra_rn(rn.data());   
+    rn.setZero(num_pts);
+    sn.setZero(num_pts);
+    tn.setZero(num_pts);
+    coordinates_p3_tetrahedra_rn(rn.data());
     coordinates_p3_tetrahedra_sn(sn.data());
     coordinates_p3_tetrahedra_tn(tn.data());
-    return std::make_tuple(rn,sn,tn);
   }
   else {
     std::cerr << "ERROR: Order NOT implemented!...\n";
     MPI::COMM_WORLD.Abort(-1);
   }
-    
+  return std::make_tuple(rn,sn,tn);
+
 }
 
-Eigen::VectorXd Tetrahedra::QuadratureIntegrationWeightForOrder(const int order) {
-    
+template <typename ConcreteShape>
+VectorXd Tetrahedra<ConcreteShape>::QuadratureIntegrationWeights(const int order) {
+
+  VectorXd wn;
   if(order == 3) {
     int num_pts = 50;
-    Eigen::VectorXd wn(num_pts);
+    wn.setZero(num_pts);
     quadrature_weights_p3_tetrahedra(wn.data());
-    return wn;
   } else {
     std::cerr << "ERROR: Order NOT implemented!\n";
     MPI::COMM_WORLD.Abort(-1);
   }
+  return wn;
 }
 
 void tetEdgeHandler(std::vector<std::vector<int>> canonical_edges,
@@ -381,9 +396,11 @@ VectorXi internalTetMapping(int element, DM &distributed_mesh) {
   return element_dof_map;
 }
 
-Eigen::VectorXi Tetrahedra::ClosureMapping(const int order, const int dimension,
+template <typename ConcreteShape>
+VectorXi Tetrahedra<ConcreteShape>::ClosureMapping(const int order, const int dimension,
                                            DM &distributed_mesh) {
 
+  VectorXi new_mapping;
   if(order == 3) {
 
     VectorXi linear_mapping(50);
@@ -394,41 +411,23 @@ Eigen::VectorXi Tetrahedra::ClosureMapping(const int order, const int dimension,
     // for(int i=0;i<25;i++) {
     //   printf("%d:%d\n",i,petsc_mapping[i]);
     // }
-    
-    VectorXi new_mapping(50);
+
+    new_mapping.setZero(50);
     for(int i=0;i<50;i++) {
       new_mapping[i] = petsc_mapping[i];
     }
     // return linear_mapping;
-    return new_mapping;
-    
+
   } else {
     std::cerr << "ERROR: Order NOT implemented!\n";
     MPI::COMM_WORLD.Abort(-1);
   }
+  return new_mapping;
     
 }
 
-Eigen::Vector4d Tetrahedra::interpolateAtPoint(double r, double s, double t) {
-  // barycentric coordinates l1,l2,l3,l4 (l1+l2+l3+l4=1) give us a linear weighting between coordinates (r,s,t). By computing the barycentric weights, we can compute the interpolated velocity = [l1,l2,l3].dot([v1,v2,v3]) where vN is the vertex velocity.
-  // T*[l1;l2;l3] = xyz - v4, where xyz is the desired point, and v4 is the vertex 4
-  // thus l123 = T**(-1)*xyz - T**(-1)*v4
-  // For reference tet
-  // Tref =
-  // Matrix([
-  // [ 0,  0,  1],
-  // [ 0,  1,  0],
-  // [-1, -1, -1]])
-  // See tetrahedra_element_metrics.py: `interp_vector`
-  Eigen::Vector4d interpolator;
-  interpolator <<
-    -r - s - t + 1, s, r, t;    
-  return interpolator;
-}
-
-Tetrahedra::Tetrahedra(Options options) {
-
-  mNumDim = 3;
+template <typename ConcreteShape>
+Tetrahedra<ConcreteShape>::Tetrahedra(Options options) {
 
   // Basic properties.
   mPlyOrd = options.PolynomialOrder();
@@ -445,29 +444,24 @@ Tetrahedra::Tetrahedra(Options options) {
     std::cerr << "ERROR: Order NOT implemented!\n";
     MPI::COMM_WORLD.Abort(-1);
   }
-        
-  // mVtxCrd has 4 vertices
-  mElmCtr.resize(3,1);
-  mVtxCrd.resize(3,mNumberVertex);
-        
+  
   // Integration points and weights
   std::tie(mIntegrationCoordinates_r,mIntegrationCoordinates_s,mIntegrationCoordinates_t) =
-    Tetrahedra::QuadraturePointsForOrder(options.PolynomialOrder());        
-  mIntegrationWeights = Tetrahedra::QuadratureIntegrationWeightForOrder(options.PolynomialOrder());
+    Tetrahedra<ConcreteShape>::QuadraturePoints(options.PolynomialOrder());
+  mIntegrationWeights = Tetrahedra<ConcreteShape>::QuadratureIntegrationWeights(options.PolynomialOrder());
           
   setupGradientOperator();
+
+  mParWork.setZero(mNumIntPnt);
+  mStiffWork.setZero(mNumIntPnt);
+  mGradWork.setZero(mNumIntPnt, mNumDim);
   
 }
 
-void Tetrahedra::BuildClosureMapping(DM &distributed_mesh) {
+template <typename ConcreteShape>
+void Tetrahedra<ConcreteShape>::attachVertexCoordinates(DM &distributed_mesh) {
 
   mClsMap = ClosureMapping(3, 3, distributed_mesh);
-  
-}
-
-void Tetrahedra::attachVertexCoordinates(DM &distributed_mesh) {
-
-  BuildClosureMapping(distributed_mesh);
 
   Vec coordinates_local;
   PetscInt coordinate_buffer_size;
@@ -482,112 +476,59 @@ void Tetrahedra::attachVertexCoordinates(DM &distributed_mesh) {
   DMPlexVecRestoreClosure(distributed_mesh, coordinate_section, coordinates_local, mElmNum,
                           &coordinate_buffer_size, &coordinates_buffer);
     
-  for (int i = 0; i < mNumberVertex; i++) {        
-    mVtxCrd(0,i) = coordinates_element[mNumDim*i+0];
-    mVtxCrd(1,i) = coordinates_element[mNumDim*i+1];
-    mVtxCrd(2,i) = coordinates_element[mNumDim*i+2];
+  for (int i = 0; i < mNumVtx; i++) {        
+    mVtxCrd(i,0) = coordinates_element[mNumDim*i+0];
+    mVtxCrd(i,1) = coordinates_element[mNumDim*i+1];
+    mVtxCrd(i,2) = coordinates_element[mNumDim*i+2];
   }
 
   // Save element center
   mElmCtr <<
-    mVtxCrd.row(0).mean(),
-    mVtxCrd.row(1).mean(),
-    mVtxCrd.row(2).mean();
+    mVtxCrd.col(0).mean(),
+    mVtxCrd.col(1).mean(),
+    mVtxCrd.col(2).mean();
 
 }
 
-std::tuple<Eigen::Matrix3d,PetscReal> Tetrahedra::inverseJacobianAtPoint(PetscReal r,
-                                                                         PetscReal s,
-                                                                         PetscReal t) {
+template <typename ConcreteShape>
+VectorXd Tetrahedra<ConcreteShape>::ParAtIntPts(const std::string &par) {
 
-  auto v1x = mVtxCrd(0,0);
-  auto v2x = mVtxCrd(0,1);
-  auto v3x = mVtxCrd(0,2);
-  auto v4x = mVtxCrd(0,3);
+  // interpolate velocity at all nodes
+  for(int i=0;i<mNumIntPnt;i++) {
+    auto r = mIntegrationCoordinates_r[i];
+    auto s = mIntegrationCoordinates_s[i];
+    auto t = mIntegrationCoordinates_t[i];
+    mParWork(i) = ConcreteShape::interpolateAtPoint(r,s,t).dot(mPar[par]);
+  }  
   
-  auto v1y = mVtxCrd(1,0);
-  auto v2y = mVtxCrd(1,1);
-  auto v3y = mVtxCrd(1,2);
-  auto v4y = mVtxCrd(1,3);
-  
-  auto v1z = mVtxCrd(2,0);
-  auto v2z = mVtxCrd(2,1);
-  auto v3z = mVtxCrd(2,2);
-  auto v4z = mVtxCrd(2,3);
-
-  // wrong ordering from julia (with vertical normal on bottom)
-  // auto dxdr = (v2x-v1x);
-  // auto dxds = (v3x-v1x);
-  // auto dxdt = (v4x-v1x);
-  // auto dydr = (v2y-v1y);
-  // auto dyds = (v3y-v1y);
-  // auto dydt = (v4y-v1y);
-  // auto dzdr = (v2z-v1z);
-  // auto dzds = (v3z-v1z);
-  // auto dzdt = (v4z-v1z);
-  
-  // follows correct vertex ordering
-  auto dxdr = (v3x-v1x);
-  auto dxds = (v2x-v1x);
-  auto dxdt = (v4x-v1x);
-  auto dydr = (v3y-v1y);
-  auto dyds = (v2y-v1y);
-  auto dydt = (v4y-v1y);
-  auto dzdr = (v3z-v1z);
-  auto dzds = (v2z-v1z);
-  auto dzdt = (v4z-v1z);
-  
-  Matrix3d J;
-  J <<
-    dxdr, dydr, dzdr,
-    dxds, dyds, dzds,
-    dxdt, dydt, dzdt;
-
-  PetscReal detJ = J.determinant();
-
-  // need to test if this analytical inverse is faster than simply J.inverse();
-  
-  auto  rx = (1 / detJ) * (dyds*dzdt - dydt*dzds);
-  auto  sx = (1 / detJ) * (-dydr*dzdt + dydt*dzdr);
-  auto  tx = (1 / detJ) * (dydr*dzds - dyds*dzdr);
-  
-  auto  ry = (1 / detJ) * (-dxds*dzdt + dxdt*dzds);
-  auto  sy = (1 / detJ) * ( dxdr*dzdt - dxdt*dzdr);
-  auto  ty = (1 / detJ) * (-dxdr*dzds + dxds*dzdr);
-  
-  auto  rz = (1 / detJ) * (dxds*dydt - dxdt*dyds);
-  auto  sz = (1 / detJ) * (-dxdr*dydt + dxdt*dydr);
-  auto  tz = (1 / detJ) * (dxdr*dyds - dxds*dydr);
-
-  Matrix3d inverseJacobian;
-  inverseJacobian <<
-    rx, sx, tx,
-    ry, sy, ty,
-    rz, sz, tz;
-
-  return std::make_tuple(inverseJacobian, detJ);
-  
+  return mParWork;
 }
 
-Eigen::Vector4d Tetrahedra::__attachMaterialProperties(ExodusModel *model, std::string parameter_name) {
+template <typename ConcreteShape>
+void Tetrahedra<ConcreteShape>::attachMaterialProperties(const ExodusModel *model, std::string parameter_name) {
 
-  Eigen::Vector4d material_at_vertices(mNumberVertex);
+  Vector4d material_at_vertices;
 
-  for (auto i = 0; i < mNumberVertex; i++) {
-    material_at_vertices(i) = model->getElementalMaterialParameterAtVertex(
-                                                                           mElmCtr, parameter_name, i);
+  for (auto i = 0; i < mNumVtx; i++) {
+    material_at_vertices(i) = model->getElementalMaterialParameterAtVertex(mElmCtr, parameter_name, i);
   }
-  return material_at_vertices;
+  
+  mPar[parameter_name] = material_at_vertices;
 
 }
 
-void Tetrahedra::attachSource(std::vector<std::shared_ptr<Source>> sources) {
+template <typename ConcreteShape>
+void Tetrahedra<ConcreteShape>::attachSource(std::vector<std::shared_ptr<Source>> sources) {
 
   for (auto &source: sources) {
-    if (mCheckHull(source->PhysicalLocationX(), source->PhysicalLocationY(), source->PhysicalLocationZ())) {
-      Eigen::Vector3d reference_location = inverseCoordinateTransform(source->PhysicalLocationX(),
-                                                                      source->PhysicalLocationY(),
-                                                                      source->PhysicalLocationZ());
+    if (ConcreteShape::checkHull(source->PhysicalLocationX(),
+                                 source->PhysicalLocationY(),
+                                 source->PhysicalLocationZ(),
+                                 mVtxCrd)) {
+      Vector3d reference_location = ConcreteShape::inverseCoordinateTransform(source->PhysicalLocationX(),
+                                                                              source->PhysicalLocationY(),
+                                                                              source->PhysicalLocationZ(),
+                                                                              mVtxCrd);
       source->setReferenceLocationR(reference_location(0));
       source->setReferenceLocationS(reference_location(1));
       source->setReferenceLocationT(reference_location(2));
@@ -597,73 +538,161 @@ void Tetrahedra::attachSource(std::vector<std::shared_ptr<Source>> sources) {
 
 }
 
-bool Tetrahedra::mCheckHull(double x, double y, double z) {
+template <typename ConcreteShape>
+MatrixXd Tetrahedra<ConcreteShape>::computeGradient(const Ref<const VectorXd>& field) {
 
-  auto x1 = mVtxCrd(0,0);
-  auto x2 = mVtxCrd(0,1);
-  auto x3 = mVtxCrd(0,2);
-  auto x4 = mVtxCrd(0,3);
+  // loop version is surprisingly faster.
+  // mGradWork.col(0) = mGradientPhi_dx_t*field;
+  // mGradWork.col(1) = mGradientPhi_dy_t*field;
+  // mGradWork.col(2) = mGradientPhi_dz_t*field;
   
-  auto y1 = mVtxCrd(1,0);
-  auto y2 = mVtxCrd(1,1);
-  auto y3 = mVtxCrd(1,2);
-  auto y4 = mVtxCrd(1,3);
+  for(int i=0;i<mNumIntPnt;i++) {
+    
+    // double grad_x = field.dot(mGradientPhi_dx.col(i));
+    // double grad_y = field.dot(mGradientPhi_dy.col(i));
+    // double grad_z = field.dot(mGradientPhi_dz.col(i));    
+    
+    // 15% faster when unrolled
+    double grad_x = 0.0;
+    double grad_y = 0.0;
+    double grad_z = 0.0;
+
+    for(int j=0;j<mNumIntPnt;j++) {
+      grad_x += field(j)*mGradientPhi_dx(j,i);
+      grad_y += field(j)*mGradientPhi_dy(j,i);
+      grad_z += field(j)*mGradientPhi_dz(j,i);
+    }
+    
+    mGradWork(i,0) = grad_x;
+    mGradWork(i,1) = grad_y;
+    mGradWork(i,2) = grad_z;
+    
+  }
+
+  return mGradWork;
+}
+
+template <typename ConcreteShape>
+VectorXd Tetrahedra<ConcreteShape>::applyGradTestAndIntegrate(const Ref<const MatrixXd>& f) {
   
-  auto z1 = mVtxCrd(2,0);
-  auto z2 = mVtxCrd(2,1);
-  auto z3 = mVtxCrd(2,2);
-  auto z4 = mVtxCrd(2,3);
+  // auto gfx = f.col(0);
+  // auto gfy = f.col(1);
+  // auto gfz = f.col(2);
+  
+  // for(int i=0;i<mNumIntPnt;i++) {
 
-  // see tetrahedra_element_metrics.py
-  // check barycentric coordinates of the point relative to this
-  // triangle. If we violate barycentric coorindate assumptions
-  // (l1234 >= 0, l1+l2+l3+l4 = 1) we are not inside the hull.
-  double l1 = (x*y2*z3 - x*y2*z4 - x*y3*z2 + x*y3*z4 + x*y4*z2 - x*y4*z3 - x2*y*z3 + x2*y*z4 + x2*y3*z - x2*y3*z4 - x2*y4*z + x2*y4*z3 + x3*y*z2 - x3*y*z4 - x3*y2*z + x3*y2*z4 + x3*y4*z - x3*y4*z2 - x4*y*z2 + x4*y*z3 + x4*y2*z - x4*y2*z3 - x4*y3*z + x4*y3*z2)/(x1*y2*z3 - x1*y2*z4 - x1*y3*z2 + x1*y3*z4 + x1*y4*z2 - x1*y4*z3 - x2*y1*z3 + x2*y1*z4 + x2*y3*z1 - x2*y3*z4 - x2*y4*z1 + x2*y4*z3 + x3*y1*z2 - x3*y1*z4 - x3*y2*z1 + x3*y2*z4 + x3*y4*z1 - x3*y4*z2 - x4*y1*z2 + x4*y1*z3 + x4*y2*z1 - x4*y2*z3 - x4*y3*z1 + x4*y3*z2);
-  double l2 = (-x*y1*z3 + x*y1*z4 + x*y3*z1 - x*y3*z4 - x*y4*z1 + x*y4*z3 + x1*y*z3 - x1*y*z4 - x1*y3*z + x1*y3*z4 + x1*y4*z - x1*y4*z3 - x3*y*z1 + x3*y*z4 + x3*y1*z - x3*y1*z4 - x3*y4*z + x3*y4*z1 + x4*y*z1 - x4*y*z3 - x4*y1*z + x4*y1*z3 + x4*y3*z - x4*y3*z1)/(x1*y2*z3 - x1*y2*z4 - x1*y3*z2 + x1*y3*z4 + x1*y4*z2 - x1*y4*z3 - x2*y1*z3 + x2*y1*z4 + x2*y3*z1 - x2*y3*z4 - x2*y4*z1 + x2*y4*z3 + x3*y1*z2 - x3*y1*z4 - x3*y2*z1 + x3*y2*z4 + x3*y4*z1 - x3*y4*z2 - x4*y1*z2 + x4*y1*z3 + x4*y2*z1 - x4*y2*z3 - x4*y3*z1 + x4*y3*z2);
-  double l3 = ((x - x4)*((y1 - y4)*((x1 - x4)*(-z2 + z4) + (x2 - x4)*(z1 - z4)) + (z1 - z4)*((x1 - x4)*(y2 - y4) - (x2 - x4)*(y1 - y4))) + (x1 - x4)*(-y*((x1 - x4)*(-z2 + z4) + (x2 - x4)*(z1 - z4)) + y4*((x1 - x4)*(-z2 + z4) + (x2 - x4)*(z1 - z4)) - z*((x1 - x4)*(y2 - y4) - (x2 - x4)*(y1 - y4)) + z4*((x1 - x4)*(y2 - y4) - (x2 - x4)*(y1 - y4))))/(-(x1 - x4)*(z3 - z4)*((x1 - x4)*(y2 - y4) - (x2 - x4)*(y1 - y4)) + (x3 - x4)*(z1 - z4)*((x1 - x4)*(y2 - y4) - (x2 - x4)*(y1 - y4)) + ((x1 - x4)*(y3 - y4) - (x3 - x4)*(y1 - y4))*((x1 - x4)*(z2 - z4) - (x2 - x4)*(z1 - z4)));
-  double l4 = 1-l1-l2-l3;
+  //   // VectorXd dPhi_dx_i = mGradientPhi_dx.row(i);
+  //   // VectorXd dPhi_dy_i = mGradientPhi_dy.row(i);
+  //   // VectorXd dPhi_dz_i = mGradientPhi_dz.row(i);
+  //   // mStiffWork[i] = detJ*mIntegrationWeights.dot((dPhi_dx_i.array()*gfx.array()
+  //   //                                               + dPhi_dy_i.array()*gfy.array()
+  //   //                                               + dPhi_dz_i.array()*gfz.array()).matrix());
     
-  if(l1 < 0) return false;
-  if(l2 < 0) return false;
-  if(l3 < 0) return false;
-  if(l4 < 0) return false;
+  //   // alternate version using transpose
+  //   // mStiffWork[i] = detJ*mIntegrationWeights.dot((mGradientPhi_dx_t.col(i).array()*gfx.array() +
+  //   //                                               mGradientPhi_dy_t.col(i).array()*gfy.array() +
+  //   //                                               mGradientPhi_dz_t.col(i).array()*gfz.array()).matrix());
     
-  if(fabs(1-(l1+l2+l3)) < 1e-8) return false;
+  //   double ans = 0.0;
+  //   for(int j=0;j<mNumIntPnt;j++) {
+  //     ans += mIntegrationWeights[i]*(mGradientPhi_dx_t(j,i)*gfx[j] +
+  //                                    mGradientPhi_dy_t(j,i)*gfy[j] +
+  //                                    mGradientPhi_dz_t(j,i)*gfz[j]);
+  //     // ans += mIntegrationWeights[i]*(mGradientPhi_dx(i,j)*f(j,0) +
+  //     // mGradientPhi_dy(i,j)*f(j,1) +
+  //     // mGradientPhi_dz(i,j)*f(j,2));
+  //   }
+  //   mStiffWork[i] = mDetJac*ans;
+    
+  // }  
+  
+  // return mStiffWork;
 
-  // no assumptions violated, inside triangle
-  return true;
+  return (mWiDPhi_x*f.col(0) + mWiDPhi_y*f.col(1) + mWiDPhi_z*f.col(2));
+  
+}
+
+template <typename ConcreteShape>
+MatrixXd Tetrahedra<ConcreteShape>::buildStiffnessMatrix(VectorXd velocity) {
+  
+  Eigen::Matrix3d invJ;
+  double detJ;
+  std::tie(invJ,detJ) = ConcreteShape::inverseJacobian(mVtxCrd);
+  mDetJac = detJ;
+  //Jinv= rx, sx, tx,
+  //      ry, sy, ty,
+  //      rz, sz, tz;
+  auto drdx = invJ(0,0);
+  auto dsdx = invJ(0,1);
+  auto dtdx = invJ(0,2);
+
+  auto drdy = invJ(1,0);
+  auto dsdy = invJ(1,1);
+  auto dtdy = invJ(1,2);
+
+  auto drdz = invJ(2,0);
+  auto dsdz = invJ(2,1);
+  auto dtdz = invJ(2,2);
+  
+  // build material on all nodes
+  MatrixXd elementStiffnessMatrix(mNumIntPnt,mNumIntPnt);
+
+  mGradientPhi_dx.resize(mNumIntPnt,mNumIntPnt);
+  mGradientPhi_dy.resize(mNumIntPnt,mNumIntPnt);
+  mGradientPhi_dz.resize(mNumIntPnt,mNumIntPnt);
+
+  mWiDPhi_x.resize(mNumIntPnt,mNumIntPnt);
+  mWiDPhi_y.resize(mNumIntPnt,mNumIntPnt);
+  mWiDPhi_z.resize(mNumIntPnt,mNumIntPnt);
+  
+  // loop over matrix(i,j)
+  for(int i=0;i<mNumIntPnt;i++) {
+      
+    Eigen::VectorXd dPhi_dr_i = mGradientPhi_dr.row(i);
+    Eigen::VectorXd dPhi_ds_i = mGradientPhi_ds.row(i);
+    Eigen::VectorXd dPhi_dt_i = mGradientPhi_dt.row(i);
+    auto dPhi_dx_i = dPhi_dr_i*drdx + dPhi_ds_i*dsdx + dPhi_dt_i*dtdx;
+    auto dPhi_dy_i = dPhi_dr_i*drdy + dPhi_ds_i*dsdy + dPhi_dt_i*dtdy;
+    auto dPhi_dz_i = dPhi_dr_i*drdz + dPhi_ds_i*dsdz + dPhi_dt_i*dtdz;
+    mGradientPhi_dx.row(i) = dPhi_dx_i;
+    mGradientPhi_dy.row(i) = dPhi_dy_i;
+    mGradientPhi_dz.row(i) = dPhi_dz_i;
+
+    mWiDPhi_x.row(i) = detJ * dPhi_dx_i.array() * mIntegrationWeights.array();
+    mWiDPhi_y.row(i) = detJ * dPhi_dy_i.array() * mIntegrationWeights.array();
+    mWiDPhi_z.row(i) = detJ * dPhi_dz_i.array() * mIntegrationWeights.array();
+    
+    for(int j=0;j<mNumIntPnt;j++) {
+      Eigen::VectorXd dPhi_dr_j = mGradientPhi_dr.row(j);
+      Eigen::VectorXd dPhi_ds_j = mGradientPhi_ds.row(j);
+      Eigen::VectorXd dPhi_dt_j = mGradientPhi_dt.row(j);
+      auto dPhi_dx_j = dPhi_dr_j*drdx + dPhi_ds_j*dsdx + dPhi_dt_j*dtdx;
+      auto dPhi_dy_j = dPhi_dr_j*drdy + dPhi_ds_j*dsdy + dPhi_dt_j*dtdy;
+      auto dPhi_dz_j = dPhi_dr_j*drdz + dPhi_ds_j*dsdz + dPhi_dt_j*dtdz;
+      
+      elementStiffnessMatrix(i,j) =
+        // with velocity according to model
+        detJ*mIntegrationWeights.dot((velocity.array().pow(2) * dPhi_dx_i.array() * dPhi_dx_j.array()).matrix()) +
+        detJ*mIntegrationWeights.dot((velocity.array().pow(2) * dPhi_dy_i.array() * dPhi_dy_j.array()).matrix()) +
+        detJ*mIntegrationWeights.dot((velocity.array().pow(2) * dPhi_dz_i.array() * dPhi_dz_j.array()).matrix());
+
+      
+      
+    }
+  }
+
+  // build transpose as well
+  mGradientPhi_dx_t = mGradientPhi_dx.transpose();
+  mGradientPhi_dy_t = mGradientPhi_dy.transpose();
+  mGradientPhi_dz_t = mGradientPhi_dz.transpose();
+  
+  return elementStiffnessMatrix;
     
 }
 
-Eigen::Vector3d Tetrahedra::inverseCoordinateTransform(const double &x, const double &y, const double &z) {
 
-  auto x1 = mVtxCrd(0,0);
-  auto x2 = mVtxCrd(0,1);
-  auto x3 = mVtxCrd(0,2);
-  auto x4 = mVtxCrd(0,3);
-  
-  auto y1 = mVtxCrd(1,0);
-  auto y2 = mVtxCrd(1,1);
-  auto y3 = mVtxCrd(1,2);
-  auto y4 = mVtxCrd(1,3);
-  
-  auto z1 = mVtxCrd(2,0);
-  auto z2 = mVtxCrd(2,1);
-  auto z3 = mVtxCrd(2,2);
-  auto z4 = mVtxCrd(2,3);
-
-  // see tetrahedra_element_metrics.py (and https://en.wikipedia.org/wiki/Barycentric_coordinate_system)
-  auto r=((x - x4)*(-(y1 - y4)*((x1 - x4)*(z2 - z4) - (x2 - x4)*(z1 - z4)) + (z1 - z4)*((x1 - x4)*(y2 - y4) - (x2 - x4)*(y1 - y4))) - (x1 - x4)*(y*(-(x1 - x4)*(z2 - z4) + (x2 - x4)*(z1 - z4)) - y4*(-(x1 - x4)*(z2 - z4) + (x2 - x4)*(z1 - z4)) + z*((x1 - x4)*(y2 - y4) - (x2 - x4)*(y1 - y4)) - z4*((x1 - x4)*(y2 - y4) - (x2 - x4)*(y1 - y4))))/(-(x1 - x4)*(z3 - z4)*((x1 - x4)*(y2 - y4) - (x2 - x4)*(y1 - y4)) + (x3 - x4)*(z1 - z4)*((x1 - x4)*(y2 - y4) - (x2 - x4)*(y1 - y4)) + ((x1 - x4)*(y3 - y4) - (x3 - x4)*(y1 - y4))*((x1 - x4)*(z2 - z4) - (x2 - x4)*(z1 - z4)));
-
-  auto s=(-x*y1*z3 + x*y1*z4 + x*y3*z1 - x*y3*z4 - x*y4*z1 + x*y4*z3 + x1*y*z3 - x1*y*z4 - x1*y3*z + x1*y3*z4 + x1*y4*z - x1*y4*z3 - x3*y*z1 + x3*y*z4 + x3*y1*z - x3*y1*z4 - x3*y4*z + x3*y4*z1 + x4*y*z1 - x4*y*z3 - x4*y1*z + x4*y1*z3 + x4*y3*z - x4*y3*z1)/(x1*y2*z3 - x1*y2*z4 - x1*y3*z2 + x1*y3*z4 + x1*y4*z2 - x1*y4*z3 - x2*y1*z3 + x2*y1*z4 + x2*y3*z1 - x2*y3*z4 - x2*y4*z1 + x2*y4*z3 + x3*y1*z2 - x3*y1*z4 - x3*y2*z1 + x3*y2*z4 + x3*y4*z1 - x3*y4*z2 - x4*y1*z2 + x4*y1*z3 + x4*y2*z1 - x4*y2*z3 - x4*y3*z1 + x4*y3*z2);
-
-  auto t=(-x*y1*z2 + x*y1*z3 + x*y2*z1 - x*y2*z3 - x*y3*z1 + x*y3*z2 + x1*y*z2 - x1*y*z3 - x1*y2*z + x1*y2*z3 + x1*y3*z - x1*y3*z2 - x2*y*z1 + x2*y*z3 + x2*y1*z - x2*y1*z3 - x2*y3*z + x2*y3*z1 + x3*y*z1 - x3*y*z2 - x3*y1*z + x3*y1*z2 + x3*y2*z - x3*y2*z1)/(x1*y2*z3 - x1*y2*z4 - x1*y3*z2 + x1*y3*z4 + x1*y4*z2 - x1*y4*z3 - x2*y1*z3 + x2*y1*z4 + x2*y3*z1 - x2*y3*z4 - x2*y4*z1 + x2*y4*z3 + x3*y1*z2 - x3*y1*z4 - x3*y2*z1 + x3*y2*z4 + x3*y4*z1 - x3*y4*z2 - x4*y1*z2 + x4*y1*z3 + x4*y2*z1 - x4*y2*z3 - x4*y3*z1 + x4*y3*z2);    
-
-  Eigen::Vector3d solution {r, s, t};
-  return solution;
-}
-
-void Tetrahedra::setupGradientOperator() {
+template <typename ConcreteShape>
+void Tetrahedra<ConcreteShape>::setupGradientOperator() {
 
   if(mPlyOrd == 3) {
     mGradientPhi_dr.resize(mNumIntPnt,mNumIntPnt);
@@ -676,55 +705,56 @@ void Tetrahedra::setupGradientOperator() {
     std::cerr << "NOT implemented yet!\n";
     MPI::COMM_WORLD.Abort(-1);
   }
-}
-
-// global x-z points on all nodes
-std::tuple<Eigen::VectorXd,
-           Eigen::VectorXd,
-           Eigen::VectorXd> Tetrahedra::buildNodalPoints() {
-		
-  std::vector<PetscReal> ni(mVtxCrd.size());
-	
-  Eigen::VectorXd nodalPoints_x(mNumIntPnt);
-  Eigen::VectorXd nodalPoints_y(mNumIntPnt);
-  Eigen::VectorXd nodalPoints_z(mNumIntPnt);
-
-  auto x1 = mVtxCrd(0,0);
-  auto x2 = mVtxCrd(0,1);
-  auto x3 = mVtxCrd(0,2);
-  auto x4 = mVtxCrd(0,3);
-  
-  auto y1 = mVtxCrd(1,0);
-  auto y2 = mVtxCrd(1,1);
-  auto y3 = mVtxCrd(1,2);
-  auto y4 = mVtxCrd(1,3);
-  
-  auto z1 = mVtxCrd(2,0);
-  auto z2 = mVtxCrd(2,1);
-  auto z3 = mVtxCrd(2,2);
-  auto z4 = mVtxCrd(2,3);
-
-  // printf("v0(%f,%f,%f),v1(%f,%f,%f),v2(%f,%f,%f),v3(%f,%f,%f)\n",
-  // x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4);
-  
-  for(auto n = 0; n < mNumIntPnt; n++) {
-    auto r = mIntegrationCoordinates_r[n];
-    auto s = mIntegrationCoordinates_s[n];
-    auto t = mIntegrationCoordinates_t[n];
-    // map from reference tet point (r,s,t) to this tet (x,y,z)
-    auto xn=r*x3 + s*x2 + t*x4 - x1*(r + s + t - 1);
-    auto yn=r*y3 + s*y2 + t*y4 - y1*(r + s + t - 1);
-    auto zn=r*z3 + s*z2 + t*z4 - z1*(r + s + t - 1);
     
-    nodalPoints_x(n) = xn;
-    nodalPoints_y(n) = yn;
-    nodalPoints_z(n) = zn;
-  }    
-
-  return std::make_tuple(nodalPoints_x,nodalPoints_y,nodalPoints_z);
 }
 
-void Tetrahedra::attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers) {
+template <typename ConcreteShape>
+void Tetrahedra<ConcreteShape>::attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers) {
   printf("TODO: attachedReciever\n");
   exit(1);
 }
+
+template <typename ConcreteShape>
+VectorXd Tetrahedra<ConcreteShape>::applyTestAndIntegrate(const Ref<const VectorXd> &f) {
+
+  double detJac;
+  Matrix3d invJac;
+  std::tie(invJac,detJac) = ConcreteShape::inverseJacobian(mVtxCrd);
+  return detJac*mIntegrationWeights.array()*f.array();
+}
+
+template <typename ConcreteShape>
+void Tetrahedra<ConcreteShape>::setBoundaryConditions(Mesh *mesh) {
+  mBndElm = false;
+  for (auto &keys: mesh ->BoundaryElementFaces()) {
+    auto boundary_name = keys.first;
+    auto element_in_boundary = keys.second;
+    if (element_in_boundary.find(mElmNum) != element_in_boundary.end()) {
+      mBndElm = true;
+      mBnd[boundary_name] = element_in_boundary[mElmNum];
+    }
+  }
+}
+
+
+template <typename ConcreteShape>
+void Tetrahedra<ConcreteShape>::applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname) {
+
+  if (! mBndElm) return;
+
+  double value = 0;
+  auto dirchlet_boundary_names = options.DirichletBoundaries();
+  for (auto &bndry: dirchlet_boundary_names) {
+    auto faceids = mBnd[bndry];
+    for (auto &faceid: faceids) {
+      auto field = mesh->getFieldOnFace(fieldname, faceid);
+      field = 0 * field.array() + value;
+      mesh->setFieldFromFace(fieldname, faceid, field);
+    }
+  }
+}
+
+
+
+// Instantiate combinatorical cases.
+template class Tetrahedra<TetP1>;

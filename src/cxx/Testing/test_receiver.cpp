@@ -1,7 +1,9 @@
 #include "catch.h"
-#include <Element/ElementNew.h>
 #include <Element/Element.h>
 #include <Problem/Problem.h>
+#include <Model/ExodusModel.h>
+#include <Utilities/Options.h>
+#include <Mesh/Mesh.h>
 
 /**
  * TODO
@@ -52,7 +54,7 @@ TEST_CASE("test_receiver", "[receiver]") {
     ExodusModel *model = new ExodusModel(options);
     model->initializeParallel();
 
-    std::shared_ptr<ElementNew> reference_element = ElementNew::Factory(options);
+    std::shared_ptr<Element> reference_element = Element::Factory(options);
 
     Problem *problem = Problem::factory(options.ProblemType());
     problem->initialize(mesh, model, reference_element, options);

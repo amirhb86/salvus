@@ -1,14 +1,11 @@
-//
-// Created by Michael Afanasiev on 2016-03-16.
-//
-
-#include <iostream>
 #include <hdf5.h>
 #include <hdf5_hl.h>
-#include "FieldIo.h"
-#include "../Utilities/Utilities.h"
+#include <Problem/FieldIo.h>
+#include <Utilities/Utilities.h>
+#include <Utilities/Options.h>
 
 FieldIo *FieldIo::factory(Options options) {
+
     return new FieldIoHdf5(options);
 }
 

@@ -2,6 +2,7 @@
 #include <petsc.h>
 #include <Utilities/Options.h>
 #include <Mesh/Mesh.h>
+#include <Model/ExodusModel.h>
 
 extern "C" {
 #include <Utilities/PETScExtensions.h>

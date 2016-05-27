@@ -1,11 +1,11 @@
-#include <vector>
-#include "Mesh.h"
-#include "ScalarNewmark2D.h"
-#include "ElasticNewmark2D.h"
-#include "Model/ExodusModel.h"
-#include <Eigen/Dense>
-#include <set>
-#include <fstream>
+#include <petscviewerhdf5.h>
+
+#include <Mesh/Mesh.h>
+#include <Mesh/ScalarNewmark2D.h>
+#include <Mesh/ElasticNewmark2D.h>
+#include <Model/ExodusModel.h>
+#include <Utilities/Options.h>
+#include <Utilities/Utilities.h>
 
 void exodusError(const int retval, std::string func_name) {
 
@@ -248,42 +248,46 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
 
       // Make a map of pnt -> set of types at each graph point.
       PetscInt pnt = points[2*j];
-      for (auto &field: appendPhysicalFields({}, type)) {
-        std::set<std::string> phys = {field};
-        auto in = pnt_types.insert(std::make_pair(pnt, phys));
-        if (!in.second) { pnt_types[pnt].insert(field); }
+      std::set<std::string> phys = {type};
+      auto in = pnt_types.insert(std::make_pair(pnt, phys));
+      if (!in.second) { pnt_types[pnt].insert(type); }
 
-        // Save whatever field we've found to all_fields as well.
-        all_fields.insert(field);
-      }
+      // Save whatever field we've found to all_fields as well.
+      all_fields.insert(type);
     }
   }
 
   // Different number of components depending on which field.
   std::vector<PetscInt> num_comp;
   std::vector<std::string> all_fields_vec;
+  PetscInt num_fields = all_fields.size();
   for (auto f: all_fields) {
+    num_comp.push_back(numFieldPerPhysics(f));
     all_fields_vec.push_back(f);
   }
-  PetscInt num_fields = all_fields_vec.size();
 
   // Create the section and add the fields we've defined.
-  ier = PetscSectionCreate(PetscObjectComm((PetscObject) mDistributedMesh), &mMeshSection);CHKERRQ(ier);
-  ier = PetscSectionSetNumFields(mMeshSection, num_fields);CHKERRQ(ier);
+  ier = PetscSectionCreate(PetscObjectComm((PetscObject) mDistributedMesh), &mMeshSection);
+  CHKERRQ(ier);
+  ier = PetscSectionSetNumFields(mMeshSection, num_fields);
+  CHKERRQ(ier);
 
   int itr = 0;
-  int one_field = 1;
   for (int f = 0; f < num_fields; f++) {
-    ier = PetscSectionSetFieldComponents(mMeshSection, f, one_field);CHKERRQ(ier);
-    ier = PetscSectionSetFieldName(mMeshSection, f, all_fields_vec[f].c_str());CHKERRQ(ier);
+    ier = PetscSectionSetFieldComponents(mMeshSection, f, num_comp[f]);
+    CHKERRQ(ier);
+    ier = PetscSectionSetFieldName(mMeshSection, f, all_fields_vec[f].c_str());
+    CHKERRQ(ier);
   }
 
   // Get the indices of  the entire Hasse Diagram.
   PetscInt p_start, p_end;
-  ier = DMPlexGetChart(mDistributedMesh, &p_start, &p_end);CHKERRQ(ier);
+  ier = DMPlexGetChart(mDistributedMesh, &p_start, &p_end);
+  CHKERRQ(ier);
 
   // Tell the section about its' bounds.
-  ier = PetscSectionSetChart(mMeshSection, p_start, p_end);CHKERRQ(ier);
+  ier = PetscSectionSetChart(mMeshSection, p_start, p_end);
+  CHKERRQ(ier);
 
   // Get the number of levels of the Hasse diagram. Should be dimension + 1 (fac, edg, vtx. for 2D)
   PetscInt depth;
@@ -300,6 +304,7 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
                               &p_max[0]);CHKERRQ(ier);
 
   // dep = 0 -> fac; dep = 1 -> edg; dep = 2 -> vtx.
+//  assert(depth == 2); // Can only handle 2-D elements for now.
   for (int dep = 0; dep <= depth; dep++) {
     int num_dof = 0;
     if (dep == 0)      { num_dof = num_dof_vtx; }
@@ -330,11 +335,10 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
         ier = PetscSectionSetFieldDof(mMeshSection, p, f, num_dof_field_elem);CHKERRQ(ier);
 
         // Set a custom number of dofs for each field.
-        tot += num_dof_field_elem;
+        tot += num_dof;
       }
       // Total number of dofs per points is a sum of all the field dofs.
       ier = PetscSectionSetDof(mMeshSection, p, tot);CHKERRQ(ier);
-
     }
   }
 
@@ -347,6 +351,9 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
 
   // Improves performance of closure calls (for a 1.5x application perf. boost)
   DMPlexCreateClosureIndex(mDistributedMesh, mMeshSection);
+}
+
+  return ier;
 }
 
 void Mesh::registerFieldVectors(const std::string &name) {
@@ -587,18 +594,19 @@ Eigen::MatrixXd Mesh::getElementCoordinateClosure(PetscInt elem_num) {
 
 }
 
-std::vector<std::string> Mesh::appendPhysicalFields(const std::vector<std::string> &fields,
-                                                    const std::string &physics) {
-  std::vector<std::string> extend;
-  if (physics == "fluid") { extend = {"u"}; }
-  else if (physics == "2delastic") { extend = {"ux", "uy"}; }
-  else {
-    PRINT_ROOT() << "Physics " + physics + " not implemented!!";
+int Mesh::numFieldPerPhysics(std::string physics) {
+  int num;
+  try {
+    if (physics == "fluid") { num = 1; }
+    else if (physics == "2delastic") { num = 2; }
+    else {
+      throw std::runtime_error("Derived type " + physics + " is not known.");
+    }
+  } catch (std::exception &e) {
+    PRINT_ROOT() << e.what();
     MPI_Abort(PETSC_COMM_WORLD, -1);
   }
-//  extend = {"u1", "u2"};
-  for (auto &field: fields) { extend.push_back(field); }
-  return extend;
+  return num;
 }
 
 // int Mesh::BoundarylementFaces(int elm, int ss_num) {
