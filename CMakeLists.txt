@@ -58,6 +58,7 @@ set(SALVUS_SOURCES
         src/cxx/Physics/Acoustic2D.cpp
         src/cxx/Physics/AcousticTet.cpp
         src/cxx/Physics/Acoustic3D.cpp
+        src/cxx/Physics/AcousticHex3D.cpp
         src/cxx/Physics/Acoustic3D_V.cpp
         src/cxx/Physics/AcousticTri.cpp
         src/cxx/Utilities/kdtree.c
