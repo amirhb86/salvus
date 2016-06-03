@@ -430,7 +430,7 @@ TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
   // auto hex0 = (elements[0]);
   // Get vertex coordinates from the PETSc DMPLEX.
   hex0->SetNum(0);
-  hex0->attachVertexCoordinates(mesh->DistributedMesh());    
+  hex0->attachVertexCoordinates(mesh);
   VectorXd pts0_x,pts0_y,pts0_z;
   std::tie(pts0_x,pts0_y,pts0_z) = hex0->buildNodalPoints();
   
@@ -459,7 +459,7 @@ TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
       hex->SetNum(element_number++);
       
       // Get vertex coordinates from the PETSc DMPLEX.
-      hex->attachVertexCoordinates(mesh->DistributedMesh());
+      hex->attachVertexCoordinates(mesh);
       
       std::tie(pts_x,pts_y,pts_z) = hex->buildNodalPoints();
       // if(hex->Num() == 0) {

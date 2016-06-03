@@ -88,6 +88,11 @@ MatrixXd Elastic2D<Element>::computeStiffnessTerm(const Eigen::MatrixXd &u) {
 }
 
 template <typename Element>
+MatrixXd Elastic2D<Element>::computeSurfaceIntegral(const Eigen::Ref<const Eigen::MatrixXd> &u) {
+  return Eigen::MatrixXd::Zero(Element::NumIntPnt(), Element::NumDim());
+}
+
+template <typename Element>
 MatrixXd Elastic2D<Element>::computeSourceTerm(const double time) { return Eigen::MatrixXd(1,1); }
 
 template <typename Element>

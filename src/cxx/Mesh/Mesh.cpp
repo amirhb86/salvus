@@ -387,20 +387,40 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
   return ier;
 }
 
+std::vector<PetscInt> Mesh::EdgeNumbers(const PetscInt elm) {
+
+  std::vector<PetscInt> edges;
+  PetscInt num_pts, e_start, e_end, *points = NULL, dep_edge = 1;
+  DMPlexGetTransitiveClosure(mDistributedMesh, elm, PETSC_TRUE, &num_pts, &points);
+  // get range of values which define edges.
+  DMPlexGetDepthStratum(mDistributedMesh, dep_edge, &e_start, &e_end);
+  for (PetscInt i = 0; i < num_pts; i++) {
+    PetscInt pnt = points[2*i];
+    // if edge is in closure, push it back.
+    if (pnt >= e_start && pnt < e_end) {
+      edges.push_back(pnt);
+    }
+  }
+  return edges;
+}
+
 std::vector<std::tuple<PetscInt,std::vector<std::string>>> Mesh::CouplingFields(const PetscInt elm) {
 
   std::vector<std::tuple<PetscInt,std::vector<std::string>>> couple;
   std::set<std::string> elm_fields = mElmFields[elm];
 
-  PetscInt num_pts;
+  PetscInt num_pts, e_start, e_end;
   PetscInt *points = NULL;
   PetscErrorCode ier = DMPlexGetTransitiveClosure(mDistributedMesh, elm, PETSC_TRUE, &num_pts, &points);
+  PetscInt dep_edge = 1;
+  DMPlexGetDepthStratum(mDistributedMesh, dep_edge, &e_start, &e_end);
   for (PetscInt j = 0; j < num_pts; j++) {
     std::vector<std::string> field;
     PetscInt pnt = points[2*j];
     for (auto f: mCouplingFields[pnt]) {
       bool coupling_edge = mElmFields[elm].find(f) == mElmFields[elm].end();
-      if (coupling_edge) { field.push_back(f); }
+      // if we're an edge (not vertex)
+      if (coupling_edge && pnt >= e_start && pnt < e_end) { field.push_back(f); }
     }
     if (field.size()) {
       couple.push_back(std::make_tuple(pnt, field));

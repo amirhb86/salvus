@@ -220,7 +220,7 @@ private:
    * Attach the (4) vertex coordinates to the element.
    * @param [in] distributed_mesh The PETSc DM.
    */
-  void attachVertexCoordinates(DM &distributed_mesh);
+  void attachVertexCoordinates(Mesh *mesh);
 
   /**
    * Attach some abstract source instance to the element.

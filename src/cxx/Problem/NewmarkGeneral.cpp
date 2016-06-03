@@ -50,7 +50,7 @@ void NewmarkGeneral::initialize(Mesh *mesh,
     element->SetNum(element_number); element_number++;
 
     // Get vertex coordinates from the PETSc DMPLEX.
-    element->attachVertexCoordinates(mMesh->DistributedMesh());
+    element->attachVertexCoordinates(mMesh);
 
     // Add material parameters (velocity, Cij, etc...).
     element->attachMaterialProperties(model);

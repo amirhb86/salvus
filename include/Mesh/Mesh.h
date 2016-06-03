@@ -373,5 +373,6 @@ class Mesh {
 
   std::vector<std::tuple<PetscInt,std::vector<std::string>>> CouplingFields(const PetscInt elm);
   std::vector<std::string> TotalCouplingFields(const PetscInt elm);
+  std::vector<PetscInt> EdgeNumbers(const PetscInt elm);
 
 };

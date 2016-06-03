@@ -8,6 +8,7 @@
 #include <Model/ExodusModel.h>
 #include <Utilities/Options.h>
 
+using namespace std;
 
 TEST_CASE("test_coupling", "[coupling]") {
 
@@ -39,11 +40,24 @@ TEST_CASE("test_coupling", "[coupling]") {
   mesh->read(options);
   mesh->setupGlobalDof(1, 3, 9, 0, 2, model);
 
+
+  std::vector<std::shared_ptr<Element>> elements;
   for (PetscInt i = 0; i < mesh->NumberElementsLocal(); i++) {
-    Element::Factory(mesh->ElementFields(i),
-                     mesh->TotalCouplingFields(i),
-                     options);
-    for (auto f: mesh->ElementFields(i)) { std::cout << f << std::endl; }
+    elements.emplace_back(Element::Factory(mesh->ElementFields(i),
+                                           mesh->TotalCouplingFields(i),
+                                           options));
+  }
+
+  PetscInt elmnum=0;
+  for (auto &e: elements) {
+    e->SetNum(elmnum++);
+    e->attachVertexCoordinates(mesh);
+  }
+
+  Eigen::MatrixXd t = Eigen::MatrixXd::Constant(25, 3, 1.0);
+  for (auto &e: elements) {
+    e->setBoundaryConditions(mesh);
+    std::cout << e->computeSurfaceIntegral(t).sum() << std::endl;
   }
 
 }

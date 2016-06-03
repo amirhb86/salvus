@@ -72,6 +72,9 @@ private:
   bool mBndElm;
   std::map<std::string,std::vector<int>> mBnd;
 
+  // Vector of tuples to any (possible) coupling edges.
+  std::vector<std::tuple<PetscInt,std::vector<std::string>>> mCpl;
+
   // Instance variables.
   PetscInt mElmNum;
   int mPlyOrd;
@@ -91,6 +94,7 @@ private:
 
   // Closure mapping.
   Eigen::VectorXi mClsMap;
+  std::vector<PetscInt> mEdgMap;
 
   // Quadrature parameters.
   Eigen::VectorXd mIntCrdR;
@@ -166,6 +170,11 @@ private:
    */
   Eigen::VectorXd applyGradTestAndIntegrate(const Eigen::Ref<const Eigen::MatrixXd>& f);
 
+
+  Eigen::VectorXd applyTestAndIntegrateEdge(const Eigen::Ref<const Eigen::VectorXd>& f,
+                                            const PetscInt edg);
+  Eigen::Vector2d getEdgeNormal(const PetscInt edg);
+
   /**
    * Figure out and set boundaries.
    * @param [in] mesh The mesh instance.
@@ -182,7 +191,7 @@ private:
    * Attach the (4) vertex coordinates to the element.
    * @param [in] distributed_mesh The PETSc DM.
    */
-  void attachVertexCoordinates(DM &distributed_mesh);
+  void attachVertexCoordinates(Mesh *mesh);
 
   /**
    * Attach some abstract source instance to the element.

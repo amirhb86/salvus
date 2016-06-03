@@ -70,7 +70,7 @@ class Element {
   /** Attach vertex coordinates to the element.
    * @param [in] distributed_mesh The parallel DM provided by PETSc.
    */
-  virtual void attachVertexCoordinates(DM &distributed_mesh) = 0;
+  virtual void attachVertexCoordinates(Mesh *mesh) = 0;
   /** Pre-compute the stiffness matrix operator. Currently this is required for the tetrahedral elements,
    * but is a non-op for element types where the stiffness matrix is computed on the fly.
    */
@@ -90,6 +90,8 @@ class Element {
    * @param [in] u Displacement field.
    */
   virtual Eigen::MatrixXd computeStiffnessTerm(const Eigen::Ref<const Eigen::MatrixXd>& u) = 0;
+  /** Computes the surface integral over an element. Note that this is usually zero. */
+  virtual Eigen::MatrixXd computeSurfaceIntegral(const Eigen::Ref<const Eigen::MatrixXd>& u) = 0;
   /** Returns the fields which are required from the global DOFs for local operation */
   virtual std::vector<std::string> PullElementalFields() const = 0;
   /** Returns the fields from the global DOFs into which we will sum */

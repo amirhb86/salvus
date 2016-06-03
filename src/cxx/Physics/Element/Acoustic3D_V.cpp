@@ -75,6 +75,11 @@ MatrixXd Acoustic3D_V<Element>::computeStiffnessTerm(
 }
 
 template <typename Element>
+MatrixXd Acoustic3D_V<Element>::computeSurfaceIntegral(const Eigen::Ref<const Eigen::MatrixXd> &u) {
+  return Eigen::MatrixXd::Zero(Element::NumIntPnt(), 1);
+}
+
+template <typename Element>
 MatrixXd Acoustic3D_V<Element>::computeSourceTerm(const double time) {
   mSource.setZero();  
   for (auto source : Element::Sources()) {

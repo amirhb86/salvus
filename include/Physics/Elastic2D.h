@@ -46,6 +46,7 @@ class Elastic2D: public Shape {
   /**** Time loop functions ****/
   Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &u);
   Eigen::MatrixXd computeSourceTerm(const double time);
+  Eigen::MatrixXd computeSurfaceIntegral(const Eigen::Ref<const Eigen::MatrixXd>& u);
   void recordField(const Eigen::MatrixXd &u) {};
 
   /**** Test helpers ****/

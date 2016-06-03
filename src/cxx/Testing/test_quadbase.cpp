@@ -67,7 +67,7 @@ TEST_CASE("test quadbase", "[quad]") {
       element->SetNum(element_number++);
 
       // Get vertex coordinates from the PETSc DMPLEX.
-      element->attachVertexCoordinates(msh->DistributedMesh());
+      element->attachVertexCoordinates(msh);
 
       // Attach source.
       element->attachSource(sources);

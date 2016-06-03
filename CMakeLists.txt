@@ -69,7 +69,7 @@ set(SALVUS_SOURCES
         ${HexAutoGen}
         ${TriAutoGen}
         ${TetAutoGen}
-        src/cxx/Physics/Coupling/AcousticElastic2D.cpp
+        src/cxx/Physics/Coupling/AcousticToElastic2D.cpp
         src/cxx/Physics/Coupling/ElasticAcoustic2D.cpp)
 
 # build most of our project as a "library", which is shared between

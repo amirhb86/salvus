@@ -46,7 +46,7 @@ std::vector<std::shared_ptr<ElementVersion>> initialize_exact(Mesh *mesh,
     element->SetNum(element_number++);
 
     // Get vertex coordinates from the PETSc DMPLEX.
-    element->attachVertexCoordinates(mesh->DistributedMesh());
+    element->attachVertexCoordinates(mesh);
 
     // Add material parameters (velocity, Cij, etc...).
     element->attachMaterialProperties(model);

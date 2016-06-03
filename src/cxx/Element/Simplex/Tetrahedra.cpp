@@ -459,21 +459,21 @@ Tetrahedra<ConcreteShape>::Tetrahedra(Options options) {
 }
 
 template <typename ConcreteShape>
-void Tetrahedra<ConcreteShape>::attachVertexCoordinates(DM &distributed_mesh) {
+void Tetrahedra<ConcreteShape>::attachVertexCoordinates(Mesh *mesh) {
 
-  mClsMap = ClosureMapping(3, 3, distributed_mesh);
+  mClsMap = ClosureMapping(3, 3, mesh->DistributedMesh());
 
   Vec coordinates_local;
   PetscInt coordinate_buffer_size;
   PetscSection coordinate_section;
   PetscReal *coordinates_buffer = NULL;
 
-  DMGetCoordinatesLocal(distributed_mesh, &coordinates_local);
-  DMGetCoordinateSection(distributed_mesh, &coordinate_section);
-  DMPlexVecGetClosure(distributed_mesh, coordinate_section, coordinates_local, mElmNum,
+  DMGetCoordinatesLocal(mesh->DistributedMesh(), &coordinates_local);
+  DMGetCoordinateSection(mesh->DistributedMesh(), &coordinate_section);
+  DMPlexVecGetClosure(mesh->DistributedMesh(), coordinate_section, coordinates_local, mElmNum,
                       &coordinate_buffer_size, &coordinates_buffer);
   std::vector<PetscReal> coordinates_element(coordinates_buffer, coordinates_buffer+coordinate_buffer_size);
-  DMPlexVecRestoreClosure(distributed_mesh, coordinate_section, coordinates_local, mElmNum,
+  DMPlexVecRestoreClosure(mesh->DistributedMesh(), coordinate_section, coordinates_local, mElmNum,
                           &coordinate_buffer_size, &coordinates_buffer);
     
   for (int i = 0; i < mNumVtx; i++) {        

@@ -195,7 +195,7 @@ class Triangle: public ConcreteShape {
    * @param [in] distributed_mesh PETSc DM object.
    *
    */
-  void attachVertexCoordinates(DM &distributed_mesh);
+  void attachVertexCoordinates(Mesh *mesh);
 
   /**
    * Attach source.

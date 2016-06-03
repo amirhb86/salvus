@@ -64,6 +64,11 @@ MatrixXd AcousticTet<Element>::computeStress(const Ref<const MatrixXd> &strain) 
 
 }
 
+template <typename Element>
+MatrixXd AcousticTet<Element>::computeSurfaceIntegral(const Eigen::Ref<const Eigen::MatrixXd> &u) {
+  return Eigen::MatrixXd::Zero(Element::NumIntPnt(), 1);
+}
+
 
 template <typename Element>
 void AcousticTet<Element>::prepareStiffness() {

@@ -30,7 +30,7 @@ typedef class ElementAdapter<AcousticTet<Tetrahedra<TetP1>>> AcousticTetP1;
 typedef class ElementAdapter<Elastic2D<Quad<QuadP1>>> ElasticQuadP1;
 
 /* Coupled classes. */
-typedef class ElementAdapter<AcousticElastic2D<Acoustic2D<Quad<QuadP1>>>> AcousticCplElasticQuadP1;
+typedef class ElementAdapter<AcousticToElastic2D<Acoustic2D<Quad<QuadP1>>>> AcousticCplElasticQuadP1;
 typedef class ElementAdapter<ElasticAcoustic2D<Elastic2D<Quad<QuadP1>>>> ElasticCplAcousticQuadP1;
 
 std::shared_ptr<Element> Element::Factory(const std::vector<std::string>& physics_base,
