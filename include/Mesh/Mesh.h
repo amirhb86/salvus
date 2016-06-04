@@ -349,6 +349,8 @@ class Mesh {
    */
   void AddToGlobalFields(std::string fieldname) { mGlobalFields.push_back(fieldname); }
 
+  PetscInt GetNeighbouringElement(const PetscInt interface, const PetscInt this_elm) const;
+
   /**
    * Get the transitive closure of a coordinate section for a mesh point.
    */

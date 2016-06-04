@@ -91,6 +91,7 @@ void NewmarkGeneral::solve(Options options) {
   // Over-allocate matrices to avoid re-allocations.
   int max_dims = 3;
   int int_pnts = mReferenceElem->NumIntPnt();
+  Eigen::MatrixXd s(int_pnts, max_dims);
   Eigen::MatrixXd f(int_pnts, max_dims);
   Eigen::MatrixXd u(int_pnts, max_dims);
   Eigen::MatrixXd ku(int_pnts, max_dims);
@@ -130,6 +131,9 @@ void NewmarkGeneral::solve(Options options) {
 
       // Compute source term.
       f.leftCols(fitr) = element->computeSourceTerm(time);
+
+      // Compute surface integral.
+      s.leftCols(fitr) = element->computeSurfaceIntegral(u.leftCols(fitr));
 
       // Compute acceleration.
       fMinusKu.leftCols(fitr) = f.leftCols(fitr).array() -

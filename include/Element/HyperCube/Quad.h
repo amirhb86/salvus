@@ -239,6 +239,7 @@ private:
   // Setters.
   inline void SetNumNew(const PetscInt num) { mElmNum = num; }
   inline void SetVtxCrd(const Eigen::Ref<const Eigen::Matrix<double,4,2>> &v) { mVtxCrd = v; }
+  inline void SetCplEdg(const std::vector<PetscInt> &v) { mEdgMap = v; }
 
   // Getters.
   inline bool BndElm() const { return mBndElm; }
@@ -249,7 +250,10 @@ private:
   inline int NumDofFac() const { return mNumDofFac; }
   inline int NumDofEdg() const { return mNumDofEdg; }
   inline int NumDofVtx() const { return mNumDofVtx; }
+
   inline Eigen::MatrixXi ClsMap() const { return mClsMap; }
+  inline Eigen::Matrix<double,4,2>  Vtx() const  { return mVtxCrd; }
+
   std::vector<std::shared_ptr<Source>> Sources() { return mSrc; }
 
   // Delegates.

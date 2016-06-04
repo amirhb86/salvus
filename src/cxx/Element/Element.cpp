@@ -31,7 +31,7 @@ typedef class ElementAdapter<Elastic2D<Quad<QuadP1>>> ElasticQuadP1;
 
 /* Coupled classes. */
 typedef class ElementAdapter<AcousticToElastic2D<Acoustic2D<Quad<QuadP1>>>> AcousticCplElasticQuadP1;
-typedef class ElementAdapter<ElasticAcoustic2D<Elastic2D<Quad<QuadP1>>>> ElasticCplAcousticQuadP1;
+typedef class ElementAdapter<ElasticToAcoustic2D<Elastic2D<Quad<QuadP1>>>> ElasticCplAcousticQuadP1;
 
 std::shared_ptr<Element> Element::Factory(const std::vector<std::string>& physics_base,
                                           const std::vector<std::string>& physics_couple,
@@ -41,6 +41,7 @@ std::shared_ptr<Element> Element::Factory(const std::vector<std::string>& physic
   std::vector<std::string> acoustic_fields = {"u"};
   std::vector<std::string> elastic_2d_fields = {"ux", "uy"};
 
+  for (auto e: physics_base) { std::cout << e << std::endl; }
   try {
     if (options.ElementShape() == "quad_new") {
       if (physics_base == acoustic_fields) {
@@ -52,7 +53,7 @@ std::shared_ptr<Element> Element::Factory(const std::vector<std::string>& physic
         /* If elastic fields detected, return a coupled elastic element. */
         else if (physics_couple == elastic_2d_fields) {
           std::cout << "ACOUSTIC COUPLE!" << std::endl;
-          return std::make_shared<AcousticCplElasticQuadP1>(options);
+          return std::make_shared<ElasticCplAcousticQuadP1>(options);
         }
       } else if (physics_base == elastic_2d_fields) {
         /* If only elastic, return a base elastic. */
@@ -63,7 +64,7 @@ std::shared_ptr<Element> Element::Factory(const std::vector<std::string>& physic
         /* If acoustic fields are detected, return a coupled acoustic element. */
         else if (physics_couple == acoustic_fields) {
           std::cout << "ELASTIC COUPLE!" << std::endl;
-          return std::make_shared<ElasticCplAcousticQuadP1>(options);
+          return std::make_shared<AcousticCplElasticQuadP1>(options);
         }
       } else {
         throw std::runtime_error("Runtime Error: Element physics " + options.PhysicsSystem() + " not supported.");

@@ -404,6 +404,24 @@ std::vector<PetscInt> Mesh::EdgeNumbers(const PetscInt elm) {
   return edges;
 }
 
+PetscInt Mesh::GetNeighbouringElement(const PetscInt interface, const PetscInt this_elm) const {
+
+  PetscInt neighbour = -1, num_pts, e_start, e_end, *points = NULL;
+  DMPlexGetTransitiveClosure(mDistributedMesh, interface, PETSC_FALSE, &num_pts, &points);
+  for (PetscInt i = 0; i < num_pts; i++) {
+    PetscInt pnt = points[2*i];
+    if (pnt != interface && pnt != this_elm) {
+      neighbour = pnt;
+    }
+  }
+
+  if (neighbour == -1) {
+    PRINT_ROOT() << "ERROR IN GetNeighbouringElement";
+    MPI_Abort(PETSC_COMM_WORLD, -1);
+  }
+  return neighbour;
+}
+
 std::vector<std::tuple<PetscInt,std::vector<std::string>>> Mesh::CouplingFields(const PetscInt elm) {
 
   std::vector<std::tuple<PetscInt,std::vector<std::string>>> couple;

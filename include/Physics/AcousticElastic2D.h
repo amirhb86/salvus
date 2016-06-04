@@ -10,17 +10,16 @@
 
 class Mesh;
 class Options;
+class ExodusModel;
 
 template <typename BasePhysics>
 class AcousticToElastic2D: public BasePhysics {
 
  private:
 
-  const static int num_scalar_components = 1;
-  const static int num_elastic_components = 2;
-  std::vector<PetscInt> mEdg;
-  Eigen::Matrix<double,Eigen::Dynamic,num_elastic_components> uElastic;
-  Eigen::Matrix<double,Eigen::Dynamic,num_scalar_components> uScalar;
+  std::vector<double> mRho_0;
+  std::vector<PetscInt> mEdg, mNbr;
+  std::vector<Eigen::Vector2d> mNbrCtr;
 
  public:
 
@@ -28,6 +27,7 @@ class AcousticToElastic2D: public BasePhysics {
   AcousticToElastic2D<BasePhysics>(Options options);
   void setBoundaryConditions(Mesh *mesh);
 
+  void attachMaterialPropertiesNew(const ExodusModel *model);
   std::vector<std::string> PullElementalFields() const;
   Eigen::MatrixXd computeSurfaceIntegral(const Eigen::Ref<const Eigen::MatrixXd>& u);
 

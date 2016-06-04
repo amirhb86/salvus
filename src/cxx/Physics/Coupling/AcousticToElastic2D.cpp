@@ -1,3 +1,4 @@
+#include <Model/ExodusModel.h>
 #include <Physics/AcousticElastic2D.h>
 #include <Utilities/Options.h>
 #include <Mesh/Mesh.h>
@@ -6,10 +7,6 @@ using namespace Eigen;
 
 template <typename BasePhysics>
 AcousticToElastic2D<BasePhysics>::AcousticToElastic2D(Options options): BasePhysics(options) {
-
-//  uElastic.setZero(BasePhysics::NumIntPnt(), num_elastic_components);
-//  uScalar.setZero(BasePhysics::NumIntPnt(), num_scalar_components);
-
 }
 
 template <typename BasePhysics>
@@ -21,19 +18,38 @@ template <typename BasePhysics>
 void AcousticToElastic2D<BasePhysics>::setBoundaryConditions(Mesh *mesh) {
   for (auto e: mesh->CouplingFields(BasePhysics::ElmNum())) {
     mEdg.push_back(std::get<0>(e));
+    mNbr.push_back(mesh->GetNeighbouringElement(mEdg.back(), BasePhysics::ElmNum()));
+    mNbrCtr.push_back(mesh->getElementCoordinateClosure(mNbr.back()).colwise().mean());
   }
   BasePhysics::setBoundaryConditions(mesh);
+}
+
+template <typename BasePhysics>
+void AcousticToElastic2D<BasePhysics>::attachMaterialPropertiesNew(const ExodusModel *model) {
+
+  for (auto ctr: mNbrCtr) {
+    double rho_0 = 0;
+    for (int i = 0; i < BasePhysics::NumVtx(); i++) {
+      rho_0 += model->getElementalMaterialParameterAtVertex(ctr, "RHO", i);
+    }
+    mRho_0.push_back(rho_0 / BasePhysics::NumVtx());
+  }
+
+  // call parent.
+  BasePhysics::attachMaterialPropertiesNew(model);
+
 }
 
 template <typename BasePhysics>
 Eigen::MatrixXd AcousticToElastic2D<BasePhysics>::computeSurfaceIntegral(const Eigen::Ref<const Eigen::MatrixXd> &u) {
 
   // col0->ux, col1->uy, col2->potential.
-  Eigen::VectorXd rval = Eigen::VectorXd::Zero(BasePhysics::NumIntPnt());
-  for (auto e : mEdg){
-    rval.noalias() += BasePhysics::applyTestAndIntegrateEdge(u.col(2), e);
+  Eigen::MatrixXd rval = Eigen::MatrixXd::Zero(BasePhysics::NumIntPnt(), 2);
+  for (int i = 0; i < mEdg.size(); i++) {
+    rval.colwise() += mRho_0[i] * BasePhysics::applyTestAndIntegrateEdge(u.col(2), mEdg[i]);
   }
-  return 1000 * rval;
+
+  return -1 * rval;
 
 }
 

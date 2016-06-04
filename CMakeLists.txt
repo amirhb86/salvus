@@ -65,12 +65,13 @@ set(SALVUS_SOURCES
         src/cxx/Element/Element.cpp
         src/cxx/Physics/Element/Elastic2D.cpp
         src/cxx/Element/HyperCube/Hexahedra.cpp
+        src/cxx/Physics/Coupling/AcousticToElastic2D.cpp
+        src/cxx/Physics/Coupling/ElasticToAcoustic.cpp
         ${QuadAutoGen}
         ${HexAutoGen}
         ${TriAutoGen}
         ${TetAutoGen}
-        src/cxx/Physics/Coupling/AcousticToElastic2D.cpp
-        src/cxx/Physics/Coupling/ElasticAcoustic2D.cpp)
+        )
 
 # build most of our project as a "library", which is shared between
 # the main executable and the testing suite.
@@ -89,8 +90,9 @@ add_executable(salvus_test
         src/cxx/Testing/test_strides.cpp
         src/cxx/Testing/test_QuadP1.cpp
         src/cxx/Testing/test_quadbase.cpp
-        src/cxx/Testing/test_coupling.cpp
-        src/cxx/Testing/test_element.cpp)
+        src/cxx/Testing/test_quad.cpp
+        src/cxx/Testing/test_element.cpp
+        src/cxx/Testing/test_2d_fluid_solid_couple.cpp)
 
 # run `make` (or `make -j5`) to build `salvus` executable
 target_link_libraries(salvus salvusCommon ${MPI_LIBRARIES} petsc exodus netcdf hdf5)

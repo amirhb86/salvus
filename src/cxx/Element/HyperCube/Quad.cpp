@@ -375,21 +375,22 @@ VectorXd Quad<ConcreteShape>::applyTestAndIntegrate(const Ref<const VectorXd> &f
 template <typename ConcreteShape>
 Eigen::Vector2d Quad<ConcreteShape>::getEdgeNormal(const PetscInt edg) {
 
-  Vector2d v0, v1;
+  Vector2d n;
   double x0, x1, y0, y1;
   for (int i = 0; i < mNumVtx; i++) {
     if (mEdgMap[i] == edg) {
-      v0(0) = mVtxCrd(i, 0);
-      v0(1) = mVtxCrd((i+1) % mNumVtx, 0);
-      v1(0) = mVtxCrd(i, 1);
-      v1(1) = mVtxCrd((i+1) % mNumVtx, 1);
+      x0 = mVtxCrd(i, 0);
+      x1 = mVtxCrd((i+1) % mNumVtx, 0);
+      y0 = mVtxCrd(i, 1);
+      y1 = mVtxCrd((i+1) % mNumVtx, 1);
     }
   }
 
-  return v0;
+  n(0) = -1 * (y1 - y0);
+  n(1) = +1 * (x1 - x0);
+  return n / n.norm();
 
 }
-
 
 template <typename ConcreteShape>
 Eigen::VectorXd Quad<ConcreteShape>::applyTestAndIntegrateEdge(const Eigen::Ref<const Eigen::VectorXd> &f,
@@ -410,7 +411,7 @@ Eigen::VectorXd Quad<ConcreteShape>::applyTestAndIntegrateEdge(const Eigen::Ref<
       if      (i == 0) { start = 0; stride = 1; }
       else if (i == 1) { start = mNumIntPtsR-1; stride = mNumIntPtsR; }
       else if (i == 2) { start = mNumIntPtsR*mNumIntPtsS - 1; stride = -1; }
-      else             { start = mNumIntPtsR * (mNumIntPtsS - 1) - 1; stride = -1 * mNumIntPtsR; }
+      else             { start = mNumIntPtsR * (mNumIntPtsS - 1); stride = -1 * mNumIntPtsR; }
     }
   }
 
