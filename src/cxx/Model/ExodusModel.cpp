@@ -316,7 +316,7 @@ void ExodusModel::readElementalVariables() {
     std::vector<double> buffer(mNumberElements);
     for (auto i = 0; i < mNumberElementalVariables; i++) {
       exodusError(ex_get_var(mExodusId, 1, EX_ELEM_BLOCK, (i+1), 1, mNumberElements, buffer.data()),
-          "ex_get_var");
+          "ex_get_var " + mElementalVariableNames[i]);
       mElementalVariables.insert(mElementalVariables.end(), buffer.begin(), buffer.end());
     }
   } catch (std::runtime_error &e) {

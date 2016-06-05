@@ -11,19 +11,13 @@ using namespace Eigen;
 
 void NewmarkGeneral::initialize(Mesh *mesh,
                                 ExodusModel *model,
-                                std::shared_ptr<Element> elem,
                                 Options options) {
 
   // Save references to mesh and element base.
   mMesh = mesh;
-  mReferenceElem = elem;
+
   // Attach elements to mesh.
-  mMesh->setupGlobalDof(mReferenceElem->NumDofVtx(),
-                        mReferenceElem->NumDofEdg(),
-                        mReferenceElem->NumDofFac(),
-                        mReferenceElem->NumDofVol(),
-                        mReferenceElem->NumDim(),
-                        model);
+  mMesh->setupGlobalDof(1, 3, 9, 0, 2, model);
 
   // Setup boundary conditions from options.
   mMesh->setupBoundaries(options);
@@ -34,8 +28,10 @@ void NewmarkGeneral::initialize(Mesh *mesh,
   }
 
   // Get a list of all local elements.
-  for (int i = 0; i < mMesh->NumberElementsLocal(); i++) {
-    mElements.push_back(mReferenceElem->clone());
+  for (PetscInt i = 0; i < mesh->NumberElementsLocal(); i++) {
+    mElements.emplace_back(Element::Factory(mesh->ElementFields(i),
+                                            mesh->TotalCouplingFields(i),
+                                            options));
   }
 
   // Get a list of all sources and receivers.
@@ -52,11 +48,11 @@ void NewmarkGeneral::initialize(Mesh *mesh,
     // Get vertex coordinates from the PETSc DMPLEX.
     element->attachVertexCoordinates(mMesh);
 
-    // Add material parameters (velocity, Cij, etc...).
-    element->attachMaterialProperties(model);
-
     // Set boundary conditions.
     element->setBoundaryConditions(mMesh);
+
+    // Add material parameters (velocity, Cij, etc...).
+    element->attachMaterialProperties(model);
 
     // Assemble the (elemental) mass matrix.
     element->assembleElementMassMatrix(mMesh);
@@ -81,8 +77,16 @@ void NewmarkGeneral::initialize(Mesh *mesh,
 
 void NewmarkGeneral::solve(Options options) {
 
+  std::set<std::string> push_fields;
+  for (auto &element : mElements) {
+    for (auto &f: element->PushElementalFields()) {
+      push_fields.insert(f);
+    }
+  }
+
   // Setup values.
   int it = 0;
+  int it_movie = 0;
   double time = 0.0;
   double timeStep = options.TimeStep();
   double duration = options.Duration();
@@ -90,7 +94,7 @@ void NewmarkGeneral::solve(Options options) {
 
   // Over-allocate matrices to avoid re-allocations.
   int max_dims = 3;
-  int int_pnts = mReferenceElem->NumIntPnt();
+  int int_pnts =  mElements.front()->NumIntPnt();
   Eigen::MatrixXd s(int_pnts, max_dims);
   Eigen::MatrixXd f(int_pnts, max_dims);
   Eigen::MatrixXd u(int_pnts, max_dims);
@@ -100,20 +104,26 @@ void NewmarkGeneral::solve(Options options) {
   while (time < duration) {
     max_Loo = 0.0;
     // Collect all global fields to the local partitions.
-    for (auto &field : mReferenceElem->PullElementalFields()) {
+//    for (auto &field : mMesh->AllFields()) {
+    for (auto &field : {"u", "vx", "vy", "ux", "uy", "v"}) {
       mMesh->checkOutField(field);
     }
 
     // Zero all fields to which we will sum.
-    for (auto &field : mReferenceElem->PushElementalFields()) {
+    for (auto &field : push_fields) {
       mMesh->zeroFields(field);
     }
 
     for (auto &element : mElements) {
 
+      /* The number of fields to pull may be different from those you push.
+       * This is the case on coupling interfaces. */
+      int num_pull_fields = element->PullElementalFields().size();
+      int num_push_fields = element->PushElementalFields().size();
+
       // Get fields on element, store in successive rows.
       int fitr = 0;
-      for (auto &field : mReferenceElem->PullElementalFields()) {
+      for (auto &field : element->PullElementalFields()) {
         u.col(fitr) = mMesh->getFieldOnElement(field, element->Num(),
                                                element->ClsMap());        
         fitr++;
@@ -123,25 +133,25 @@ void NewmarkGeneral::solve(Options options) {
       }
 
       // Record displacement.
-      element->recordField(u.block(0, 0, int_pnts, fitr));
+      element->recordField(u.block(0, 0, int_pnts, num_pull_fields));
 
       // Compute stiffness, only passing those rows which are occupied.
-      ku.leftCols(fitr) =
-        element->computeStiffnessTerm(u.leftCols(fitr));
+      ku.leftCols(num_push_fields) =
+        element->computeStiffnessTerm(u.leftCols(num_pull_fields));
 
       // Compute source term.
-      f.leftCols(fitr) = element->computeSourceTerm(time);
+      f.leftCols(num_push_fields) = element->computeSourceTerm(time);
 
       // Compute surface integral.
-      s.leftCols(fitr) = element->computeSurfaceIntegral(u.leftCols(fitr));
+      s.leftCols(num_push_fields) = element->computeSurfaceIntegral(u.leftCols(num_pull_fields));
 
       // Compute acceleration.
-      fMinusKu.leftCols(fitr) = f.leftCols(fitr).array() -
-        ku.leftCols(fitr).array();
+      fMinusKu.leftCols(num_push_fields) = f.leftCols(num_push_fields).array() -
+        ku.leftCols(num_push_fields).array() + s.leftCols(num_push_fields).array();
 
       // Sum fields into local partition.
       fitr = 0;
-      for (auto &field : mReferenceElem->PushElementalFields()) {
+      for (auto &field : element->PushElementalFields()) {
         mMesh->addFieldFromElement(field, element->Num(),
                                    element->ClsMap(),
                                    fMinusKu.col(fitr));
@@ -155,7 +165,7 @@ void NewmarkGeneral::solve(Options options) {
     }
     
     // Sum fields into global partitions.
-    for (auto &field : mReferenceElem->PushElementalFields()) {
+    for (auto &field : push_fields) {
       mMesh->checkInFieldBegin(field);
       mMesh->checkInFieldEnd(field);
     }
@@ -167,11 +177,14 @@ void NewmarkGeneral::solve(Options options) {
     if (options.SaveMovie() && (it % options.SaveFrameEvery() == 0 || it == 0)) {
       // GlobalFields[0] == "u" for acoustic and == "ux" for elastic
       if(MPI::COMM_WORLD.Get_rank() == 0) printf("Saving frame %d\n",it);
-      mMesh->saveFrame(mMesh->GlobalFields()[0], it);
+      mMesh->saveFrame("u", it_movie);
+      mMesh->saveFrame("ux", it_movie);
+      it_movie++;
     }
 
     it++;
     time += timeStep;
+    if (rank == 0) std::cout << "TIME: " << time << std::endl;
   }
 
   if (options.SaveMovie()) mMesh->finalizeMovie();

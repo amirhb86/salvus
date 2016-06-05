@@ -5,10 +5,10 @@
 std::vector<std::shared_ptr<Source>> Source::factory(Options options) {
 
   std::vector<std::shared_ptr<Source>> sources;
-  for (auto i = 0; i < options.NumberSources(); i++)
+  for (auto i = 0; i < options.NumberSources(); i++) {
     try {
       if (options.SourceType() == "ricker") {
-        sources.push_back(std::shared_ptr<Source> (new Ricker(options, i)));
+        sources.push_back(std::shared_ptr<Source>(new Ricker(options, i)));
       } else {
         throw std::runtime_error("Runtime error: Source type " + options.SourceType() + " not supported.");
       }
@@ -17,6 +17,7 @@ std::vector<std::shared_ptr<Source>> Source::factory(Options options) {
       std::cout << e.what() << std::endl;
       MPI::COMM_WORLD.Abort(-1);
     }
+  }
 
   return sources;
 }

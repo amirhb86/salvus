@@ -5,6 +5,7 @@
 #include <Mesh/Mesh.h>
 #include <Mesh/ScalarNewmark2D.h>
 #include <Mesh/ElasticNewmark2D.h>
+#include <Mesh/ElasticAcousticNewmark2D.h>
 #include <Model/ExodusModel.h>
 #include <Utilities/Options.h>
 #include <Utilities/Utilities.h>
@@ -38,6 +39,8 @@ Mesh *Mesh::factory(Options options) {
       return sc_nm_mesh;
     } else if (mesh_type == "newmark_2d_elastic") {
       return new ElasticNewmark2D();
+    } else if (mesh_type == "2d_couple") {
+      return new ElasticAcousticNewmark2D();
     } else {
       throw std::runtime_error("Runtime Error: Mesh type " + mesh_type + " not supported");
     }
@@ -278,18 +281,26 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
   // Create the section and add the fields we've defined.
   ier = PetscSectionCreate(PetscObjectComm((PetscObject) mDistributedMesh), &mMeshSection);
   CHKERRQ(ier);
-  ier = PetscSectionSetNumFields(mMeshSection, mMeshFields.size());
+  ier = PetscSectionSetNumFields(mMeshSection, 1);
   CHKERRQ(ier);
 
-  int itr = 0;
-  int one_field = 1;
-  for (auto field: mMeshFields) {
-    ier = PetscSectionSetFieldComponents(mMeshSection, itr, one_field);
-    CHKERRQ(ier);
-    ier = PetscSectionSetFieldName(mMeshSection, itr, field.c_str());
-    CHKERRQ(ier);
-    itr++;
-  }
+  /* TODO: Below is the proper way to handle multiple fields. Not working atm. */
+//  // Create the section and add the fields we've defined.
+//  ier = PetscSectionCreate(PetscObjectComm((PetscObject) mDistributedMesh), &mMeshSection);
+//  CHKERRQ(ier);
+//  ier = PetscSectionSetNumFields(mMeshSection, mMeshFields.size());
+//  CHKERRQ(ier);
+//
+//  int itr = 0;
+//  int one_field = 1;
+//  for (auto field: mMeshFields) {
+//    ier = PetscSectionSetFieldComponents(mMeshSection, itr, one_field);
+//    CHKERRQ(ier);
+//    ier = PetscSectionSetFieldName(mMeshSection, itr, field.c_str());
+//    CHKERRQ(ier);
+//    itr++;
+//  }
+  /**** !* !* !* *!*! !*!*!**!*!*!*!! */
 
   // Get the indices of  the entire Hasse Diagram.
   PetscInt p_start, p_end;
@@ -351,6 +362,9 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
 
         // Set a custom number of dofs for each field.
         tot += num_dof;
+
+        /* TODO: The break is here until we properly handle multiple fields. */
+        break;
       }
       // Total number of dofs per points is a sum of all the field dofs.
       ier = PetscSectionSetDof(mMeshSection, p, tot);
@@ -551,8 +565,6 @@ Eigen::VectorXd Mesh::getFieldOnPoint(int point, std::string name) {
 Eigen::VectorXd Mesh::getFieldOnElement(const std::string &name, const int &element_number,
                                         const Eigen::VectorXi &closure) {
 
-//  DMPlexGetClosureIndices()
-
   PetscScalar *val = NULL;
   Eigen::VectorXd field(closure.size());
   DMPlexVecGetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
@@ -658,6 +670,7 @@ void Mesh::setUpMovie(const std::string &movie_filename) {
   PetscViewerHDF5Open(PETSC_COMM_WORLD, movie_filename.c_str(), FILE_MODE_WRITE, &mViewer);
   PetscViewerHDF5PushGroup(mViewer, "/");
   DMView(mDistributedMesh, mViewer);
+  int_tstep = 0;
 }
 
 void Mesh::saveFrame(std::string name, PetscInt timestep) {
@@ -668,8 +681,6 @@ void Mesh::saveFrame(std::string name, PetscInt timestep) {
     std::cerr << "ERROR @ saveFrame->VecView()\n";
     exit(1);
   }
-  double max;
-  VecMax(mFields[name].glb, NULL, &max);
 }
 
 void Mesh::finalizeMovie() {

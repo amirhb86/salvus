@@ -59,6 +59,7 @@ class Mesh {
   /** < PETSc distributed mesh defining parallel element layout. */
   PetscSection mMeshSection;      /** < Mesh section describing location of the integration points. In the future we
                                         * may have many of these per mesh. */
+  int int_tstep;
 
 
  protected:

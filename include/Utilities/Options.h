@@ -1,6 +1,7 @@
 #pragma once
 
 // stl.
+#include <iostream>
 #include <iosfwd>
 #include <string>
 #include <vector>
@@ -81,7 +82,7 @@ class Options {
   // Integer getters
   inline PetscInt Dimension() { return mDimension; }
   inline PetscInt PolynomialOrder() { return mPolynomialOrder; }
-  inline PetscInt NumberSources() { return mNumberSources; }
+  inline PetscInt NumberSources() {  return mNumberSources; }
   inline PetscInt NumberReceivers() { return mNumRec; }
   inline PetscInt SaveFrameEvery() { return mSaveFrameEvery; }
   inline PetscInt DisplayDiagnosticsEvery() { return mDisplayDiagnosticsEvery; }

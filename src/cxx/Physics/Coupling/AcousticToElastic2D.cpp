@@ -43,17 +43,19 @@ void AcousticToElastic2D<BasePhysics>::attachMaterialPropertiesNew(const ExodusM
 template <typename BasePhysics>
 Eigen::MatrixXd AcousticToElastic2D<BasePhysics>::computeSurfaceIntegral(const Eigen::Ref<const Eigen::MatrixXd> &u) {
 
+//  if (u.cwiseAbs().maxCoeff() > 0) { std::cout << u << std::endl; }// << ' ' << u << std::endl; }
   // col0->ux, col1->uy, col2->potential.
   Eigen::MatrixXd rval = Eigen::MatrixXd::Zero(BasePhysics::NumIntPnt(), 2);
   for (int i = 0; i < mEdg.size(); i++) {
-    rval.colwise() += mRho_0[i] * BasePhysics::applyTestAndIntegrateEdge(u.col(2), mEdg[i]);
+    rval.col(0) += mRho_0[i] * BasePhysics::applyTestAndIntegrateEdge(u.col(2), mEdg[i]);
+    rval.col(1) += mRho_0[i] * BasePhysics::applyTestAndIntegrateEdge(u.col(2), mEdg[i]);
   }
 
   return -1 * rval;
 
 }
 
-#include <Physics/Acoustic2D.h>
+#include <Physics/Elastic2D.h>
 #include <Element/HyperCube/Quad.h>
 #include <Element/HyperCube/QuadP1.h>
-template class AcousticToElastic2D<Acoustic2D<Quad<QuadP1>>>;
+template class AcousticToElastic2D<Elastic2D<Quad<QuadP1>>>;

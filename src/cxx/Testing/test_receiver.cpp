@@ -54,10 +54,10 @@ TEST_CASE("test_receiver", "[receiver]") {
     ExodusModel *model = new ExodusModel(options);
     model->initializeParallel();
 
-    std::shared_ptr<Element> reference_element = Element::Factory({"ux","uy"}, {"u"}, options);
+    std::shared_ptr<Element> reference_element = Element::Factory({"ux","uy"}, {}, options);
 
     Problem *problem = Problem::factory(options.ProblemType());
-    problem->initialize(mesh, model, reference_element, options);
+    problem->initialize(mesh, model, options);
     problem->solve(options);
 
     delete problem;
