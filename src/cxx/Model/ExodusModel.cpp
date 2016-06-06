@@ -301,7 +301,7 @@ std::string ExodusModel::getElementType(const Eigen::VectorXd &elem_center) {
   if (type == 1) {
     return "fluid";
   } else {
-    return "2delastic";
+    return "3delastic";
   }
 }
 

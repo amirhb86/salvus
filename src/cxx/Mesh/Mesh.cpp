@@ -726,6 +726,8 @@ std::vector<std::string> Mesh::appendPhysicalFields(const std::vector<std::strin
     new_fields = {"u"};
   } else if (physics == "2delastic") {
     new_fields = {"ux", "uy"};
+  } else if (physics == "3delastic") {
+    new_fields = {"ux", "uy", "uz"};
   } else {
     PRINT_ROOT() << "ERROR IN FIELD TYPE " + physics;
     MPI_Abort(PETSC_COMM_WORLD, -1);
@@ -743,6 +745,7 @@ int Mesh::numFieldPerPhysics(std::string physics) {
   try {
     if (physics == "fluid") { num = 1; }
     else if (physics == "2delastic") { num = 2; }
+    else if (physics == "3delastic") { num = 3; }
     else {
       throw std::runtime_error("Derived type " + physics + " is not known.");
     }
