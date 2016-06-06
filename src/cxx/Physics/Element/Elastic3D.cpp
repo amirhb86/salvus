@@ -105,6 +105,11 @@ MatrixXd Elastic3D<Element>::computeStiffnessTerm(const Eigen::MatrixXd &u) {
 }
 
 template <typename Element>
+void Elastic3D<Element>::prepareStiffness() {
+  Element::precomputeConstants();
+}
+
+template <typename Element>
 Array<double,Dynamic,6> Elastic3D<Element>::computeStress(const Eigen::Ref<const Eigen::ArrayXd> &strain) {
 
   Matrix<double,Dynamic,6> stress(Element::NumIntPnt(),6);

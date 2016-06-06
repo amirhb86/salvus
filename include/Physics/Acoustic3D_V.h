@@ -40,7 +40,7 @@ class Acoustic3D_V: public Shape {
   std::vector<std::string> PushElementalFields() const;
 
   /**** Setup functions ****/
-  void prepareStiffness() {};
+  void prepareStiffness();
   void assembleElementMassMatrix(Mesh *mesh);
   void attachMaterialPropertiesNew(const ExodusModel *model);
   double CFL_estimate() {}
