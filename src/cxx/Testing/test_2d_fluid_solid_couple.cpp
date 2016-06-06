@@ -49,11 +49,12 @@ TEST_CASE("test_fluid_solid_couple", "[couple/fluid_solid]") {
   model->initializeParallel();
   mesh->setupGlobalDof(1, 3, 9, 0, 2, model);
 
+  std::cout << "Testing proper element push_back\n";
   std::vector<std::shared_ptr<Element>> elms;
   for (PetscInt i = 0; i < mesh->NumberElementsLocal(); i++) {
-    elms.emplace_back(Element::Factory(mesh->ElementFields(i),
-                                       mesh->TotalCouplingFields(i),
-                                       options));
+    elms.push_back(Element::Factory(mesh->ElementFields(i),
+                                    mesh->TotalCouplingFields(i),
+                                    options));
     elms.back()->SetNum(i);
   }
 

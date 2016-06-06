@@ -14,7 +14,7 @@ using namespace std;
 
 TEST_CASE("test_multi_field", "[multi_field]") {
 
-  std::string e_file = "../../salvus_data/unit_test_meshes/fluid_layer_over_elastic_cartesian_2D_50s.e";
+  std::string e_file = "fluid_layer_over_elastic_cartesian_2D_50s.e";
 
   // Set up custom command line arguments.
   PetscOptionsClear();
@@ -57,6 +57,6 @@ TEST_CASE("test_multi_field", "[multi_field]") {
     }
   }
 
-
+  delete model;
 
 }

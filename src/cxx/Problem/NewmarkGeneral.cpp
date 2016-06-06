@@ -29,9 +29,9 @@ void NewmarkGeneral::initialize(Mesh *mesh,
 
   // Get a list of all local elements.
   for (PetscInt i = 0; i < mesh->NumberElementsLocal(); i++) {
-    mElements.emplace_back(Element::Factory(mesh->ElementFields(i),
-                                            mesh->TotalCouplingFields(i),
-                                            options));
+    mElements.push_back(Element::Factory(mesh->ElementFields(i),
+                                         mesh->TotalCouplingFields(i),
+                                         options));
   }
 
   // Get a list of all sources and receivers.
