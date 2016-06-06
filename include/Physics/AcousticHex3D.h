@@ -12,7 +12,7 @@ class Options;
 class ExodusModel;
 
 template <typename Shape>
-class Acoustic3D: public Shape {
+class AcousticHex3D: public Shape {
   /**
    * \class Acoustic2D
    *
@@ -35,7 +35,7 @@ class Acoustic3D: public Shape {
  public:
 
   /**** Initializers ****/
-  Acoustic3D<Shape>(Options options);
+  AcousticHex3D<Shape>(Options options);
   std::vector<std::string> PullElementalFields() const;
   std::vector<std::string> PushElementalFields() const;
 
@@ -44,7 +44,6 @@ class Acoustic3D: public Shape {
   void assembleElementMassMatrix(Mesh *mesh);
   void attachMaterialPropertiesNew(const ExodusModel *model);
   double CFL_estimate();
-  
   
   /**** Time loop functions ****/
   Eigen::MatrixXd computeStress(const Eigen::Ref<const Eigen::MatrixXd>& strain);

@@ -84,6 +84,12 @@ class ElementAdapter: public Element, public T {
   virtual void attachVertexCoordinates(Mesh *mesh) {
     T::attachVertexCoordinates(mesh);
   }
+  /** Return the estimated element radius scaled by element-local velocity.
+   * @return The CFL estimate
+   */
+  virtual double CFL_estimate() {
+    return T::CFL_estimate();
+  }  
   /** Pre-compute the stiffness matrix operator. Currently this is required for the tetrahedral elements,
    * but is a non-op for element types where the stiffness matrix is computed on the fly.
    */
@@ -156,8 +162,8 @@ class ElementAdapter: public Element, public T {
   virtual void applyDirichletBoundaries(Mesh *mesh, Options options, const std::string &fieldname) {
     return T::applyDirichletBoundaries(mesh, options, fieldname);
   }
-  ///@}
-
+  ///@}  
+  
   /** @name Tests.
    * These functions should be contain routines to assist in integration testing. For example,
    * unit testing of individual functions is not appropriate here (this is left to individual test plugins),

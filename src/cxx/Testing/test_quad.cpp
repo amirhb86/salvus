@@ -79,7 +79,7 @@ TEST_CASE("test_quad", "[quad]") {
     int max_order = 4;
     for (int order = 4; order < max_order + 1; order++) {
 
-      std::string num = std::to_string(order);
+      std::string num = std::to_string((long long) order);
       PetscOptionsSetValue("--polynomial_order", num.c_str());
 
       // Initialize options.

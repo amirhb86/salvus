@@ -1,3 +1,5 @@
+#include <stdexcept>
+
 #include <Element/Element.h>
 #include <Element/ElementAdapter.h>
 
@@ -13,6 +15,8 @@
 #include <Physics/Acoustic2D.h>
 #include <Physics/AcousticTri.h>
 #include <Physics/Acoustic3D.h>
+#include <Physics/AcousticHex3D.h>
+#include <Physics/AcousticHex3D_LF.h>
 #include <Physics/AcousticTet.h>
 #include <Physics/Acoustic3D_V.h>
 #include <Physics/Elastic2D.h>
@@ -25,6 +29,8 @@
 typedef class ElementAdapter<Acoustic2D<Quad<QuadP1>>> AcousticQuadP1;
 typedef class ElementAdapter<AcousticTri<Triangle<TriP1>>> AcousticTriP1;
 typedef class ElementAdapter<Acoustic3D<Hexahedra<HexP1>>> AcousticHexP1;
+typedef class ElementAdapter<AcousticHex3D<Hexahedra<HexP1>>> AcousticHexP1v2;
+typedef class ElementAdapter<AcousticHex3D_LF<Hexahedra<HexP1>>> AcousticHexP1_fast_lf;
 typedef class ElementAdapter<Acoustic3D<Tetrahedra<TetP1>>> AcousticTetP1v2;
 typedef class ElementAdapter<Acoustic3D_V<Hexahedra<HexP1>>> AcousticVHexP1;
 typedef class ElementAdapter<AcousticTet<Tetrahedra<TetP1>>> AcousticTetP1;
@@ -76,8 +82,12 @@ std::shared_ptr<Element> Element::Factory(const std::vector<std::string>& physic
     else if (options.ElementShape() == "hex_new") {
       if (options.PhysicsSystem() == "acoustic") {
         return std::make_shared<AcousticHexP1>(options);
+      } else if (options.PhysicsSystem() == "acoustic_fast") {
+        return std::make_shared<AcousticHexP1v2>(options);
       } else if (options.PhysicsSystem() == "acoustic_v") {
         return std::make_shared<AcousticVHexP1>(options);
+      } else if (options.PhysicsSystem() == "acoustic_lf") {
+        return std::make_shared<AcousticHexP1_fast_lf>(options);
       } else {
         throw std::runtime_error("Runtime Error: Element physics " + options.PhysicsSystem() + " not supported.");
       }
@@ -95,4 +105,5 @@ std::shared_ptr<Element> Element::Factory(const std::vector<std::string>& physic
     MPI_Abort(PETSC_COMM_WORLD, -1);
   }
 
+  MPI_Abort(PETSC_COMM_WORLD, -1);
 }

@@ -80,11 +80,13 @@ class Tetrahedra: public ConcreteShape {
   static Eigen::VectorXd mIntegrationCoordinates_s;  
   static Eigen::VectorXd mIntegrationCoordinates_t;  
 
-  /** r-derivative of Lagrange poly Phi [row: phi_i, col: phi @ nth point]*/
+  /** r,s,t-derivative of Lagrange poly Phi [row: phi_i, col: phi @ nth point]*/
   static Eigen::MatrixXd mGradientPhi_dr;
-  /** s-derivative of Lagrange poly Phi [row: phi_i, col: phi @ nth point]*/
   static Eigen::MatrixXd mGradientPhi_ds;
   static Eigen::MatrixXd mGradientPhi_dt;
+  static Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> mGradientPhi_dr_t;
+  static Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> mGradientPhi_ds_t;
+  static Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> mGradientPhi_dt_t;
   
   /**********************************************************************************
    * OBJECT MEMBERS. THESE VARIABLES AND FUNCTIONS SHOULD APPLY TO SPECIFIC ELEMENTS.
@@ -114,7 +116,10 @@ class Tetrahedra: public ConcreteShape {
   double mDetJac;
   Eigen::VectorXd mParWork;
   Eigen::VectorXd mStiffWork;
-  Eigen::MatrixXd mGradWork;  
+  Eigen::MatrixXd mGradWork;
+  Eigen::VectorXd mGrad_r;
+  Eigen::VectorXd mGrad_s;
+  Eigen::VectorXd mGrad_t;
   
   // On Boundary.
   bool mBndElm;
@@ -129,6 +134,10 @@ class Tetrahedra: public ConcreteShape {
   
   // precomputed element stiffness matrix (with velocities)
   Eigen::MatrixXd mElementStiffnessMatrix;
+
+  Eigen::Matrix3d mInvJac;
+  Eigen::Matrix3d mInvJacT;
+  Eigen::Matrix3d mInvJacT_x_invJac;
   
  public:
 
@@ -261,6 +270,9 @@ class Tetrahedra: public ConcreteShape {
    */
   void attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers);
 
+  
+  
+  
   /**
    * If an element is detected to be on a boundary, apply the Dirichlet condition to the
    * dofs on that boundary.
@@ -275,7 +287,10 @@ class Tetrahedra: public ConcreteShape {
    */
   Eigen::VectorXd getDeltaFunctionCoefficients(double r, double s, double t) { std::cerr << "ERROR: Not implemented"; exit(1); }
 
-  Eigen::MatrixXd buildStiffnessMatrix(Eigen::VectorXd velocity);
+  Eigen::VectorXd computeStiffnessFull(const Eigen::Ref<const Eigen::VectorXd>&  field,
+                                       const Eigen::Ref<const Eigen::VectorXd>& vp2);
+  
+  Eigen::MatrixXd buildStiffnessMatrix(const Eigen::Ref<const Eigen::VectorXd>& vp2);
 
   /**
    * Multiply a field by the test functions and integrate.
@@ -295,6 +310,12 @@ class Tetrahedra: public ConcreteShape {
    */
   void setBoundaryConditions(Mesh *mesh);
 
+  double CFL_constant();
+  
+  /** Return the estimated element radius
+   * @return The CFL estimate
+   */
+  double estimatedElementRadius();
   
   /**
    * Simple function to set the (remembered) element number.
@@ -328,3 +349,5 @@ class Tetrahedra: public ConcreteShape {
 
   
 };
+
+

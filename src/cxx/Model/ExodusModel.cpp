@@ -2,6 +2,7 @@
 #include <Utilities/Options.h>
 #include <Utilities/Utilities.h>
 #include <stdexcept>
+#include <string>
 
 ExodusModel::ExodusModel(Options options) {
   mExodusFileName = options.ExodusModelFile();

@@ -217,6 +217,9 @@ class Triangle: public ConcreteShape {
    */
   void attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers);
 
+  
+  
+  
   /**
    * If an element is detected to be on a boundary, apply the Dirichlet condition to the
    * dofs on that boundary.
@@ -238,6 +241,14 @@ class Triangle: public ConcreteShape {
   Eigen::VectorXd getDeltaFunctionCoefficients(const double r, const double s);
 
   Eigen::MatrixXd buildStiffnessMatrix(Eigen::VectorXd velocity);
+
+  double CFL_constant();
+  
+  /** Return the estimated element radius
+   * @return The CFL estimate
+   */
+  double estimatedElementRadius();
+  
   
   // Setters
   inline void SetNumNew(const PetscInt num) { mElmNum = num; }

@@ -1,7 +1,7 @@
 #include <petscsys.h>
 #include <Utilities/Options.h>
 #include <Utilities/Utilities.h>
-
+#include <Utilities/Logging.h>
 
 PetscErrorCode Options::setOptions() {
 
@@ -27,8 +27,8 @@ PetscErrorCode Options::setOptions() {
   PetscOptionsGetReal(NULL, "--time_step", &real_buffer, &parameter_set);
   if (parameter_set) { mTimeStep = real_buffer; }
   else {
-    if (! testing)
-    { SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER, "Time step must be given via --time_step"); }
+    // time step will be set automatically
+    mTimeStep = -1;
   }
 
   // String options.O
@@ -167,4 +167,13 @@ PetscErrorCode Options::setOptions() {
 
   // No error
   return 0;
+}
+
+void Options::SetTimeStep(double timestep) {
+  
+    double global_timestep;
+    MPI_Allreduce(&timestep,&global_timestep,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
+    DEBUG() << "Local timestep " << timestep << " vs. global timestep " << global_timestep;
+    mTimeStep = global_timestep;
+    
 }

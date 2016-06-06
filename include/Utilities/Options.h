@@ -122,6 +122,9 @@ class Options {
   inline std::vector<double> SourceRickerCenterFreq() { return mSourceRickerCenterFreq; }
   inline std::vector<double> SourceRickerTimeDelay() { return mSourceRickerTimeDelay; }
 
+  // for setting timestep automatically.
+  void SetTimeStep(double timestep);
+  
   // Setters for testing.
   inline void __SetPolynomialOrder(int ord) { mPolynomialOrder = ord; }
   inline void __SetSourceType(std::string type) { mSourceType = type; }

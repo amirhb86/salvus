@@ -6,6 +6,8 @@
 #include <Element/HyperCube/HexP1.h>
 #include <Element/HyperCube/Hexahedra.h>
 
+#include <complex>
+
 // Extern.
 extern "C" {
 #include <Element/HyperCube/Autogen/quad_autogen.h>
@@ -13,6 +15,15 @@ extern "C" {
 }
 
 using namespace Eigen;
+
+template <typename ConcreteHex>
+MatrixXd Hexahedra<ConcreteHex>::mGrd;
+template <typename ConcreteHex>
+MatrixXd Hexahedra<ConcreteHex>::mGrdT;
+template <typename ConcreteHex>
+MatrixXd Hexahedra<ConcreteHex>::mGrdWgt;
+template <typename ConcreteHex>
+MatrixXd Hexahedra<ConcreteHex>::mGrdWgtT;
 
 // enables std::cout << vector;
 template<typename T>
@@ -56,13 +67,21 @@ Hexahedra<ConcreteHex>::Hexahedra(Options options) {
 
   // setup evaluated derivatives of test functions
   mGrd = Hexahedra<ConcreteHex>::setupGradientOperator(mPlyOrd);
+  mGrdT = mGrd.transpose();
 
+  mGrdWgt.resize(mNumIntPtsR,mNumIntPtsR);
+  for(int i=0;i<mNumIntPtsR;i++) {
+    for(int j=0;j<mNumIntPtsR;j++) {
+      mGrdWgt(i,j) = mGrd(i,j)*mIntWgtR[i];
+    }
+  }
+  mGrdWgtT = mGrdWgt.transpose();
+  
   mDetJac.setZero(mNumIntPnt);
   mParWork.setZero(mNumIntPnt);
   mStiffWork.setZero(mNumIntPnt);
   mGradWork.setZero(mNumIntPnt, mNumDim);
 
-  
 }
 
 // given precomputed point set
@@ -680,13 +699,64 @@ void Hexahedra<ConcreteHex>::attachVertexCoordinates(Mesh *mesh) {
 }
 
 template <typename ConcreteHex>
+double Hexahedra<ConcreteHex>::CFL_constant() {
+  if(mPlyOrd == 3) {
+    return 2.4; // determined by hand (about 10% conservative)
+  }
+  else {
+    std::cerr << "ERROR: Order CFL_constant not implemented yet\n";
+    exit(1);
+  }
+}
+
+template <typename ConcreteHex>
+double Hexahedra<ConcreteHex>::estimatedElementRadius() {
+
+  Matrix3d invJ;
+  double detJ;
+  
+  Matrix3d invJac;
+  Vector3d refGrad;
+  int num_pts = mNumIntPtsR*mNumIntPtsS*mNumIntPtsT;
+  VectorXd h_pts(num_pts);
+  
+  // Loop over all GLL points.
+  for (int t_ind = 0; t_ind < mNumIntPtsT; t_ind++) {
+    for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
+      for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
+
+        // gll index.
+        int index = r_ind + s_ind * mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS;
+
+        // (r,s,t) coordinates for this point.
+        double r = mIntCrdR(r_ind);
+        double s = mIntCrdS(s_ind);
+        double t = mIntCrdT(t_ind);
+
+        // Optimized gradient for tensorized GLL basis.
+        std::tie(invJ, detJ) = ConcreteHex::inverseJacobianAtPoint(r, s, t, mVtxCrd);
+        Matrix3d J = invJ.inverse();
+        VectorXcd eivals = J.eigenvalues();
+        // get minimum h (smallest direction)
+        Vector3d eivals_norm;
+        for(int i=0;i<3;i++) {
+          eivals_norm(i) = std::norm(eivals[i]);
+        }
+        h_pts(index) = eivals_norm.minCoeff();
+      }
+    }
+  }
+  return h_pts.minCoeff();
+  
+}
+
+template <typename ConcreteHex>
 void Hexahedra<ConcreteHex>::attachMaterialProperties(const ExodusModel *model,std::string parameter_name) {
 
   Eigen::VectorXd material_at_vertices(mNumVtx);
 
   for (auto i = 0; i < mNumVtx; i++) {
-    material_at_vertices(i) = model->getElementalMaterialParameterAtVertex(
-                                                                           mElmCtr, parameter_name, i);
+    material_at_vertices(i) = model->getElementalMaterialParameterAtVertex(mElmCtr, parameter_name, i);
   }
   mPar[parameter_name] = material_at_vertices;
   
@@ -833,7 +903,8 @@ MatrixXd Hexahedra<ConcreteHex>::computeGradient(const Ref<const VectorXd> &fiel
         double t = mIntCrdT(t_ind);
 
         // Optimized gradient for tensorized GLL basis.
-        std::tie(invJac, mDetJac(index)) = ConcreteHex::inverseJacobianAtPoint(r, s, t, mVtxCrd);
+        // std::tie(invJac, mDetJac(index)) = ConcreteHex::inverseJacobianAtPoint(r, s, t, mVtxCrd);
+        
         // mGradWork.row(index) = invJac * (refGrad <<
         //                                  mGrd.row(r_ind).dot(rVectorStride(field,s_ind,t_ind,
         //                                                                    mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)),
@@ -850,7 +921,7 @@ MatrixXd Hexahedra<ConcreteHex>::computeGradient(const Ref<const VectorXd> &fiel
           refGrad(2) += mGrd(t_ind,i)*field(r_ind + s_ind * mNumIntPtsR + i * mNumIntPtsR * mNumIntPtsS);
         }
         
-        mGradWork.row(index).noalias() = invJac * refGrad;        
+        mGradWork.row(index) = mInvJac[index] * refGrad;        
 
       }
     }
@@ -918,150 +989,58 @@ VectorXd Hexahedra<ConcreteHex>::applyTestAndIntegrate(const Ref<const VectorXd>
 template <typename ConcreteHex>
 VectorXd Hexahedra<ConcreteHex>::applyGradTestAndIntegrate(const Ref<const MatrixXd> &f) {
 
-  Matrix3d invJac;
+  // computes the rotatation into x-y-z, which would normally happen later with more terms.
+  Vector3d fi;
+  MatrixXd fxyz(f.rows(),3);
+  for (int t_ind = 0; t_ind < mNumIntPtsS; t_ind++) {
+    for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
+      for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
+
+        // gll index.
+        int index = r_ind + s_ind * mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS;
+        fi << f(index,0),f(index,1),f(index,2);
+        fi = mInvJac[index].transpose()*fi;
+        fxyz(index,0) = fi[0];
+        fxyz(index,1) = fi[1];
+        fxyz(index,2) = fi[2];
+        
+      }
+    }
+  }
+  
   for (int t_ind = 0; t_ind < mNumIntPtsS; t_ind++) {
     for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
       for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
         
-        // (r,s) coordinate at this point.
-        double r = mIntCrdR(r_ind);
-        double s = mIntCrdS(s_ind);
-        double t = mIntCrdT(t_ind);
-
-        double _;
-        std::tie(invJac, _) = ConcreteHex::inverseJacobianAtPoint(r,s,t,mVtxCrd);
-
         // map reference gradient (lr,ls,lt) to this element (lx,ly,lz)
         auto lr = mGrd.col(r_ind);
         auto ls = mGrd.col(s_ind);
         auto lt = mGrd.col(t_ind);
 
-        // this version is dramatically slower (102us vs. 17us) relative to the looped/unrolled version below.
-        // --- x ---
-        // auto dphi_r_dfx2 = mIntWgtS(s_ind) * mIntWgtT(t_ind) *
-        //   mIntWgtR.dot(((rVectorStride(mDetJac, s_ind, t_ind,
-        //                                mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
-        //                 rVectorStride(f.col(0), s_ind,t_ind,
-        //                               mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
-        //                     lr.array()).matrix());
+        int index = r_ind + s_ind * mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS;
 
-        // auto dphi_s_dfx2 = mIntWgtR(r_ind) * mIntWgtT(t_ind) *
-        //   mIntWgtS.dot(((sVectorStride(mDetJac, r_ind, t_ind,
-        //                                mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
-        //                 sVectorStride(f.col(0), r_ind,t_ind,
-        //                               mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
-        //                 ls.array()).matrix());
-        // auto dphi_t_dfx2 = mIntWgtR(r_ind) * mIntWgtS(s_ind) *
-        //   mIntWgtT.dot(((tVectorStride(mDetJac, r_ind, s_ind,
-        //                                mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
-        //                 tVectorStride(f.col(0), r_ind,s_ind,
-        //                               mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
-        //                 lt.array()).matrix());
-        
-        // // // --- y ---
-        // auto dphi_r_dfy2 = mIntWgtS(s_ind) * mIntWgtT(t_ind) *
-        //   mIntWgtR.dot(((rVectorStride(mDetJac, s_ind, t_ind,
-        //                                mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
-        //                 rVectorStride(f.col(1), s_ind,t_ind,
-        //                               mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
-        //                     lr.array()).matrix());
-        // auto dphi_s_dfy2 = mIntWgtR(r_ind) * mIntWgtT(t_ind) *
-        //   mIntWgtS.dot(((sVectorStride(mDetJac, r_ind, t_ind,
-        //                                mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
-        //                 sVectorStride(f.col(1), r_ind,t_ind,
-        //                               mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
-        //                     ls.array()).matrix());
-        // auto dphi_t_dfy2 = mIntWgtR(r_ind) * mIntWgtS(s_ind) *
-        //   mIntWgtT.dot(((tVectorStride(mDetJac, r_ind, s_ind,
-        //                                mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
-        //                 tVectorStride(f.col(1), r_ind,s_ind,
-        //                               mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
-        //                     lt.array()).matrix());
-        
-        // // // --- z ---
-        // auto dphi_r_dfz2 = mIntWgtS(s_ind) * mIntWgtT(t_ind) *
-        //   mIntWgtR.dot(((rVectorStride(mDetJac, s_ind, t_ind,
-        //                                mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
-        //                 rVectorStride(f.col(2), s_ind,t_ind,
-        //                               mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
-        //                     lr.array()).matrix());
-        // auto dphi_s_dfz2 = mIntWgtR(r_ind) * mIntWgtT(t_ind) *
-        //   mIntWgtS.dot(((sVectorStride(mDetJac, r_ind, t_ind,
-        //                                mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
-        //                 sVectorStride(f.col(2), r_ind,t_ind,
-        //                               mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
-        //                     ls.array()).matrix());
-        // auto dphi_t_dfz2 = mIntWgtR(r_ind) * mIntWgtS(s_ind) *
-        //   mIntWgtT.dot(((tVectorStride(mDetJac, r_ind, s_ind,
-        //                                mNumIntPtsR,mNumIntPtsS,mNumIntPtsT)).array() *
-        //                 tVectorStride(f.col(2), r_ind,s_ind,
-        //                               mNumIntPtsR,mNumIntPtsS,mNumIntPtsT).array() *
-        //                     lt.array()).matrix());
-        
         double dphi_r_dfx = 0;
-        double dphi_s_dfx = 0;
-        double dphi_t_dfx = 0;
-        double dphi_r_dfy = 0;
         double dphi_s_dfy = 0;
-        double dphi_t_dfy = 0;
-        double dphi_r_dfz = 0;
-        double dphi_s_dfz = 0;
         double dphi_t_dfz = 0;
+
         for(int i=0;i<mNumIntPtsR;i++) {
+          
           int r_index = i + s_ind * mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS;
           int s_index = r_ind + i * mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS;
           int t_index = r_ind + s_ind * mNumIntPtsR + i * mNumIntPtsR * mNumIntPtsS;
-
-          dphi_r_dfx += mDetJac[r_index] * f(r_index,0) * lr[i] * mIntWgtR[i];
-          dphi_s_dfx += mDetJac[s_index] * f(s_index,0) * ls[i] * mIntWgtS[i];
-          dphi_t_dfx += mDetJac[t_index] * f(t_index,0) * lt[i] * mIntWgtT[i];
-
-          // -- y --
-          dphi_r_dfy += mDetJac[r_index] * f(r_index,1) * lr[i] * mIntWgtR[i];
-          dphi_s_dfy += mDetJac[s_index] * f(s_index,1) * ls[i] * mIntWgtS[i];
-          dphi_t_dfy += mDetJac[t_index] * f(t_index,1) * lt[i] * mIntWgtT[i];
-
-          // -- z --
-          dphi_r_dfz += mDetJac[r_index] * f(r_index,2) * lr[i] * mIntWgtR[i];
-          dphi_s_dfz += mDetJac[s_index] * f(s_index,2) * ls[i] * mIntWgtS[i];
-          dphi_t_dfz += mDetJac[t_index] * f(t_index,2) * lt[i] * mIntWgtT[i];
+          
+          dphi_r_dfx += mDetJac[r_index] * fxyz(r_index,0) * lr[i] * mIntWgtR[i];
+          dphi_s_dfy += mDetJac[s_index] * fxyz(s_index,1) * ls[i] * mIntWgtR[i];
+          dphi_t_dfz += mDetJac[t_index] * fxyz(t_index,2) * lt[i] * mIntWgtR[i];
+        
         }
-        dphi_r_dfx *= mIntWgtS(s_ind) * mIntWgtT(t_ind);
-        dphi_s_dfx *= mIntWgtR(r_ind) * mIntWgtT(t_ind);
-        dphi_t_dfx *= mIntWgtR(r_ind) * mIntWgtS(s_ind);
-        dphi_r_dfy *= mIntWgtS(s_ind) * mIntWgtT(t_ind);
-        dphi_s_dfy *= mIntWgtR(r_ind) * mIntWgtT(t_ind);
-        dphi_t_dfy *= mIntWgtR(r_ind) * mIntWgtS(s_ind);
-        dphi_r_dfz *= mIntWgtS(s_ind) * mIntWgtT(t_ind);
-        dphi_s_dfz *= mIntWgtR(r_ind) * mIntWgtT(t_ind);
-        dphi_t_dfz *= mIntWgtR(r_ind) * mIntWgtS(s_ind);
-
-        Vector3d dphi_rst_dfx;
-        dphi_rst_dfx <<
-          dphi_r_dfx,
-          dphi_s_dfx,
-          dphi_t_dfx;
-
-        Vector3d dphi_rst_dfy;
-        dphi_rst_dfy <<
-          dphi_r_dfy,
-          dphi_s_dfy,
-          dphi_t_dfy;
-
-        Vector3d dphi_rst_dfz;
-        dphi_rst_dfz <<
-          dphi_r_dfz,
-          dphi_s_dfz,
-          dphi_t_dfz;
-
-        // gll index.
-        int index = r_ind + s_ind * mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS;
+        dphi_r_dfx *= mIntWgtR(s_ind) * mIntWgtR(t_ind);
+        dphi_s_dfy *= mIntWgtR(r_ind) * mIntWgtR(t_ind);
+        dphi_t_dfz *= mIntWgtR(r_ind) * mIntWgtR(s_ind);
         
-        mStiffWork(index) =
-          invJac.row(0).dot(dphi_rst_dfx) +
-          invJac.row(1).dot(dphi_rst_dfy) +
-          invJac.row(2).dot(dphi_rst_dfz);
+        mStiffWork(index) = dphi_r_dfx + dphi_s_dfy + dphi_t_dfz;
         
+                
       }
     }
   }
@@ -1069,6 +1048,168 @@ VectorXd Hexahedra<ConcreteHex>::applyGradTestAndIntegrate(const Ref<const Matri
   return mStiffWork;
 
 }
+
+template <typename ConcreteHex>
+void Hexahedra<ConcreteHex>::precomputeConstants() {
+
+  int num_pts = mNumIntPtsR*mNumIntPtsS*mNumIntPtsT;
+  mDetJac.resize(num_pts);
+  mInvJac.resize(num_pts);
+  Matrix3d invJac;
+  // Loop over all GLL points.
+  for (int t_ind = 0; t_ind < mNumIntPtsT; t_ind++) {
+    for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
+      for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
+
+        // gll index.
+        int index = r_ind + s_ind * mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS;
+
+        // (r,s,t) coordinates for this point.
+        double r = mIntCrdR(r_ind);
+        double s = mIntCrdS(s_ind);
+        double t = mIntCrdT(t_ind);
+
+        // Optimized gradient for tensorized GLL basis.
+        std::tie(invJac, mDetJac(index)) = ConcreteHex::inverseJacobianAtPoint(r, s, t, mVtxCrd);
+        mInvJac[index] = invJac;
+      }
+    }
+  }
+}
+
+
+template <typename ConcreteHex>
+VectorXd Hexahedra<ConcreteHex>::computeStiffnessFull(const Ref<const VectorXd> &field, VectorXd &mVp2) {
+  
+  Vector3d refGrad;
+  Vector3d phyGrad;
+  Matrix3d invJac;
+  int num_pts = mNumIntPtsR*mNumIntPtsS*mNumIntPtsT;
+
+  VectorXd u_r(num_pts);
+  VectorXd u_s(num_pts);
+  VectorXd u_t(num_pts);
+  MatrixXd f(num_pts,3);
+  
+  for(int j = 0; j<16; j++) {
+    for(int i=0; i<4; i++) {  
+      u_r[i+4*j] =
+        mGrd(i,0)*field[0+4*j] +
+        mGrd(i,1)*field[1+4*j] +
+        mGrd(i,2)*field[2+4*j] +
+        mGrd(i,3)*field[3+4*j];
+    }
+  }
+  
+  // Ds
+  for(int k=0;k<4;k++) {
+    for(int j=0;j<4;j++) {
+      for(int i=0;i<4;i++) {
+        u_s[i+4*j+4*4*k] =
+          field[i+0*4+4*4*k] * mGrdT(0,j) +
+          field[i+1*4+4*4*k] * mGrdT(1,j) +
+          field[i+2*4+4*4*k] * mGrdT(2,j) +
+          field[i+3*4+4*4*k] * mGrdT(3,j);
+      }
+    }
+  }
+  
+  // Dt
+  for(int j = 0; j<4; j++) {
+    for(int i=0; i<16; i++) {  
+      u_t[i+16*j] =
+        field[i+0*16] * mGrdT(0,j) +
+        field[i+1*16] * mGrdT(1,j) +
+        field[i+2*16] * mGrdT(2,j) +
+        field[i+3*16] * mGrdT(3,j);
+      
+    }
+  }
+  
+  // Loop over all GLL points.
+  for (int t_ind = 0; t_ind < mNumIntPtsT; t_ind++) {
+    for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
+      for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
+
+        // gll index.
+        int index = r_ind + s_ind * mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS;
+
+        // refGrad.setZero(3);
+        // for(int i=0;i<mNumIntPtsR;i++) {
+        //   refGrad(0) += mGrd(r_ind,i)*field(i + s_ind *
+        //                                     mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS);
+        //   refGrad(1) += mGrd(s_ind,i)*field(r_ind + i * mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS);
+        //   refGrad(2) += mGrd(t_ind,i)*field(r_ind + s_ind * mNumIntPtsR + i * mNumIntPtsR * mNumIntPtsS);
+        // }
+        
+        refGrad << u_r[index], u_s[index], u_t[index];
+        
+        phyGrad = (mInvJac[index].transpose() * mInvJac[index]) * refGrad;
+        
+        // current version
+        f(index,0) = mVp2(index)*mDetJac(index)*phyGrad(0);
+        f(index,1) = mVp2(index)*mDetJac(index)*phyGrad(1);
+        f(index,2) = mVp2(index)*mDetJac(index)*phyGrad(2);
+        
+      }
+    }
+  }
+
+  for(int j = 0; j<16; j++) {
+    for(int i=0; i<4; i++) {  
+      u_r[i+4*j] =
+        mGrdWgtT(i,0)*f(0+4*j,0) +
+        mGrdWgtT(i,1)*f(1+4*j,0) +
+        mGrdWgtT(i,2)*f(2+4*j,0) +
+        mGrdWgtT(i,3)*f(3+4*j,0);
+    }
+  }
+  
+
+  // Ds
+  for(int k=0;k<4;k++) {
+    for(int j=0;j<4;j++) {
+      for(int i=0;i<4;i++) {
+        u_s[i+4*j+4*4*k] =
+          f(i+0*4+4*4*k,1) * mGrdWgt(0,j) +
+          f(i+1*4+4*4*k,1) * mGrdWgt(1,j) +
+          f(i+2*4+4*4*k,1) * mGrdWgt(2,j) +
+          f(i+3*4+4*4*k,1) * mGrdWgt(3,j);
+      }
+    }
+  }
+  
+  // Dt
+  for(int j = 0; j<4; j++) {
+    for(int i=0; i<16; i++) {  
+      u_t[i+16*j] =
+        f(i+0*16,2) * mGrdWgt(0,j) +
+        f(i+1*16,2) * mGrdWgt(1,j) +
+        f(i+2*16,2) * mGrdWgt(2,j) +
+        f(i+3*16,2) * mGrdWgt(3,j);
+      
+    }
+  }
+    
+  for (int t_ind = 0; t_ind < mNumIntPtsS; t_ind++) {
+    for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
+      for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
+
+        int index = r_ind + s_ind * mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS;
+        // vdev
+        mStiffWork(index) = (mIntWgtR(s_ind)*mIntWgtR(t_ind)*u_r[index]+
+                             mIntWgtR(r_ind)*mIntWgtR(t_ind)*u_s[index]+
+                             mIntWgtR(s_ind)*mIntWgtR(r_ind)*u_t[index]);
+        
+      }
+    }
+  }
+
+  return mStiffWork;
+
+  
+}
+
 
 template <typename ConcreteHex>
 double Hexahedra<ConcreteHex>::integrateField(const Eigen::Ref<const Eigen::VectorXd> &field) {

@@ -53,8 +53,7 @@ private:
   const static int mNumDim = 3;
   const static int mNumVtx = 8;
 
-  // Workspace.
-  Eigen::VectorXd mDetJac;
+  // Workspace.  
   Eigen::VectorXd mParWork;
   Eigen::VectorXd mStiffWork;
   Eigen::MatrixXd mGradWork;
@@ -93,8 +92,11 @@ private:
   Eigen::VectorXd mIntWgtT;
 
   // Matrix holding gradient information.
-  Eigen::MatrixXd mGrd;
-
+  static Eigen::MatrixXd mGrd;
+  static Eigen::MatrixXd mGrdT;
+  static Eigen::MatrixXd mGrdWgt;
+  static Eigen::MatrixXd mGrdWgtT;
+  
   // Material parameters.
   std::map<std::string,Eigen::Matrix<double,8,1>> mPar;
 
@@ -102,6 +104,10 @@ private:
   std::vector<std::shared_ptr<Source>> mSrc;
   std::vector<std::shared_ptr<Receiver>> mRec;
 
+  // precomputed values for stiffness routine
+  Eigen::VectorXd mDetJac;
+  std::vector<Eigen::Matrix3d> mInvJac;
+  
  public:
 
   Hexahedra<ConcreteHex>(Options options);
@@ -205,6 +211,17 @@ private:
   Eigen::VectorXd applyGradTestAndIntegrate(const Eigen::Ref<const Eigen::MatrixXd>& f);
 
   /**
+   * precompute constants needed for stiffness routine
+   */
+  void precomputeConstants();
+  
+  
+  /**
+   * Test the full stiffness routine for acoustic
+   */
+  Eigen::VectorXd computeStiffnessFull(const Eigen::Ref<const Eigen::VectorXd> &field, Eigen::VectorXd &mVp);
+  
+  /**
    * Figure out and set boundaries.
    * @param [in] mesh The mesh instance.
    */
@@ -259,6 +276,14 @@ private:
    */
   void attachMaterialProperties(const ExodusModel *model, std::string parameter);
 
+  /** Return the estimated CFL constant for the current order
+   * @return The CFL estimate
+   */
+  double CFL_constant();
+  
+  /** Return the estimated element radius
+   */
+  virtual double estimatedElementRadius();
   
   /**
    * Given some field at the GLL points, interpolate the field to some general point.
@@ -288,5 +313,3 @@ private:
   };
   
 };
-
-

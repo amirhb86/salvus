@@ -46,15 +46,24 @@ void Acoustic3D<Element>::assembleElementMassMatrix(Mesh *mesh) {
 template <typename Element>
 MatrixXd Acoustic3D<Element>::computeStress(const Ref<const MatrixXd> &strain) {
 
-  // Interpolate the (square) of the velocity at each integration point.
-  mVpSquared = Element::ParAtIntPts("VP").array().pow(2);
-
   // Calculate sigma_ux and sigma_uy.
   mStress.col(0) = mVpSquared.array() * strain.col(0).array();
   mStress.col(1) = mVpSquared.array() * strain.col(1).array();
   mStress.col(2) = mVpSquared.array() * strain.col(2).array();
   return mStress;
 
+}
+
+template <typename Element>
+void Acoustic3D<Element>::prepareStiffness() {
+  Element::precomputeConstants();
+  mVpSquared = Element::ParAtIntPts("VP").array().pow(2);
+}
+
+template <typename Element>
+double Acoustic3D<Element>::CFL_estimate() {
+  double vpMax = Element::ParAtIntPts("VP").maxCoeff();
+  return Element::CFL_constant() * Element::estimatedElementRadius() / vpMax;
 }
 
 template <typename Element>
