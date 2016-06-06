@@ -61,6 +61,12 @@ void Acoustic3D<Element>::prepareStiffness() {
 }
 
 template <typename Element>
+double Acoustic3D<Element>::CFL_estimate() {
+  double vpMax = Element::ParAtIntPts("VP").maxCoeff();
+  return Element::CFL_constant() * Element::estimatedElementRadius() / vpMax;
+}
+
+template <typename Element>
 MatrixXd Acoustic3D<Element>::computeStiffnessTerm(
     const MatrixXd &u) {
 

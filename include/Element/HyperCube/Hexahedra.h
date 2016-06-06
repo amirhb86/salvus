@@ -276,6 +276,14 @@ private:
    */
   void attachMaterialProperties(const ExodusModel *model, std::string parameter);
 
+  /** Return the estimated CFL constant for the current order
+   * @return The CFL estimate
+   */
+  double CFL_constant();
+  
+  /** Return the estimated element radius
+   */
+  virtual double estimatedElementRadius();
   
   /**
    * Given some field at the GLL points, interpolate the field to some general point.

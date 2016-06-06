@@ -12,9 +12,9 @@ class Options;
 class ExodusModel;
 
 template <typename Shape>
-class AcousticTet: public Shape {
+class AcousticHex3D_LF: public Shape {
   /**
-   * \class AcousticTet
+   * \class Acoustic2D
    *
    * \brief Class in charge of handling wave propagation in acoustic regions.
    *
@@ -31,11 +31,11 @@ class AcousticTet: public Shape {
   Eigen::VectorXd mSource;
   Eigen::MatrixXd mStress;
   Eigen::MatrixXd mStrain;
-  Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> mElementStiffnessMatrix;
+
  public:
 
   /**** Initializers ****/
-  AcousticTet<Shape>(Options options);
+  AcousticHex3D_LF<Shape>(Options options);
   std::vector<std::string> PullElementalFields() const;
   std::vector<std::string> PushElementalFields() const;
 

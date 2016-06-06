@@ -132,6 +132,34 @@ void Triangle<ConcreteShape>::attachVertexCoordinates(DM &distributed_mesh) {
     mVtxCrd.col(1).mean();
 }
 
+template <typename ConcreteShape>
+double Triangle<ConcreteShape>::CFL_constant() {
+  if(mPlyOrd == 3) {
+    return 4.5; // by hand (within 10%)
+  } else {
+    std::cerr << "ERROR: Order CFL_constant not implemented yet\n";
+    exit(1);
+  }
+}
+
+template <typename ConcreteShape>
+double Triangle<ConcreteShape>::estimatedElementRadius() {
+  Matrix2d invJ;
+  double detJ;
+
+  std::tie(invJ, detJ) = ConcreteShape::inverseJacobian(mVtxCrd);
+  Matrix2d J = invJ.inverse();
+  VectorXcd eivals = J.eigenvalues();
+
+  // get minimum h (smallest direction)
+  Vector2d eivals_norm;
+  for(int i=0;i<2;i++) {
+    eivals_norm(i) = std::norm(eivals[i]);
+  }
+  return eivals_norm.minCoeff();
+  
+}
+
 
 template <typename ConcreteShape>
 void Triangle<ConcreteShape>::attachMaterialProperties(const ExodusModel *model, std::string parameter_name) {

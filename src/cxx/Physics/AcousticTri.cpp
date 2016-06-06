@@ -41,6 +41,13 @@ void AcousticTri<Element>::assembleElementMassMatrix(Mesh *mesh) {
 }
 
 template <typename Element>
+double AcousticTri<Element>::CFL_estimate() {
+  double vpMax = Element::ParAtIntPts("VP").maxCoeff();
+  return Element::CFL_constant() * Element::estimatedElementRadius() / vpMax;
+}
+
+
+template <typename Element>
 MatrixXd AcousticTri<Element>::computeStress(const Ref<const MatrixXd> &strain) {
 
   // Interpolate the (square) of the velocity at each integration point.

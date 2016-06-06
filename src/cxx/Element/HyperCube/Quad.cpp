@@ -162,6 +162,60 @@ void Quad<ConcreteShape>::attachVertexCoordinates(DM &distributed_mesh) {
 }
 
 template <typename ConcreteShape>
+double Quad<ConcreteShape>::CFL_constant() {
+  if(mPlyOrd == 3) {
+    return 3.0; // determined by hand (about 10% conservative)
+  }
+  if(mPlyOrd == 4) {
+    return 2.0; // ??determined by hand (about 10% conservative)
+  }
+  else {
+    std::cerr << "ERROR: Order CFL_constant not implemented yet\n";
+    exit(1);
+  }
+}
+
+template <typename ConcreteShape>
+double Quad<ConcreteShape>::estimatedElementRadius() {
+
+  Matrix2d invJ;
+  double detJ;
+  
+  Matrix2d invJac;
+  Vector2d refGrad;
+  int num_pts = mNumIntPtsR*mNumIntPtsS;
+  VectorXd h_pts(num_pts);
+  
+  // Loop over all GLL points.
+  for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
+    for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
+
+      // gll index.
+      int index = r_ind + s_ind * mNumIntPtsR;
+
+      // (r,s,t) coordinates for this point.
+      double r = mIntCrdR(r_ind);
+      double s = mIntCrdS(s_ind);
+
+      // Optimized gradient for tensorized GLL basis.
+      std::tie(invJ, detJ) = ConcreteShape::inverseJacobianAtPoint(r, s, mVtxCrd);
+      Matrix2d J = invJ.inverse();
+      VectorXcd eivals = J.eigenvalues();
+      // get minimum h (smallest direction)
+      Vector2d eivals_norm;
+      for(int i=0;i<2;i++) {
+        eivals_norm(i) = std::norm(eivals[i]);
+      }
+      h_pts(index) = eivals_norm.minCoeff();
+    
+    }
+  }
+  return h_pts.minCoeff();
+  
+}
+
+
+template <typename ConcreteShape>
 void Quad<ConcreteShape>::attachMaterialProperties(const ExodusModel *model, std::string parameter) {
   Vector4d material_at_vertices;
   for (int i = 0; i < mNumVtx; i++) {

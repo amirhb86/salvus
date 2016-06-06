@@ -11,6 +11,10 @@
 #include <Element/HyperCube/Quad.h>
 #include <Model/ExodusModel.h>
 
+#include <Utilities/Logging.h>
+
+INIT_LOGGING_STATE();
+
 int main(int argc, char *argv[]) {
 
   // Init Salvus command line arguments.

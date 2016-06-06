@@ -13,6 +13,9 @@
 #include <Problem/Problem.h>
 #include <Utilities/Options.h>
 #include <Model/ExodusModel.h>
+#include <Utilities/Logging.h>
+
+INIT_LOGGING_STATE();
 
 static constexpr char help[] = "Welcome to Salvus.";
 

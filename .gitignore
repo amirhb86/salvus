@@ -39,6 +39,7 @@ salvus
 # Development specifics
 .idea
 Debug
+Release*
 
 # Python stuff
 *.pyc

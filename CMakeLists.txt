@@ -41,6 +41,7 @@ set(SALVUS_SOURCES
         src/cxx/Mesh/Mesh.cpp
         src/cxx/Mesh/ElasticNewmark2D.cpp
         src/cxx/Mesh/ScalarNewmark2D.cpp
+        src/cxx/Mesh/ScalarLeapFrog4th.cpp
         src/cxx/Element/Simplex/Triangle.cpp
         src/cxx/Element/Simplex/Triangle/TriP1.cpp
         src/cxx/Element/Simplex/Tetrahedra.cpp
@@ -59,10 +60,12 @@ set(SALVUS_SOURCES
         src/cxx/Physics/AcousticTet.cpp
         src/cxx/Physics/Acoustic3D.cpp
         src/cxx/Physics/AcousticHex3D.cpp
+        src/cxx/Physics/AcousticHex3D_LF.cpp
         src/cxx/Physics/Acoustic3D_V.cpp
         src/cxx/Physics/AcousticTri.cpp
         src/cxx/Utilities/kdtree.c
         src/cxx/Utilities/PETScExtensions.c
+        src/cxx/Utilities/Logging.cpp
         src/cxx/Element/Element.cpp
         src/cxx/Physics/Elastic2D.cpp
         src/cxx/Element/HyperCube/Hexahedra.cpp
