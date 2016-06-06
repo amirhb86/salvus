@@ -1,6 +1,7 @@
 #include <Problem/Problem.h>
 #include <Utilities/Utilities.h>
 #include <Problem/NewmarkGeneral.h>
+#include <stdexcept>
 
 Problem *Problem::factory(std::string solver_type) {
     try {

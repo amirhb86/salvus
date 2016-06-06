@@ -363,6 +363,60 @@ TEST_CASE("Testing acoustic exact solutions for hexahedra", "[exact/hexahedra]")
 
 }
 
+TEST_CASE("Testing acoustic fast exact solutions for hexahedra", "[exact/hexahedra_fast]") {
+
+ std::cout << "Testing exact acoustic hex solution.\n";
+ PetscOptionsClear();
+ const char *arg[] = {
+   "salvus_test",
+   "--testing","true",
+   "--duration", "0.08838834764831843", // 30 steps
+   "--time_step", "0.003",
+   "--exodus_file_name", "simple_hexmesh_2x2x2.vp4.e",
+   "--exodus_model_file_name", "simple_hexmesh_2x2x2.vp4.e",
+   "--mesh_type", "newmark",
+   "--element_shape", "hex_new",
+   "--physics_system", "acoustic_fast",
+   "--polynomial_order", "3",
+   "--dirichlet-boundaries", "x0,x1,y0,y1,z0,z1",
+   "--testIC", "true",
+   "--IC-center-x", "0.0",
+   "--IC-center-z", "0.0",
+   "--IC-square-side-L", "2",
+   "--saveMovie","false",
+   "--saveFrameEvery","1",
+   "--output_movie_file_name","/scratch/salvus/output_files/movie.h5",
+   "--displayDiagnosticsEvery","3",
+   // options.__SetSaveMovie(PETSC_FALSE);
+   // options.__SetSaveFrameEvery(1);
+   NULL};
+ char **argv = const_cast<char **> (arg);
+ int argc = sizeof(arg) / sizeof(const char *) - 1;
+ PetscOptionsInsert(&argc, &argv, NULL);
+
+ // Set options for exact tests
+ Options options;
+ options.setOptions();
+
+ // Get mesh.
+ Mesh *mesh = Mesh::factory(options);
+ mesh->read(options);
+
+ // Get model.
+ ExodusModel *model = new ExodusModel(options);
+ model->initializeParallel();
+
+ // Setup reference element.
+ auto reference_element = Element::Factory({"u"}, {}, options);
+
+ auto elements = initialize_exact<Element>(mesh, model, reference_element, options);
+
+ double error = solve_vs_exact<Element>(options, mesh,elements);
+
+ // allow 10% increase in previously found error, or fail.
+ REQUIRE(error < (1.1*0.000133237));
+
+}
 
 TEST_CASE("Testing acoustic exact solutions for new tetrahedra", "[exact/tetrahedra]") {
 
@@ -425,5 +479,3 @@ TEST_CASE("Testing acoustic exact solutions for new tetrahedra", "[exact/tetrahe
  REQUIRE(error < (1.1*0.000304241));
 
 }
-
-

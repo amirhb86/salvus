@@ -61,6 +61,7 @@ set(SALVUS_SOURCES
         src/cxx/Physics/Element/Acoustic3D.cpp
         src/cxx/Physics/Element/Acoustic3D_V.cpp
         src/cxx/Physics/Element/AcousticTri.cpp
+        src/cxx/Physics/Element/AcousticHex3D.cpp
         src/cxx/Utilities/kdtree.c
         src/cxx/Utilities/PETScExtensions.c
         src/cxx/Element/Element.cpp

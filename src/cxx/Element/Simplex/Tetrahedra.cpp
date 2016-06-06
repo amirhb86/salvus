@@ -41,6 +41,12 @@ template <typename ConcreteShape>
 MatrixXd Tetrahedra<ConcreteShape>::mGradientPhi_ds;
 template <typename ConcreteShape>
 MatrixXd Tetrahedra<ConcreteShape>::mGradientPhi_dt;
+template <typename ConcreteShape>
+Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> Tetrahedra<ConcreteShape>::mGradientPhi_dr_t;
+template <typename ConcreteShape>
+Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> Tetrahedra<ConcreteShape>::mGradientPhi_ds_t;
+template <typename ConcreteShape>
+Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> Tetrahedra<ConcreteShape>::mGradientPhi_dt_t;
 
 std::vector<int> getVertsFromPoint(int point, int numVerts, DM &distributed_mesh);
 
@@ -455,6 +461,9 @@ Tetrahedra<ConcreteShape>::Tetrahedra(Options options) {
   mParWork.setZero(mNumIntPnt);
   mStiffWork.setZero(mNumIntPnt);
   mGradWork.setZero(mNumIntPnt, mNumDim);
+  mGrad_r.resize(mNumIntPnt);
+  mGrad_s.resize(mNumIntPnt);
+  mGrad_t.resize(mNumIntPnt);
   
 }
 
@@ -541,32 +550,23 @@ void Tetrahedra<ConcreteShape>::attachSource(std::vector<std::shared_ptr<Source>
 template <typename ConcreteShape>
 MatrixXd Tetrahedra<ConcreteShape>::computeGradient(const Ref<const VectorXd>& field) {
 
-  // loop version is surprisingly faster.
-  // mGradWork.col(0) = mGradientPhi_dx_t*field;
-  // mGradWork.col(1) = mGradientPhi_dy_t*field;
-  // mGradWork.col(2) = mGradientPhi_dz_t*field;
+  Vector3d phyGrad;
+  Vector3d refGrad;
   
   for(int i=0;i<mNumIntPnt;i++) {
-    
-    // double grad_x = field.dot(mGradientPhi_dx.col(i));
-    // double grad_y = field.dot(mGradientPhi_dy.col(i));
-    // double grad_z = field.dot(mGradientPhi_dz.col(i));    
-    
-    // 15% faster when unrolled
-    double grad_x = 0.0;
-    double grad_y = 0.0;
-    double grad_z = 0.0;
 
+    refGrad.setZero(3);
     for(int j=0;j<mNumIntPnt;j++) {
-      grad_x += field(j)*mGradientPhi_dx(j,i);
-      grad_y += field(j)*mGradientPhi_dy(j,i);
-      grad_z += field(j)*mGradientPhi_dz(j,i);
+      refGrad(0) += mGradientPhi_dr(j,i) * field(j);
+      refGrad(1) += mGradientPhi_ds(j,i) * field(j);
+      refGrad(2) += mGradientPhi_dt(j,i) * field(j);
     }
     
-    mGradWork(i,0) = grad_x;
-    mGradWork(i,1) = grad_y;
-    mGradWork(i,2) = grad_z;
-    
+    phyGrad = (mInvJac) * refGrad;    
+    mGradWork(i,0) = phyGrad(0);
+    mGradWork(i,1) = phyGrad(1);
+    mGradWork(i,2) = phyGrad(2);
+        
   }
 
   return mGradWork;
@@ -574,50 +574,108 @@ MatrixXd Tetrahedra<ConcreteShape>::computeGradient(const Ref<const VectorXd>& f
 
 template <typename ConcreteShape>
 VectorXd Tetrahedra<ConcreteShape>::applyGradTestAndIntegrate(const Ref<const MatrixXd>& f) {
-  
-  // auto gfx = f.col(0);
-  // auto gfy = f.col(1);
-  // auto gfz = f.col(2);
-  
-  // for(int i=0;i<mNumIntPnt;i++) {
+  Vector3d refGrad;
+  Vector3d phyGrad;
 
-  //   // VectorXd dPhi_dx_i = mGradientPhi_dx.row(i);
-  //   // VectorXd dPhi_dy_i = mGradientPhi_dy.row(i);
-  //   // VectorXd dPhi_dz_i = mGradientPhi_dz.row(i);
-  //   // mStiffWork[i] = detJ*mIntegrationWeights.dot((dPhi_dx_i.array()*gfx.array()
-  //   //                                               + dPhi_dy_i.array()*gfy.array()
-  //   //                                               + dPhi_dz_i.array()*gfz.array()).matrix());
-    
-  //   // alternate version using transpose
-  //   // mStiffWork[i] = detJ*mIntegrationWeights.dot((mGradientPhi_dx_t.col(i).array()*gfx.array() +
-  //   //                                               mGradientPhi_dy_t.col(i).array()*gfy.array() +
-  //   //                                               mGradientPhi_dz_t.col(i).array()*gfz.array()).matrix());
-    
-  //   double ans = 0.0;
-  //   for(int j=0;j<mNumIntPnt;j++) {
-  //     ans += mIntegrationWeights[i]*(mGradientPhi_dx_t(j,i)*gfx[j] +
-  //                                    mGradientPhi_dy_t(j,i)*gfy[j] +
-  //                                    mGradientPhi_dz_t(j,i)*gfz[j]);
-  //     // ans += mIntegrationWeights[i]*(mGradientPhi_dx(i,j)*f(j,0) +
-  //     // mGradientPhi_dy(i,j)*f(j,1) +
-  //     // mGradientPhi_dz(i,j)*f(j,2));
-  //   }
-  //   mStiffWork[i] = mDetJac*ans;
-    
-  // }  
+  for(int i=0;i<mNumIntPnt;i++) {
+    refGrad << f(i,0), f(i,1), f(i,2);
+    phyGrad = mInvJacT * refGrad;
+    mGradWork(i,0) = phyGrad(0);
+    mGradWork(i,1) = phyGrad(1);
+    mGradWork(i,2) = phyGrad(2);
+  }
   
-  // return mStiffWork;
+  for(int i=0;i<mNumIntPnt;i++) {
 
-  return (mWiDPhi_x*f.col(0) + mWiDPhi_y*f.col(1) + mWiDPhi_z*f.col(2));
+    mStiffWork(i) = 0;
+    for(int j=0;j<mNumIntPnt;j++) {
+      mStiffWork(i) +=
+        mIntegrationWeights[j] * (mGradWork(j,0) * mGradientPhi_dr(i,j) +
+                                  mGradWork(j,1) * mGradientPhi_ds(i,j) +
+                                  mGradWork(j,2) * mGradientPhi_dt(i,j));
+    }
+
+    mStiffWork(i) *= mDetJac;
+  }
+  return mStiffWork;
   
 }
 
 template <typename ConcreteShape>
-MatrixXd Tetrahedra<ConcreteShape>::buildStiffnessMatrix(VectorXd velocity) {
+VectorXd Tetrahedra<ConcreteShape>::computeStiffnessFull(const Ref<const VectorXd>& field,
+                                                         const Ref<const VectorXd>& vp2) {
+
+  Vector3d refGrad;
+  Vector3d phyGrad;
+  int num_pts = field.size();
+  
+  // mGrad_r = mGradientPhi_dr_t * field;
+  // mGrad_s = mGradientPhi_ds_t * field;
+  // mGrad_t = mGradientPhi_dt_t * field;
+  
+  for(int i=0;i<mNumIntPnt;i++) {
+
+    // eigen
+    // refGrad(0) = mGradientPhi_dr.col(i).dot(field);
+    // refGrad(1) = mGradientPhi_ds.col(i).dot(field);
+    // refGrad(2) = mGradientPhi_dt.col(i).dot(field);
+    
+    // no eigen
+    refGrad.setZero(3);
+    for(int j=0;j<mNumIntPnt;j++) {
+      refGrad(0) += mGradientPhi_dr(j,i) * field(j);
+      refGrad(1) += mGradientPhi_ds(j,i) * field(j);
+      refGrad(2) += mGradientPhi_dt(j,i) * field(j);
+    }
+    
+    // refGrad << mGrad_r(i), mGrad_s(i), mGrad_t(i);
+    
+    phyGrad = (mInvJacT_x_invJac) * refGrad;
+    
+    mGradWork(i,0) = vp2(i)*phyGrad(0);
+    mGradWork(i,1) = vp2(i)*phyGrad(1);
+    mGradWork(i,2) = vp2(i)*phyGrad(2);
+    
+  }
+
+  for(int i=0;i<mNumIntPnt;i++) {
+
+    refGrad.setZero(3);
+    mStiffWork(i) = 0;
+    for(int j=0;j<mNumIntPnt;j++) {
+      mStiffWork(i) +=
+        mIntegrationWeights[j] * (mGradWork(j,0) * mGradientPhi_dr(i,j) +
+                                  mGradWork(j,1) * mGradientPhi_ds(i,j) +
+                                  mGradWork(j,2) * mGradientPhi_dt(i,j));
+    }
+
+    mStiffWork(i) *= mDetJac;
+    
+    // // eigen version (10-20% slower)
+    // mStiffWork(i) = mDetJac * mIntegrationWeights.dot( (fGrad.col(0).array() * mGradientPhi_dr_t.col(i).array() +
+    //                                        fGrad.col(1).array() * mGradientPhi_ds_t.col(i).array() +
+    //                                        fGrad.col(2).array() * mGradientPhi_dt_t.col(i).array()).matrix());
+
+    
+  }
+  return mStiffWork;
+}
+
+template <typename ConcreteShape>
+MatrixXd Tetrahedra<ConcreteShape>::buildStiffnessMatrix(const Ref<const VectorXd>& vp2) {
   
   Eigen::Matrix3d invJ;
   double detJ;
   std::tie(invJ,detJ) = ConcreteShape::inverseJacobian(mVtxCrd);
+
+  mGradientPhi_dr_t = mGradientPhi_dr.transpose();
+  mGradientPhi_ds_t = mGradientPhi_ds.transpose();
+  mGradientPhi_dt_t = mGradientPhi_dt.transpose();
+  
+  // save for later
+  mInvJac = invJ;
+  mInvJacT_x_invJac = invJ.transpose() * invJ;
+  mInvJacT = invJ.transpose();
   mDetJac = detJ;
   //Jinv= rx, sx, tx,
   //      ry, sy, ty,
@@ -672,9 +730,9 @@ MatrixXd Tetrahedra<ConcreteShape>::buildStiffnessMatrix(VectorXd velocity) {
       
       elementStiffnessMatrix(i,j) =
         // with velocity according to model
-        detJ*mIntegrationWeights.dot((velocity.array().pow(2) * dPhi_dx_i.array() * dPhi_dx_j.array()).matrix()) +
-        detJ*mIntegrationWeights.dot((velocity.array().pow(2) * dPhi_dy_i.array() * dPhi_dy_j.array()).matrix()) +
-        detJ*mIntegrationWeights.dot((velocity.array().pow(2) * dPhi_dz_i.array() * dPhi_dz_j.array()).matrix());
+        detJ*mIntegrationWeights.dot((vp2.array() * dPhi_dx_i.array() * dPhi_dx_j.array()).matrix()) +
+        detJ*mIntegrationWeights.dot((vp2.array() * dPhi_dy_i.array() * dPhi_dy_j.array()).matrix()) +
+        detJ*mIntegrationWeights.dot((vp2.array() * dPhi_dz_i.array() * dPhi_dz_j.array()).matrix());
 
       
       
