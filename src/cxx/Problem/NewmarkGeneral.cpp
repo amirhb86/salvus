@@ -1,3 +1,5 @@
+#include <ctime>
+
 #include <mpi.h>
 #include <Mesh/Mesh.h>
 #include <Source/Source.h>
@@ -26,7 +28,6 @@ void NewmarkGeneral::initialize(Mesh *mesh,
   for (auto field : mMesh->GlobalFields()) {
     mMesh->registerFieldVectors(field);
   }
-
   // Get a list of all local elements.
   for (PetscInt i = 0; i < mesh->NumberElementsLocal(); i++) {
     mElements.push_back(Element::Factory(mesh->ElementFields(i),
@@ -79,10 +80,10 @@ void NewmarkGeneral::solve(Options options) {
 
   std::set<std::string> push_fields, pull_fields;
   for (auto &element : mElements) {
-    for (auto &f: element->PushElementalFields()) {
+    for (auto &f: {"a", "ax", "ay"}) {
       push_fields.insert(f);
     }
-    for (auto &f: element->PullElementalFields()) {
+    for (auto &f: {"vx", "vy", "v", "ux", "uy", "u"}) {
       pull_fields.insert(f);
     }
   }
@@ -104,6 +105,8 @@ void NewmarkGeneral::solve(Options options) {
   Eigen::MatrixXd ku(int_pnts, max_dims);
   Eigen::MatrixXd fMinusKu(int_pnts, max_dims);
   double max_Loo = 0.0;
+
+  clock_t time_start = clock();
   while (time < duration) {
     max_Loo = 0.0;
 
@@ -164,7 +167,7 @@ void NewmarkGeneral::solve(Options options) {
 
     PetscInt rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     if(options.DisplayDiagnostics() && (it % options.DisplayDiagnosticsEvery() == 0 || it == 0)) {
-      if(rank == 0) printf("|u|_oo=%f @ time=%f (%f%%)\n",max_Loo,time,100*(time/duration));
+    //  if(rank == 0) printf("|u|_oo=%f @ time=%f (%f%%)\n",max_Loo,time,100*(time/duration));
     }
     
     // Sum fields into global partitions.
@@ -187,8 +190,12 @@ void NewmarkGeneral::solve(Options options) {
 
     it++;
     time += timeStep;
-    if (rank == 0) std::cout << "TIME: " << time << std::endl;
+    if (rank == 0) std::cout << "TIME: " << time << "\r";
   }
+
+  int rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+  if (!rank)
+  printf("Time elapsed: %f\n", ((double)clock() - time_start) / CLOCKS_PER_SEC);
 
   if (options.SaveMovie()) mMesh->finalizeMovie();
 

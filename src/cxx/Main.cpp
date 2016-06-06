@@ -37,6 +37,7 @@ int main(int argc, char *argv[]) {
 
   // Use above elements to define the problem.
   Problem *problem = Problem::factory(options.ProblemType());
+
   problem->initialize(mesh, model, options);
   problem->solve(options);
 

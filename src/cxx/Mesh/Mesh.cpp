@@ -1,4 +1,5 @@
 #include <petscviewerhdf5.h>
+#include <stdexcept>
 
 #include <mpi.h>
 #include <fstream>

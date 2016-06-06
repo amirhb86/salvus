@@ -3,6 +3,7 @@
 #include <Utilities/Options.h>
 #include <Receiver/Receiver.h>
 #include <Receiver/ReceiverHdf5.h>
+#include <stdexcept>
 
 // Initialize counter to zero.
 long Receiver::num = 0;

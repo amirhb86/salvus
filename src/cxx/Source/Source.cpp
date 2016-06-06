@@ -1,6 +1,7 @@
 #include <mpi.h>
 #include <Source/Source.h>
 #include <Utilities/Options.h>
+#include <stdexcept>
 
 std::vector<std::shared_ptr<Source>> Source::factory(Options options) {
 

@@ -19,6 +19,7 @@
 #include <Physics/AcousticElastic2D.h>
 #include <Physics/ElasticAcoustic2D.h>
 #include <Utilities/Utilities.h>
+#include <stdexcept>
 
 /* Define all possible element classes as types here. */
 typedef class ElementAdapter<Acoustic2D<Quad<QuadP1>>> AcousticQuadP1;
@@ -94,5 +95,4 @@ std::shared_ptr<Element> Element::Factory(const std::vector<std::string>& physic
     MPI_Abort(PETSC_COMM_WORLD, -1);
   }
 
-  return nullptr;
 }
