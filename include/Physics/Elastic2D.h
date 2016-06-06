@@ -42,7 +42,8 @@ class Elastic2D: public Shape {
   void prepareStiffness() {};
   void assembleElementMassMatrix(Mesh *mesh);
   void attachMaterialPropertiesNew(const ExodusModel *model);
-
+  double CFL_estimate() {}
+  
   /**** Time loop functions ****/
   Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &u);
   Eigen::MatrixXd computeSourceTerm(const double time);

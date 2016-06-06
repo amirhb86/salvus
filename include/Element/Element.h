@@ -74,6 +74,10 @@ class Element {
   /** Pre-compute the stiffness matrix operator. Currently this is required for the tetrahedral elements,
    * but is a non-op for element types where the stiffness matrix is computed on the fly.
    */
+  /** Return the estimated element radius scaled by element-local velocity.
+   * @return The CFL estimate
+   */
+  virtual double CFL_estimate() = 0;
   virtual void prepareStiffness() = 0;
   ///@}
 

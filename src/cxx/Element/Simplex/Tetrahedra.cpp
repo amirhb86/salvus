@@ -773,6 +773,35 @@ void Tetrahedra<ConcreteShape>::attachReceiver(std::vector<std::shared_ptr<Recei
 }
 
 template <typename ConcreteShape>
+double Tetrahedra<ConcreteShape>::CFL_constant() {
+  if(mPlyOrd == 3) {
+    return 0.375; // by hand (within 10%)    
+  } else {
+    std::cerr << "ERROR: Order CFL_constant not implemented yet\n";
+    exit(1);
+  }
+}
+
+template <typename ConcreteShape>
+double Tetrahedra<ConcreteShape>::estimatedElementRadius() {
+  Matrix3d invJ;
+  double detJ;
+
+  std::tie(invJ, detJ) = ConcreteShape::inverseJacobian(mVtxCrd);
+  Matrix3d J = invJ.inverse();
+  VectorXcd eivals = J.eigenvalues();
+
+  // get minimum h (smallest direction)
+  Vector3d eivals_norm;
+  for(int i=0;i<3;i++) {
+    eivals_norm(i) = std::norm(eivals[i]);
+  }
+  return eivals_norm.minCoeff();
+  
+}
+
+
+template <typename ConcreteShape>
 VectorXd Tetrahedra<ConcreteShape>::applyTestAndIntegrate(const Ref<const VectorXd> &f) {
 
   double detJac;

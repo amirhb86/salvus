@@ -41,6 +41,13 @@ void Acoustic2D<Element>::assembleElementMassMatrix(Mesh *mesh) {
 }
 
 template <typename Element>
+double Acoustic2D<Element>::CFL_estimate() {
+  double vpMax = Element::ParAtIntPts("VP").maxCoeff();
+  return Element::CFL_constant() * Element::estimatedElementRadius() / vpMax;
+}
+
+
+template <typename Element>
 MatrixXd Acoustic2D<Element>::computeStress(const Ref<const MatrixXd> &strain) {
 
   // Interpolate the (square) of the velocity at each integration point.

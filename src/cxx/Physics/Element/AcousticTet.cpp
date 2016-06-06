@@ -40,6 +40,12 @@ void AcousticTet<Element>::assembleElementMassMatrix(Mesh *mesh) {
 
 }
 
+template <typename Element>
+double AcousticTet<Element>::CFL_estimate() {
+  double vpMax = Element::ParAtIntPts("VP").maxCoeff();
+  return Element::CFL_constant() * Element::estimatedElementRadius() / vpMax;
+}
+
 
 template <typename Element>
 MatrixXd AcousticTet<Element>::computeStress(const Ref<const MatrixXd> &strain) {

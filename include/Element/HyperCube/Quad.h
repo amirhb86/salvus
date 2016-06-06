@@ -209,6 +209,9 @@ private:
    */
   void attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers);
 
+  
+  
+  
   /**
    * If an element is detected to be on a boundary, apply the Dirichlet condition to the
    * dofs on that boundary.
@@ -230,6 +233,13 @@ private:
    */
   void attachMaterialProperties(const ExodusModel *model, std::string parameter);
 
+  virtual double CFL_constant();
+  
+  /** Return the estimated element radius
+   * @return The CFL estimate
+   */
+  double estimatedElementRadius();
+  
   /**
    * Given some field at the GLL points, interpolate the field to some general point.
    * @param [in] pnt Position in reference coordinates.

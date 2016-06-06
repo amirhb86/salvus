@@ -6,6 +6,8 @@
 #include <Element/HyperCube/HexP1.h>
 #include <Element/HyperCube/Hexahedra.h>
 
+#include <complex>
+
 // Extern.
 extern "C" {
 #include <Element/HyperCube/Autogen/quad_autogen.h>
@@ -697,13 +699,64 @@ void Hexahedra<ConcreteHex>::attachVertexCoordinates(Mesh *mesh) {
 }
 
 template <typename ConcreteHex>
+double Hexahedra<ConcreteHex>::CFL_constant() {
+  if(mPlyOrd == 3) {
+    return 2.4; // determined by hand (about 10% conservative)
+  }
+  else {
+    std::cerr << "ERROR: Order CFL_constant not implemented yet\n";
+    exit(1);
+  }
+}
+
+template <typename ConcreteHex>
+double Hexahedra<ConcreteHex>::estimatedElementRadius() {
+
+  Matrix3d invJ;
+  double detJ;
+  
+  Matrix3d invJac;
+  Vector3d refGrad;
+  int num_pts = mNumIntPtsR*mNumIntPtsS*mNumIntPtsT;
+  VectorXd h_pts(num_pts);
+  
+  // Loop over all GLL points.
+  for (int t_ind = 0; t_ind < mNumIntPtsT; t_ind++) {
+    for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
+      for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
+
+        // gll index.
+        int index = r_ind + s_ind * mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS;
+
+        // (r,s,t) coordinates for this point.
+        double r = mIntCrdR(r_ind);
+        double s = mIntCrdS(s_ind);
+        double t = mIntCrdT(t_ind);
+
+        // Optimized gradient for tensorized GLL basis.
+        std::tie(invJ, detJ) = ConcreteHex::inverseJacobianAtPoint(r, s, t, mVtxCrd);
+        Matrix3d J = invJ.inverse();
+        VectorXcd eivals = J.eigenvalues();
+        // get minimum h (smallest direction)
+        Vector3d eivals_norm;
+        for(int i=0;i<3;i++) {
+          eivals_norm(i) = std::norm(eivals[i]);
+        }
+        h_pts(index) = eivals_norm.minCoeff();
+      }
+    }
+  }
+  return h_pts.minCoeff();
+  
+}
+
+template <typename ConcreteHex>
 void Hexahedra<ConcreteHex>::attachMaterialProperties(const ExodusModel *model,std::string parameter_name) {
 
   Eigen::VectorXd material_at_vertices(mNumVtx);
 
   for (auto i = 0; i < mNumVtx; i++) {
-    material_at_vertices(i) = model->getElementalMaterialParameterAtVertex(
-                                                                           mElmCtr, parameter_name, i);
+    material_at_vertices(i) = model->getElementalMaterialParameterAtVertex(mElmCtr, parameter_name, i);
   }
   mPar[parameter_name] = material_at_vertices;
   

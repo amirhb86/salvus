@@ -71,6 +71,8 @@ class Mesh {
   PetscViewer mViewer;
   /** < Holds information used to dump field values to disk. */
 
+  /** The CFL constant for the time-stepping scheme (Newmark 2nd-order sets 1.0)*/
+  double mCFL = 1.0;
 
   std::map<PetscInt, std::string> mBoundaryIds;
   /** < mapping between boundary id
@@ -378,4 +380,6 @@ class Mesh {
   std::vector<std::string> TotalCouplingFields(const PetscInt elm);
   std::vector<PetscInt> EdgeNumbers(const PetscInt elm);
 
+  inline int CFL() { return mCFL; }
+  
 };

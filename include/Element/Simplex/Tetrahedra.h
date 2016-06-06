@@ -270,6 +270,9 @@ class Tetrahedra: public ConcreteShape {
    */
   void attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers);
 
+  
+  
+  
   /**
    * If an element is detected to be on a boundary, apply the Dirichlet condition to the
    * dofs on that boundary.
@@ -307,6 +310,12 @@ class Tetrahedra: public ConcreteShape {
    */
   void setBoundaryConditions(Mesh *mesh);
 
+  double CFL_constant();
+  
+  /** Return the estimated element radius
+   * @return The CFL estimate
+   */
+  double estimatedElementRadius();
   
   /**
    * Simple function to set the (remembered) element number.
@@ -340,3 +349,5 @@ class Tetrahedra: public ConcreteShape {
 
   
 };
+
+
