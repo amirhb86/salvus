@@ -29,14 +29,11 @@ MatrixXd ElasticToAcoustic2D<BasePhysics>::computeSurfaceIntegral(const Ref<cons
   // col0->potential, col1->ux, col2->uy.
   MatrixXd rval = Eigen::MatrixXd::Zero(BasePhysics::NumIntPnt(), 1);
 
-//  if (u.cwiseAbs().maxCoeff() > 0) { std::cout << u << std::endl; }
-
   Vector2d n;
   for (auto e: mEdg) {
     n = BasePhysics::getEdgeNormal(e);
     VectorXd transform = u.rightCols(2) * n;
     rval += BasePhysics::applyTestAndIntegrateEdge(transform, e);
-//    if (rval.hasNaN()) { std::cout << rval << ' ' << u << std::endl; exit(-1); }
   }
 
   return rval;

@@ -77,10 +77,13 @@ void NewmarkGeneral::initialize(Mesh *mesh,
 
 void NewmarkGeneral::solve(Options options) {
 
-  std::set<std::string> push_fields;
+  std::set<std::string> push_fields, pull_fields;
   for (auto &element : mElements) {
     for (auto &f: element->PushElementalFields()) {
       push_fields.insert(f);
+    }
+    for (auto &f: element->PullElementalFields()) {
+      pull_fields.insert(f);
     }
   }
 
@@ -103,9 +106,9 @@ void NewmarkGeneral::solve(Options options) {
   double max_Loo = 0.0;
   while (time < duration) {
     max_Loo = 0.0;
+
     // Collect all global fields to the local partitions.
-//    for (auto &field : mMesh->AllFields()) {
-    for (auto &field : {"u", "vx", "vy", "ux", "uy", "v"}) {
+    for (auto &field : pull_fields) {
       mMesh->checkOutField(field);
     }
 

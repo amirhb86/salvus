@@ -244,8 +244,9 @@ void ExodusModel::readConnectivity() {
 
 }
 
+/* TODO: I am ashamed of this function. I'll change it once we standardize our paramters -mike. */
 double ExodusModel::getElementalMaterialParameterAtVertex(const Eigen::VectorXd &elem_center,
-                                                          const std::string &parameter_name,
+                                                          std::string parameter_name,
                                                           const int vertex_num) const {
   assert(elem_center.size() == mNumberDimension);
 
@@ -255,12 +256,17 @@ double ExodusModel::getElementalMaterialParameterAtVertex(const Eigen::VectorXd 
   kd_res_free(set);
 
   // Get parameter index.
-  int i = 0;
+  bool found = false;
   int parameter_index;
-  std::string full_name = parameter_name + "_" + std::to_string(vertex_num);
-  for (auto &name: mElementalVariableNames) {
-    if (name == full_name) parameter_index = i;
-    i++;
+  while (!found) {
+    int i = 0;
+    std::string full_name = parameter_name + "_" + std::to_string(vertex_num);
+    for (auto &name: mElementalVariableNames) {
+      if (name == full_name) {
+        parameter_index = i; found = true;
+      }
+      i++;
+    } if (!found && parameter_name == "VP") { parameter_name = "VPV"; }
   }
 
   return mElementalVariables[parameter_index * mNumberElements + spatial_index];

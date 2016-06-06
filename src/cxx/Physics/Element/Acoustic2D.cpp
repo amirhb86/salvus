@@ -20,7 +20,7 @@ Acoustic2D<Element>::Acoustic2D(Options options): Element(options) {
 
 template <typename Element>
 void Acoustic2D<Element>::attachMaterialPropertiesNew(const ExodusModel *model) {
-  Element::attachMaterialProperties(model, "VPV");
+  Element::attachMaterialProperties(model, "VP");
 }
 
 template <typename Element>
@@ -44,7 +44,7 @@ template <typename Element>
 MatrixXd Acoustic2D<Element>::computeStress(const Ref<const MatrixXd> &strain) {
 
   // Interpolate the (square) of the velocity at each integration point.
-  mVpSquared = Element::ParAtIntPts("VPV").array().pow(2);
+  mVpSquared = Element::ParAtIntPts("VP").array().pow(2);
 
   // Calculate sigma_ux and sigma_uy.
   mStress.col(0) = mVpSquared.array().cwiseProduct(strain.col(0).array());

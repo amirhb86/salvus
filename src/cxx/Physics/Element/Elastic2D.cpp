@@ -50,48 +50,55 @@ void Elastic2D<Element>::assembleElementMassMatrix(Mesh *mesh) {
 }
 
 template <typename Element>
+MatrixXd Elastic2D<Element>::computeStress(const Eigen::Ref<const Eigen::MatrixXd> &strain) {
+
+  /* TODO: PROPER CONVETION!!!! */
+  /* mc13 & mc23 are currently zero */
+  mc11 = Element::ParAtIntPts("C11");
+  mc12 = Element::ParAtIntPts("C13");
+  mc22 = Element::ParAtIntPts("C33");
+  mc33 = Element::ParAtIntPts("C55");
+
+  Matrix<double,Dynamic,3> stress(Element::NumIntPnt(), 3);
+  VectorXd uxy_plus_uyx = strain.col(1) + strain.col(2);
+
+  stress.col(0) =
+    mc11.array().cwiseProduct(strain.col(0).array()) +
+    mc12.array().cwiseProduct(strain.col(3).array()) +
+    mc13.array().cwiseProduct(uxy_plus_uyx.array());
+
+  stress.col(1) =
+      mc12.array().cwiseProduct(strain.col(0).array()) +
+      mc22.array().cwiseProduct(strain.col(3).array()) +
+      mc23.array().cwiseProduct(uxy_plus_uyx.array());
+
+  stress.col(2) =
+      mc13.array().cwiseProduct(strain.col(0).array()) +
+      mc23.array().cwiseProduct(strain.col(3).array()) +
+      mc33.array().cwiseProduct(uxy_plus_uyx.array());
+
+  return stress;
+
+}
+
+template <typename Element>
 MatrixXd Elastic2D<Element>::computeStiffnessTerm(const Eigen::MatrixXd &u) {
 
   // strain ux_x, ux_y, uy_x, uy_y.
-  mStrain.leftCols(2) = Element::computeGradient(u.col(0));
-  mStrain.rightCols(2) = Element::computeGradient(u.col(1));
+  mStrain.leftCols<2>()  = Element::computeGradient(u.col(0));
+  mStrain.rightCols<2>() = Element::computeGradient(u.col(1));
 
-  /* TODO: PROPER CONVENTION!!!! */
-  mc11 = Element::ParAtIntPts("C11");
-  mc12 = Element::ParAtIntPts("C13");
-//  mc13 = Element::ParAtIntPts("C12");
-  mc22 = Element::ParAtIntPts("C33");
-//  mc23 = Element::ParAtIntPts("C23");
-  mc33 = Element::ParAtIntPts("C55");
+  // compute stress from strain.
+  mStress = computeStress(mStrain);
 
-  Eigen::VectorXd test = mStrain.col(1) + mStrain.col(2);
+  // temporary matrix to hold directional stresses.
+  Matrix<double,Dynamic,2> temp_stress(Element::NumIntPnt(), 2);
 
-  mStress.col(0) =
-      mc11.array().cwiseProduct(mStrain.col(0).array()) +
-      mc12.array().cwiseProduct(mStrain.col(3).array()) +
-      mc13.array().cwiseProduct(test.array());
-
-  mStress.col(1) =
-      mc12.array().cwiseProduct(mStrain.col(0).array()) +
-      mc22.array().cwiseProduct(mStrain.col(3).array()) +
-      mc23.array().cwiseProduct(test.array());
-
-  mStress.col(2) =
-      mc13.array().cwiseProduct(mStrain.col(0).array()) +
-      mc23.array().cwiseProduct(mStrain.col(3).array()) +
-      mc33.array().cwiseProduct(test.array());
-
-
-  Eigen::MatrixXd temp(mStress.rows(), 2);
-  temp.col(0) = mStress.col(0);
-  temp.col(1) = mStress.col(2);
-
-  mStiff.col(0) = Element::applyGradTestAndIntegrate(temp);
-
-  temp.col(0) = mStress.col(2);
-  temp.col(1) = mStress.col(1);
-  mStiff.col(1) = Element::applyGradTestAndIntegrate(temp);
-
+  // compute stiffness.
+  temp_stress.col(0) = mStress.col(0); temp_stress.col(1) = mStress.col(2);
+  mStiff.col(0) = Element::applyGradTestAndIntegrate(temp_stress);
+  temp_stress.col(0) = mStress.col(2); temp_stress.col(1) = mStress.col(1);
+  mStiff.col(1) = Element::applyGradTestAndIntegrate(temp_stress);
 
   return mStiff;
 

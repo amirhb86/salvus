@@ -47,6 +47,7 @@ class Elastic2D: public Shape {
   Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &u);
   Eigen::MatrixXd computeSourceTerm(const double time);
   Eigen::MatrixXd computeSurfaceIntegral(const Eigen::Ref<const Eigen::MatrixXd>& u);
+  Eigen::MatrixXd computeStress(const Eigen::Ref<const Eigen::MatrixXd>& strain);
   void recordField(const Eigen::MatrixXd &u) {};
 
   /**** Test helpers ****/
