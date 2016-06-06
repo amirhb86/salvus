@@ -45,6 +45,7 @@ void AcousticHex3D<Element>::assembleElementMassMatrix(Mesh *mesh) {
 
 }
 
+template <typename Element>
 MatrixXd AcousticHex3D<Element>::computeSurfaceIntegral(const Eigen::Ref<const Eigen::MatrixXd> &u) {
   return Eigen::MatrixXd::Zero(Element::NumIntPnt(), 1);
 }

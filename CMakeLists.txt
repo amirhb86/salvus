@@ -57,13 +57,13 @@ set(SALVUS_SOURCES
         src/cxx/Element/HyperCube/Quad/QuadP1.cpp
         src/cxx/Element/HyperCube/Hexahedra.cpp
         src/cxx/Element/HyperCube/Hex/HexP1.cpp
-        src/cxx/Physics/Acoustic2D.cpp
-        src/cxx/Physics/AcousticTet.cpp
-        src/cxx/Physics/Acoustic3D.cpp
-        src/cxx/Physics/AcousticHex3D.cpp
-        src/cxx/Physics/AcousticHex3D_LF.cpp
-        src/cxx/Physics/Acoustic3D_V.cpp
-        src/cxx/Physics/AcousticTri.cpp
+        src/cxx/Physics/Element/Acoustic2D.cpp
+        src/cxx/Physics/Element/AcousticTet.cpp
+        src/cxx/Physics/Element/Acoustic3D.cpp
+        src/cxx/Physics/Element/AcousticHex3D.cpp
+        src/cxx/Physics/Element/AcousticHex3D_LF.cpp
+        src/cxx/Physics/Element/Acoustic3D_V.cpp
+        src/cxx/Physics/Element/AcousticTri.cpp
         src/cxx/Utilities/kdtree.c
         src/cxx/Utilities/PETScExtensions.c
         src/cxx/Utilities/Logging.cpp

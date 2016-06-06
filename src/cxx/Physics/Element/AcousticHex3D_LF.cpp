@@ -46,6 +46,11 @@ void AcousticHex3D_LF<Element>::assembleElementMassMatrix(Mesh *mesh) {
 }
 
 template <typename Element>
+MatrixXd AcousticHex3D_LF<Element>::computeSurfaceIntegral(const Eigen::Ref<const Eigen::MatrixXd> &u) {
+  return Eigen::MatrixXd::Zero(Element::NumIntPnt(), 1);
+}
+
+template <typename Element>
 double AcousticHex3D_LF<Element>::CFL_estimate() {
   double vpMax = Element::ParAtIntPts("VP").maxCoeff();
   return Element::CFL_constant() * Element::estimatedElementRadius() / vpMax;
