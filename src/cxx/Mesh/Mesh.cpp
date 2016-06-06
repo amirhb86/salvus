@@ -2,6 +2,7 @@
 #include <mpi.h>
 #include <fstream>
 #include <petscviewerhdf5.h>
+#include <stdexcept>
 
 #include <Mesh/Mesh.h>
 #include <Mesh/ScalarNewmark2D.h>

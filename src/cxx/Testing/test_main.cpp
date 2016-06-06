@@ -64,7 +64,7 @@ TEST_CASE("Test whether simple stuff works.", "[element]") {
 
   for (int order = 1; order < max_order+1; order++) {
 
-    std::string num = std::to_string(order);
+    std::string num = std::to_string((long long) order);
 //
 //    // Set up custom command line arguments.
 //    PetscOptionsClear();

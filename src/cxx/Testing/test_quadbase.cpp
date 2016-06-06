@@ -37,7 +37,7 @@ TEST_CASE("test quadbase", "[quad]") {
     int argc = sizeof(arg) / sizeof(const char *) - 1;
 
     PetscOptionsInsert(&argc, &argv, NULL);
-    PetscOptionsSetValue("--polynomial_order", std::to_string(order).c_str());
+    PetscOptionsSetValue("--polynomial_order", std::to_string((long long) order).c_str());
 
     Options options;
     options.setOptions();

@@ -1,6 +1,8 @@
 #include <Model/ExodusModel.h>
 #include <Utilities/Options.h>
 #include <Utilities/Utilities.h>
+#include <stdexcept>
+#include <string>
 
 ExodusModel::ExodusModel(Options options) {
   mExodusFileName = options.ExodusModelFile();
@@ -47,7 +49,7 @@ void ExodusModel::initializeParallel() {
 void ExodusModel::exodusError(const int retval, std::string func_name) {
 
   if (retval) {
-    throw std::runtime_error("Error in exodus function: " + func_name + " with retval " + std::to_string(retval));
+    throw std::runtime_error("Error in exodus function: " + func_name + " with retval " + std::to_string((long long) retval));
   }
 
 }
@@ -257,7 +259,7 @@ double ExodusModel::getElementalMaterialParameterAtVertex(const Eigen::VectorXd 
   // Get parameter index.
   int i = 0;
   int parameter_index;
-  std::string full_name = parameter_name + "_" + std::to_string(vertex_num);
+  std::string full_name = parameter_name + "_" + std::to_string((long long) vertex_num);
   for (auto &name: mElementalVariableNames) {
     if (name == full_name) parameter_index = i;
     i++;

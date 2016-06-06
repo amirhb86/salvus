@@ -43,7 +43,7 @@ TEST_CASE("test_receiver", "[receiver]") {
     int argc = sizeof(arg) / sizeof(const char *) - 1;
 
     PetscOptionsInsert(&argc, &argv, NULL);
-    PetscOptionsSetValue("--polynomial_order", std::to_string(i).c_str());
+    PetscOptionsSetValue("--polynomial_order", std::to_string((long long) i).c_str());
 
     Options options;
     options.setOptions();

@@ -1,3 +1,5 @@
+#include <stdexcept>
+
 #include <Element/Element.h>
 #include <Element/ElementAdapter.h>
 
@@ -71,5 +73,5 @@ std::shared_ptr<Element> Element::Factory(Options options) {
     MPI_Abort(PETSC_COMM_WORLD, -1);
   }
 
-  return nullptr;
+  MPI_Abort(PETSC_COMM_WORLD, -1);
 }
