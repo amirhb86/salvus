@@ -52,10 +52,10 @@ void Elastic3D<Element>::attachMaterialPropertiesNew(const ExodusModel *model) {
 }
 
 template <typename Element>
-std::vector<std::string> Elastic3D<Element>::PullElementalFields() const { return {"ux", "uy", "uz"}; }
+std::vector<std::string> Elastic3D<Element>::PullElementalFields() const { return {"ux", "uy", "uy"}; }
 
 template <typename Element>
-std::vector<std::string> Elastic3D<Element>::PushElementalFields() const { return {"ax", "ay", "az"}; }
+std::vector<std::string> Elastic3D<Element>::PushElementalFields() const { return {"ax", "ay", "ay"}; }
 
 template <typename Element>
 void Elastic3D<Element>::assembleElementMassMatrix(Mesh *mesh) {
@@ -68,9 +68,11 @@ void Elastic3D<Element>::assembleElementMassMatrix(Mesh *mesh) {
 template <typename Element>
 MatrixXd Elastic3D<Element>::computeStiffnessTerm(const Eigen::MatrixXd &u) {
 
+  std::cout << u.cols() << std::endl;
   MatrixXd grad_ux = Element::computeGradient(u.col(0));
   MatrixXd grad_uy = Element::computeGradient(u.col(1));
   MatrixXd grad_uz = Element::computeGradient(u.col(2));
+  return MatrixXd(Element::NumIntPnt(),3);
 
   ArrayXd strain(Element::NumIntPnt(),6);
   strain.col(0) = grad_ux.col(0);

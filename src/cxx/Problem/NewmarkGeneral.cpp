@@ -19,7 +19,7 @@ void NewmarkGeneral::initialize(Mesh *mesh,
   mMesh = mesh;
 
   // Attach elements to mesh.
-  mMesh->setupGlobalDof(1, 3, 9, 0, 2, model);
+  mMesh->setupGlobalDof(1, 2, 4, 8, 3, model);
 
   // Setup boundary conditions from options.
   mMesh->setupBoundaries(options);
@@ -31,8 +31,9 @@ void NewmarkGeneral::initialize(Mesh *mesh,
   // Get a list of all local elements.
   for (PetscInt i = 0; i < mesh->NumberElementsLocal(); i++) {
     mElements.push_back(Element::Factory(mesh->ElementFields(i),
-                                         mesh->TotalCouplingFields(i),
-                                         options));
+                                         {}, options));
+//                                         mesh->TotalCouplingFields(i),
+//                                         options));
   }
 
   // Get a list of all sources and receivers.
@@ -52,8 +53,10 @@ void NewmarkGeneral::initialize(Mesh *mesh,
     // Set boundary conditions.
     element->setBoundaryConditions(mMesh);
 
+  //  std::cout << mesh->NumberElementsLocal() - element_number << std::endl;
     // Add material parameters (velocity, Cij, etc...).
     element->attachMaterialProperties(model);
+   // std::cout << mesh->NumberElementsLocal() - element_number << std::endl;
 
     // Assemble the (elemental) mass matrix.
     element->assembleElementMassMatrix(mMesh);
@@ -64,6 +67,8 @@ void NewmarkGeneral::initialize(Mesh *mesh,
 
     // Prepare stiffness terms.
     element->prepareStiffness();
+
+    std::cout << mesh->NumberElementsLocal() - element_number << std::endl;
 
   }
 
@@ -145,6 +150,7 @@ void NewmarkGeneral::solve(Options options) {
       ku.leftCols(num_push_fields) =
         element->computeStiffnessTerm(u.leftCols(num_pull_fields));
 
+      return;
       // Compute source term.
       f.leftCols(num_push_fields) = element->computeSourceTerm(time);
 
@@ -182,7 +188,7 @@ void NewmarkGeneral::solve(Options options) {
 
     if (options.SaveMovie() && (it % options.SaveFrameEvery() == 0 || it == 0)) {
       // GlobalFields[0] == "u" for acoustic and == "ux" for elastic
-      if(MPI::COMM_WORLD.Get_rank() == 0) printf("Saving frame %d\n",it);
+      // if(MPI::COMM_WORLD.Get_rank() == 0) printf("Saving frame %d\n",it);
       mMesh->saveFrame("u", it_movie);
       mMesh->saveFrame("ux", it_movie);
       it_movie++;

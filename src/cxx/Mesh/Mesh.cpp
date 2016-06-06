@@ -567,6 +567,7 @@ Eigen::VectorXd Mesh::getFieldOnElement(const std::string &name, const int &elem
                                         const Eigen::VectorXi &closure) {
 
   PetscScalar *val = NULL;
+  std::cout << name << std::endl;
   Eigen::VectorXd field(closure.size());
   DMPlexVecGetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
                       element_number, NULL, &val);

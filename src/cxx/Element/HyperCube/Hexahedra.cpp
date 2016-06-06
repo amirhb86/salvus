@@ -920,6 +920,7 @@ MatrixXd Hexahedra<ConcreteHex>::computeGradient(const Ref<const VectorXd> &fiel
           refGrad(1) += mGrd(s_ind,i)*field(r_ind + i * mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS);
           refGrad(2) += mGrd(t_ind,i)*field(r_ind + s_ind * mNumIntPtsR + i * mNumIntPtsR * mNumIntPtsS);
         }
+        std::cout << "HERE: " << mInvJac.size() << ' ' << mGradWork.size() << std::endl;
         
         mGradWork.row(index) = mInvJac[index] * refGrad;        
 
