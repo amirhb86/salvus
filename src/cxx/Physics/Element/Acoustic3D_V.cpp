@@ -47,7 +47,7 @@ template <typename Element>
 MatrixXd Acoustic3D_V<Element>::computeStress(const Ref<const MatrixXd> &strain) {
 
   // Interpolate the (square) of the velocity at each integration point.
-  mVpSquared = Element::ParAtIntPts("VPV").array().pow(2);
+//  mVpSquared = Element::ParAtIntPts("VPV").array().pow(2);
 
   // Calculate sigma_ux and sigma_uy.
   mStress.col(0) = mVpSquared.array().cwiseProduct(strain.col(0).array());
@@ -55,6 +55,12 @@ MatrixXd Acoustic3D_V<Element>::computeStress(const Ref<const MatrixXd> &strain)
   mStress.col(2) = mVpSquared.array().cwiseProduct(strain.col(2).array());
   return mStress;
 
+}
+
+template <typename Element>
+void Acoustic3D_V<Element>::prepareStiffness() {
+  Element::precomputeConstants();
+  mVpSquared = Element::ParAtIntPts("VP").array().pow(2);
 }
 
 template <typename Element>
