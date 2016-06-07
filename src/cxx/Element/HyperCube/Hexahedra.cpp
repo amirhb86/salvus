@@ -736,13 +736,10 @@ double Hexahedra<ConcreteHex>::estimatedElementRadius() {
         // Optimized gradient for tensorized GLL basis.
         std::tie(invJ, detJ) = ConcreteHex::inverseJacobianAtPoint(r, s, t, mVtxCrd);
         Matrix3d J = invJ.inverse();
-        VectorXcd eivals = J.eigenvalues();
+        Vector3d eivals_abs = J.eigenvalues().array().abs();
         // get minimum h (smallest direction)
-        Vector3d eivals_norm;
-        for(int i=0;i<3;i++) {
-          eivals_norm(i) = std::norm(eivals[i]);
-        }
-        h_pts(index) = eivals_norm.minCoeff();
+
+        h_pts(index) = eivals_abs.minCoeff();
       }
     }
   }

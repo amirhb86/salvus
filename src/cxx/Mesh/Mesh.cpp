@@ -713,7 +713,6 @@ Eigen::MatrixXd Mesh::getElementCoordinateClosure(PetscInt elem_num) {
   }
 
   DMPlexVecRestoreClosure(mDistributedMesh, coord_section, coord, elem_num, &coord_buf_size, &coord_buf);
-
   return vtx;
 
 }

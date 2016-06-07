@@ -69,7 +69,6 @@ void NewmarkGeneral::initialize(Mesh *mesh,
     element->prepareStiffness();
 
     // Save CFL estimate.
-    LOG() << element->CFL_estimate();
     h_all(element_number - 1) = element->CFL_estimate();
 
   }

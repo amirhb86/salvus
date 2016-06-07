@@ -142,7 +142,6 @@ MatrixXd Elastic3D<Element>::computeSourceTerm(const double time) {
 template <typename Element>
 double Elastic3D<Element>::CFL_estimate() {
   double vpMax = Element::ParAtIntPts("VPV").maxCoeff();
-  LOG() << "RAD: " << Element::estimatedElementRadius();
   return Element::CFL_constant() * Element::estimatedElementRadius() / vpMax;
 }
 

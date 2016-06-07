@@ -380,6 +380,6 @@ class Mesh {
   std::vector<std::string> TotalCouplingFields(const PetscInt elm);
   std::vector<PetscInt> EdgeNumbers(const PetscInt elm);
 
-  inline int CFL() { return mCFL; }
+  inline double CFL() { return mCFL; }
   
 };
