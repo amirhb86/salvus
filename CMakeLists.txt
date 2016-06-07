@@ -42,7 +42,8 @@ set(SALVUS_SOURCES
         src/cxx/Mesh/ElasticNewmark2D.cpp
         src/cxx/Mesh/ScalarNewmark2D.cpp
         src/cxx/Mesh/ScalarLeapFrog4th.cpp
-		src/cxx/Mesh/ElasticAcoustic2D.cpp
+        src/cxx/Mesh/ElasticAcousticNewmark2D.cpp
+        src/cxx/Mesh/ElasticAcousticNewmark3D.cpp
         src/cxx/Element/Simplex/Triangle.cpp
         src/cxx/Element/Simplex/Triangle/TriP1.cpp
         src/cxx/Element/Simplex/Tetrahedra.cpp
