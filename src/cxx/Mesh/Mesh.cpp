@@ -7,6 +7,7 @@
 #include <Mesh/ScalarNewmark2D.h>
 #include <Mesh/ElasticNewmark2D.h>
 #include <Mesh/ElasticAcousticNewmark2D.h>
+#include <Mesh/ElasticAcousticNewmark3D.h>
 #include <Model/ExodusModel.h>
 #include <Utilities/Options.h>
 #include <Utilities/Utilities.h>
@@ -42,6 +43,8 @@ Mesh *Mesh::factory(Options options) {
       return new ElasticNewmark2D();
     } else if (mesh_type == "2d_couple") {
       return new ElasticAcousticNewmark2D();
+    } else if (mesh_type == "3d_couple") {
+      return new ElasticAcousticNewmark3D();
     } else {
       throw std::runtime_error("Runtime Error: Mesh type " + mesh_type + " not supported");
     }

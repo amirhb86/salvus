@@ -1005,7 +1005,7 @@ VectorXd Hexahedra<ConcreteHex>::applyGradTestAndIntegrate(const Ref<const Matri
       }
     }
   }
-  
+
   for (int t_ind = 0; t_ind < mNumIntPtsS; t_ind++) {
     for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
       for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
@@ -1229,7 +1229,7 @@ double Hexahedra<ConcreteHex>::integrateField(const Eigen::Ref<const Eigen::Vect
         std::tie(inverse_Jacobian, detJ) = ConcreteHex::inverseJacobianAtPoint(r, s, t, mVtxCrd);
         int index = r_ind + s_ind * mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS;
         val += field(index) * mIntWgtR(r_ind) *
-          mIntWgtS(s_ind) * mIntWgtR(r_ind) * detJ;
+          mIntWgtS(s_ind) * mIntWgtT(t_ind) * detJ;
         
       }
     }

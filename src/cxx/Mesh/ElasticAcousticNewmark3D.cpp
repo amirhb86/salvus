@@ -1,6 +1,6 @@
-#include <Mesh/ElasticAcousticNewmark2D.h>
+#include <Mesh/ElasticAcousticNewmark3D.h>
 
-void ElasticAcousticNewmark2D::advanceField(double dt) {
+void ElasticAcousticNewmark3D::advanceField(double dt) {
 
   double pre_factor_acceleration = (1.0/2.0) * dt;
   double pre_factor_displacement = (1.0/2.0) * (dt * dt);
@@ -30,7 +30,7 @@ void ElasticAcousticNewmark2D::advanceField(double dt) {
 
 }
 
-void ElasticAcousticNewmark2D::applyInverseMassMatrix() {
+void ElasticAcousticNewmark3D::applyInverseMassMatrix() {
 
   if (mFields.find("mi") == mFields.end()) {
     registerFieldVectors("mi");
@@ -42,6 +42,8 @@ void ElasticAcousticNewmark2D::applyInverseMassMatrix() {
                    mFields["ax"].glb);
   VecPointwiseMult(mFields["ay"].glb, mFields["mi"].glb,
                    mFields["ay"].glb);
+  VecPointwiseMult(mFields["az"].glb, mFields["mi"].glb,
+                   mFields["az"].glb);
   VecPointwiseMult(mFields["a"].glb, mFields["mi"].glb,
                    mFields["a"].glb);
 

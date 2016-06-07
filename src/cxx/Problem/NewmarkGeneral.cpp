@@ -97,10 +97,12 @@ void NewmarkGeneral::solve(Options options) {
 
   std::set<std::string> push_fields, pull_fields;
   for (auto &element : mElements) {
-    for (auto &f: {"a", "ax", "ay"}) {
+//    for (auto &f: {"a", "ax", "ay"}) {
+    for (auto &f: {"a", "ax", "ay", "az"}) {
       push_fields.insert(f);
     }
-    for (auto &f: {"vx", "vy", "v", "ux", "uy", "u"}) {
+//    for (auto &f: {"vx", "vy", "v", "ux", "uy", "u"}) {
+    for (auto &f: {"vx", "vy", "vz", "v", "ux", "uy", "uz", "u"}) {
       pull_fields.insert(f);
     }
   }
@@ -162,6 +164,7 @@ void NewmarkGeneral::solve(Options options) {
       ku.leftCols(num_push_fields) =
         element->computeStiffnessTerm(u.leftCols(num_pull_fields));
 
+
       // Compute source term.
       f.leftCols(num_push_fields) = element->computeSourceTerm(time);
 
@@ -181,6 +184,10 @@ void NewmarkGeneral::solve(Options options) {
         fitr++;
       }
     }
+
+//    if (it > 0)
+//    exit(0);
+
 
     PetscInt rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     if(options.DisplayDiagnostics() && (it % options.DisplayDiagnosticsEvery() == 0 || it == 0)) {

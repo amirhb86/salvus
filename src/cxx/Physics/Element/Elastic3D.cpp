@@ -46,17 +46,17 @@ void Elastic3D<Element>::attachMaterialPropertiesNew(const ExodusModel *model) {
   mc55 = mRho * Element::ParAtIntPts("VSV").array().pow(2);
   mc66 = mRho * Element::ParAtIntPts("VSH").array().pow(2);
 
-  mc12 = mc22 - 2 * mc66;
-  mc13 = Element::ParAtIntPts("ETA").array() * (mc33 - 2 * mc66).array();
-  mc23 = Element::ParAtIntPts("ETA").array() * (mc33 - 2 * mc66).array();
+//  mc12 = mc22 - 2 * mc66;
+//  mc13 = Element::ParAtIntPts("ETA").array() * (mc33 - 2 * mc66).array();
+//  mc23 = Element::ParAtIntPts("ETA").array() * (mc33 - 2 * mc66).array();
 
 }
 
 template <typename Element>
-std::vector<std::string> Elastic3D<Element>::PullElementalFields() const { return {"ux", "uy", "uy"}; }
+std::vector<std::string> Elastic3D<Element>::PullElementalFields() const { return {"ux", "uy", "uz"}; }
 
 template <typename Element>
-std::vector<std::string> Elastic3D<Element>::PushElementalFields() const { return {"ax", "ay", "ay"}; }
+std::vector<std::string> Elastic3D<Element>::PushElementalFields() const { return {"ax", "ay", "az"}; }
 
 template <typename Element>
 void Elastic3D<Element>::assembleElementMassMatrix(Mesh *mesh) {
@@ -69,10 +69,18 @@ void Elastic3D<Element>::assembleElementMassMatrix(Mesh *mesh) {
 template <typename Element>
 MatrixXd Elastic3D<Element>::computeStiffnessTerm(const Eigen::MatrixXd &u) {
 
+
   MatrixXd grad_ux = Element::computeGradient(u.col(0));
   MatrixXd grad_uy = Element::computeGradient(u.col(1));
   MatrixXd grad_uz = Element::computeGradient(u.col(2));
-  return MatrixXd(Element::NumIntPnt(),3);
+
+  if (u.cwiseAbs().maxCoeff() > 0) {
+//    std::cout << "NUM: " << Element::ElmNum() << "\n";
+//    std::cout << u << std::endl;
+//    std::cout << mRho << std::endl;
+  }
+
+
 
   ArrayXd strain(Element::NumIntPnt(),6);
   strain.col(0) = grad_ux.col(0);
@@ -86,7 +94,7 @@ MatrixXd Elastic3D<Element>::computeStiffnessTerm(const Eigen::MatrixXd &u) {
   /* s_xx, s_yy, s_zz, s_yz, s_xz, s_xy */
   Array<double,Dynamic,6> stress = computeStress(strain);
 
-  Matrix<double,Dynamic,3> stress_col, stiff;
+  Matrix<double,Dynamic,3> stress_col(Element::NumIntPnt(), 3), stiff(Element::NumIntPnt(), 3);
 
   // sigma_x* -> ux
   stress_col.col(0) = stress.col(0); stress_col.col(1) = stress.col(5); stress_col.col(2) = stress.col(4);
@@ -97,7 +105,7 @@ MatrixXd Elastic3D<Element>::computeStiffnessTerm(const Eigen::MatrixXd &u) {
   stiff.col(1) = Element::applyGradTestAndIntegrate(stress_col);
 
   // sigma_z* -> uz
-  stress_col.col(0) = stress.col(4); stress_col.col(1) = stress.col(5); stress_col.col(3) = stress.col(2);
+  stress_col.col(0) = stress.col(4); stress_col.col(1) = stress.col(5); stress_col.col(2) = stress.col(2);
   stiff.col(2) = Element::applyGradTestAndIntegrate(stress_col);
 
   return stiff;
@@ -119,6 +127,12 @@ Array<double,Dynamic,6> Elastic3D<Element>::computeStress(const Eigen::Ref<const
   stress.col(3) = mc44 * strain.col(3);
   stress.col(4) = mc55 * strain.col(4);
   stress.col(5) = mc66 * strain.col(5);
+
+//  if (stress.cwiseAbs().maxCoeff() > 0) {
+//    std::cout << "NUM: " << Element::ElmNum() << "\n";
+//    std::cout << stress << std::endl;
+////    std::cout << mRho << std::endl;
+//  }
 
   return stress;
 
