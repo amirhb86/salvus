@@ -24,7 +24,7 @@ Logger::~Logger() {
       }      
     }    
   }
-  else {
+  else if (GLOBAL_LOGGER_STATE.proc == LogProc::ALLPROCS) {
     if(level == GLOBAL_LOGGER_STATE.level) {
       std::cout << "proc(" << rank << "): " << os.str() << std::endl;
     }

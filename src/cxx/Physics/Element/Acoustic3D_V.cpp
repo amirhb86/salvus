@@ -33,6 +33,12 @@ template <typename Element>
 std::vector<std::string> Acoustic3D_V<Element>::PushElementalFields() const { return { "a" }; }
 
 template <typename Element>
+double Acoustic3D_V<Element>::CFL_estimate() {
+  double vpMax = Element::ParAtIntPts("VPV").maxCoeff();
+  return Element::CFL_constant() * Element::estimatedElementRadius() / vpMax;
+}
+
+template <typename Element>
 void Acoustic3D_V<Element>::assembleElementMassMatrix(Mesh *mesh) {
 
   // In this acoustic formulation we just multiply shape functions together.
@@ -60,7 +66,7 @@ MatrixXd Acoustic3D_V<Element>::computeStress(const Ref<const MatrixXd> &strain)
 template <typename Element>
 void Acoustic3D_V<Element>::prepareStiffness() {
   Element::precomputeConstants();
-  mVpSquared = Element::ParAtIntPts("VP").array().pow(2);
+  mVpSquared = Element::ParAtIntPts("VPV").array().pow(2);
 }
 
 template <typename Element>

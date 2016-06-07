@@ -7,13 +7,14 @@
 #include <Receiver/Receiver.h>
 #include <Model/ExodusModel.h>
 #include <Utilities/Options.h>
+#include <Utilities/Logging.h>
 #include <Problem/NewmarkGeneral.h>
 
 using namespace Eigen;
 
 void NewmarkGeneral::initialize(Mesh *mesh,
                                 ExodusModel *model,
-                                Options options) {
+                                Options &options) {
 
   // Save references to mesh and element base.
   mMesh = mesh;
@@ -41,6 +42,7 @@ void NewmarkGeneral::initialize(Mesh *mesh,
   mRecs = Receiver::factory(options);
 
   // Set up elements.
+  Eigen::VectorXd h_all(mElements.size());
   int element_number = 0;
   for (auto &element : mElements) {
 
@@ -53,10 +55,8 @@ void NewmarkGeneral::initialize(Mesh *mesh,
     // Set boundary conditions.
     element->setBoundaryConditions(mMesh);
 
-  //  std::cout << mesh->NumberElementsLocal() - element_number << std::endl;
     // Add material parameters (velocity, Cij, etc...).
     element->attachMaterialProperties(model);
-   // std::cout << mesh->NumberElementsLocal() - element_number << std::endl;
 
     // Assemble the (elemental) mass matrix.
     element->assembleElementMassMatrix(mMesh);
@@ -68,9 +68,22 @@ void NewmarkGeneral::initialize(Mesh *mesh,
     // Prepare stiffness terms.
     element->prepareStiffness();
 
-    std::cout << mesh->NumberElementsLocal() - element_number << std::endl;
+    // Save CFL estimate.
+    LOG() << element->CFL_estimate();
+    h_all(element_number - 1) = element->CFL_estimate();
 
   }
+  
+  /**** Time step ****/
+  auto dt = mesh->CFL() * h_all.minCoeff();
+  // if timestep not set from command line
+  if(options.TimeStep() <= 0) {
+//    options.SetTimeStep(dt);
+    LOG() << "Suggested dt = " << options.TimeStep();    
+  } else {
+    LOG() << "Suggested dt = " << dt << " vs. Commandline dt = " << options.TimeStep();
+  }
+  /**** END NEW TIME STEP ****/
 
   // Scatter the mass matrix to the global dofs.
   mMesh->checkInFieldBegin("m");
@@ -150,7 +163,6 @@ void NewmarkGeneral::solve(Options options) {
       ku.leftCols(num_push_fields) =
         element->computeStiffnessTerm(u.leftCols(num_pull_fields));
 
-      return;
       // Compute source term.
       f.leftCols(num_push_fields) = element->computeSourceTerm(time);
 

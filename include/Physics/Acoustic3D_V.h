@@ -43,7 +43,7 @@ class Acoustic3D_V: public Shape {
   void prepareStiffness();
   void assembleElementMassMatrix(Mesh *mesh);
   void attachMaterialPropertiesNew(const ExodusModel *model);
-  double CFL_estimate() {}
+  double CFL_estimate();
   
   /**** Time loop functions ****/
   Eigen::MatrixXd computeStress(const Eigen::Ref<const Eigen::MatrixXd>& strain);
