@@ -214,11 +214,20 @@ void NewmarkGeneral::solve(Options options) {
 
     it++;
     time += timeStep;
+<<<<<<< Updated upstream
     if (rank == 0) std::cout << "TIME: " << time << "\r";
 
   int rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
   if (!rank)
   printf("Time elapsed: %f\n", ((double)clock() - time_start) / CLOCKS_PER_SEC);
+=======
+<<<<<<< Updated upstream
+    if (rank == 0) std::cout << "TIME: " << time << std::endl;
+=======
+    if (rank == 0) std::cout << "TIME: " << time << "\n";
+>>>>>>> Stashed changes
+  }
+>>>>>>> Stashed changes
 
   if (options.SaveMovie()) mMesh->finalizeMovie();
 
