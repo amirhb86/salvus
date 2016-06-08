@@ -214,7 +214,8 @@ void NewmarkGeneral::solve(Options options) {
 
     it++;
     time += timeStep;
-    if (rank == 0) std::cout << "TIME: " << time << "\r";
+    //if (rank == 0) std::cout << "TIME: " << time << "\r";
+    if (rank == 0) std::cout << "TIME: " << time << std::endl;
   }
 
   int rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
