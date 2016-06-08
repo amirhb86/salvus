@@ -679,6 +679,8 @@ void Mesh::setUpMovie(const std::string &movie_filename) {
 
 void Mesh::saveFrame(std::string name, PetscInt timestep) {
 
+  int rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+  if (!rank) std::cout << "SAVING FRAME: " << name << ' ' << timestep << std::endl;
   DMSetOutputSequenceNumber(mDistributedMesh, timestep, timestep);
   int ierr = VecView(mFields[name].glb, mViewer);
   if (ierr > 0) {

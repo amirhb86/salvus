@@ -40,7 +40,6 @@ void Acoustic3D<Element>::assembleElementMassMatrix(Mesh *mesh) {
   
   // Sum up into global DOFs.  
   mesh->addFieldFromElement("m", Element::ElmNum(), Element::ClsMap(), mass_matrix);
-
 }
 
 template <typename Element>

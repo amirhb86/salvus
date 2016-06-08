@@ -23,6 +23,10 @@ void ElasticAcousticNewmark2D::advanceField(double dt) {
   VecCopy(mFields["ay"].glb, mFields["ay_"].glb);
   VecCopy(mFields["a"].glb, mFields["a_"].glb);
 
+  double max_ux, max_u;
+  VecMax(mFields["ux"].glb, NULL, &max_ux); VecMax(mFields["u"].glb, NULL, &max_u);
+  std::cout << "MAX: " << max_ux << ' ' << max_u << std::endl;
+
 }
 
 void ElasticAcousticNewmark2D::applyInverseMassMatrix() {

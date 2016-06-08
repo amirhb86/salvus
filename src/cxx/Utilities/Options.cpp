@@ -165,6 +165,9 @@ PetscErrorCode Options::setOptions() {
     else mProblemType = "newmark_general";
   }
 
+  if (mMeshType == "2d_couple") { mDimension = 2; }
+  else if (mMeshType == "3d_couple") { mDimension = 3; }
+
   // No error
   return 0;
 }

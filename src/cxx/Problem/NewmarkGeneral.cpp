@@ -20,7 +20,11 @@ void NewmarkGeneral::initialize(Mesh *mesh,
   mMesh = mesh;
 
   // Attach elements to mesh.
-  mMesh->setupGlobalDof(1, 2, 4, 8, 3, model);
+  if (options.Dimension() == 2) {
+    mMesh->setupGlobalDof(1, 3, 9, 0, 2, model);
+  } else if (options.Dimension() == 3) {
+    mMesh->setupGlobalDof(1, 2, 4, 8, 3, model);
+  }
 
   // Setup boundary conditions from options.
   mMesh->setupBoundaries(options);
@@ -30,12 +34,14 @@ void NewmarkGeneral::initialize(Mesh *mesh,
     mMesh->registerFieldVectors(field);
   }
   // Get a list of all local elements.
+
   for (PetscInt i = 0; i < mesh->NumberElementsLocal(); i++) {
     mElements.push_back(Element::Factory(mesh->ElementFields(i),
-                                         {}, options));
-//                                         mesh->TotalCouplingFields(i),
-//                                         options));
+//                                         {}, options));
+                                         mesh->TotalCouplingFields(i),
+                                         options));
   }
+
 
   // Get a list of all sources and receivers.
   auto sources = Source::factory(options);
@@ -96,15 +102,12 @@ void NewmarkGeneral::initialize(Mesh *mesh,
 void NewmarkGeneral::solve(Options options) {
 
   std::set<std::string> push_fields, pull_fields;
-  for (auto &element : mElements) {
-//    for (auto &f: {"a", "ax", "ay"}) {
-    for (auto &f: {"a", "ax", "ay", "az"}) {
-      push_fields.insert(f);
-    }
-//    for (auto &f: {"vx", "vy", "v", "ux", "uy", "u"}) {
-    for (auto &f: {"vx", "vy", "vz", "v", "ux", "uy", "uz", "u"}) {
-      pull_fields.insert(f);
-    }
+  if (options.MeshType() == "3d_couple") {
+    push_fields = {"a", "ax", "ay", "az"};
+    pull_fields = {"vx", "vy", "vz", "v", "ux", "uy", "uz", "u"};
+  } else if (options.MeshType() == "2d_couple") {
+    push_fields = {"a", "ax", "ay"};
+    pull_fields = {"vx", "vy", "v", "ux", "uy", "u"};
   }
 
   // Setup values.
@@ -150,10 +153,10 @@ void NewmarkGeneral::solve(Options options) {
       int fitr = 0;
       for (auto &field : element->PullElementalFields()) {
         u.col(fitr) = mMesh->getFieldOnElement(field, element->Num(),
-                                               element->ClsMap());        
+                                               element->ClsMap());
         fitr++;
-        if(options.DisplayDiagnostics() && (it % options.DisplayDiagnosticsEvery() == 0 || it == 0)) {
-          max_Loo = fmax(max_Loo,u.col(fitr-1).array().abs().maxCoeff());
+        if (options.DisplayDiagnostics() && (it % options.DisplayDiagnosticsEvery() == 0 || it == 0)) {
+          max_Loo = fmax(max_Loo, u.col(fitr - 1).array().abs().maxCoeff());
         }
       }
 
@@ -162,7 +165,7 @@ void NewmarkGeneral::solve(Options options) {
 
       // Compute stiffness, only passing those rows which are occupied.
       ku.leftCols(num_push_fields) =
-        element->computeStiffnessTerm(u.leftCols(num_pull_fields));
+          element->computeStiffnessTerm(u.leftCols(num_pull_fields));
 
 
       // Compute source term.
@@ -173,7 +176,7 @@ void NewmarkGeneral::solve(Options options) {
 
       // Compute acceleration.
       fMinusKu.leftCols(num_push_fields) = f.leftCols(num_push_fields).array() -
-        ku.leftCols(num_push_fields).array() + s.leftCols(num_push_fields).array();
+          ku.leftCols(num_push_fields).array() + s.leftCols(num_push_fields).array();
 
       // Sum fields into local partition.
       fitr = 0;
@@ -189,11 +192,12 @@ void NewmarkGeneral::solve(Options options) {
 //    exit(0);
 
 
-    PetscInt rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-    if(options.DisplayDiagnostics() && (it % options.DisplayDiagnosticsEvery() == 0 || it == 0)) {
-    //  if(rank == 0) printf("|u|_oo=%f @ time=%f (%f%%)\n",max_Loo,time,100*(time/duration));
+    PetscInt rank;
+    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+    if (options.DisplayDiagnostics() && (it % options.DisplayDiagnosticsEvery() == 0 || it == 0)) {
+      //  if(rank == 0) printf("|u|_oo=%f @ time=%f (%f%%)\n",max_Loo,time,100*(time/duration));
     }
-    
+
     // Sum fields into global partitions.
     for (auto &field : push_fields) {
       mMesh->checkInFieldBegin(field);
@@ -206,7 +210,6 @@ void NewmarkGeneral::solve(Options options) {
 
     if (options.SaveMovie() && (it % options.SaveFrameEvery() == 0 || it == 0)) {
       // GlobalFields[0] == "u" for acoustic and == "ux" for elastic
-      // if(MPI::COMM_WORLD.Get_rank() == 0) printf("Saving frame %d\n",it);
       mMesh->saveFrame("u", it_movie);
       mMesh->saveFrame("ux", it_movie);
       it_movie++;
@@ -214,20 +217,13 @@ void NewmarkGeneral::solve(Options options) {
 
     it++;
     time += timeStep;
-<<<<<<< Updated upstream
-    if (rank == 0) std::cout << "TIME: " << time << "\r";
+    if (rank == 0) std::cout << "TIME: " << time << "\n" << std::flush;
+
+  }
 
   int rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
   if (!rank)
-  printf("Time elapsed: %f\n", ((double)clock() - time_start) / CLOCKS_PER_SEC);
-=======
-<<<<<<< Updated upstream
-    if (rank == 0) std::cout << "TIME: " << time << std::endl;
-=======
-    if (rank == 0) std::cout << "TIME: " << time << "\n";
->>>>>>> Stashed changes
-  }
->>>>>>> Stashed changes
+    printf("Time elapsed: %f\n", ((double)clock() - time_start) / CLOCKS_PER_SEC);
 
   if (options.SaveMovie()) mMesh->finalizeMovie();
 

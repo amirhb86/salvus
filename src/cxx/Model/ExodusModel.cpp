@@ -300,7 +300,9 @@ std::string ExodusModel::getElementType(const Eigen::VectorXd &elem_center) {
   auto type = mElementalVariables[parameter_index * mNumberElements + spatial_index];
   if (type == 1) {
     return "fluid";
-  } else {
+  } else if (mNumberDimension == 2) {
+    return "2delastic";
+  } else if (mNumberDimension == 3) {
     return "3delastic";
   }
 }

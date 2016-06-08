@@ -81,16 +81,16 @@ std::shared_ptr<Element> Element::Factory(const std::vector<std::string>& physic
       } else {
         throw std::runtime_error("Runtime Error: Element physics " + options.PhysicsSystem() + " not supported.");
       }
-    }      
+    }
     else if (options.ElementShape() == "hex_new") {
       if (physics_base == acoustic_fields) {
-        if (!physics_couple.size()) {
+//        if (!physics_couple.size()) {
           return std::make_shared<AcousticVHexP1>(options);
-        }
+//        }
       } else if (physics_base == elastic_3d_fields) {
-        if (!physics_couple.size()) {
+//        if (!physics_couple.size()) {
           return std::make_shared<ElasticHexP1>(options);
-        }
+//        }
       }
       if (options.PhysicsSystem() == "acoustic") {
         return std::make_shared<AcousticHexP1>(options);

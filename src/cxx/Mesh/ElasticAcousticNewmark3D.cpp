@@ -28,6 +28,10 @@ void ElasticAcousticNewmark3D::advanceField(double dt) {
   VecCopy(mFields["az"].glb, mFields["az_"].glb);
   VecCopy(mFields["a"].glb, mFields["a_"].glb);
 
+  double max_ux, max_u;
+  VecMax(mFields["ux"].glb, NULL, &max_ux); VecMax(mFields["u"].glb, NULL, &max_u);
+  std::cout << "MAX3D: " << max_ux << ' ' << max_u << std::endl;
+
 }
 
 void ElasticAcousticNewmark3D::applyInverseMassMatrix() {
@@ -46,5 +50,8 @@ void ElasticAcousticNewmark3D::applyInverseMassMatrix() {
                    mFields["az"].glb);
   VecPointwiseMult(mFields["a"].glb, mFields["mi"].glb,
                    mFields["a"].glb);
+
+  double max_ux, max_u;
+  VecMin(mFields["mi"].glb, NULL, &max_ux); VecMax(mFields["u"].glb, NULL, &max_u);
 
 }
