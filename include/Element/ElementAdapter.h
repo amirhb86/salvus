@@ -211,6 +211,8 @@ class ElementAdapter: public Element, public T {
   inline int NumDofVtx() const { return T::NumDofVtx(); }
   /** How many integration point on this element. */
   inline int NumIntPnt() const { return T::NumIntPnt(); }
+  /** Element vertices. */
+  inline Eigen::MatrixXd VtxCrd() const { return T::VtxCrd(); }
   /** What is the closure map on this element. */
   virtual inline Eigen::VectorXi ClsMap() const { return T::ClsMap(); }
   ///@}

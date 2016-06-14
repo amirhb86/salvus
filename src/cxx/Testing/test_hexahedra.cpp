@@ -432,7 +432,7 @@ TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
   hex0->SetNum(0);
   hex0->attachVertexCoordinates(mesh->DistributedMesh());    
   VectorXd pts0_x,pts0_y,pts0_z;
-  std::tie(pts0_x,pts0_y,pts0_z) = hex0->buildNodalPoints();
+  std::tie(pts0_x,pts0_y,pts0_z) = HexP1::buildNodalPoints(rn, sn, tn, hex0->VtxCrd());
   
   for(int i=0;i<pts0_x.size();i++) {
     double x = five_places(pts0_x[i]);
@@ -461,7 +461,7 @@ TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
       // Get vertex coordinates from the PETSc DMPLEX.
       hex->attachVertexCoordinates(mesh->DistributedMesh());
       
-      std::tie(pts_x,pts_y,pts_z) = hex->buildNodalPoints();
+      std::tie(pts_x,pts_y,pts_z) = HexP1::buildNodalPoints(rn, sn, tn, element_gen->VtxCrd());
       // if(hex->Num() == 0) {
       //   std::cout << "pts_x=" << pts_x.transpose() << "\n";
       //   std::cout << "pts_y=" << pts_y.transpose() << "\n";
@@ -494,7 +494,7 @@ TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
     
     one_at_one_node = mesh->getFieldOnElement("u", hex_test->Num(),
                                               hex_test->ClsMap());
-    std::tie(pts_x,pts_y,pts_z) = hex_test->buildNodalPoints();
+    std::tie(pts_x,pts_y,pts_z) = HexP1::buildNodalPoints(rn, sn, tn, hex_test->VtxCrd());
     for(int i=0;i<pts_x.size();i++) {
       // find node that is close;
       if( sqrt(pow(pts_x(i)-x_test,2.0) + pow(pts_y(i) - y_test,2.0) + pow(pts_z(i) - z_test,2.0) ) < 1e-2) {

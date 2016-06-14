@@ -305,6 +305,7 @@ private:
   inline int NumDofEdg() const { return mNumDofEdg; }
   inline int NumDofVtx() const { return mNumDofVtx; }
   inline Eigen::MatrixXi ClsMap() const { return mClsMap; }
+  inline Eigen::MatrixXd VtxCrd() const { return mVtxCrd; }
   std::vector<std::shared_ptr<Source>> Sources() { return mSrc; }
 
   // Delegates.
