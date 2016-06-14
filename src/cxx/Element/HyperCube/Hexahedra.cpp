@@ -40,10 +40,10 @@ std::ostream& operator<< (std::ostream& out, const std::vector<T>& v) {
 }
 
 template <typename ConcreteHex>
-Hexahedra<ConcreteHex>::Hexahedra(Options options) {
+Hexahedra<ConcreteHex>::Hexahedra(std::unique_ptr<Options> const &options) {
 
   // Basic properties.
-  mPlyOrd = options.PolynomialOrder();
+  mPlyOrd = options->PolynomialOrder();
   
   // Gll points.
   mNumDofVtx = 1;
@@ -1252,12 +1252,13 @@ void Hexahedra<ConcreteHex>::setBoundaryConditions(Mesh *mesh) {
 }
 
 template <typename ConcreteHex>
-void Hexahedra<ConcreteHex>::applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname) {
+void Hexahedra<ConcreteHex>::applyDirichletBoundaries(Mesh *mesh, std::unique_ptr<Options> const &options,
+                                                      const std::string &fieldname) {
 
   if (! mBndElm) return;
 
   double value = 0;
-  auto dirchlet_boundary_names = options.DirichletBoundaries();
+  auto dirchlet_boundary_names = options->DirichletBoundaries();
   for (auto &bndry: dirchlet_boundary_names) {
     auto faceids = mBnd[bndry];
     for (auto &faceid: faceids) {

@@ -27,8 +27,8 @@ TEST_CASE("element", "[element]") {
   int argc = sizeof(arg) / sizeof(const char *) - 1;
   PetscOptionsInsert(&argc, &argv, NULL);
 
-  Options options;
-  options.setOptions();
+  std::unique_ptr<Options> options;
+  options->setOptions();
 
   auto elm = Element::Factory({"u"}, {}, options);
 

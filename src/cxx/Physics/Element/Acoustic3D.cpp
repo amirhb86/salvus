@@ -10,7 +10,7 @@
 using namespace Eigen;
 
 template <typename Element>
-Acoustic3D<Element>::Acoustic3D(Options options): Element(options) {
+Acoustic3D<Element>::Acoustic3D(std::unique_ptr<Options> const &options): Element(options) {
 
   // Allocate all work arrays.
   mVpSquared.setZero(Element::NumIntPnt());
@@ -100,14 +100,14 @@ MatrixXd Acoustic3D<Element>::computeSourceTerm(const double time) {
 
 
 template <typename Element>
-void Acoustic3D<Element>::setupEigenfunctionTest(Mesh *mesh, Options options) {
+void Acoustic3D<Element>::setupEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options) {
 
   double L, Lx, Ly, Lz;
-  double x0 = options.IC_Center_x();
-  double y0 = options.IC_Center_y();
-  double z0 = options.IC_Center_z();
+  double x0 = options->IC_Center_x();
+  double y0 = options->IC_Center_y();
+  double z0 = options->IC_Center_z();
   
-  L = Lx = Ly = Lz = options.IC_SquareSide_L();
+  L = Lx = Ly = Lz = options->IC_SquareSide_L();
   VectorXd pts_x, pts_y, pts_z;
   std::tie(pts_x, pts_y, pts_z) = Element::buildNodalPoints();
   VectorXd un =
@@ -123,14 +123,14 @@ void Acoustic3D<Element>::setupEigenfunctionTest(Mesh *mesh, Options options) {
 }
 
 template <typename Element>
-double Acoustic3D<Element>::checkEigenfunctionTest(Mesh *mesh, Options options,
+double Acoustic3D<Element>::checkEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options,
                                                   const Ref<const MatrixXd>& u, double time) {
 
   double L, Lx, Ly, Lz;
-  double x0 = options.IC_Center_x();
-  double y0 = options.IC_Center_y();
-  double z0 = options.IC_Center_z();
-  L = Lx = Ly = Lz = options.IC_SquareSide_L();
+  double x0 = options->IC_Center_x();
+  double y0 = options->IC_Center_y();
+  double z0 = options->IC_Center_z();
+  L = Lx = Ly = Lz = options->IC_SquareSide_L();
   VectorXd pts_x, pts_y, pts_z;
   std::tie(pts_x,pts_y,pts_z) = Element::buildNodalPoints();
   VectorXd un_xyz =

@@ -7,7 +7,7 @@
 using namespace Eigen;
 
 template <typename Element>
-Elastic2D<Element>::Elastic2D(Options options): Element(options) {
+Elastic2D<Element>::Elastic2D(std::unique_ptr<Options> const &options): Element(options) {
 
   int num_grad_cmps = 3;
 
@@ -120,15 +120,15 @@ MatrixXd Elastic2D<Element>::computeSourceTerm(const double time) {
 }
 
 template <typename Element>
-void Elastic2D<Element>::setupEigenfunctionTest(Mesh *mesh, Options options) {
+void Elastic2D<Element>::setupEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options) {
   
   
   double L, Lx, Ly, Lz;
-  double x0 = options.IC_Center_x();
-  double y0 = options.IC_Center_y();
-  double z0 = options.IC_Center_z();
+  double x0 = options->IC_Center_x();
+  double y0 = options->IC_Center_y();
+  double z0 = options->IC_Center_z();
   
-  L = Lx = Ly = Lz = options.IC_SquareSide_L();
+  L = Lx = Ly = Lz = options->IC_SquareSide_L();
   VectorXd pts_x, pts_y;
   std::tie(pts_x, pts_y) = Element::buildNodalPoints();
 
@@ -150,15 +150,15 @@ void Elastic2D<Element>::setupEigenfunctionTest(Mesh *mesh, Options options) {
 };
 
 template <typename Element>
-double Elastic2D<Element>::checkEigenfunctionTest(Mesh *mesh, Options options,
+double Elastic2D<Element>::checkEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options,
                                                     const Ref<const MatrixXd>& u, double time) {
 
 
   double L, Lx, Ly, Lz;
-  double x0 = options.IC_Center_x();
-  double y0 = options.IC_Center_y();
-  double z0 = options.IC_Center_z();
-  L = Lx = Ly = Lz = options.IC_SquareSide_L();
+  double x0 = options->IC_Center_x();
+  double y0 = options->IC_Center_y();
+  double z0 = options->IC_Center_z();
+  L = Lx = Ly = Lz = options->IC_SquareSide_L();
   VectorXd pts_x, pts_y, pts_z;
   std::tie(pts_x,pts_y) = Element::buildNodalPoints();
   Eigen::MatrixXd un_xz(pts_x.size(),2);

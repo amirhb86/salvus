@@ -4,8 +4,8 @@
 #include <stdexcept>
 #include <string>
 
-ExodusModel::ExodusModel(Options options) {
-  mExodusFileName = options.ExodusModelFile();
+ExodusModel::ExodusModel(std::unique_ptr<Options> const &options) {
+  mExodusFileName = options->ExodusModelFile();
   mNumberElementVertex = 4;
 }
 

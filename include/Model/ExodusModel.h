@@ -75,7 +75,7 @@ class ExodusModel {
 
  public:
 
-  ExodusModel(Options options);
+  ExodusModel(std::unique_ptr<Options> const &options);
   ~ExodusModel() {
     int rank;
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);

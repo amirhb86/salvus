@@ -6,13 +6,13 @@
 hid_t ReceiverHdf5::mFileId;
 std::vector<std::string> ReceiverHdf5::mWriteRegisteredFields;
 
-ReceiverHdf5::ReceiverHdf5(Options options) : Receiver(options) {
+ReceiverHdf5::ReceiverHdf5(std::unique_ptr<Options> const &options) : Receiver(options) {
 
   // Only create one hdf5 file for all receivers.
   if (Num() == 0) {
 
     // Create file and set access.
-    std::string fname = options.ReceiverFileName();
+    std::string fname = options->ReceiverFileName();
     hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
     H5Pset_fapl_mpio(plist_id, PETSC_COMM_WORLD, MPI_INFO_NULL);
     mFileId = H5Fcreate(fname.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);

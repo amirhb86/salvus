@@ -36,18 +36,12 @@ class ElementAdapter: public Element, public T {
    * Here we (must) implicitly call the templated Base-class constructor. Since the current
    * class is really still just an interface - adapter, there is nothing to initialize here.
    */
-  ElementAdapter(Options options): T(options) {};
+  ElementAdapter(std::unique_ptr<Options> const &options): T(options) { };
 
   /** @name Management.
    * These methods are mainly responsible for memory management, i.e. the creation and desctruction
    * of individual elements.
    */
-  ///@{
-  /** Returns a copy of an initialized element. */
-  virtual std::shared_ptr<Element> clone() const {
-    return std::shared_ptr<Element> (new ElementAdapter(*this));
-  }
-  ///@}
 
   /** @name Element setup.
    * These methods are responsible for setting up each individual element for use within a time loop.
@@ -159,7 +153,8 @@ class ElementAdapter: public Element, public T {
    * @param [in] options The options class.
    * @param [in] fieldname The field which to apply the boundary condition to.
    */
-  virtual void applyDirichletBoundaries(Mesh *mesh, Options options, const std::string &fieldname) {
+  virtual void applyDirichletBoundaries(Mesh *mesh, std::unique_ptr<Options> const &options,
+                                        const std::string &fieldname) {
     return T::applyDirichletBoundaries(mesh, options, fieldname);
   }
   ///@}  
@@ -175,7 +170,7 @@ class ElementAdapter: public Element, public T {
    * @param [in] mesh The mesh instance.
    * @param [in] options The options class.
    */
-  virtual void setupTest(Mesh *mesh, Options options) {
+  virtual void setupTest(Mesh *mesh, std::unique_ptr<Options> const &options) {
     T::setupEigenfunctionTest(mesh, options);
   }
   /**
@@ -186,7 +181,8 @@ class ElementAdapter: public Element, public T {
    * @param [in] u The numerical solution to checi.
    * @param [in] time The simulation time.
    */
-  virtual double checkTest(Mesh *mesh, Options options, const Eigen::Ref<const Eigen::MatrixXd>& u, double time) {
+  virtual double checkTest(Mesh *mesh, std::unique_ptr<Options> const &options,
+                           const Eigen::Ref<const Eigen::MatrixXd>& u, double time) {
     return T::checkEigenfunctionTest(mesh, options, u, time);
   }
   ///@}

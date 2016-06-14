@@ -45,8 +45,8 @@ TEST_CASE("test_receiver", "[receiver]") {
     PetscOptionsInsert(&argc, &argv, NULL);
     PetscOptionsSetValue("--polynomial_order", "4");
 
-    Options options;
-    options.setOptions();
+    std::unique_ptr<Options> options;
+    options->setOptions();
 
     Mesh *mesh = Mesh::factory(options);
     mesh->read(options);

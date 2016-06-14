@@ -6,7 +6,7 @@
 using namespace Eigen;
 
 template <typename BasePhysics>
-AcousticToElastic2D<BasePhysics>::AcousticToElastic2D(Options options): BasePhysics(options) {
+AcousticToElastic2D<BasePhysics>::AcousticToElastic2D(std::unique_ptr<Options> const &options): BasePhysics(options) {
 }
 
 template <typename BasePhysics>

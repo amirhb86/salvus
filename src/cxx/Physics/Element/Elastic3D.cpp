@@ -8,7 +8,7 @@
 using namespace Eigen;
 
 template <typename Element>
-Elastic3D<Element>::Elastic3D(Options options): Element(options) {
+Elastic3D<Element>::Elastic3D(std::unique_ptr<Options> const &options): Element(options) {
 
   int num_stress_cmp = 6;
   int num_strain_cmp = 9;

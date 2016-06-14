@@ -110,7 +110,7 @@ private:
   
  public:
 
-  Hexahedra<ConcreteHex>(Options options);
+  Hexahedra<ConcreteHex>(std::unique_ptr<Options> const &options);
 
   /**
    * Returns the quadrature locations for a given polynomial order.
@@ -262,7 +262,7 @@ private:
    * @param [in] options The options class.
    * @param [in] fieldname The field to which the boundary must be applied.
    */
-  void applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname);
+  void applyDirichletBoundaries(Mesh *mesh, std::unique_ptr<Options> const &options, const std::string &fieldname);
 
   /**
    *

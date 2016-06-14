@@ -36,14 +36,12 @@ class Element {
    * of individual elements.
    */
   ///@{
-  /** Returns a copy of an initialized element. */
-  virtual std::shared_ptr<Element> clone() const = 0;
   /** Cleans up any heap-allocated memoroy. */
   virtual ~Element() {};
   /** Returns a concrete elment type based on command line options */
-  static std::shared_ptr<Element> Factory(const std::vector<std::string>& physics_base,
+  static std::unique_ptr<Element> Factory(const std::vector<std::string>& physics_base,
                                           const std::vector<std::string>& physics_couple,
-                                          Options options);
+                                          std::unique_ptr<Options> const &options);
   ///@}
 
   /** @name Element setup.
@@ -127,7 +125,7 @@ class Element {
    * @param [in] fieldname The field which to apply the boundary condition to.
    */
   virtual void applyDirichletBoundaries(Mesh *mesh,
-                                        Options options,
+                                        std::unique_ptr<Options> const &options,
                                         const std::string &fieldname) = 0;
   ///@}
 
@@ -142,7 +140,7 @@ class Element {
    * @param [in] mesh The mesh instance.
    * @param [in] options The options class.
    */
-  virtual void setupTest(Mesh *mesh, Options options) = 0;
+  virtual void setupTest(Mesh *mesh, std::unique_ptr<Options> const &options) = 0;
   /**
    * Given a dynamic field (i.e. displacement), this functions checks the difference between the said field and
    * some analytical reference solution.
@@ -151,7 +149,7 @@ class Element {
    * @param [in] u The numerical solution to checi.
    * @param [in] time The simulation time.
    */
-  virtual double checkTest(Mesh *mesh, Options options,
+  virtual double checkTest(Mesh *mesh, std::unique_ptr<Options> const &options,
                            const Eigen::Ref<const Eigen::MatrixXd>& u,
                            double time) = 0;
   ///@}

@@ -115,7 +115,7 @@ private:
  public:
 
   /** Allocates memory for work arrays, most private variables. */
-  Quad<ConcreteShape>(Options options);
+  Quad<ConcreteShape>(std::unique_ptr<Options> const &options);
 
   /** Sets up the test function parameters. */
   static Eigen::VectorXd GllPointsForOrder(const int order);
@@ -219,7 +219,7 @@ private:
    * @param [in] options The options class.
    * @param [in] fieldname The field to which the boundary must be applied.
    */
-  void applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname);
+  void applyDirichletBoundaries(Mesh *mesh, std::unique_ptr<Options> const &options, const std::string &fieldname);
 
   /**
    *

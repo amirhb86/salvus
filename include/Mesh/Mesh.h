@@ -96,7 +96,7 @@ class Mesh {
    * the physics of the system under consideration, and the method of time-stepping chosen.
    * @return Some derived mesh class.
    */
-  static Mesh *factory(Options options);
+  static Mesh *factory(std::unique_ptr<Options> const &options);
 
   /**
    * Given an existing vector of continuous fields, append a new set of fields based on a
@@ -116,7 +116,7 @@ class Mesh {
    * read, and parallelized across processors (via a call to Chaco).
    * @param [in] options The master options struct. TODO: Move the gobbling of options to the constructor.
    */
-  void read(Options options);
+  void read(std::unique_ptr<Options> const &options);
 
   /**
    * Alternate version of read, which creates a mesh given a matrix of verts and cells.
@@ -319,13 +319,13 @@ class Mesh {
    * Read and setup boundaries (exodus side sets). Gets list of faces from Petsc and builds
    * corresponding list of elements, which lay on each boundary.
    */
-  int setupBoundaries(Options options);
+  int setupBoundaries(std::unique_ptr<Options> const &options);
 
   /**
    * Reads boundaries (exodus side sets) from mesh file and builds appropriate boundary name to
    * petsc id mapping.
    */
-  int readBoundaryNames(Options options);
+  int readBoundaryNames(std::unique_ptr<Options> const &options);
 
   /**
    * Virtual function which implements the time stepping.

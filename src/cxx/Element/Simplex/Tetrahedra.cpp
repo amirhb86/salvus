@@ -433,10 +433,10 @@ VectorXi Tetrahedra<ConcreteShape>::ClosureMapping(const int order, const int di
 }
 
 template <typename ConcreteShape>
-Tetrahedra<ConcreteShape>::Tetrahedra(Options options) {
+Tetrahedra<ConcreteShape>::Tetrahedra(std::unique_ptr<Options> const &options) {
 
   // Basic properties.
-  mPlyOrd = options.PolynomialOrder();
+  mPlyOrd = options->PolynomialOrder();
   if(mPlyOrd == 3) {
     // total number of nodes
     mNumIntPnt = 50;
@@ -453,8 +453,8 @@ Tetrahedra<ConcreteShape>::Tetrahedra(Options options) {
   
   // Integration points and weights
   std::tie(mIntegrationCoordinates_r,mIntegrationCoordinates_s,mIntegrationCoordinates_t) =
-    Tetrahedra<ConcreteShape>::QuadraturePoints(options.PolynomialOrder());
-  mIntegrationWeights = Tetrahedra<ConcreteShape>::QuadratureIntegrationWeights(options.PolynomialOrder());
+    Tetrahedra<ConcreteShape>::QuadraturePoints(options->PolynomialOrder());
+  mIntegrationWeights = Tetrahedra<ConcreteShape>::QuadratureIntegrationWeights(options->PolynomialOrder());
           
   setupGradientOperator();
 
@@ -825,12 +825,13 @@ void Tetrahedra<ConcreteShape>::setBoundaryConditions(Mesh *mesh) {
 
 
 template <typename ConcreteShape>
-void Tetrahedra<ConcreteShape>::applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname) {
+void Tetrahedra<ConcreteShape>::applyDirichletBoundaries(Mesh *mesh, std::unique_ptr<Options> const &options,
+                                                         const std::string &fieldname) {
 
   if (! mBndElm) return;
 
   double value = 0;
-  auto dirchlet_boundary_names = options.DirichletBoundaries();
+  auto dirchlet_boundary_names = options->DirichletBoundaries();
   for (auto &bndry: dirchlet_boundary_names) {
     auto faceids = mBnd[bndry];
     for (auto &faceid: faceids) {

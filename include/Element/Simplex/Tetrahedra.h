@@ -152,7 +152,7 @@ class Tetrahedra: public ConcreteShape {
    * Sets quantities such as number of dofs, among other things, from the options class.
    * @param [in] options Populated options class.
    */
-  Tetrahedra(Options options);
+  Tetrahedra(std::unique_ptr<Options> const &options);
 
   /**
    * Returns the gll locations for a given polynomial order.
@@ -280,7 +280,7 @@ class Tetrahedra: public ConcreteShape {
    * @param [in] options The options class.
    * @param [in] fieldname The field to which the boundary must be applied.
    */
-  void applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname);
+  void applyDirichletBoundaries(Mesh *mesh, std::unique_ptr<Options> const &options, const std::string &fieldname);
 
   /**
    *

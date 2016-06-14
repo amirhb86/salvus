@@ -72,10 +72,10 @@ VectorXi Triangle<ConcreteShape>::ClosureMapping(const int order, const int dime
 }
 
 template <typename ConcreteShape>
-Triangle<ConcreteShape>::Triangle(Options options) {
+Triangle<ConcreteShape>::Triangle(std::unique_ptr<Options> const &options) {
 
   // Basic properties.
-  mPlyOrd = options.PolynomialOrder();
+  mPlyOrd = options->PolynomialOrder();
   if(mPlyOrd == 3) {
     mNumIntPnt = 12;
     mNumDofEdg = 2;
@@ -92,10 +92,10 @@ Triangle<ConcreteShape>::Triangle(Options options) {
         
   // Integration points and weights
   std::tie(mIntegrationCoordinates_r,mIntegrationCoordinates_s) =
-    Triangle<ConcreteShape>::QuadraturePoints(options.PolynomialOrder());
-  mIntegrationWeights = Triangle<ConcreteShape>::QuadratureIntegrationWeight(options.PolynomialOrder());
+    Triangle<ConcreteShape>::QuadraturePoints(options->PolynomialOrder());
+  mIntegrationWeights = Triangle<ConcreteShape>::QuadratureIntegrationWeight(options->PolynomialOrder());
         
-  mClsMap = Triangle<ConcreteShape>::ClosureMapping(options.PolynomialOrder(), mNumDim);
+  mClsMap = Triangle<ConcreteShape>::ClosureMapping(options->PolynomialOrder(), mNumDim);
   setupGradientOperator();
 
   mDetJac.setZero(mNumIntPnt);
@@ -317,12 +317,13 @@ VectorXd Triangle<ConcreteShape>::ParAtIntPts(const std::string &par) {
 
 
 template <typename ConcreteShape>
-void Triangle<ConcreteShape>::applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname) {
+void Triangle<ConcreteShape>::applyDirichletBoundaries(Mesh *mesh, std::unique_ptr<Options> const &options,
+                                                       const std::string &fieldname) {
 
   if (! mBndElm) return;
 
   double value = 0;
-  auto dirchlet_boundary_names = options.DirichletBoundaries();
+  auto dirchlet_boundary_names = options->DirichletBoundaries();
   for (auto &bndry: dirchlet_boundary_names) {
     auto faceids = mBnd[bndry];
     for (auto &faceid: faceids) {

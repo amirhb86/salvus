@@ -24,8 +24,8 @@ int main(int argc, char *argv[]) {
   PetscInitialize(&argc, &argv, NULL, help);
 
   // Get command line options.
-  Options options;
-  options.setOptions();
+  std::unique_ptr<Options> options;
+  options->setOptions();
 
   // Get mesh.
   Mesh *mesh = Mesh::factory(options);
@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
   std::vector<std::shared_ptr<Source>> sources = Source::factory(options);
 
   // Use above elements to define the problem.
-  Problem *problem = Problem::factory(options.ProblemType());
+  Problem *problem = Problem::factory(options->ProblemType());
 
   problem->initialize(mesh, model, options);
   problem->solve(options);

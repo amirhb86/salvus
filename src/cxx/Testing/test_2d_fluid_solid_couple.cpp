@@ -39,8 +39,8 @@ TEST_CASE("test_fluid_solid_couple", "[couple/fluid_solid]") {
 
   PetscOptionsInsert(&argc, &argv, NULL);
 
-  Options options;
-  options.setOptions();
+  std::unique_ptr<Options> options;
+  options->setOptions();
 
   Mesh *mesh = Mesh::factory(options);
   mesh->read(options);

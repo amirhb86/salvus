@@ -19,7 +19,7 @@ template <typename Element>
 class TestPlugin: public Element {
 
  public:
-  TestPlugin<Element>(Options options): Element(options) {};
+  TestPlugin<Element>(std::unique_ptr<Options> const &options): Element(options) {};
 
 };
 TEST_CASE("test_quad", "[quad]") {
@@ -83,8 +83,8 @@ TEST_CASE("test_quad", "[quad]") {
       PetscOptionsSetValue("--polynomial_order", num.c_str());
 
       // Initialize options.
-      Options options;
-      options.setOptions();
+      std::unique_ptr<Options> options;
+      options->setOptions();
 
       // Setup test element.
       TestPlugin<Quad<QuadP1>> basequad(options);
@@ -92,7 +92,7 @@ TEST_CASE("test_quad", "[quad]") {
       basequad.SetCplEdg(cpl);
 
       // Set up functions (order x**n*y**N-1)
-      int ord = options.PolynomialOrder();
+      int ord = options->PolynomialOrder();
       Eigen::VectorXi x_exp, y_exp;
       x_exp = y_exp = Eigen::VectorXi::LinSpaced(ord + 1, 0, ord);
       y_exp(ord) = x_exp(ord - 1);

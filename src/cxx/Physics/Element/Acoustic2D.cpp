@@ -7,7 +7,7 @@
 using namespace Eigen;
 
 template <typename Element>
-Acoustic2D<Element>::Acoustic2D(Options options): Element(options) {
+Acoustic2D<Element>::Acoustic2D(std::unique_ptr<Options> const &options): Element(options) {
 
   // Allocate all work arrays.
   mVpSquared.setZero(Element::NumIntPnt());
@@ -94,12 +94,12 @@ MatrixXd Acoustic2D<Element>::computeSourceTerm(const double time) {
 
 
 template <typename Element>
-void Acoustic2D<Element>::setupEigenfunctionTest(Mesh *mesh, Options options) {
+void Acoustic2D<Element>::setupEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options) {
 
   double L, Lx, Ly;
-  double x0 = options.IC_Center_x();
-  double y0 = options.IC_Center_z();
-  L = Lx = Ly = options.IC_SquareSide_L();
+  double x0 = options->IC_Center_x();
+  double y0 = options->IC_Center_z();
+  L = Lx = Ly = options->IC_SquareSide_L();
   VectorXd pts_x, pts_y;
   std::tie(pts_x, pts_y) = Element::buildNodalPoints();
   VectorXd un = (M_PI/Lx*(pts_x.array()-(x0+L/2))).sin() * (M_PI/Ly*(pts_y.array()-(y0+L/2))).sin();
@@ -112,13 +112,13 @@ void Acoustic2D<Element>::setupEigenfunctionTest(Mesh *mesh, Options options) {
 }
 
 template <typename Element>
-double Acoustic2D<Element>::checkEigenfunctionTest(Mesh *mesh, Options options,
+double Acoustic2D<Element>::checkEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options,
                                                   const Ref<const MatrixXd>& u, double time) {
 
   double L, Lx, Ly;
-  double x0 = options.IC_Center_x();
-  double y0 = options.IC_Center_z();
-  L = Lx = Ly = options.IC_SquareSide_L();
+  double x0 = options->IC_Center_x();
+  double y0 = options->IC_Center_z();
+  L = Lx = Ly = options->IC_SquareSide_L();
   VectorXd pts_x, pts_y;
   std::tie(pts_x,pts_y) = Element::buildNodalPoints();
   VectorXd un_xy = (M_PI/Lx*(pts_x.array()-(x0+L/2))).sin()*(M_PI/Ly*(pts_y.array()-(y0+L/2))).sin();

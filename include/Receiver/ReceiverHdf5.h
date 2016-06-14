@@ -17,10 +17,10 @@ class ReceiverHdf5 : public Receiver {
 
 public:
 
-  std::shared_ptr<Receiver> clone() const {
-    return (std::shared_ptr<Receiver> (new ReceiverHdf5(*this)));
+  std::unique_ptr<Receiver> move() {
+    return std::unique_ptr<ReceiverHdf5> (this);
   }
-  ReceiverHdf5(Options options);
+  ReceiverHdf5(std::unique_ptr<Options> const &options);
   ~ReceiverHdf5();
 
   void write();

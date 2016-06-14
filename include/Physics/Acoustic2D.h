@@ -35,7 +35,8 @@ class Acoustic2D: public Shape {
  public:
 
   /**** Initializers ****/
-  Acoustic2D<Shape>(Options options);
+  Acoustic2D<Shape>(std::unique_ptr<Options> const &options);
+  ~Acoustic2D<Shape>() {};
   std::vector<std::string> PullElementalFields() const;
   std::vector<std::string> PushElementalFields() const;
 
@@ -53,8 +54,8 @@ class Acoustic2D: public Shape {
   void recordField(const Eigen::MatrixXd &u) {};
 
   /**** Test helpers ****/
-  void setupEigenfunctionTest(Mesh *mesh, Options options);
-  double checkEigenfunctionTest(Mesh *mesh, Options options,
+  void setupEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options);
+  double checkEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options,
                                 const Eigen::Ref<const Eigen::MatrixXd>& u,
                                 double time);
 

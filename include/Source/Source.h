@@ -19,7 +19,7 @@ class Source {
 
  public:
 
-  static std::vector<std::shared_ptr<Source>> factory(Options options);
+  static std::vector<std::shared_ptr<Source>> factory(std::unique_ptr<Options> const &options);
 
   /**
    * Set the source x coordinate in physical (model) space.
@@ -76,7 +76,7 @@ class Ricker: public Source {
 
  public:
 
-  Ricker(Options options, int number);
+  Ricker(std::unique_ptr<Options> const &options, int number);
   double fire(const double &time);
 
 };

@@ -4,15 +4,15 @@
 #include <stdexcept>
 #include <iostream>
 
-std::vector<std::shared_ptr<Source>> Source::factory(Options options) {
+std::vector<std::shared_ptr<Source>> Source::factory(std::unique_ptr<Options> const &options) {
 
   std::vector<std::shared_ptr<Source>> sources;
-  for (auto i = 0; i < options.NumberSources(); i++) {
+  for (auto i = 0; i < options->NumberSources(); i++) {
     try {
-      if (options.SourceType() == "ricker") {
+      if (options->SourceType() == "ricker") {
         sources.push_back(std::shared_ptr<Source>(new Ricker(options, i)));
       } else {
-        throw std::runtime_error("Runtime error: Source type " + options.SourceType() + " not supported.");
+        throw std::runtime_error("Runtime error: Source type " + options->SourceType() + " not supported.");
       }
 
     } catch (std::exception &e) {
@@ -24,15 +24,15 @@ std::vector<std::shared_ptr<Source>> Source::factory(Options options) {
   return sources;
 }
 
-Ricker::Ricker(Options options, int number) {
+Ricker::Ricker(std::unique_ptr<Options> const &options, int number) {
 
-  SetPhysicalLocationX(options.SourceLocationX()[number]);
-  SetPhysicalLocationY(options.SourceLocationY()[number]);
-  SetPhysicalLocationZ(options.SourceLocationZ()[number]);
+  SetPhysicalLocationX(options->SourceLocationX()[number]);
+  SetPhysicalLocationY(options->SourceLocationY()[number]);
+  SetPhysicalLocationZ(options->SourceLocationZ()[number]);
 
-  mTimeDelay = options.SourceRickerTimeDelay()[number];
-  mAmplitude = options.SourceRickerAmplitude()[number];
-  mCenterFreq = options.SourceRickerCenterFreq()[number];
+  mTimeDelay = options->SourceRickerTimeDelay()[number];
+  mAmplitude = options->SourceRickerAmplitude()[number];
+  mCenterFreq = options->SourceRickerCenterFreq()[number];
 }
 
 double Ricker::fire(const double &time) {

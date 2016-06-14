@@ -361,8 +361,8 @@ TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
   PetscOptionsInsert(&argc, &argv, NULL);
 
   // Set options for exact tests
-  Options options;
-  options.setOptions();
+  std::unique_ptr<Options> options;
+  options->setOptions();
   
   AcousticHexP1 ref_hex(options);
   auto rn = Hexahedra<HexP1>::GllPoints(order);
@@ -395,10 +395,10 @@ TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
   // Setup reference element.
   std::shared_ptr<Element> reference_element = std::make_shared<AcousticHexP1>(ref_hex);
 
-  std::vector<std::shared_ptr<Element>> elements;
+  std::vector<std::unique_ptr<Element>> elements;
   // Get a list of all local elements.
   for (int i = 0; i < mesh->NumberElementsLocal(); i++) {
-    elements.push_back(reference_element->clone());
+    elements.push_back(Element::Factory({"u"}, {}, options));
   }    
   VectorXd expected_multiplier(64);
   expected_multiplier <<
@@ -426,13 +426,12 @@ TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
   
     
   VectorXd computed_value(expected_multiplier.size());
-  auto hex0 = std::dynamic_pointer_cast<AcousticHexP1> (elements[0]);
   // auto hex0 = (elements[0]);
   // Get vertex coordinates from the PETSc DMPLEX.
-  hex0->SetNum(0);
-  hex0->attachVertexCoordinates(mesh);
+  elements.front()->SetNum(0);
+  elements.front()->attachVertexCoordinates(mesh);
   VectorXd pts0_x,pts0_y,pts0_z;
-  std::tie(pts0_x,pts0_y,pts0_z) = HexP1::buildNodalPoints(rn, sn, tn, hex0->VtxCrd());
+  std::tie(pts0_x,pts0_y,pts0_z) = HexP1::buildNodalPoints(rn, sn, tn, elements.front()->VtxCrd());
   
   for(int i=0;i<pts0_x.size();i++) {
     double x = five_places(pts0_x[i]);
@@ -453,13 +452,12 @@ TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
     // Set up elements.
     int element_number = 0;
     for (auto &element_gen : elements) {
-      auto hex = std::dynamic_pointer_cast<AcousticHexP1> (element_gen);
       // auto hex = (element_gen);
       // Give each element a number starting from zero.
-      hex->SetNum(element_number++);
+      element_gen->SetNum(element_number++);
       
       // Get vertex coordinates from the PETSc DMPLEX.
-      hex->attachVertexCoordinates(mesh);
+      element_gen->attachVertexCoordinates(mesh);
       
       std::tie(pts_x,pts_y,pts_z) = HexP1::buildNodalPoints(rn, sn, tn, element_gen->VtxCrd());
       // if(hex->Num() == 0) {
@@ -482,19 +480,17 @@ TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
           one_at_one_node[desired_nodal_id] = value_to_use;
         }
       }
-      mesh->addFieldFromElement("u", hex->Num(),
-                                hex->ClsMap(),
+      mesh->addFieldFromElement("u", element_gen->Num(),
+                                element_gen->ClsMap(),
                                 one_at_one_node);
     }
-    auto hex_test = std::dynamic_pointer_cast<AcousticHexP1> (elements[0]);
-    // auto hex_test = (elements[0]);
-    
+
     VectorXd one_at_one_node(pts_x.size());
     one_at_one_node.setZero();
     
-    one_at_one_node = mesh->getFieldOnElement("u", hex_test->Num(),
-                                              hex_test->ClsMap());
-    std::tie(pts_x,pts_y,pts_z) = HexP1::buildNodalPoints(rn, sn, tn, hex_test->VtxCrd());
+    one_at_one_node = mesh->getFieldOnElement("u", elements.front()->Num(),
+                                              elements.front()->ClsMap());
+    std::tie(pts_x,pts_y,pts_z) = HexP1::buildNodalPoints(rn, sn, tn, elements.front()->VtxCrd());
     for(int i=0;i<pts_x.size();i++) {
       // find node that is close;
       if( sqrt(pow(pts_x(i)-x_test,2.0) + pow(pts_y(i) - y_test,2.0) + pow(pts_z(i) - z_test,2.0) ) < 1e-2) {
@@ -502,7 +498,6 @@ TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
       }
     }
   }
-  // std::cout << "expected_value-computed_value=\n" << expected_value-computed_value << "\n";
 
   VectorXd expected_value = (value_to_set.array() * expected_multiplier.array()).matrix();
     

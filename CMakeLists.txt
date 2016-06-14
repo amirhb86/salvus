@@ -44,6 +44,8 @@ set(SALVUS_SOURCES
         src/cxx/Mesh/ScalarLeapFrog4th.cpp
         src/cxx/Mesh/ElasticAcousticNewmark2D.cpp
         src/cxx/Mesh/ElasticAcousticNewmark3D.cpp
+        src/cxx/Problem/ProblemNew.cpp
+        src/cxx/Problem/Order2Newmark.cpp
         src/cxx/Element/Simplex/Triangle.cpp
         src/cxx/Element/Simplex/Triangle/TriP1.cpp
         src/cxx/Element/Simplex/Tetrahedra.cpp
@@ -99,7 +101,7 @@ add_executable(salvus_test
         src/cxx/Testing/test_quadbase.cpp
         src/cxx/Testing/test_quad.cpp
         src/cxx/Testing/test_element.cpp
-        src/cxx/Testing/test_2d_fluid_solid_couple.cpp)
+        src/cxx/Testing/test_2d_fluid_solid_couple.cpp src/cxx/Testing/test_problem_new.cpp)
 
 # run `make` (or `make -j5`) to build `salvus` executable
 target_link_libraries(salvus salvusCommon ${MPI_LIBRARIES} petsc exodus netcdf hdf5)

@@ -24,17 +24,17 @@ extern "C" {
 #include <exodusII.h>
 }
 
-Mesh *Mesh::factory(Options options) {
+Mesh *Mesh::factory(std::unique_ptr<Options> const &options) {
 
-  std::string mesh_type(options.MeshType());
+  std::string mesh_type(options->MeshType());
   try {
     if (mesh_type == "newmark") {
       auto sc_nm_mesh = new ScalarNewmark2D();
-      if (options.TestIC()) {
+      if (options->TestIC()) {
         // add nodal location to global field vectors for testing
         sc_nm_mesh->AddToGlobalFields("x");
         sc_nm_mesh->AddToGlobalFields("z");
-        if (options.ElementShape() == "hex") {
+        if (options->ElementShape() == "hex") {
           sc_nm_mesh->AddToGlobalFields("y");
         }
       }
@@ -58,7 +58,7 @@ Mesh *Mesh::factory(Options options) {
 
 #undef __FUNCT__
 #define __FUNCT__ "readBoundaryNames"
-int Mesh::readBoundaryNames(Options options) {
+int Mesh::readBoundaryNames(std::unique_ptr<Options> const &options) {
 
   PetscFunctionBegin;
   PetscInt rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
@@ -70,7 +70,7 @@ int Mesh::readBoundaryNames(Options options) {
     int io_ws = 0;
     int comp_ws = 8;
     try {
-      int exoid = ex_open(options.ExodusMeshFile().c_str(), EX_READ, &comp_ws, &io_ws, &exodus_version);
+      int exoid = ex_open(options->ExodusMeshFile().c_str(), EX_READ, &comp_ws, &io_ws, &exodus_version);
       if (exoid < 0) { throw std::runtime_error("Error opening exodus model file."); }
       float fdum = 0.0;
       char *cdum = 0;
@@ -102,11 +102,11 @@ int Mesh::readBoundaryNames(Options options) {
 
 #undef __FUNCT__
 #define __FUNCT__ "read"
-void Mesh::read(Options options) {
+void Mesh::read(std::unique_ptr<Options> const &options) {
 
   // Class variables.
   mDistributedMesh = NULL;
-  mExodusFileName = options.ExodusMeshFile();
+  mExodusFileName = options->ExodusMeshFile();
 
   // check if file exists
   PetscInt rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
@@ -170,7 +170,7 @@ void Mesh::read(int dim, int numCells, int numVerts, int numVertsPerElem,
 
 #undef __FUNCT__
 #define __FUNCT__ "setupBoundaries"
-int Mesh::setupBoundaries(Options options) {
+int Mesh::setupBoundaries(std::unique_ptr<Options> const &options) {
   PetscFunctionBegin;
 
   int ierr = 0;

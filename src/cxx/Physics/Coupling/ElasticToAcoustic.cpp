@@ -6,7 +6,7 @@
 using namespace Eigen;
 
 template <typename BasePhysics>
-ElasticToAcoustic2D<BasePhysics>::ElasticToAcoustic2D(Options options): BasePhysics(options) { }
+ElasticToAcoustic2D<BasePhysics>::ElasticToAcoustic2D(std::unique_ptr<Options> const &options): BasePhysics(options) { }
 
 template <typename BasePhysics>
 std::vector<std::string> ElasticToAcoustic2D<BasePhysics>::PullElementalFields() const {

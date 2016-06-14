@@ -15,8 +15,8 @@
 template <typename ElementVersion>
 std::vector<std::shared_ptr<ElementVersion>> initialize_exact(Mesh *mesh,
                                                        ExodusModel *model,
-                                                       std::shared_ptr<ElementVersion> reference_element,
-                                                       Options& options) {
+                                                       std::unique_ptr<ElementVersion>& reference_element,
+                                                       std::unique_ptr<Options> const &options) {
 
   // Setup the dofs on each mesh point.
   mesh->setupGlobalDof(reference_element->NumDofVtx(),
@@ -37,7 +37,7 @@ std::vector<std::shared_ptr<ElementVersion>> initialize_exact(Mesh *mesh,
   std::vector<std::shared_ptr<ElementVersion>> elements;
   // Get a list of all local elements.
   for (int i = 0; i < mesh->NumberElementsLocal(); i++) {
-    elements.push_back(reference_element->clone());
+    elements.push_back(Element::Factory({"u"}, {}, options));
   }
 
   // Set up elements.
@@ -69,11 +69,11 @@ std::vector<std::shared_ptr<ElementVersion>> initialize_exact(Mesh *mesh,
   // Time step 
   auto dt = mesh->CFL() * h_all.minCoeff();
   // if timestep not set from command line
-  if(options.TimeStep() <= 0) {
-    options.SetTimeStep(dt);
-    LOG() << "Suggested dt = " << options.TimeStep();    
+  if(options->TimeStep() <= 0) {
+    options->SetTimeStep(dt);
+    LOG() << "Suggested dt = " << options->TimeStep();
   } else {
-    LOG() << "Suggested dt = " << dt << " vs. Commandline dt = " << options.TimeStep();
+    LOG() << "Suggested dt = " << dt << " vs. Commandline dt = " << options->TimeStep();
   }
   
   // setup tests
@@ -94,15 +94,16 @@ std::vector<std::shared_ptr<ElementVersion>> initialize_exact(Mesh *mesh,
 }
 
 template <typename ElementVersion>
-double solve_vs_exact(Options& options, Mesh *mesh, std::vector<std::shared_ptr<ElementVersion>> &elements) {
+double solve_vs_exact(std::unique_ptr<Options> const &options, Mesh *mesh,
+                      std::vector<std::shared_ptr<ElementVersion>> &elements) {
   PetscFunctionBegin;
   // Setup values.
   int it = 0;
   double time = 0.0;
-  double timeStep = options.TimeStep();
-  double duration = options.Duration();
+  double timeStep = options->TimeStep();
+  double duration = options->Duration();
 
-  if (options.SaveMovie()) mesh->setUpMovie(options.OutputMovieFile());
+  if (options->SaveMovie()) mesh->setUpMovie(options->OutputMovieFile());
 
   // Over-allocate matrices to avoid re-allocations.
   int max_dims = 3;
@@ -165,7 +166,7 @@ double solve_vs_exact(Options& options, Mesh *mesh, std::vector<std::shared_ptr<
       }
     }
 
-    if(options.DisplayDiagnostics() && (it % options.DisplayDiagnosticsEvery() == 0 || it == 0)) {
+    if(options->DisplayDiagnostics() && (it % options->DisplayDiagnosticsEvery() == 0 || it == 0)) {
       printf("max_error=%f @ time=%f (%f%%)\n",max_error,time,100*(time/duration));
       printf("Time per Ku on element = %f us\n", totaltime_Ku.count()/(elements.size()));
     }
@@ -197,7 +198,7 @@ double solve_vs_exact(Options& options, Mesh *mesh, std::vector<std::shared_ptr<
     mesh->applyInverseMassMatrix();
     mesh->advanceField(timeStep);
 
-    if (options.SaveMovie() && (it % options.SaveFrameEvery() == 0 || it == 0)) {
+    if (options->SaveMovie() && (it % options->SaveFrameEvery() == 0 || it == 0)) {
       // GlobalFields[0] == "u" for acoustic and == "ux" for elastic
       mesh->saveFrame("a", it);
       // mesh->setLocalFieldToGlobal("u_exact");
@@ -213,7 +214,7 @@ double solve_vs_exact(Options& options, Mesh *mesh, std::vector<std::shared_ptr<
   PRINT_ROOT() << "Max Error @ T=end: " << max_error << std::endl;
   PRINT_ROOT() << "Max Error T=1:end: " << max_error_all << std::endl;
 
-  if (options.SaveMovie()) mesh->finalizeMovie();
+  if (options->SaveMovie()) mesh->finalizeMovie();
   // cumulative max error
   return max_error_all;
 }
@@ -247,8 +248,8 @@ TEST_CASE("Testing acoustic exact solutions for triangles", "[exact/triangles]")
  PetscOptionsInsert(&argc, &argv, NULL);
 
  // Set options for exact tests
- Options options;
- options.setOptions();
+ std::unique_ptr<Options> options;
+ options->setOptions();
 
  // Triangles
 
@@ -261,7 +262,7 @@ TEST_CASE("Testing acoustic exact solutions for triangles", "[exact/triangles]")
  model->initializeParallel();
 
  // Setup reference element.
- std::shared_ptr<Element> reference_element = Element::Factory({"u"}, {}, options);
+ std::unique_ptr<Element> reference_element = Element::Factory({"u"}, {}, options);
 
  std::vector<std::shared_ptr<Element>> elements = initialize_exact<Element>(
      mesh, model, reference_element, options);
@@ -302,8 +303,8 @@ TEST_CASE("Testing acoustic exact solutions for quadrilaterals", "[exact/quads]"
   int argc = sizeof(arg) / sizeof(const char *) - 1;
   PetscOptionsInsert(&argc, &argv, NULL);
 
-  Options options;
-  options.setOptions();
+  std::unique_ptr<Options> options;
+  options->setOptions();
 
   // Get mesh.
   Mesh *mesh = Mesh::factory(options);
@@ -314,7 +315,7 @@ TEST_CASE("Testing acoustic exact solutions for quadrilaterals", "[exact/quads]"
   model->initializeParallel();
 
   // Setup reference element.
-  std::shared_ptr<Element> reference_element = Element::Factory({"u"}, {}, options);
+  std::unique_ptr<Element> reference_element = Element::Factory({"u"}, {}, options);
 
 
   std::vector<std::shared_ptr<Element>> elements = initialize_exact<Element>(mesh, model, reference_element, options);
@@ -356,8 +357,8 @@ TEST_CASE("Testing acoustic exact solutions for hexahedra", "[exact/hexahedra]")
  PetscOptionsInsert(&argc, &argv, NULL);
 
  // Set options for exact tests
- Options options;
- options.setOptions();
+ std::unique_ptr<Options> options;
+ options->setOptions();
 
  // Get mesh.
  Mesh *mesh = Mesh::factory(options);
@@ -411,8 +412,8 @@ TEST_CASE("Testing acoustic fast exact solutions for hexahedra", "[exact/hexahed
  PetscOptionsInsert(&argc, &argv, NULL);
 
  // Set options for exact tests
- Options options;
- options.setOptions();
+ std::unique_ptr<Options> options;
+ options->setOptions();
 
  // Get mesh.
  Mesh *mesh = Mesh::factory(options);
@@ -473,8 +474,8 @@ TEST_CASE("Testing acoustic exact solutions for new tetrahedra", "[exact/tetrahe
  PetscOptionsInsert(&argc, &argv, NULL);
 
  // Set options for exact tests
- Options options;
- options.setOptions();
+ std::unique_ptr<Options> options;
+ options->setOptions();
 
  // Get mesh.
  Mesh *mesh = Mesh::factory(options);

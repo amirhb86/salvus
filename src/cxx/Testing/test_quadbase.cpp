@@ -39,14 +39,14 @@ TEST_CASE("test quadbase", "[quad]") {
     PetscOptionsInsert(&argc, &argv, NULL);
     PetscOptionsSetValue("--polynomial_order", std::to_string((long long) order).c_str());
 
-    Options options;
-    options.setOptions();
+    std::unique_ptr<Options> options;
+    options->setOptions();
 
     auto sources = Source::factory(options);
     Mesh *msh = Mesh::factory(options);
     msh->read(options);
-    std::shared_ptr<Element> elm = Element::Factory({"u"}, {}, options);
-    std::vector<std::shared_ptr<Element>> elms;
+    std::unique_ptr<Element> elm = Element::Factory({"u"}, {}, options);
+    std::vector<std::unique_ptr<Element>> elms;
 
     ExodusModel *model = new ExodusModel(options);
     model->initializeParallel();
@@ -56,7 +56,7 @@ TEST_CASE("test quadbase", "[quad]") {
 
     // Get a list of all local elements.
     for (int i = 0; i < msh->NumberElementsLocal(); i++) {
-      elms.push_back(elm->clone());
+      elms.push_back(Element::Factory({"u"}, {}, options));
     }
 
     // Set up elements.

@@ -13,9 +13,9 @@ extern "C" {
 using namespace Eigen;
 
 template <typename ConcreteShape>
-Quad<ConcreteShape>::Quad(Options options) {
+Quad<ConcreteShape>::Quad(std::unique_ptr<Options> const &options) {
 
-  mPlyOrd = options.PolynomialOrder();
+  mPlyOrd = options->PolynomialOrder();
   mNumDofVtx = 1;
   mNumDofEdg = mPlyOrd - 1;
   mNumDofFac = (mPlyOrd - 1) * (mPlyOrd - 1);
@@ -597,12 +597,12 @@ void Quad<ConcreteShape>::setBoundaryConditions(Mesh *mesh) {
 }
 
 template <typename ConcreteShape>
-void Quad<ConcreteShape>::applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname) {
+void Quad<ConcreteShape>::applyDirichletBoundaries(Mesh *mesh, std::unique_ptr<Options> const &options, const std::string &fieldname) {
 
   if (! mBndElm) return;
 
   double value = 0;
-  auto dirchlet_boundary_names = options.DirichletBoundaries();
+  auto dirchlet_boundary_names = options->DirichletBoundaries();
   for (auto &bndry: dirchlet_boundary_names) {
     auto faceids = mBnd[bndry];
     for (auto &faceid: faceids) {

@@ -35,7 +35,7 @@ class AcousticTet: public Shape {
  public:
 
   /**** Initializers ****/
-  AcousticTet<Shape>(Options options);
+  AcousticTet<Shape>(std::unique_ptr<Options> const &options);
   std::vector<std::string> PullElementalFields() const;
   std::vector<std::string> PushElementalFields() const;
 
@@ -53,8 +53,8 @@ class AcousticTet: public Shape {
   void recordField(const Eigen::MatrixXd &u) {};
 
   /**** Test helpers ****/
-  void setupEigenfunctionTest(Mesh *mesh, Options options);
-  double checkEigenfunctionTest(Mesh *mesh, Options options,
+  void setupEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options);
+  double checkEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options,
                                 const Eigen::Ref<const Eigen::MatrixXd>& u,
                                 double time);
 

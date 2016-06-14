@@ -7,7 +7,7 @@
 using namespace Eigen;
 
 template <typename Element>
-AcousticTri<Element>::AcousticTri(Options options): Element(options) {
+AcousticTri<Element>::AcousticTri(std::unique_ptr<Options> const &options): Element(options) {
 
   // Allocate all work arrays.
   mVpSquared.setZero(Element::NumIntPnt());
@@ -104,12 +104,12 @@ MatrixXd AcousticTri<Element>::computeSourceTerm(const double time) {
 
 
 template <typename Element>
-void AcousticTri<Element>::setupEigenfunctionTest(Mesh *mesh, Options options) {
+void AcousticTri<Element>::setupEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options) {
 
   double L, Lx, Ly;
-  double x0 = options.IC_Center_x();
-  double y0 = options.IC_Center_z();
-  L = Lx = Ly = options.IC_SquareSide_L();
+  double x0 = options->IC_Center_x();
+  double y0 = options->IC_Center_z();
+  L = Lx = Ly = options->IC_SquareSide_L();
   VectorXd pts_x, pts_y;
   std::tie(pts_x, pts_y) = Element::buildNodalPoints();
   VectorXd un = (M_PI/Lx*(pts_x.array()-(x0+L/2))).sin() * (M_PI/Ly*(pts_y.array()-(y0+L/2))).sin();
@@ -122,13 +122,13 @@ void AcousticTri<Element>::setupEigenfunctionTest(Mesh *mesh, Options options) {
 }
 
 template <typename Element>
-double AcousticTri<Element>::checkEigenfunctionTest(Mesh *mesh, Options options,
+double AcousticTri<Element>::checkEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options,
                                                   const Ref<const MatrixXd>& u, double time) {
 
   double L, Lx, Ly;
-  double x0 = options.IC_Center_x();
-  double y0 = options.IC_Center_z();
-  L = Lx = Ly = options.IC_SquareSide_L();
+  double x0 = options->IC_Center_x();
+  double y0 = options->IC_Center_z();
+  L = Lx = Ly = options->IC_SquareSide_L();
   VectorXd pts_x, pts_y;
   std::tie(pts_x,pts_y) = Element::buildNodalPoints();
   VectorXd un_xy = (M_PI/Lx*(pts_x.array()-(x0+L/2))).sin()*(M_PI/Ly*(pts_y.array()-(y0+L/2))).sin();

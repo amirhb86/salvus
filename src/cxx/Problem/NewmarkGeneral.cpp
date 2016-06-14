@@ -14,15 +14,15 @@ using namespace Eigen;
 
 void NewmarkGeneral::initialize(Mesh *mesh,
                                 ExodusModel *model,
-                                Options &options) {
+                                std::unique_ptr<Options> const &options) {
 
   // Save references to mesh and element base.
   mMesh = mesh;
 
   // Attach elements to mesh.
-  if (options.Dimension() == 2) {
+  if (options->Dimension() == 2) {
     mMesh->setupGlobalDof(1, 3, 9, 0, 2, model);
-  } else if (options.Dimension() == 3) {
+  } else if (options->Dimension() == 3) {
     mMesh->setupGlobalDof(1, 2, 4, 8, 3, model);
   }
 
@@ -82,11 +82,11 @@ void NewmarkGeneral::initialize(Mesh *mesh,
   /**** Time step ****/
   auto dt = mesh->CFL() * h_all.minCoeff();
   // if timestep not set from command line
-  if(options.TimeStep() <= 0) {
+  if(options->TimeStep() <= 0) {
 //    options.SetTimeStep(dt);
-    LOG() << "Suggested dt = " << options.TimeStep();    
+    LOG() << "Suggested dt = " << options->TimeStep();
   } else {
-    LOG() << "Suggested dt = " << dt << " vs. Commandline dt = " << options.TimeStep();
+    LOG() << "Suggested dt = " << dt << " vs. Commandline dt = " << options->TimeStep();
   }
   /**** END NEW TIME STEP ****/
 

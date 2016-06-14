@@ -12,7 +12,7 @@
 using namespace Eigen;
 
 template <typename Element>
-AcousticHex3D_LF<Element>::AcousticHex3D_LF(Options options): Element(options) {
+AcousticHex3D_LF<Element>::AcousticHex3D_LF(std::unique_ptr<Options> const &options): Element(options) {
 
   // Allocate all work arrays.
   mVpSquared.setZero(Element::NumIntPnt());
@@ -121,21 +121,21 @@ VectorXd exactSolution(VectorXd& xn, VectorXd& yn, VectorXd& zn, double time,
 }
 
 template <typename Element>
-void AcousticHex3D_LF<Element>::setupEigenfunctionTest(Mesh *mesh, Options options) {
+void AcousticHex3D_LF<Element>::setupEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options) {
 
   double L, Lx, Ly, Lz;
-  double x0 = options.IC_Center_x();
-  double y0 = options.IC_Center_y();
-  double z0 = options.IC_Center_z();
+  double x0 = options->IC_Center_x();
+  double y0 = options->IC_Center_y();
+  double z0 = options->IC_Center_z();
   
-  L = Lx = Ly = Lz = options.IC_SquareSide_L();
+  L = Lx = Ly = Lz = options->IC_SquareSide_L();
   VectorXd pts_x, pts_y, pts_z;
   std::tie(pts_x, pts_y, pts_z) = Element::buildNodalPoints();
   // VectorXd un_xyz =
   //   (M_PI/Lx*(pts_x.array()-(x0+L/2))).sin() *
   //   (M_PI/Ly*(pts_y.array()-(y0+L/2))).sin() * 
   //   (M_PI/Lz*(pts_z.array()-(z0+L/2))).sin();
-  auto dt = options.TimeStep();
+  auto dt = options->TimeStep();
   // auto time = -dt;
   double vp = Element::ParAtIntPts("VP").mean();
   // VectorXd unm1 = un_xyz*cos(-M_PI/Lx*sqrt(3)*dt*vp);
@@ -147,14 +147,14 @@ void AcousticHex3D_LF<Element>::setupEigenfunctionTest(Mesh *mesh, Options optio
 }
 
 template <typename Element>
-double AcousticHex3D_LF<Element>::checkEigenfunctionTest(Mesh *mesh, Options options,
+double AcousticHex3D_LF<Element>::checkEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options,
                                                   const Ref<const MatrixXd>& u, double time) {
 
   double L, Lx, Ly, Lz;
-  double x0 = options.IC_Center_x();
-  double y0 = options.IC_Center_y();
-  double z0 = options.IC_Center_z();
-  L = Lx = Ly = Lz = options.IC_SquareSide_L();
+  double x0 = options->IC_Center_x();
+  double y0 = options->IC_Center_y();
+  double z0 = options->IC_Center_z();
+  L = Lx = Ly = Lz = options->IC_SquareSide_L();
   VectorXd pts_x, pts_y, pts_z;
   std::tie(pts_x,pts_y,pts_z) = Element::buildNodalPoints();
   // VectorXd un_xyz =

@@ -24,7 +24,7 @@ class ElasticToAcoustic2D: public BasePhysics {
  public:
 
   /**** Initializers ****/
-  ElasticToAcoustic2D<BasePhysics>(Options options);
+  ElasticToAcoustic2D<BasePhysics>(std::unique_ptr<Options> const &options);
   void setBoundaryConditions(Mesh *mesh);
 
   std::vector<std::string> PullElementalFields() const;

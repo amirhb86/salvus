@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
   return result;
 }
 
-std::shared_ptr<ElementAdapter<Acoustic2D<Quad<QuadP1>>>> setup_simple_quad(Options options) {
+std::shared_ptr<ElementAdapter<Acoustic2D<Quad<QuadP1>>>> setup_simple_quad(std::unique_ptr<Options> const &options) {
 
   // Simple model.
   ExodusModel *model = new ExodusModel(options);

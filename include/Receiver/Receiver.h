@@ -38,11 +38,11 @@ class Receiver {
  public:
 
   // See discussion I've had with myself in the Element header (mRec).
-  virtual std::shared_ptr<Receiver> clone() const = 0;
+  virtual std::unique_ptr<Receiver> move() = 0;
 
-  Receiver(Options options);
+  Receiver(std::unique_ptr<Options> const &options);
   virtual ~Receiver();
-  static std::vector<std::shared_ptr<Receiver>> factory(Options options);
+  static std::vector<std::shared_ptr<Receiver>> factory(std::unique_ptr<Options> const &options);
 
   inline void SetRefLocR (double val) { mRefLocR = val; }
   inline void SetRefLocS (double val) { mRefLocS = val; }
