@@ -393,7 +393,7 @@ TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
   }
   
   // Setup reference element.
-  auto reference_element = Element::Factory({"u"}, {}, options);
+  std::shared_ptr<Element> reference_element = std::make_shared<AcousticHexP1>(ref_hex);
 
   std::vector<std::shared_ptr<Element>> elements;
   // Get a list of all local elements.

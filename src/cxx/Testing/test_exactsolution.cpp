@@ -332,7 +332,7 @@ TEST_CASE("Testing acoustic exact solutions for hexahedra", "[exact/hexahedra]")
    "salvus_test",
    "--testing","true",
    "--duration", "0.18", // 30 steps
-   // "--time_step", "0.0065", // now set automatically
+    "--time_step", "0.0025", // now set automatically
    "--exodus_file_name", "simple_hexmesh_2x2x2.vp4.e",
    "--exodus_model_file_name", "simple_hexmesh_2x2x2.vp4.e",
    "--mesh_type", "newmark",
@@ -387,7 +387,7 @@ TEST_CASE("Testing acoustic fast exact solutions for hexahedra", "[exact/hexahed
    "salvus_test",
    "--testing","true",
    "--duration", "0.08838834764831843", // 30 steps
-   // "--time_step", "0.0025", // now automatic
+    "--time_step", "0.0025", // now automatic
    "--exodus_file_name", "simple_hexmesh_2x2x2.vp4.e",
    "--exodus_model_file_name", "simple_hexmesh_2x2x2.vp4.e",
    "--mesh_type", "newmark",

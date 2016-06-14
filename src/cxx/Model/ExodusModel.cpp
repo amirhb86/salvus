@@ -268,7 +268,10 @@ double ExodusModel::getElementalMaterialParameterAtVertex(const Eigen::VectorXd 
         parameter_index = i; found = true;
       }
       i++;
-    } if (!found && parameter_name == "VP") { parameter_name = "VPV"; }
+    }
+    if (!found && parameter_name == "VP") { parameter_name = "VPV"; }
+    else if (!found && parameter_name == "VPV") { parameter_name = "VP"; }
+
   }
 
   return mElementalVariables[parameter_index * mNumberElements + spatial_index];
