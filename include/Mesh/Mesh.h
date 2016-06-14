@@ -1,14 +1,15 @@
 #pragma once
 
 // stl.
+#include <set>
 #include <map>
 #include <iosfwd>
 #include <string>
 #include <vector>
 #include <assert.h>
+#include <iostream>
 
 // 3rd party.
-#include <mpi.h>
 #include <petsc.h>
 #include <Eigen/Dense>
 
@@ -32,6 +33,18 @@ struct vec_struct {
 
 class Mesh {
 
+  /** Keeps track of all the fields defined in the mesh. **/
+  std::set<std::string> mMeshFields;
+
+  /** Keeps track of the primary field on each element. **/
+  std::vector<std::set<std::string>> mElmFields;
+
+  /** Keeps track of any (possible) coupling fields on each element. **/
+  std::map<PetscInt,std::set<std::string>> mCouplingFields;
+
+  /** Keeps (sparse) track of any specific couplings. **/
+  std::map<PetscInt,std::vector<std::tuple<PetscInt,std::vector<std::string>>>> mCpl;
+
   int mNumberElementsLocal;
   /** < Num of elements on this processor. */
   int mNumberDimensions;
@@ -46,12 +59,8 @@ class Mesh {
   /** < PETSc distributed mesh defining parallel element layout. */
   PetscSection mMeshSection;      /** < Mesh section describing location of the integration points. In the future we
                                         * may have many of these per mesh. */
+  int int_tstep;
 
-  /**
-   * Returns the number of fields at a give DOF.
-   * For example numFieldPerPhysics(scalar) -> 1, numFieldPerPhysics(2delastic) - > 2.
-   */
-  int numFieldPerPhysics(std::string physics);
 
  protected:
 
@@ -88,6 +97,16 @@ class Mesh {
    * @return Some derived mesh class.
    */
   static Mesh *factory(Options options);
+
+  /**
+   * Given an existing vector of continuous fields, append a new set of fields based on a
+   * type of physics.
+   * @param [in] fields A pre-existing vector containing field names.
+   * @param [in] physics A string defining the physics you would like to add.
+   * @return An extended vector containing new field names.
+   */
+  static std::vector<std::string> appendPhysicalFields(const std::vector<std::string>& fields,
+                                                       const std::string& physics);
 
   virtual ~Mesh() { DMDestroy(&mDistributedMesh); }
 
@@ -333,11 +352,18 @@ class Mesh {
    */
   void AddToGlobalFields(std::string fieldname) { mGlobalFields.push_back(fieldname); }
 
+  PetscInt GetNeighbouringElement(const PetscInt interface, const PetscInt this_elm) const;
+
   /**
    * Get the transitive closure of a coordinate section for a mesh point.
    */
   Eigen::MatrixXd getElementCoordinateClosure(PetscInt elem_num);
 
+  int numFieldPerPhysics(std::string physics);
+
+  inline std::vector<std::string> ElementFields(const PetscInt num) {
+    return std::vector<std::string> (mElmFields[num].begin(), mElmFields[num].end());
+  }
 
   inline DM &DistributedMesh() { return mDistributedMesh; }
   inline PetscSection &MeshSection() { return mMeshSection; }
@@ -348,7 +374,12 @@ class Mesh {
 
   inline std::map<std::string, std::map<int, std::vector<int>>>
   BoundaryElementFaces() { return mBoundaryElementFaces; }
+  std::set<std::string> AllFields() const { return mMeshFields; }
 
-  inline int CFL() { return mCFL; }
+  std::vector<std::tuple<PetscInt,std::vector<std::string>>> CouplingFields(const PetscInt elm);
+  std::vector<std::string> TotalCouplingFields(const PetscInt elm);
+  std::vector<PetscInt> EdgeNumbers(const PetscInt elm);
+
+  inline double CFL() { return mCFL; }
   
 };

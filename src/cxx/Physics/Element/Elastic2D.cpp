@@ -2,6 +2,7 @@
 #include <Utilities/Options.h>
 #include <Model/ExodusModel.h>
 #include <Physics/Elastic2D.h>
+#include <Source/Source.h>
 
 using namespace Eigen;
 
@@ -19,7 +20,7 @@ Elastic2D<Element>::Elastic2D(Options options): Element(options) {
   mc33.setZero(Element::NumIntPnt());
   mStiff.setZero(Element::NumIntPnt(), Element::NumDim());
   mStress.setZero(Element::NumIntPnt(), num_grad_cmps);
-  mStrain.setZero(Element::NumIntPnt(), num_grad_cmps);
+  mStrain.setZero(Element::NumIntPnt(), num_grad_cmps+1);
 
 }
 
@@ -27,11 +28,11 @@ template <typename Element>
 void Elastic2D<Element>::attachMaterialPropertiesNew(const ExodusModel *model) {
   Element::attachMaterialProperties(model, "RHO");
   Element::attachMaterialProperties(model, "C11");
-  Element::attachMaterialProperties(model, "C12");
+//  Element::attachMaterialProperties(model, "C12");
   Element::attachMaterialProperties(model, "C13");
-  Element::attachMaterialProperties(model, "C22");
-  Element::attachMaterialProperties(model, "C23");
   Element::attachMaterialProperties(model, "C33");
+//  Element::attachMaterialProperties(model, "C23");
+  Element::attachMaterialProperties(model, "C55");
 }
 
 template <typename Element>
@@ -49,46 +50,74 @@ void Elastic2D<Element>::assembleElementMassMatrix(Mesh *mesh) {
 }
 
 template <typename Element>
+MatrixXd Elastic2D<Element>::computeStress(const Eigen::Ref<const Eigen::MatrixXd> &strain) {
+
+  /* TODO: PROPER CONVETION!!!! */
+  /* mc13 & mc23 are currently zero */
+  mc11 = Element::ParAtIntPts("C11");
+  mc12 = Element::ParAtIntPts("C13");
+  mc22 = Element::ParAtIntPts("C33");
+  mc33 = Element::ParAtIntPts("C55");
+
+  Matrix<double,Dynamic,3> stress(Element::NumIntPnt(), 3);
+  VectorXd uxy_plus_uyx = strain.col(1) + strain.col(2);
+
+  stress.col(0) =
+    mc11.array().cwiseProduct(strain.col(0).array()) +
+    mc12.array().cwiseProduct(strain.col(3).array()) +
+    mc13.array().cwiseProduct(uxy_plus_uyx.array());
+
+  stress.col(1) =
+      mc12.array().cwiseProduct(strain.col(0).array()) +
+      mc22.array().cwiseProduct(strain.col(3).array()) +
+      mc23.array().cwiseProduct(uxy_plus_uyx.array());
+
+  stress.col(2) =
+      mc13.array().cwiseProduct(strain.col(0).array()) +
+      mc23.array().cwiseProduct(strain.col(3).array()) +
+      mc33.array().cwiseProduct(uxy_plus_uyx.array());
+
+  return stress;
+
+}
+
+template <typename Element>
 MatrixXd Elastic2D<Element>::computeStiffnessTerm(const Eigen::MatrixXd &u) {
 
-  // strain ux_x, uy_y, uy_x.
-  mStrain.col(0) = Element::computeGradient(u.col(0)).col(0);
+  // strain ux_x, ux_y, uy_x, uy_y.
+  mStrain.leftCols<2>()  = Element::computeGradient(u.col(0));
   mStrain.rightCols<2>() = Element::computeGradient(u.col(1));
 
-  mc11 = Element::ParAtIntPts("C11");
-  mc12 = Element::ParAtIntPts("C12");
-  mc13 = Element::ParAtIntPts("C13");
-  mc22 = Element::ParAtIntPts("C22");
-  mc23 = Element::ParAtIntPts("C23");
-  mc33 = Element::ParAtIntPts("C33");
+  // compute stress from strain.
+  mStress = computeStress(mStrain);
 
-  mStress.col(0) =
-      mc11.array().cwiseProduct(mStrain.col(0).array()) +
-      mc12.array().cwiseProduct(mStrain.col(1).array()) +
-      mc13.array().cwiseProduct(2*mStrain.col(2).array());
+  // temporary matrix to hold directional stresses.
+  Matrix<double,Dynamic,2> temp_stress(Element::NumIntPnt(), 2);
 
-  mStress.col(1) =
-      mc12.array().cwiseProduct(mStrain.col(0).array()) +
-      mc22.array().cwiseProduct(mStrain.col(1).array()) +
-      mc23.array().cwiseProduct(2*mStrain.col(2).array());
-
-  mStress.col(2) =
-      mc13.array().cwiseProduct(mStrain.col(0).array()) +
-      mc23.array().cwiseProduct(mStrain.col(1).array()) +
-      mc33.array().cwiseProduct(2*mStrain.col(2).array());
-
-  mStiff.col(0) = Element::applyGradTestAndIntegrate(
-      Map<VectorXd,0,OuterStride<>>(mStress.data(), Element::NumIntPnt(),
-                                    OuterStride<>(Element::NumIntPnt())));
-  mStiff.col(1) = Element::applyGradTestAndIntegrate(
-      mStress.rightCols<2>());
+  // compute stiffness.
+  temp_stress.col(0) = mStress.col(0); temp_stress.col(1) = mStress.col(2);
+  mStiff.col(0) = Element::applyGradTestAndIntegrate(temp_stress);
+  temp_stress.col(0) = mStress.col(2); temp_stress.col(1) = mStress.col(1);
+  mStiff.col(1) = Element::applyGradTestAndIntegrate(temp_stress);
 
   return mStiff;
 
 }
 
 template <typename Element>
-MatrixXd Elastic2D<Element>::computeSourceTerm(const double time) { return Eigen::MatrixXd(1,1); }
+MatrixXd Elastic2D<Element>::computeSurfaceIntegral(const Eigen::Ref<const Eigen::MatrixXd> &u) {
+  return Eigen::MatrixXd::Zero(Element::NumIntPnt(), Element::NumDim());
+}
+
+template <typename Element>
+MatrixXd Elastic2D<Element>::computeSourceTerm(const double time) {
+  MatrixXd s = MatrixXd::Zero(Element::NumIntPnt(), Element::NumDim());
+  for (auto &source : Element::Sources()) {
+    s.col(0) += (source->fire(time) * Element::getDeltaFunctionCoefficients(
+        source->ReferenceLocationR(), source->ReferenceLocationS()));
+  }
+  return s;
+}
 
 template <typename Element>
 void Elastic2D<Element>::setupEigenfunctionTest(Mesh *mesh, Options options) {

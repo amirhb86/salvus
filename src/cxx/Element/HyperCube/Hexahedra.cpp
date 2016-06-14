@@ -666,22 +666,22 @@ VectorXd Hexahedra<ConcreteHex>::tVectorStride(const Eigen::Ref<const Eigen::Vec
 }
 
 template <typename ConcreteHex>
-void Hexahedra<ConcreteHex>::attachVertexCoordinates(DM &distributed_mesh) {
+void Hexahedra<ConcreteHex>::attachVertexCoordinates(Mesh *mesh) {
 
   // needs building after mesh is loaded
-  mClsMap = ClosureMapping(mPlyOrd, mElmNum, distributed_mesh);
+  mClsMap = ClosureMapping(mPlyOrd, mElmNum, mesh->DistributedMesh());
   
   Vec coordinates_local;
   PetscInt coordinate_buffer_size;
   PetscSection coordinate_section;
   PetscReal *coordinates_buffer = NULL;
 
-  DMGetCoordinatesLocal(distributed_mesh, &coordinates_local);
-  DMGetCoordinateSection(distributed_mesh, &coordinate_section);
-  DMPlexVecGetClosure(distributed_mesh, coordinate_section, coordinates_local, mElmNum,
+  DMGetCoordinatesLocal(mesh->DistributedMesh(), &coordinates_local);
+  DMGetCoordinateSection(mesh->DistributedMesh(), &coordinate_section);
+  DMPlexVecGetClosure(mesh->DistributedMesh(), coordinate_section, coordinates_local, mElmNum,
                       &coordinate_buffer_size, &coordinates_buffer);
   std::vector<PetscReal> coordinates_element(coordinates_buffer, coordinates_buffer + coordinate_buffer_size);
-  DMPlexVecRestoreClosure(distributed_mesh, coordinate_section, coordinates_local, mElmNum,
+  DMPlexVecRestoreClosure(mesh->DistributedMesh(), coordinate_section, coordinates_local, mElmNum,
                           &coordinate_buffer_size, &coordinates_buffer);
 
   for (int i = 0; i < mNumVtx; i++) {
@@ -736,13 +736,10 @@ double Hexahedra<ConcreteHex>::estimatedElementRadius() {
         // Optimized gradient for tensorized GLL basis.
         std::tie(invJ, detJ) = ConcreteHex::inverseJacobianAtPoint(r, s, t, mVtxCrd);
         Matrix3d J = invJ.inverse();
-        VectorXcd eivals = J.eigenvalues();
+        Vector3d eivals_abs = J.eigenvalues().array().abs();
         // get minimum h (smallest direction)
-        Vector3d eivals_norm;
-        for(int i=0;i<3;i++) {
-          eivals_norm(i) = std::norm(eivals[i]);
-        }
-        h_pts(index) = eivals_norm.minCoeff();
+
+        h_pts(index) = eivals_abs.minCoeff();
       }
     }
   }
@@ -923,6 +920,7 @@ MatrixXd Hexahedra<ConcreteHex>::computeGradient(const Ref<const VectorXd> &fiel
         
         mGradWork.row(index) = mInvJac[index] * refGrad;        
 
+
       }
     }
   }
@@ -1007,7 +1005,7 @@ VectorXd Hexahedra<ConcreteHex>::applyGradTestAndIntegrate(const Ref<const Matri
       }
     }
   }
-  
+
   for (int t_ind = 0; t_ind < mNumIntPtsS; t_ind++) {
     for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
       for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
@@ -1231,7 +1229,7 @@ double Hexahedra<ConcreteHex>::integrateField(const Eigen::Ref<const Eigen::Vect
         std::tie(inverse_Jacobian, detJ) = ConcreteHex::inverseJacobianAtPoint(r, s, t, mVtxCrd);
         int index = r_ind + s_ind * mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS;
         val += field(index) * mIntWgtR(r_ind) *
-          mIntWgtS(s_ind) * mIntWgtR(r_ind) * detJ;
+          mIntWgtS(s_ind) * mIntWgtT(t_ind) * detJ;
         
       }
     }

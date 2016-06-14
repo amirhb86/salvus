@@ -12,11 +12,11 @@ class Options;
 class ExodusModel;
 
 template <typename Shape>
-class Acoustic3D: public Shape {
+class Elastic3D: public Shape {
   /**
-   * \class Acoustic2D
+   * \class Elastic3D
    *
-   * \brief Class in charge of handling wave propagation in acoustic regions.
+   * \brief Class in charge of handling wave propagation in elastic volumes.
    *
    * This element expects to be templated on "Shape", which refers to a concrete element type.
    * Some examples might be "TensorQuad", or "Generic". Functionality from these derived classes
@@ -24,18 +24,14 @@ class Acoustic3D: public Shape {
    */
 
  private:
-
   /**** Workspace vectors (allocated in the constructor). ****/
-  Eigen::VectorXd mVpSquared;
-  Eigen::VectorXd mStiff;
-  Eigen::VectorXd mSource;
-  Eigen::MatrixXd mStress;
-  Eigen::MatrixXd mStrain;
+  Eigen::ArrayXd mc11, mc12, mc13, mc22, mc23, mc33, mc44, mc55, mc66, mRho;
+//  Eigen::MatrixXd mStiff, mStress, mStrain;
 
  public:
 
   /**** Initializers ****/
-  Acoustic3D<Shape>(Options options);
+  Elastic3D<Shape>(Options options);
   std::vector<std::string> PullElementalFields() const;
   std::vector<std::string> PushElementalFields() const;
 
@@ -44,20 +40,20 @@ class Acoustic3D: public Shape {
   void assembleElementMassMatrix(Mesh *mesh);
   void attachMaterialPropertiesNew(const ExodusModel *model);
   double CFL_estimate();
-  
-  
+
   /**** Time loop functions ****/
-  Eigen::MatrixXd computeStress(const Eigen::Ref<const Eigen::MatrixXd>& strain);
   Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &u);
   Eigen::MatrixXd computeSourceTerm(const double time);
   Eigen::MatrixXd computeSurfaceIntegral(const Eigen::Ref<const Eigen::MatrixXd>& u);
+  Eigen::Array<double,Eigen::Dynamic,6> computeStress(const Eigen::Ref<const Eigen::ArrayXd>& strain);
   void recordField(const Eigen::MatrixXd &u) {};
 
   /**** Test helpers ****/
-  void setupEigenfunctionTest(Mesh *mesh, Options options);
+  void setupEigenfunctionTest(Mesh *mesh, Options options) {};
   double checkEigenfunctionTest(Mesh *mesh, Options options,
                                 const Eigen::Ref<const Eigen::MatrixXd>& u,
-                                double time);
+                                double time) {return 0;};
 
 };
+
 

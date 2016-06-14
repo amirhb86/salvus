@@ -38,12 +38,10 @@ int main(int argc, char *argv[]) {
   // Get sources.
   std::vector<std::shared_ptr<Source>> sources = Source::factory(options);
 
-  // Setup reference element.
-  std::shared_ptr<Element> reference_element = Element::Factory(options);
-
   // Use above elements to define the problem.
   Problem *problem = Problem::factory(options.ProblemType());
-  problem->initialize(mesh, model, reference_element, options);
+
+  problem->initialize(mesh, model, options);
   problem->solve(options);
 
   PetscFinalize();

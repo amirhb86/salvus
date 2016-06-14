@@ -81,8 +81,8 @@ class ElementAdapter: public Element, public T {
   /** Attach vertex coordinates to the element.
    * @param [in] distributed_mesh The parallel DM provided by PETSc.
    */
-  virtual void attachVertexCoordinates(DM &distributed_mesh) {
-    T::attachVertexCoordinates(distributed_mesh);
+  virtual void attachVertexCoordinates(Mesh *mesh) {
+    T::attachVertexCoordinates(mesh);
   }
   /** Return the estimated element radius scaled by element-local velocity.
    * @return The CFL estimate
@@ -115,6 +115,10 @@ class ElementAdapter: public Element, public T {
   virtual Eigen::MatrixXd computeStiffnessTerm(const Eigen::Ref<const Eigen::MatrixXd>& u) {
     return T::computeStiffnessTerm(u);
   }
+  /** Computes the surface integral over an element. Note that this is usually zero. */
+  virtual Eigen::MatrixXd computeSurfaceIntegral(const Eigen::Ref<const Eigen::MatrixXd>& u) {
+    return T::computeSurfaceIntegral(u);
+  };
   /** Returns the fields which are required from the global DOFs for local operation */
   virtual std::vector<std::string> PullElementalFields() const {
     return T::PullElementalFields();

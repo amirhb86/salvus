@@ -134,26 +134,30 @@ VectorXd Quad<ConcreteShape>::sVectorStride(const Ref<const VectorXd>& f, const 
 
 
 template <typename ConcreteShape>
-void Quad<ConcreteShape>::attachVertexCoordinates(DM &distributed_mesh) {
+void Quad<ConcreteShape>::attachVertexCoordinates(Mesh *mesh) {
 
   Vec coordinates_local;
   PetscInt coordinate_buffer_size;
   PetscSection coordinate_section;
   PetscReal *coordinates_buffer = NULL;
 
-  DMGetCoordinatesLocal(distributed_mesh, &coordinates_local);
-  DMGetCoordinateSection(distributed_mesh, &coordinate_section);
-  DMPlexVecGetClosure(distributed_mesh, coordinate_section, coordinates_local, mElmNum,
+  DMGetCoordinatesLocal(mesh->DistributedMesh(), &coordinates_local);
+  DMGetCoordinateSection(mesh->DistributedMesh(), &coordinate_section);
+  DMPlexVecGetClosure(mesh->DistributedMesh(), coordinate_section, coordinates_local, mElmNum,
                       &coordinate_buffer_size, &coordinates_buffer);
   std::vector<PetscReal> coordinates_element(coordinates_buffer, coordinates_buffer + coordinate_buffer_size);
-  DMPlexVecRestoreClosure(distributed_mesh, coordinate_section, coordinates_local, mElmNum,
+  DMPlexVecRestoreClosure(mesh->DistributedMesh(), coordinate_section, coordinates_local, mElmNum,
                           &coordinate_buffer_size, &coordinates_buffer);
 
 
+  // Get all coordinates.
   for (int i = 0; i < mNumVtx; i++) {
     mVtxCrd(i,0) = coordinates_element[mNumDim * i + 0];
     mVtxCrd(i,1) = coordinates_element[mNumDim * i + 1];
   }
+
+  // Save edge maps.
+  mEdgMap = mesh->EdgeNumbers(mElmNum);
 
   // Save element center
   mElmCtr << mVtxCrd.col(0).mean(),
@@ -364,12 +368,6 @@ MatrixXd Quad<ConcreteShape>::computeGradient(const Ref<const VectorXd> &field) 
       double s = mIntCrdS(s_ind);
       std::tie(invJac, mDetJac(index)) = ConcreteShape::inverseJacobianAtPoint(r, s, mVtxCrd);
       
-      // Optimized gradient for tensorized GLL basis.
-      
-      // mGradWork.row(index) = invJac * (refGrad <<
-      //   mGrd.row(r_ind).dot(rVectorStride(field, s_ind, mNumIntPtsS, mNumIntPtsR)),
-      //                                  mGrd.row(s_ind).dot(sVectorStride(field, r_ind, mNumIntPtsS, mNumIntPtsR))).finished();
-      
       // optimized version (17us->13us)
       refGrad.setZero(2);
       for(int i=0;i<mNumIntPtsR;i++) {
@@ -422,6 +420,63 @@ VectorXd Quad<ConcreteShape>::applyTestAndIntegrate(const Ref<const VectorXd> &f
       result(index) = f(index) * detJac * mIntWgtR(r_ind) * mIntWgtS(s_ind);
 
     }
+  }
+
+  return result;
+
+}
+
+template <typename ConcreteShape>
+Eigen::Vector2d Quad<ConcreteShape>::getEdgeNormal(const PetscInt edg) {
+
+  Vector2d n;
+  double x0, x1, y0, y1;
+  for (int i = 0; i < mNumVtx; i++) {
+    if (mEdgMap[i] == edg) {
+      x0 = mVtxCrd(i, 0);
+      x1 = mVtxCrd((i+1) % mNumVtx, 0);
+      y0 = mVtxCrd(i, 1);
+      y1 = mVtxCrd((i+1) % mNumVtx, 1);
+    }
+  }
+
+  n(0) = -1 * (y1 - y0);
+  n(1) = +1 * (x1 - x0);
+  return n / n.norm();
+
+}
+
+template <typename ConcreteShape>
+Eigen::VectorXd Quad<ConcreteShape>::applyTestAndIntegrateEdge(const Eigen::Ref<const Eigen::VectorXd> &f,
+                                                               const PetscInt edg) {
+
+  // Allocate return vector (return-value optimization)?
+  Eigen::VectorXd result = Eigen::VectorXd::Zero(mNumIntPnt);
+
+  // get edge vertices.
+  int start, stride;
+  double x0, x1, y0, y1;
+  for (int i = 0; i < mNumVtx; i++) {
+    if (mEdgMap[i] == edg) {
+      x0 = mVtxCrd(i, 0);
+      x1 = mVtxCrd((i+1) % mNumVtx, 0);
+      y0 = mVtxCrd(i, 1);
+      y1 = mVtxCrd((i+1) % mNumVtx, 1);
+      if      (i == 0) { start = 0; stride = 1; }
+      else if (i == 1) { start = mNumIntPtsR-1; stride = mNumIntPtsR; }
+      else if (i == 2) { start = mNumIntPtsR*mNumIntPtsS - 1; stride = -1; }
+      else             { start = mNumIntPtsR * (mNumIntPtsS - 1); stride = -1 * mNumIntPtsR; }
+    }
+  }
+
+  // compute 'edge jacobian'.
+  double dx = x1 - x0;
+  double dy = y1 - y0;
+  double d = sqrt(dx*dx + dy*dy) / 2.0;
+
+  // compute coefficients.
+  for (int i = start, j = 0; j < mNumIntPtsR; i+=stride, j++) {
+    result(i) = f(i) * d * mIntWgtR(j);
   }
 
   return result;
@@ -528,6 +583,7 @@ double Quad<ConcreteShape>::integrateField(const Eigen::Ref<const Eigen::VectorX
 
 template <typename ConcreteShape>
 void Quad<ConcreteShape>::setBoundaryConditions(Mesh *mesh) {
+
   mBndElm = false;
   for (auto &keys: mesh ->BoundaryElementFaces()) {
     auto boundary_name = keys.first;
@@ -537,6 +593,7 @@ void Quad<ConcreteShape>::setBoundaryConditions(Mesh *mesh) {
       mBnd[boundary_name] = element_in_boundary[mElmNum];
     }
   }
+
 }
 
 template <typename ConcreteShape>

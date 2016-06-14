@@ -72,6 +72,9 @@ private:
   bool mBndElm;
   std::map<std::string,std::vector<int>> mBnd;
 
+  // Vector of tuples to any (possible) coupling edges.
+  std::vector<std::tuple<PetscInt,std::vector<std::string>>> mCpl;
+
   // Instance variables.
   PetscInt mElmNum;
   int mPlyOrd;
@@ -91,6 +94,7 @@ private:
 
   // Closure mapping.
   Eigen::VectorXi mClsMap;
+  std::vector<PetscInt> mEdgMap;
 
   // Quadrature parameters.
   Eigen::VectorXd mIntCrdR;
@@ -166,6 +170,11 @@ private:
    */
   Eigen::VectorXd applyGradTestAndIntegrate(const Eigen::Ref<const Eigen::MatrixXd>& f);
 
+
+  Eigen::VectorXd applyTestAndIntegrateEdge(const Eigen::Ref<const Eigen::VectorXd>& f,
+                                            const PetscInt edg);
+  Eigen::Vector2d getEdgeNormal(const PetscInt edg);
+
   /**
    * Figure out and set boundaries.
    * @param [in] mesh The mesh instance.
@@ -182,7 +191,7 @@ private:
    * Attach the (4) vertex coordinates to the element.
    * @param [in] distributed_mesh The PETSc DM.
    */
-  void attachVertexCoordinates(DM &distributed_mesh);
+  void attachVertexCoordinates(Mesh *mesh);
 
   /**
    * Attach some abstract source instance to the element.
@@ -240,6 +249,7 @@ private:
   // Setters.
   inline void SetNumNew(const PetscInt num) { mElmNum = num; }
   inline void SetVtxCrd(const Eigen::Ref<const Eigen::Matrix<double,4,2>> &v) { mVtxCrd = v; }
+  inline void SetCplEdg(const std::vector<PetscInt> &v) { mEdgMap = v; }
 
   // Getters.
   inline bool BndElm() const { return mBndElm; }
@@ -250,6 +260,7 @@ private:
   inline int NumDofFac() const { return mNumDofFac; }
   inline int NumDofEdg() const { return mNumDofEdg; }
   inline int NumDofVtx() const { return mNumDofVtx; }
+
   inline Eigen::MatrixXi ClsMap() const { return mClsMap; }
   inline Eigen::MatrixXd VtxCrd() const { return mVtxCrd; }
   std::vector<std::shared_ptr<Source>> Sources() { return mSrc; }

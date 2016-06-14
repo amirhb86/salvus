@@ -29,6 +29,9 @@ class QuadP1 {
       const Eigen::Ref<const Eigen::VectorXd>& intCrdR,
       const Eigen::Ref<const Eigen::VectorXd>& intCrdS,
       const Eigen::Ref<const Eigen::Matrix<double,mNumVtx,mNumDim>>& vtx);
+
+  static int NumVtx() { return mNumVtx; }
+
 };
 
 

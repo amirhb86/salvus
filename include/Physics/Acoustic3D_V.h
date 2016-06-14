@@ -40,15 +40,16 @@ class Acoustic3D_V: public Shape {
   std::vector<std::string> PushElementalFields() const;
 
   /**** Setup functions ****/
-  void prepareStiffness() {};
+  void prepareStiffness();
   void assembleElementMassMatrix(Mesh *mesh);
   void attachMaterialPropertiesNew(const ExodusModel *model);
-  double CFL_estimate() {}
+  double CFL_estimate();
   
   /**** Time loop functions ****/
   Eigen::MatrixXd computeStress(const Eigen::Ref<const Eigen::MatrixXd>& strain);
   Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &u);
   Eigen::MatrixXd computeSourceTerm(const double time);
+  Eigen::MatrixXd computeSurfaceIntegral(const Eigen::Ref<const Eigen::MatrixXd>& u);
   void recordField(const Eigen::MatrixXd &u) {};
 
   /**** Test helpers ****/

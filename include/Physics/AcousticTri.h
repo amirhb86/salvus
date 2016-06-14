@@ -48,6 +48,7 @@ class AcousticTri: public Shape {
   /**** Time loop functions ****/
   Eigen::MatrixXd computeStress(const Eigen::Ref<const Eigen::MatrixXd>& strain);
   Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &u);
+  Eigen::MatrixXd computeSurfaceIntegral(const Eigen::Ref<const Eigen::MatrixXd>& u);
   Eigen::MatrixXd computeSourceTerm(const double time);
   void recordField(const Eigen::MatrixXd &u) {};
 

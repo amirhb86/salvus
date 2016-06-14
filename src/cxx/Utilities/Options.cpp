@@ -160,10 +160,13 @@ PetscErrorCode Options::setOptions() {
   // MAKE THESE COMMAND LINE OPTIONS EVENTUALLY.
   mTimeStepType = "newmark";
 
-  if (mMeshType == "newmark") {
+  if (mMeshType == "newmark" || mMeshType == "2d_couple" || mMeshType == "3d_couple") {
     if (mTestIC) mProblemType = "newmark_testing";
     else mProblemType = "newmark_general";
   }
+
+  if (mMeshType == "2d_couple") { mDimension = 2; }
+  else if (mMeshType == "3d_couple") { mDimension = 3; }
 
   // No error
   return 0;

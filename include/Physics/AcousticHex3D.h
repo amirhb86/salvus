@@ -49,6 +49,7 @@ class AcousticHex3D: public Shape {
   Eigen::MatrixXd computeStress(const Eigen::Ref<const Eigen::MatrixXd>& strain);
   Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &u);
   Eigen::MatrixXd computeSourceTerm(const double time);
+  Eigen::MatrixXd computeSurfaceIntegral(const Eigen::Ref<const Eigen::MatrixXd>& u);
   void recordField(const Eigen::MatrixXd &u) {};
 
   /**** Test helpers ****/

@@ -61,6 +61,11 @@ MatrixXd AcousticTri<Element>::computeStress(const Ref<const MatrixXd> &strain) 
 }
 
 template <typename Element>
+MatrixXd AcousticTri<Element>::computeSurfaceIntegral(const Eigen::Ref<const Eigen::MatrixXd> &u) {
+  return Eigen::MatrixXd::Zero(Element::NumIntPnt(), 1);
+}
+
+template <typename Element>
 void AcousticTri<Element>::prepareStiffness() {
   auto velocity = Element::ParAtIntPts("VP");
   mElementStiffnessMatrix = Element::buildStiffnessMatrix(velocity);    

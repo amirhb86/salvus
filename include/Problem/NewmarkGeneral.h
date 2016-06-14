@@ -22,6 +22,6 @@ public:
 
     ~NewmarkGeneral() {};
     virtual void solve(Options options);
-    virtual void initialize(Mesh *mesh, ExodusModel *model, std::shared_ptr<Element> elem, Options options);
+    virtual void initialize(Mesh *mesh, ExodusModel *model, Options &options);
 
 };
