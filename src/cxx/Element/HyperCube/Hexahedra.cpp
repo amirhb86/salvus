@@ -105,6 +105,7 @@ std::vector<int> getVertsFromPoint(int point, int numVerts, DM &distributed_mesh
     verts[i-(numPoints-numVerts)] = points[2*i];
   }
   return verts;
+  DMPlexRestoreTransitiveClosure(distributed_mesh, point, PETSC_TRUE, &numPoints, &points);
 }
 
 void edgeHandler(std::vector<std::vector<int>> canonical_edges,
@@ -466,7 +467,8 @@ VectorXi internalMappingOrder3(int element, DM &distributed_mesh) {
     element_dof_map[dof_counter] = std_layout[vertices_id][i];
     dof_counter++;
   }
-  
+
+  DMPlexRestoreTransitiveClosure(distributed_mesh,element,PETSC_TRUE,&numPoints,&points);
   // printf("dof_counter=%d\n",dof_counter);
   // std::cout << "element_dof_map=" << element_dof_map << "\n";
   return element_dof_map;
@@ -666,7 +668,7 @@ VectorXd Hexahedra<ConcreteHex>::tVectorStride(const Eigen::Ref<const Eigen::Vec
 }
 
 template <typename ConcreteHex>
-void Hexahedra<ConcreteHex>::attachVertexCoordinates(Mesh *mesh) {
+void Hexahedra<ConcreteHex>::attachVertexCoordinates(std::unique_ptr<Mesh> const &mesh) {
 
   // needs building after mesh is loaded
   mClsMap = ClosureMapping(mPlyOrd, mElmNum, mesh->DistributedMesh());
@@ -1239,7 +1241,7 @@ double Hexahedra<ConcreteHex>::integrateField(const Eigen::Ref<const Eigen::Vect
 }
 
 template <typename ConcreteHex>
-void Hexahedra<ConcreteHex>::setBoundaryConditions(Mesh *mesh) {
+void Hexahedra<ConcreteHex>::setBoundaryConditions(std::unique_ptr<Mesh> const &mesh) {
   mBndElm = false;
   for (auto &keys: mesh ->BoundaryElementFaces()) {
     auto boundary_name = keys.first;
@@ -1252,7 +1254,7 @@ void Hexahedra<ConcreteHex>::setBoundaryConditions(Mesh *mesh) {
 }
 
 template <typename ConcreteHex>
-void Hexahedra<ConcreteHex>::applyDirichletBoundaries(Mesh *mesh, std::unique_ptr<Options> const &options,
+void Hexahedra<ConcreteHex>::applyDirichletBoundaries(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options,
                                                       const std::string &fieldname) {
 
   if (! mBndElm) return;

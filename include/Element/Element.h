@@ -52,7 +52,7 @@ class Element {
   /** Construct the mass matrix on the element, and sum into global DOF.
    * @param [in/out] mesh Mesh instance. Global and local vectors modified.
    */
-  virtual void assembleElementMassMatrix(Mesh *mesh) = 0;
+  virtual void assembleElementMassMatrix(std::unique_ptr<Mesh> const &mesh) = 0;
   /** Attach material parameters to the element given some model.
    * @param [in] model Model instance.
    */
@@ -68,7 +68,7 @@ class Element {
   /** Attach vertex coordinates to the element.
    * @param [in] distributed_mesh The parallel DM provided by PETSc.
    */
-  virtual void attachVertexCoordinates(Mesh *mesh) = 0;
+  virtual void attachVertexCoordinates(std::unique_ptr<Mesh> const &mesh) = 0;
   /** Pre-compute the stiffness matrix operator. Currently this is required for the tetrahedral elements,
    * but is a non-op for element types where the stiffness matrix is computed on the fly.
    */
@@ -113,7 +113,7 @@ class Element {
    * elements.
    * @param [in/out] mesh Mesh instance. Local/global boundary values are modified.
    */
-  virtual void setBoundaryConditions(Mesh *mesh) = 0;
+  virtual void setBoundaryConditions(std::unique_ptr<Mesh> const &mesh) = 0;
   /** Triggers a record on all receivers which belong to a certain element.
    * @param [in] field The field to record.
    */
@@ -124,7 +124,7 @@ class Element {
    * @param [in] options The options class.
    * @param [in] fieldname The field which to apply the boundary condition to.
    */
-  virtual void applyDirichletBoundaries(Mesh *mesh,
+  virtual void applyDirichletBoundaries(std::unique_ptr<Mesh> const &mesh,
                                         std::unique_ptr<Options> const &options,
                                         const std::string &fieldname) = 0;
   ///@}
@@ -140,7 +140,7 @@ class Element {
    * @param [in] mesh The mesh instance.
    * @param [in] options The options class.
    */
-  virtual void setupTest(Mesh *mesh, std::unique_ptr<Options> const &options) = 0;
+  virtual void setupTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options) = 0;
   /**
    * Given a dynamic field (i.e. displacement), this functions checks the difference between the said field and
    * some analytical reference solution.
@@ -149,7 +149,7 @@ class Element {
    * @param [in] u The numerical solution to checi.
    * @param [in] time The simulation time.
    */
-  virtual double checkTest(Mesh *mesh, std::unique_ptr<Options> const &options,
+  virtual double checkTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options,
                            const Eigen::Ref<const Eigen::MatrixXd>& u,
                            double time) = 0;
   ///@}

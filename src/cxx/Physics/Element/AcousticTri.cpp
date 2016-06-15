@@ -30,7 +30,7 @@ template <typename Element>
 std::vector<std::string> AcousticTri<Element>::PushElementalFields() const { return { "a" }; }
 
 template <typename Element>
-void AcousticTri<Element>::assembleElementMassMatrix(Mesh *mesh) {
+void AcousticTri<Element>::assembleElementMassMatrix(std::unique_ptr<Mesh> const &mesh) {
 
   // In this acoustic formulation we just multiply shape functions together.
   VectorXd mass_matrix = Element::applyTestAndIntegrate(VectorXd::Ones(Element::NumIntPnt()));
@@ -104,7 +104,7 @@ MatrixXd AcousticTri<Element>::computeSourceTerm(const double time) {
 
 
 template <typename Element>
-void AcousticTri<Element>::setupEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options) {
+void AcousticTri<Element>::setupEigenfunctionTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options) {
 
   double L, Lx, Ly;
   double x0 = options->IC_Center_x();
@@ -122,7 +122,7 @@ void AcousticTri<Element>::setupEigenfunctionTest(Mesh *mesh, std::unique_ptr<Op
 }
 
 template <typename Element>
-double AcousticTri<Element>::checkEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options,
+double AcousticTri<Element>::checkEigenfunctionTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options,
                                                   const Ref<const MatrixXd>& u, double time) {
 
   double L, Lx, Ly;

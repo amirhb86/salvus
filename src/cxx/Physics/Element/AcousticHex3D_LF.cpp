@@ -35,7 +35,7 @@ template <typename Element>
 std::vector<std::string> AcousticHex3D_LF<Element>::PushElementalFields() const { return { "a" }; }
 
 template <typename Element>
-void AcousticHex3D_LF<Element>::assembleElementMassMatrix(Mesh *mesh) {
+void AcousticHex3D_LF<Element>::assembleElementMassMatrix(std::unique_ptr<Mesh> const &mesh) {
 
   // In this acoustic formulation we just multiply shape functions together.
   VectorXd mass_matrix = Element::applyTestAndIntegrate(VectorXd::Ones(Element::NumIntPnt()));
@@ -121,7 +121,7 @@ VectorXd exactSolution(VectorXd& xn, VectorXd& yn, VectorXd& zn, double time,
 }
 
 template <typename Element>
-void AcousticHex3D_LF<Element>::setupEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options) {
+void AcousticHex3D_LF<Element>::setupEigenfunctionTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options) {
 
   double L, Lx, Ly, Lz;
   double x0 = options->IC_Center_x();
@@ -147,7 +147,7 @@ void AcousticHex3D_LF<Element>::setupEigenfunctionTest(Mesh *mesh, std::unique_p
 }
 
 template <typename Element>
-double AcousticHex3D_LF<Element>::checkEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options,
+double AcousticHex3D_LF<Element>::checkEigenfunctionTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options,
                                                   const Ref<const MatrixXd>& u, double time) {
 
   double L, Lx, Ly, Lz;

@@ -29,10 +29,11 @@ struct vec_struct {
   std::string name; /** < Field name (i.e. displacement_x) */
   Vec glb;          /** < Global PETSc vector */
   Vec loc;          /** < Local PETSc vector */
-//  ~vec_struct() {   /** < Clean memory. */
-//    if (glb) { VecDestroy(&glb); }
-//    if (loc) { VecDestroy(&loc); }
-//  }
+  ~vec_struct() {   /** < Clean memory. */
+    std::cout << "DESTROY" << std::endl;
+    if (glb) { VecDestroy(&glb); }
+    if (loc) { VecDestroy(&loc); }
+  }
 };
 
 class Mesh {
@@ -66,7 +67,7 @@ class Mesh {
   std::vector<std::string> mGlobalFields;
 
   /** < Dictionary holding the fields on the global dof. */
-  std::map<std::string, vec_struct> mFields;
+  std::map<std::string, unique_ptr<vec_struct>> mFields;
 
   /** < Holds information used to dump field values to disk. */
   PetscViewer mViewer;
@@ -98,7 +99,7 @@ class Mesh {
    * the physics of the system under consideration, and the method of time-stepping chosen.
    * @return Some derived mesh class.
    */
-  static Mesh *factory(const std::unique_ptr<Options> &options);
+  static std::unique_ptr<Mesh> factory(const std::unique_ptr<Options> &options);
 
   /**
    * Given an existing vector of continuous fields, append a new set of fields based on a
@@ -111,6 +112,8 @@ class Mesh {
                                                        const std::string& physics);
 
   virtual ~Mesh() {
+    std::cout << "DES" << std::endl;
+    for (auto &f: mFields) { std::cout << "DEL" << std::endl; f.second->~vec_struct(); }
     if (mMeshSection) { PetscSectionDestroy(&mMeshSection); }
     if (mDistributedMesh) { DMDestroy(&mDistributedMesh); }
   }

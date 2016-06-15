@@ -59,7 +59,7 @@ template <typename Element>
 std::vector<std::string> Elastic3D<Element>::PushElementalFields() const { return {"ax", "ay", "az"}; }
 
 template <typename Element>
-void Elastic3D<Element>::assembleElementMassMatrix(Mesh *mesh) {
+void Elastic3D<Element>::assembleElementMassMatrix(std::unique_ptr<Mesh> const &mesh) {
 
   VectorXd mass_matrix = Element::applyTestAndIntegrate(Element::ParAtIntPts("RHO"));
   mesh->addFieldFromElement("m", Element::ElmNum(), Element::ClsMap(), mass_matrix);

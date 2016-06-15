@@ -13,7 +13,7 @@
 #include <Utilities/Logging.h>
 
 template<typename ElementVersion>
-std::vector<std::shared_ptr<ElementVersion>> initialize_exact(Mesh *mesh,
+std::vector<std::shared_ptr<ElementVersion>> initialize_exact(std::unique_ptr<Mesh> const &mesh,
                                                               std::unique_ptr<ExodusModel> const &model,
                                                               std::unique_ptr<ElementVersion> &reference_element,
                                                               std::unique_ptr<Options> const &options) {
@@ -94,7 +94,7 @@ std::vector<std::shared_ptr<ElementVersion>> initialize_exact(Mesh *mesh,
 }
 
 template<typename ElementVersion>
-double solve_vs_exact(std::unique_ptr<Options> const &options, Mesh *mesh,
+double solve_vs_exact(std::unique_ptr<Options> const &options, std::unique_ptr<Mesh> const &mesh,
                       std::vector<std::shared_ptr<ElementVersion>> &elements) {
   PetscFunctionBegin;
   // Setup values.
@@ -254,7 +254,7 @@ TEST_CASE("Testing acoustic exact solutions for triangles", "[exact/triangles]")
   // Triangles
 
   // Get mesh.
-  Mesh *mesh = Mesh::factory(options);
+  std::unique_ptr<Mesh> mesh = Mesh::factory(options);
   mesh->read(options);
 
   // Get model.
@@ -307,7 +307,7 @@ TEST_CASE("Testing acoustic exact solutions for quadrilaterals", "[exact/quads]"
   options->setOptions();
 
   // Get mesh.
-  Mesh *mesh = Mesh::factory(options);
+  std::unique_ptr<Mesh> mesh = Mesh::factory(options);
   mesh->read(options);
 
   // Get model.
@@ -361,7 +361,7 @@ TEST_CASE("Testing acoustic exact solutions for hexahedra", "[exact/hexahedra]")
   options->setOptions();
 
   // Get mesh.
-  Mesh *mesh = Mesh::factory(options);
+  std::unique_ptr<Mesh> mesh = Mesh::factory(options);
   mesh->read(options);
 
   // Get model.
@@ -416,7 +416,7 @@ TEST_CASE("Testing acoustic fast exact solutions for hexahedra", "[exact/hexahed
   options->setOptions();
 
   // Get mesh.
-  Mesh *mesh = Mesh::factory(options);
+  std::unique_ptr<Mesh> mesh = Mesh::factory(options);
   mesh->read(options);
 
   // Get model.
@@ -478,7 +478,7 @@ TEST_CASE("Testing acoustic exact solutions for new tetrahedra", "[exact/tetrahe
   options->setOptions();
 
   // Get mesh.
-  Mesh *mesh = Mesh::factory(options);
+  std::unique_ptr<Mesh> const &mesh = Mesh::factory(options);
   mesh->read(options);
 
   // Get model.

@@ -3,6 +3,7 @@
 #include <Utilities/Logging.h>
 #include <Problem/Order2Newmark.h>
 #include <Element/Element.h>
+#include <Mesh/Mesh.h>
 
 std::unique_ptr<ProblemNew> ProblemNew::Factory(std::unique_ptr<Options> const &options) {
 
@@ -35,7 +36,7 @@ std::vector<std::unique_ptr<Element>> ProblemNew::initializeElements(std::unique
   std::vector<std::unique_ptr<Element>> elements;
 
   /* Allocate all elements. */
-  for (PetscInt i = 0; i < 10; i++)
+  for (PetscInt i = 0; i < mesh->NumberElementsLocal(); i++)
   {
 
     /* Push back an appropriate element based on the mesh. */
@@ -44,13 +45,15 @@ std::vector<std::unique_ptr<Element>> ProblemNew::initializeElements(std::unique
     /* Assign a (processor-specific) number to this element. */
     elements.back()->SetNum(i);
 
-  }
+    /* Attach vertex co-ordinates from mesh. */
+    elements.back()->attachVertexCoordinates(mesh);
 
-  /* Build element 'functors'. */
-  for (auto &elm: elements)
-  {
+    /* Attach material properties (velocity, Cij, etc...). */
+    elements.back()->attachMaterialProperties(model);
 
-//    elm->attachVertexCoordinates(mesh);
+    /* Set any (external) boundary conditions. */
+    elements.back()->setBoundaryConditions(mesh);
+
 
   }
 

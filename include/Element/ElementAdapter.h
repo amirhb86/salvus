@@ -51,7 +51,7 @@ class ElementAdapter: public Element, public T {
   /** Construct the mass matrix on the element, and sum into global DOF.
    * @param [in/out] mesh Mesh instance. Global and local vectors modified.
    */
-  virtual void assembleElementMassMatrix(Mesh *mesh) {
+  virtual void assembleElementMassMatrix(std::unique_ptr<Mesh> const &mesh) {
     T::assembleElementMassMatrix(mesh);
   }
   /** Attach material parameters to the element given some model.
@@ -75,7 +75,7 @@ class ElementAdapter: public Element, public T {
   /** Attach vertex coordinates to the element.
    * @param [in] distributed_mesh The parallel DM provided by PETSc.
    */
-  virtual void attachVertexCoordinates(Mesh *mesh) {
+  virtual void attachVertexCoordinates(std::unique_ptr<Mesh> const &mesh) {
     T::attachVertexCoordinates(mesh);
   }
   /** Return the estimated element radius scaled by element-local velocity.
@@ -138,7 +138,7 @@ class ElementAdapter: public Element, public T {
    * elements.
    * @param [in/out] mesh Mesh instance. Local/global boundary values are modified.
    */
-  virtual void setBoundaryConditions(Mesh *mesh) {
+  virtual void setBoundaryConditions(std::unique_ptr<Mesh> const &mesh) {
     T::setBoundaryConditions(mesh);
   }
   /** Triggers a record on all receivers which belong to a certain element.
@@ -153,7 +153,7 @@ class ElementAdapter: public Element, public T {
    * @param [in] options The options class.
    * @param [in] fieldname The field which to apply the boundary condition to.
    */
-  virtual void applyDirichletBoundaries(Mesh *mesh, std::unique_ptr<Options> const &options,
+  virtual void applyDirichletBoundaries(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options,
                                         const std::string &fieldname) {
     return T::applyDirichletBoundaries(mesh, options, fieldname);
   }
@@ -170,7 +170,7 @@ class ElementAdapter: public Element, public T {
    * @param [in] mesh The mesh instance.
    * @param [in] options The options class.
    */
-  virtual void setupTest(Mesh *mesh, std::unique_ptr<Options> const &options) {
+  virtual void setupTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options) {
     T::setupEigenfunctionTest(mesh, options);
   }
   /**
@@ -181,7 +181,7 @@ class ElementAdapter: public Element, public T {
    * @param [in] u The numerical solution to checi.
    * @param [in] time The simulation time.
    */
-  virtual double checkTest(Mesh *mesh, std::unique_ptr<Options> const &options,
+  virtual double checkTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options,
                            const Eigen::Ref<const Eigen::MatrixXd>& u, double time) {
     return T::checkEigenfunctionTest(mesh, options, u, time);
   }

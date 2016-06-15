@@ -36,9 +36,16 @@ TEST_CASE("Test new problem formulation", "[problem_new]") {
   std::unique_ptr<ProblemNew> problem(ProblemNew::Factory(options));
 
   auto elements = problem->initializeElements(mesh, model, options);
+
   for (auto &e: elements) {
-    std::cout << e->Num() << std::endl;
+    std::cout << e->VtxCrd() << std::endl;
   }
+
+  Eigen::VectorXd t = Eigen::VectorXd::Zero(elements.front()->ClsMap().size());
+  for (auto &f: {"u", "ua"}) { mesh->registerFieldVectors(f); }
+  mesh->setFieldFromElement("u", 0, elements.front()->ClsMap(), t);
+  mesh->addFieldFromElement("u", 0, elements.front()->ClsMap(), t);
+  mesh->getFieldOnElement("u", 0, elements.front()->ClsMap());
 
 
 }

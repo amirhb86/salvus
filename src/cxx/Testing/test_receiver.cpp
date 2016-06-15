@@ -48,7 +48,7 @@ TEST_CASE("test_receiver", "[receiver]") {
     std::unique_ptr<Options> options(new Options);
     options->setOptions();
 
-    Mesh *mesh = Mesh::factory(options);
+    std::unique_ptr<Mesh> const &mesh = Mesh::factory(options);
     mesh->read(options);
 
     ExodusModel *model = new ExodusModel(options);

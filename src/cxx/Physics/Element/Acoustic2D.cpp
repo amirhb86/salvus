@@ -30,7 +30,7 @@ template <typename Element>
 std::vector<std::string> Acoustic2D<Element>::PushElementalFields() const { return { "a" }; }
 
 template <typename Element>
-void Acoustic2D<Element>::assembleElementMassMatrix(Mesh *mesh) {
+void Acoustic2D<Element>::assembleElementMassMatrix(std::unique_ptr<Mesh> const &mesh) {
 
   // In this acoustic formulation we just multiply shape functions together.
   VectorXd mass_matrix = Element::applyTestAndIntegrate(VectorXd::Ones(Element::NumIntPnt()));
@@ -94,7 +94,7 @@ MatrixXd Acoustic2D<Element>::computeSourceTerm(const double time) {
 
 
 template <typename Element>
-void Acoustic2D<Element>::setupEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options) {
+void Acoustic2D<Element>::setupEigenfunctionTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options) {
 
   double L, Lx, Ly;
   double x0 = options->IC_Center_x();
@@ -112,7 +112,7 @@ void Acoustic2D<Element>::setupEigenfunctionTest(Mesh *mesh, std::unique_ptr<Opt
 }
 
 template <typename Element>
-double Acoustic2D<Element>::checkEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options,
+double Acoustic2D<Element>::checkEigenfunctionTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options,
                                                   const Ref<const MatrixXd>& u, double time) {
 
   double L, Lx, Ly;

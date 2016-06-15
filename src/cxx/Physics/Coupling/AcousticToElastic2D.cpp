@@ -15,7 +15,7 @@ std::vector<std::string> AcousticToElastic2D<BasePhysics>::PullElementalFields()
 }
 
 template <typename BasePhysics>
-void AcousticToElastic2D<BasePhysics>::setBoundaryConditions(Mesh *mesh) {
+void AcousticToElastic2D<BasePhysics>::setBoundaryConditions(std::unique_ptr<Mesh> const &mesh) {
   for (auto e: mesh->CouplingFields(BasePhysics::ElmNum())) {
     mEdg.push_back(std::get<0>(e));
     mNbr.push_back(mesh->GetNeighbouringElement(mEdg.back(), BasePhysics::ElmNum()));

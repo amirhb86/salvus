@@ -24,7 +24,7 @@ class Problem {
   static Problem *factory(std::string solver_type);
 
   virtual void solve(Options options) = 0;
-  virtual void initialize(Mesh *mesh, std::unique_ptr<ExodusModel> const &model,
+  virtual void initialize(std::unique_ptr<Mesh> mesh, std::unique_ptr<ExodusModel> const &model,
                           std::unique_ptr<Options> const &options) = 0;
 
 };

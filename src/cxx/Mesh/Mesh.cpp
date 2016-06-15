@@ -31,12 +31,12 @@ Mesh::Mesh(const std::unique_ptr<Options> &options) {
   mDistributedMesh = NULL;
 }
 
-Mesh *Mesh::factory(const std::unique_ptr<Options> &options) {
+std::unique_ptr<Mesh> Mesh::factory(const std::unique_ptr<Options> &options) {
 
   std::string mesh_type(options->MeshType());
   try {
     if (mesh_type == "newmark") {
-      auto sc_nm_mesh = new ScalarNewmark2D(options);
+      std::unique_ptr<Mesh> sc_nm_mesh(new ScalarNewmark2D(options));
       if (options->TestIC()) {
         // add nodal location to global field vectors for testing
         sc_nm_mesh->AddToGlobalFields("x");
@@ -47,11 +47,11 @@ Mesh *Mesh::factory(const std::unique_ptr<Options> &options) {
       }
       return sc_nm_mesh;
     } else if (mesh_type == "newmark_2d_elastic") {
-      return new ElasticNewmark2D(options);
+      return std::unique_ptr<Mesh>(new ElasticNewmark2D(options));
     } else if (mesh_type == "2d_couple") {
-      return new ElasticAcousticNewmark2D(options);
+      return std::unique_ptr<Mesh>(new ElasticAcousticNewmark2D(options));
     } else if (mesh_type == "3d_couple") {
-      return new ElasticAcousticNewmark3D(options);
+      return std::unique_ptr<Mesh>(new ElasticAcousticNewmark3D(options));
     } else {
       throw std::runtime_error("Runtime Error: Mesh type " + mesh_type + " not supported");
     }
@@ -462,11 +462,11 @@ void Mesh::registerFieldVectors(const std::string &name) {
   VecSet(field_vector_global, zero);
   PetscObjectSetName((PetscObject) field_vector_global, name.c_str());
 
-  vec_struct registrar;
-  registrar.name = name;
-  registrar.loc = field_vector_local;
-  registrar.glb = field_vector_global;
-  mFields[name] = registrar;
+  unique_ptr<vec_struct> registrar(new vec_struct);
+  registrar->name = name;
+  registrar->loc = field_vector_local;
+  registrar->glb = field_vector_global;
+  mFields.insert(std::pair<std::string,unique_ptr<vec_struct>>(name, std::move(registrar)));
 
 }
 
@@ -475,12 +475,12 @@ void Mesh::checkOutField(const std::string &name) {
   assert(mFields.find(name) != mFields.end());
 
   // Begin the MPI broadcast global -> local.
-  DMGlobalToLocalBegin(mDistributedMesh, mFields[name].glb, INSERT_VALUES,
-                       mFields[name].loc);
+  DMGlobalToLocalBegin(mDistributedMesh, mFields[name]->glb, INSERT_VALUES,
+                       mFields[name]->loc);
 
   // End the MPI broadcast global -> local.
-  DMGlobalToLocalEnd(mDistributedMesh, mFields[name].glb, INSERT_VALUES,
-                     mFields[name].loc);
+  DMGlobalToLocalEnd(mDistributedMesh, mFields[name]->glb, INSERT_VALUES,
+                     mFields[name]->loc);
 
 }
 
@@ -488,11 +488,11 @@ Eigen::VectorXd Mesh::getFieldOnFace(const std::string &name, const int &face_nu
 
   PetscScalar *val = NULL;
   PetscInt num_nodes_face = -1;
-  DMPlexVecGetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
+  DMPlexVecGetClosure(mDistributedMesh, mMeshSection, mFields[name]->loc,
                       face_number, &num_nodes_face, &val);
   Eigen::VectorXd field(num_nodes_face);
   for (auto j = 0; j < num_nodes_face; j++) { field(j) = val[j]; }
-  DMPlexVecRestoreClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
+  DMPlexVecRestoreClosure(mDistributedMesh, mMeshSection, mFields[name]->loc,
                           face_number, NULL, &val);
   return field;
 }
@@ -502,7 +502,7 @@ void Mesh::setFieldFromFace(const std::string &name, const int face_number, cons
   Eigen::VectorXd val(field.size());
   // map "our" nodal ordering back onto PETSC ordering
   for (auto j = 0; j < field.size(); j++) { val(j) = field(j); }
-  int ierr = DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
+  int ierr = DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[name]->loc,
                                  face_number, val.data(), INSERT_VALUES);
   if (ierr > 0) {
     LOG() << "Error after DMPlexVecSetClosure in setFieldFromFace";
@@ -514,7 +514,7 @@ void Mesh::addFieldFromFace(const std::string &name, const int face_number, cons
   Eigen::VectorXd val(field.size());
   // map "our" nodal ordering back onto PETSC ordering
   for (auto j = 0; j < field.size(); j++) { val(j) = field(j); }
-  DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
+  DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[name]->loc,
                       face_number, val.data(), ADD_VALUES);
 }
 
@@ -522,11 +522,11 @@ Eigen::VectorXd Mesh::getFieldOnPoint(int point, std::string name) {
 
   int num_values;
   double *values = NULL;
-  DMPlexVecGetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
+  DMPlexVecGetClosure(mDistributedMesh, mMeshSection, mFields[name]->loc,
                       point, &num_values, &values);
   Eigen::VectorXd field(num_values);
   for (auto j = 0; j < num_values; j++) { field(j) = values[j]; }
-  DMPlexVecRestoreClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
+  DMPlexVecRestoreClosure(mDistributedMesh, mMeshSection, mFields[name]->loc,
                           point, &num_values, &values);
   return field;
 }
@@ -536,10 +536,10 @@ Eigen::VectorXd Mesh::getFieldOnElement(const std::string &name, const int &elem
 
   PetscScalar *val = NULL;
   Eigen::VectorXd field(closure.size());
-  DMPlexVecGetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
+  DMPlexVecGetClosure(mDistributedMesh, mMeshSection, mFields[name]->loc,
                       element_number, NULL, &val);
   for (auto j = 0; j < closure.size(); j++) { field(closure(j)) = val[j]; }
-  DMPlexVecRestoreClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
+  DMPlexVecRestoreClosure(mDistributedMesh, mMeshSection, mFields[name]->loc,
                           element_number, NULL, &val);
   return field;
 
@@ -551,7 +551,7 @@ void Mesh::setFieldFromElement(const std::string &name, const int element_number
   Eigen::VectorXd val(closure.size());
   // map "our" nodal ordering back onto PETSC ordering
   for (auto j = 0; j < closure.size(); j++) { val(j) = field(closure(j)); }
-  int ierr = DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
+  int ierr = DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[name]->loc,
                                  element_number, val.data(), INSERT_VALUES);
   if (ierr > 0) {
     LOG() << "Error after DMPlexVecSetClosure in setFieldFromElement";
@@ -565,7 +565,7 @@ void Mesh::addFieldFromElement(const std::string &name, const int element_number
   Eigen::VectorXd val(closure.size());
   // map "our" nodal ordering back onto PETSC ordering
   for (auto j = 0; j < closure.size(); j++) { val(j) = field(closure(j)); }
-  int ierr = DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
+  int ierr = DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[name]->loc,
                                  element_number, val.data(), ADD_VALUES);
   if (ierr > 0) {
     LOG() << "Error after DMPlexVecSetClosure in addFieldFromElement";
@@ -585,7 +585,7 @@ void Mesh::assembleLocalFieldToGlobalBegin(const std::string &name) {
   assert(mFields.find(name) != mFields.end());
 
   // Begin MPI broadcast local -> global.
-  DMLocalToGlobalBegin(mDistributedMesh, mFields[name].loc, ADD_VALUES, mFields[name].glb);
+  DMLocalToGlobalBegin(mDistributedMesh, mFields[name]->loc, ADD_VALUES, mFields[name]->glb);
 }
 
 void Mesh::assembleLocalFieldToGlobalEnd(const std::string &name) {
@@ -594,7 +594,7 @@ void Mesh::assembleLocalFieldToGlobalEnd(const std::string &name) {
   assert(mFields.find(name) != mFields.end());
 
   // Begin MPI broadcast local -> global.
-  DMLocalToGlobalEnd(mDistributedMesh, mFields[name].loc, ADD_VALUES, mFields[name].glb);
+  DMLocalToGlobalEnd(mDistributedMesh, mFields[name]->loc, ADD_VALUES, mFields[name]->glb);
 }
 
 void Mesh::setLocalFieldToGlobal(const std::string &name) {
@@ -603,8 +603,8 @@ void Mesh::setLocalFieldToGlobal(const std::string &name) {
   assert(mFields.find(name) != mFields.end());
 
   // Do "communication". `INSERT_VALUE` will result in no communication
-  DMLocalToGlobalBegin(mDistributedMesh, mFields[name].loc, INSERT_VALUES, mFields[name].glb);
-  DMLocalToGlobalEnd(mDistributedMesh, mFields[name].loc, INSERT_VALUES, mFields[name].glb);
+  DMLocalToGlobalBegin(mDistributedMesh, mFields[name]->loc, INSERT_VALUES, mFields[name]->glb);
+  DMLocalToGlobalEnd(mDistributedMesh, mFields[name]->loc, INSERT_VALUES, mFields[name]->glb);
 
 }
 
@@ -614,7 +614,7 @@ void Mesh::checkInFieldBegin(const std::string &name) {
   assert(mFields.find(name) != mFields.end());
 
   // Begin MPI broadcast local -> global.
-  DMLocalToGlobalBegin(mDistributedMesh, mFields[name].loc, ADD_VALUES, mFields[name].glb);
+  DMLocalToGlobalBegin(mDistributedMesh, mFields[name]->loc, ADD_VALUES, mFields[name]->glb);
 }
 
 
@@ -624,14 +624,14 @@ void Mesh::checkInFieldEnd(const std::string &name) {
   assert(mFields.find(name) != mFields.end());
 
   // Begin MPI broadcast local -> global.
-  DMLocalToGlobalEnd(mDistributedMesh, mFields[name].loc, ADD_VALUES, mFields[name].glb);
+  DMLocalToGlobalEnd(mDistributedMesh, mFields[name]->loc, ADD_VALUES, mFields[name]->glb);
 
 }
 
 void Mesh::zeroFields(const std::string &name) {
   double zero = 0.0;
-  VecSet(mFields[name].loc, zero);
-  VecSet(mFields[name].glb, zero);
+  VecSet(mFields[name]->loc, zero);
+  VecSet(mFields[name]->glb, zero);
 }
 
 void Mesh::setUpMovie(const std::string &movie_filename) {
@@ -647,7 +647,7 @@ void Mesh::saveFrame(std::string name, PetscInt timestep) {
   int rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
   if (!rank) LOG() << "SAVING FRAME: " << name << ' ' << timestep;
   DMSetOutputSequenceNumber(mDistributedMesh, timestep, timestep);
-  int ierr = VecView(mFields[name].glb, mViewer);
+  int ierr = VecView(mFields[name]->glb, mViewer);
   if (ierr > 0) {
     LOG() << "ERROR @ saveFrame->VecView()";
     MPI_Abort(PETSC_COMM_WORLD, -1);

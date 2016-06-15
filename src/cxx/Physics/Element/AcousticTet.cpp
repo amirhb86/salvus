@@ -30,7 +30,7 @@ template <typename Element>
 std::vector<std::string> AcousticTet<Element>::PushElementalFields() const { return { "a" }; }
 
 template <typename Element>
-void AcousticTet<Element>::assembleElementMassMatrix(Mesh *mesh) {
+void AcousticTet<Element>::assembleElementMassMatrix(std::unique_ptr<Mesh> const &mesh) {
 
   // In this acoustic formulation we just multiply shape functions together.
   VectorXd mass_matrix = Element::applyTestAndIntegrate(VectorXd::Ones(Element::NumIntPnt()));
@@ -125,7 +125,7 @@ MatrixXd AcousticTet<Element>::computeSourceTerm(const double time) {
 
 
 template <typename Element>
-void AcousticTet<Element>::setupEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options) {
+void AcousticTet<Element>::setupEigenfunctionTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options) {
 
   double L, Lx, Ly, Lz;
   double x0 = options->IC_Center_x();
@@ -148,7 +148,7 @@ void AcousticTet<Element>::setupEigenfunctionTest(Mesh *mesh, std::unique_ptr<Op
 }
 
 template <typename Element>
-double AcousticTet<Element>::checkEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options,
+double AcousticTet<Element>::checkEigenfunctionTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options,
                                                   const Ref<const MatrixXd>& u, double time) {
 
   double L, Lx, Ly, Lz;

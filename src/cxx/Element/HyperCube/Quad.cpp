@@ -137,9 +137,9 @@ VectorXd Quad<ConcreteShape>::sVectorStride(const Ref<const VectorXd>& f, const 
 
 
 template <typename ConcreteShape>
-void Quad<ConcreteShape>::attachVertexCoordinates(Mesh *mesh) {
+void Quad<ConcreteShape>::attachVertexCoordinates(std::unique_ptr<Mesh> const &mesh) {
 
-  Vec coordinates_local;
+  Vec coordinates_local;      /* TODO:: DEALLOCATE THESE? */
   PetscInt coordinate_buffer_size;
   PetscSection coordinate_section;
   PetscReal *coordinates_buffer = NULL;
@@ -151,7 +151,6 @@ void Quad<ConcreteShape>::attachVertexCoordinates(Mesh *mesh) {
   std::vector<PetscReal> coordinates_element(coordinates_buffer, coordinates_buffer + coordinate_buffer_size);
   DMPlexVecRestoreClosure(mesh->DistributedMesh(), coordinate_section, coordinates_local, mElmNum,
                           &coordinate_buffer_size, &coordinates_buffer);
-
 
   // Get all coordinates.
   for (int i = 0; i < mNumVtx; i++) {
@@ -585,7 +584,7 @@ double Quad<ConcreteShape>::integrateField(const Eigen::Ref<const Eigen::VectorX
 }
 
 template <typename ConcreteShape>
-void Quad<ConcreteShape>::setBoundaryConditions(Mesh *mesh) {
+void Quad<ConcreteShape>::setBoundaryConditions(std::unique_ptr<Mesh> const &mesh) {
 
   mBndElm = false;
   for (auto &keys: mesh ->BoundaryElementFaces()) {
@@ -600,7 +599,8 @@ void Quad<ConcreteShape>::setBoundaryConditions(Mesh *mesh) {
 }
 
 template <typename ConcreteShape>
-void Quad<ConcreteShape>::applyDirichletBoundaries(Mesh *mesh, std::unique_ptr<Options> const &options,
+void Quad<ConcreteShape>::applyDirichletBoundaries(std::unique_ptr<Mesh> const &mesh,
+                                                   std::unique_ptr<Options> const &options,
                                                    const std::string &fieldname) {
 
   if (! mBndElm) return;

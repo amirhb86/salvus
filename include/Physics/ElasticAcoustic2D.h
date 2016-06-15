@@ -25,7 +25,7 @@ class ElasticToAcoustic2D: public BasePhysics {
 
   /**** Initializers ****/
   ElasticToAcoustic2D<BasePhysics>(std::unique_ptr<Options> const &options);
-  void setBoundaryConditions(Mesh *mesh);
+  void setBoundaryConditions(std::unique_ptr<Mesh> const &mesh);
 
   std::vector<std::string> PullElementalFields() const;
   Eigen::MatrixXd computeSurfaceIntegral(const Eigen::Ref<const Eigen::MatrixXd>& u);

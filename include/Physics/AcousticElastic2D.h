@@ -25,7 +25,7 @@ class AcousticToElastic2D: public BasePhysics {
 
   /**** Initializers ****/
   AcousticToElastic2D<BasePhysics>(std::unique_ptr<Options> const &options);
-  void setBoundaryConditions(Mesh *mesh);
+  void setBoundaryConditions(std::unique_ptr<Mesh> const &mesh);
 
   void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model);
   std::vector<std::string> PullElementalFields() const;

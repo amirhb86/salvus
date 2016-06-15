@@ -468,7 +468,7 @@ Tetrahedra<ConcreteShape>::Tetrahedra(std::unique_ptr<Options> const &options) {
 }
 
 template <typename ConcreteShape>
-void Tetrahedra<ConcreteShape>::attachVertexCoordinates(Mesh *mesh) {
+void Tetrahedra<ConcreteShape>::attachVertexCoordinates(std::unique_ptr<Mesh> const &mesh) {
 
   mClsMap = ClosureMapping(3, 3, mesh->DistributedMesh());
 
@@ -811,7 +811,7 @@ VectorXd Tetrahedra<ConcreteShape>::applyTestAndIntegrate(const Ref<const Vector
 }
 
 template <typename ConcreteShape>
-void Tetrahedra<ConcreteShape>::setBoundaryConditions(Mesh *mesh) {
+void Tetrahedra<ConcreteShape>::setBoundaryConditions(std::unique_ptr<Mesh> const &mesh) {
   mBndElm = false;
   for (auto &keys: mesh ->BoundaryElementFaces()) {
     auto boundary_name = keys.first;
@@ -825,7 +825,7 @@ void Tetrahedra<ConcreteShape>::setBoundaryConditions(Mesh *mesh) {
 
 
 template <typename ConcreteShape>
-void Tetrahedra<ConcreteShape>::applyDirichletBoundaries(Mesh *mesh, std::unique_ptr<Options> const &options,
+void Tetrahedra<ConcreteShape>::applyDirichletBoundaries(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options,
                                                          const std::string &fieldname) {
 
   if (! mBndElm) return;

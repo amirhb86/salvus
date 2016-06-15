@@ -40,7 +40,7 @@ class Elastic2D: public Shape {
 
   /**** Setup functions ****/
   void prepareStiffness() {};
-  void assembleElementMassMatrix(Mesh *mesh);
+  void assembleElementMassMatrix(std::unique_ptr<Mesh> const &mesh);
   void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model);
   double CFL_estimate() {}
   
@@ -52,8 +52,8 @@ class Elastic2D: public Shape {
   void recordField(const Eigen::MatrixXd &u) {};
 
   /**** Test helpers ****/
-  void setupEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options);
-  double checkEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options,
+  void setupEigenfunctionTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options);
+  double checkEigenfunctionTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options,
                                 const Eigen::Ref<const Eigen::MatrixXd>& u,
                                 double time);
 

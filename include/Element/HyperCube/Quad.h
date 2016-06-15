@@ -179,7 +179,7 @@ private:
    * Figure out and set boundaries.
    * @param [in] mesh The mesh instance.
    */
-  void setBoundaryConditions(Mesh *mesh);
+  void setBoundaryConditions(std::unique_ptr<Mesh> const &mesh);
 
   /**
    * Integrate a field over the element, returning a scalar.
@@ -191,7 +191,7 @@ private:
    * Attach the (4) vertex coordinates to the element.
    * @param [in] distributed_mesh The PETSc DM.
    */
-  void attachVertexCoordinates(Mesh *mesh);
+  void attachVertexCoordinates(std::unique_ptr<Mesh> const &mesh);
 
   /**
    * Attach some abstract source instance to the element.
@@ -219,7 +219,7 @@ private:
    * @param [in] options The options class.
    * @param [in] fieldname The field to which the boundary must be applied.
    */
-  void applyDirichletBoundaries(Mesh *mesh, std::unique_ptr<Options> const &options, const std::string &fieldname);
+  void applyDirichletBoundaries(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options, const std::string &fieldname);
 
   /**
    *

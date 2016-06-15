@@ -106,7 +106,7 @@ Triangle<ConcreteShape>::Triangle(std::unique_ptr<Options> const &options) {
 }
 
 template <typename ConcreteShape>
-void Triangle<ConcreteShape>::attachVertexCoordinates(Mesh *mesh) {
+void Triangle<ConcreteShape>::attachVertexCoordinates(std::unique_ptr<Mesh> const &mesh) {
 
   Vec coordinates_local;
   PetscInt coordinate_buffer_size;
@@ -274,7 +274,7 @@ VectorXd Triangle<ConcreteShape>::applyTestAndIntegrate(const Ref<const VectorXd
 }
 
 template <typename ConcreteShape>
-void Triangle<ConcreteShape>::setBoundaryConditions(Mesh *mesh) {
+void Triangle<ConcreteShape>::setBoundaryConditions(std::unique_ptr<Mesh> const &mesh) {
   mBndElm = false;
   for (auto &keys: mesh ->BoundaryElementFaces()) {
     auto boundary_name = keys.first;
@@ -317,7 +317,7 @@ VectorXd Triangle<ConcreteShape>::ParAtIntPts(const std::string &par) {
 
 
 template <typename ConcreteShape>
-void Triangle<ConcreteShape>::applyDirichletBoundaries(Mesh *mesh, std::unique_ptr<Options> const &options,
+void Triangle<ConcreteShape>::applyDirichletBoundaries(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options,
                                                        const std::string &fieldname) {
 
   if (! mBndElm) return;

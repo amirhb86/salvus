@@ -35,7 +35,7 @@ template <typename Element>
 std::vector<std::string> AcousticHex3D<Element>::PushElementalFields() const { return { "a" }; }
 
 template <typename Element>
-void AcousticHex3D<Element>::assembleElementMassMatrix(Mesh *mesh) {
+void AcousticHex3D<Element>::assembleElementMassMatrix(std::unique_ptr<Mesh> const &mesh) {
 
   // In this acoustic formulation we just multiply shape functions together.
   VectorXd mass_matrix = Element::applyTestAndIntegrate(VectorXd::Ones(Element::NumIntPnt()));
@@ -105,7 +105,7 @@ MatrixXd AcousticHex3D<Element>::computeSourceTerm(const double time) {
 
 
 template <typename Element>
-void AcousticHex3D<Element>::setupEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options) {
+void AcousticHex3D<Element>::setupEigenfunctionTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options) {
 
   double L, Lx, Ly, Lz;
   double x0 = options->IC_Center_x();
@@ -128,7 +128,7 @@ void AcousticHex3D<Element>::setupEigenfunctionTest(Mesh *mesh, std::unique_ptr<
 }
 
 template <typename Element>
-double AcousticHex3D<Element>::checkEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options,
+double AcousticHex3D<Element>::checkEigenfunctionTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options,
                                                   const Ref<const MatrixXd>& u, double time) {
 
   double L, Lx, Ly, Lz;

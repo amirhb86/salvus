@@ -191,11 +191,11 @@ class Triangle: public ConcreteShape {
 
   /**
    * Queries the passed DM for the vertex coordinates of the specific element. These coordinates are saved
-   * in mVertexCoordiantes.
+   * in mVertexCoordinates.
    * @param [in] distributed_mesh PETSc DM object.
    *
    */
-  void attachVertexCoordinates(Mesh *mesh);
+  void attachVertexCoordinates(std::unique_ptr<Mesh> const &mesh);
 
   /**
    * Attach source.
@@ -211,7 +211,7 @@ class Triangle: public ConcreteShape {
    * Atttach receiver.
    * Given a vector of abstract receiver objects, this function will query each for its spatial location. After
    * performing a convex hull test, it will perform a quick inverse problem to determine the position of any
-   * sources within each element in reference coordiantes. These reference coordinates are then saved in the
+   * sources within each element in reference Coordinates. These reference coordinates are then saved in the
    * receiver object. References to any receivers which lie within the element are saved in the mRec vector.
    * @param [in] receivers A vector of all the receivers defined for a simulation run.
    */
@@ -227,7 +227,7 @@ class Triangle: public ConcreteShape {
    * @param [in] options The options class.
    * @param [in] fieldname The field to which the boundary must be applied.
    */
-  void applyDirichletBoundaries(Mesh *mesh, std::unique_ptr<Options> const &options, const std::string &fieldname);
+  void applyDirichletBoundaries(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options, const std::string &fieldname);
 
   /**
    * Given some field at the GLL points, interpolate the field to some general point.
@@ -264,7 +264,7 @@ class Triangle: public ConcreteShape {
    * Figure out and set boundaries.
    * @param [in] mesh The mesh instance.
    */
-  void setBoundaryConditions(Mesh *mesh);
+  void setBoundaryConditions(std::unique_ptr<Mesh> const &mesh);
 
   
   // Getters.

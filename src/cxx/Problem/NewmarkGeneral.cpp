@@ -12,12 +12,12 @@
 
 using namespace Eigen;
 
-void NewmarkGeneral::initialize(Mesh *mesh,
+void NewmarkGeneral::initialize(std::unique_ptr<Mesh> mesh,
                                 std::unique_ptr<ExodusModel> const &model,
                                 std::unique_ptr<Options> const &options) {
 
   // Save references to mesh and element base.
-  mMesh = mesh;
+  mMesh = std::move(mesh);
 
   // Attach elements to mesh.
   if (options->Dimension() == 2) {

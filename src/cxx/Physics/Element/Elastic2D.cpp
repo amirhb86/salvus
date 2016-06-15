@@ -42,7 +42,7 @@ template <typename Element>
 std::vector<std::string> Elastic2D<Element>::PushElementalFields() const { return { "ax", "ay"}; }
 
 template <typename Element>
-void Elastic2D<Element>::assembleElementMassMatrix(Mesh *mesh) {
+void Elastic2D<Element>::assembleElementMassMatrix(std::unique_ptr<Mesh> const &mesh) {
 
   VectorXd mass_matrix = Element::applyTestAndIntegrate(Element::ParAtIntPts("RHO"));
   mesh->addFieldFromElement("m", Element::ElmNum(), Element::ClsMap(), mass_matrix);
@@ -120,7 +120,7 @@ MatrixXd Elastic2D<Element>::computeSourceTerm(const double time) {
 }
 
 template <typename Element>
-void Elastic2D<Element>::setupEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options) {
+void Elastic2D<Element>::setupEigenfunctionTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options) {
   
   
   double L, Lx, Ly, Lz;
@@ -150,7 +150,7 @@ void Elastic2D<Element>::setupEigenfunctionTest(Mesh *mesh, std::unique_ptr<Opti
 };
 
 template <typename Element>
-double Elastic2D<Element>::checkEigenfunctionTest(Mesh *mesh, std::unique_ptr<Options> const &options,
+double Elastic2D<Element>::checkEigenfunctionTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options,
                                                     const Ref<const MatrixXd>& u, double time) {
 
 

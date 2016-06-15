@@ -43,7 +43,7 @@ TEST_CASE("test quadbase", "[quad]") {
     options->setOptions();
 
     auto sources = Source::factory(options);
-    Mesh *msh = Mesh::factory(options);
+    std::unique_ptr<Mesh> msh(Mesh::factory(options));
     msh->read(options);
     std::unique_ptr<Element> elm = Element::Factory({"u"}, {}, options);
     std::vector<std::unique_ptr<Element>> elms;

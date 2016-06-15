@@ -158,7 +158,7 @@ double five_places(double in) {
 //   options.__SetPhysicsSystem("acoustic");
 
 //   // Get mesh.
-//   Mesh *mesh = Mesh::factory(options);
+//   std::unique_ptr<Mesh> const &mesh = Mesh::factory(options);
 //   int mesh_load_option = 1;
 //   MatrixXd vertices;
 //   MatrixXi cells;
@@ -378,7 +378,7 @@ TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
   model->initializeParallel();
 
   // Get mesh.
-  Mesh *mesh = Mesh::factory(options);
+  std::unique_ptr<Mesh> const &mesh = Mesh::factory(options);
   mesh->read(options);
   mesh->setupGlobalDof(ref_hex.NumDofVtx(),
                        ref_hex.NumDofEdg(),
@@ -502,6 +502,7 @@ TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
   VectorXd expected_value = (value_to_set.array() * expected_multiplier.array()).matrix();
     
   REQUIRE((expected_value-computed_value).array().abs().maxCoeff() < 1e-5);
+
 }
 
 TEST_CASE("Test Jacobian mapping","[element/hexahedra_new]") {

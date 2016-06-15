@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
   options->setOptions();
 
   // Get mesh.
-  Mesh *mesh = Mesh::factory(options);
+  std::unique_ptr<Mesh> const &mesh = Mesh::factory(options);
   mesh->read(options);
 
   // Get model.
@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
   // Use above elements to define the problem.
   Problem *problem = Problem::factory(options->ProblemType());
 
-  problem->initialize(mesh, model, options);
+  problem->initialize(std::move(mesh), model, options);
   problem->solve(options);
 
   PetscFinalize();

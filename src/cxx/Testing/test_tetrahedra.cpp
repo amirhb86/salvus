@@ -131,7 +131,7 @@ TEST_CASE("Test mapping from reference tet to physical coords and back","[elemen
 //   options.setOptions();
   
 //   // Get mesh.
-//   Mesh *mesh = Mesh::factory(options);
+//   std::unique_ptr<Mesh> const &mesh = Mesh::factory(options);
 //   mesh->read(options);
   
 //   // Get model.
@@ -180,7 +180,7 @@ TEST_CASE("Test mapping from reference tet to physical coords and back","[elemen
 //   auto reference_element = Element::factory(options);
 //   auto ref_tet = std::dynamic_pointer_cast<AcousticTet> (reference_element);
 //   // Get mesh.
-//   Mesh *mesh = Mesh::factory(options);
+//   std::unique_ptr<Mesh> const &mesh = Mesh::factory(options);
 
 //     int mesh_load_option = 1;
 //   MatrixXd vertices;

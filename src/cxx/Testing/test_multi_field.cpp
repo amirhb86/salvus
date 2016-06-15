@@ -37,7 +37,7 @@ using namespace std;
 //  ExodusModel *model = new ExodusModel(options);
 //  model->initializeParallel();
 //
-//  Mesh *mesh = Mesh::factory(options);
+//  std::unique_ptr<Mesh> const &mesh = Mesh::factory(options);
 //  mesh->read(options);
 //  mesh->setupGlobalDof(1, 1, 1, 0, 2, model);
 //
