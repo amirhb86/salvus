@@ -29,14 +29,31 @@ std::unique_ptr<ProblemNew> ProblemNew::Factory(std::unique_ptr<Options> const &
 }
 
 std::vector<std::unique_ptr<Element>> ProblemNew::initializeElements(std::unique_ptr<Mesh> &mesh,
-                                                                     std::unique_ptr<Model> &model,
+                                                                     std::unique_ptr<ExodusModel> &model,
                                                                      std::unique_ptr<Options> const &options) {
 
   std::vector<std::unique_ptr<Element>> elements;
-  for (PetscInt i = 0; i < 10; i++) {
+
+  /* Allocate all elements. */
+  for (PetscInt i = 0; i < 10; i++)
+  {
+
+    /* Push back an appropriate element based on the mesh. */
     elements.push_back(Element::Factory({"u"}, {}, options));
+
+    /* Assign a (processor-specific) number to this element. */
     elements.back()->SetNum(i);
+
   }
+
+  /* Build element 'functors'. */
+  for (auto &elm: elements)
+  {
+
+//    elm->attachVertexCoordinates(mesh);
+
+  }
+
   return elements;
 
 }

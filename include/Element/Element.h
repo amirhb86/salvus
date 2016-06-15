@@ -56,7 +56,7 @@ class Element {
   /** Attach material parameters to the element given some model.
    * @param [in] model Model instance.
    */
-  virtual void attachMaterialProperties(const ExodusModel *model) = 0;
+  virtual void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model) = 0;
   /** Attach receivers to the element (if required).
    * @param [in/out] receivers Vector of all receivers in the model. Receiver reference coordinates are attached.
    */

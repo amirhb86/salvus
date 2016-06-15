@@ -24,7 +24,7 @@ AcousticHex3D_LF<Element>::AcousticHex3D_LF(std::unique_ptr<Options> const &opti
 }
 
 template <typename Element>
-void AcousticHex3D_LF<Element>::attachMaterialPropertiesNew(const ExodusModel *model) {
+void AcousticHex3D_LF<Element>::attachMaterialProperties(std::unique_ptr<ExodusModel> const &model) {
   Element::attachMaterialProperties(model, "VP");
 }
 

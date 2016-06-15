@@ -100,7 +100,6 @@ add_executable(salvus_test
         src/cxx/Testing/test_QuadP1.cpp
         src/cxx/Testing/test_quadbase.cpp
         src/cxx/Testing/test_quad.cpp
-        src/cxx/Testing/test_element.cpp
         src/cxx/Testing/test_2d_fluid_solid_couple.cpp src/cxx/Testing/test_problem_new.cpp)
 
 # run `make` (or `make -j5`) to build `salvus` executable

@@ -11,11 +11,12 @@ class ElasticAcousticNewmark2D: public Mesh {
   virtual void advanceField(double dt);
   virtual void applyInverseMassMatrix();
 
-  ElasticAcousticNewmark2D() { mGlobalFields = {"ux", "uy", "u",
-                                                "vx", "vy", "v",
-                                                "ax", "ay", "a",
-                                                "ax_", "ay_", "a_",
-                                                "m"};}
+  ElasticAcousticNewmark2D(const std::unique_ptr<Options> &options): Mesh(options) {
+      mGlobalFields = {"ux", "uy", "u",
+                       "vx", "vy", "v",
+                       "ax", "ay", "a",
+                       "ax_", "ay_", "a_",
+                       "m"};}
 
 };
 

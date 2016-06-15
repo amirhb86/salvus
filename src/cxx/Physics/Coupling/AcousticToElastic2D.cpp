@@ -25,7 +25,7 @@ void AcousticToElastic2D<BasePhysics>::setBoundaryConditions(Mesh *mesh) {
 }
 
 template <typename BasePhysics>
-void AcousticToElastic2D<BasePhysics>::attachMaterialPropertiesNew(const ExodusModel *model) {
+void AcousticToElastic2D<BasePhysics>::attachMaterialProperties(std::unique_ptr<ExodusModel> const &model) {
 
   for (auto ctr: mNbrCtr) {
     double rho_0 = 0;
@@ -36,7 +36,7 @@ void AcousticToElastic2D<BasePhysics>::attachMaterialPropertiesNew(const ExodusM
   }
 
   // call parent.
-  BasePhysics::attachMaterialPropertiesNew(model);
+  BasePhysics::attachMaterialProperties(model);
 
 }
 

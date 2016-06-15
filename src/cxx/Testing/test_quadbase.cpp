@@ -39,7 +39,7 @@ TEST_CASE("test quadbase", "[quad]") {
     PetscOptionsInsert(&argc, &argv, NULL);
     PetscOptionsSetValue("--polynomial_order", std::to_string((long long) order).c_str());
 
-    std::unique_ptr<Options> options;
+    std::unique_ptr<Options> options(new Options);
     options->setOptions();
 
     auto sources = Source::factory(options);
@@ -48,7 +48,7 @@ TEST_CASE("test quadbase", "[quad]") {
     std::unique_ptr<Element> elm = Element::Factory({"u"}, {}, options);
     std::vector<std::unique_ptr<Element>> elms;
 
-    ExodusModel *model = new ExodusModel(options);
+    std::unique_ptr<ExodusModel> model(new ExodusModel(options));
     model->initializeParallel();
 
     msh->setupGlobalDof(elm->NumDofVtx(), elm->NumDofEdg(), elm->NumDofFac(),

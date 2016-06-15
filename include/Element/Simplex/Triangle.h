@@ -172,7 +172,7 @@ class Triangle: public ConcreteShape {
    * @param [in] model An exodus model object.
    * @param [in] parameter_name The name of the field to be added (i.e. velocity, c11).
    */
-  void attachMaterialProperties(const ExodusModel *model,
+  void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model,
                                 std::string parameter_name);
 
   /**

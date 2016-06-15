@@ -274,7 +274,7 @@ private:
    * @param [in] model The model containing the material parameters.
    * @param [in] parameter The parameter to save.
    */
-  void attachMaterialProperties(const ExodusModel *model, std::string parameter);
+  void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model, std::string parameter);
 
   /** Return the estimated CFL constant for the current order
    * @return The CFL estimate

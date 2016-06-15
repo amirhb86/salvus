@@ -27,7 +27,7 @@ class AcousticToElastic2D: public BasePhysics {
   AcousticToElastic2D<BasePhysics>(std::unique_ptr<Options> const &options);
   void setBoundaryConditions(Mesh *mesh);
 
-  void attachMaterialPropertiesNew(const ExodusModel *model);
+  void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model);
   std::vector<std::string> PullElementalFields() const;
   Eigen::MatrixXd computeSurfaceIntegral(const Eigen::Ref<const Eigen::MatrixXd>& u);
 

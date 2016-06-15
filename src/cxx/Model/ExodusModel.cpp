@@ -3,53 +3,68 @@
 #include <Utilities/Utilities.h>
 #include <stdexcept>
 #include <string>
+#include <Utilities/Logging.h>
 
 ExodusModel::ExodusModel(std::unique_ptr<Options> const &options) {
+  mNodalKdTree = NULL;
+  mElementalKdTree = NULL;
+  mExodusId = 0;
   mExodusFileName = options->ExodusModelFile();
-  mNumberElementVertex = 4;
+}
+
+ExodusModel::~ExodusModel() {
+  int rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+  if (!rank && mExodusId) { ex_close(mExodusId); }
+  if (mElementalKdTree) { kd_free(mElementalKdTree); }
+  if (mNodalKdTree) { kd_free(mNodalKdTree); }
 }
 
 void ExodusModel::initializeParallel() {
 
-    // Do all reading from exodus file on rank 0.
-    if (MPI::COMM_WORLD.Get_rank() == 0) {
-        getInitialization();
-        readConnectivity();
-        readCoordinates();
-        readElementalVariables();
-        readSideSets();
-    }
+  /* Read the model from rank 0. */
+  int root = 0;
+  int rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+  if (!rank)
+  {
+    getInitialization();
+    readConnectivity();
+    readCoordinates();
+    readElementalVariables();
+    readSideSets();
+  }
 
-  // Broadcast all scalars.
-  mNumberDimension = utilities::broadcastInt(mNumberDimension);
-  mNumberVertices = utilities::broadcastInt(mNumberVertices);
-  mNumberElements = utilities::broadcastInt(mNumberElements);
-  mNumberElementBlocks = utilities::broadcastInt(mNumberElementBlocks);
-  mNumberNodeSets = utilities::broadcastInt(mNumberNodeSets);
-  mNumberSideSets = utilities::broadcastInt(mNumberSideSets);
+  /* Broadcast all scalars. */
+  mNumberElements = utilities::broadcastNumberFromRank(mNumberElements, root);
+  mNumberNodeSets = utilities::broadcastNumberFromRank(mNumberNodeSets, root);
+  mNumberSideSets = utilities::broadcastNumberFromRank(mNumberSideSets, root);
+  mNumberVertices = utilities::broadcastNumberFromRank(mNumberVertices, root);
+  mNumberDimension = utilities::broadcastNumberFromRank(mNumberDimension, root);
+  mNumberElementBlocks = utilities::broadcastNumberFromRank(mNumberElementBlocks, root);
 
-  // Broadcast all vectors.
-  mNodalX = utilities::broadcastStdVecFromRoot(mNodalX);
-  mNodalY = utilities::broadcastStdVecFromRoot(mNodalY);
-  mVerticesPerElementPerBlock = utilities::broadcastStdVecFromRoot(mVerticesPerElementPerBlock);
-  mElementConnectivity = utilities::broadcastStdVecFromRoot(mElementConnectivity);
-  mElementalVariables = utilities::broadcastStdVecFromRoot(mElementalVariables);
-  mElementalVariableNames = utilities::broadcastStringVecFromRank(mElementalVariableNames, 0);
-  mSideSetNames = utilities::broadcastStringVecFromRank(mSideSetNames, 0);
+  /* Broadcast all vectors. */
+  mNodalX = utilities::broadcastNumberVecFromRank(mNodalX, root);
+  mNodalY = utilities::broadcastNumberVecFromRank(mNodalY, root);
+  mSideSetNames = utilities::broadcastStringVecFromRank(mSideSetNames, root);
+  mElementalVariables = utilities::broadcastNumberVecFromRank(mElementalVariables, root);
+  mElementConnectivity = utilities::broadcastNumberVecFromRank(mElementConnectivity, root);
+  mElementalVariableNames = utilities::broadcastStringVecFromRank(mElementalVariableNames, root);
+  mVerticesPerElementPerBlock = utilities::broadcastNumberVecFromRank(mVerticesPerElementPerBlock, root);
 
-  // Broadcast dimension specific components.
-  if (mNumberDimension > 2) { mNodalZ = utilities::broadcastStdVecFromRoot(mNodalZ); }
+  /* Broadcast dimension specific components. */
+  if (mNumberDimension > 2) {
+    mNodalZ = utilities::broadcastNumberVecFromRank(mNodalZ, root);
+  }
 
-  // Create KdTree on each processor.
+  /* Create KdTree on each processor. */
   createElementalKdTree();
-
 
 }
 
 void ExodusModel::exodusError(const int retval, std::string func_name) {
 
   if (retval) {
-    throw std::runtime_error("Error in exodus function: " + func_name + " with retval " + std::to_string((long long) retval));
+    throw std::runtime_error(
+        "Error in exodus function: " + func_name + " with retval " + std::to_string((long long) retval));
   }
 
 }
@@ -62,15 +77,15 @@ void ExodusModel::readCoordinates() {
     if (mNumberDimension > 2) { mNodalZ.resize(mNumberVertices); }
     if (mNumberDimension == 2) {
       exodusError(ex_get_coord(
-                               mExodusId, mNodalX.data(), mNodalY.data(), NULL),
+          mExodusId, mNodalX.data(), mNodalY.data(), NULL),
                   "ex_get_coord");
     } else {
       exodusError(ex_get_coord(
-                               mExodusId, mNodalX.data(), mNodalY.data(), mNodalZ.data()),
+          mExodusId, mNodalX.data(), mNodalY.data(), mNodalZ.data()),
                   "ex_get_coord");
     }
   } catch (std::exception &e) {
-    utilities::print_from_root_mpi(e.what());
+    LOG() << e.what();
     MPI_Abort(PETSC_COMM_WORLD, -1);
   }
 
@@ -84,31 +99,30 @@ void ExodusModel::getInitialization() {
     mExodusId = ex_open(mExodusFileName.c_str(), EX_READ, &comp_ws, &io_ws, &mExodusVersion);
     if (mExodusId < 0) { throw std::runtime_error("Error opening exodus model file."); }
 
-        exodusError(ex_get_init(
-                            mExodusId, mExodusTitle, &mNumberDimension, &mNumberVertices, &mNumberElements,
-                            &mNumberElementBlocks, &mNumberNodeSets, &mNumberSideSets),
-                    "ex_get_init");
-        mElementBlockIds.resize(mNumberElementBlocks);
-        mVerticesPerElementPerBlock.resize(mNumberElementBlocks);
-        exodusError(ex_get_elem_blk_ids(mExodusId,mElementBlockIds.data()),
-                    "ex_get_elem_blk_ids");
-        for(int i=0;i<mNumberElementBlocks;i++) {
-          char elem_type[256];
-          int num_elem_this_blk;
-          int num_nodes_per_elem;
-          int num_attr;
-          exodusError(ex_get_elem_block	(	mExodusId,
-                                                mElementBlockIds[i],
-                                                elem_type,&num_elem_this_blk,
-                                                &num_nodes_per_elem,
-                                                &num_attr
-                                                ), "ex_get_elem_block");
-          mVerticesPerElementPerBlock[i] = num_nodes_per_elem;
-        }
-        
+    exodusError(ex_get_init(
+        mExodusId, mExodusTitle, &mNumberDimension, &mNumberVertices, &mNumberElements,
+        &mNumberElementBlocks, &mNumberNodeSets, &mNumberSideSets),
+                "ex_get_init");
+    mElementBlockIds.resize(mNumberElementBlocks);
+    mVerticesPerElementPerBlock.resize(mNumberElementBlocks);
+    exodusError(ex_get_elem_blk_ids(mExodusId, mElementBlockIds.data()),
+                "ex_get_elem_blk_ids");
+    for (int i = 0; i < mNumberElementBlocks; i++) {
+      char elem_type[256];
+      int num_elem_this_blk;
+      int num_nodes_per_elem;
+      int num_attr;
+      exodusError(ex_get_elem_block(mExodusId,
+                                    mElementBlockIds[i],
+                                    elem_type, &num_elem_this_blk,
+                                    &num_nodes_per_elem,
+                                    &num_attr
+      ), "ex_get_elem_block");
+      mVerticesPerElementPerBlock[i] = num_nodes_per_elem;
+    }
 
   } catch (std::exception &e) {
-    utilities::print_from_root_mpi(e.what());
+    LOG() << e.what();
     MPI_Abort(PETSC_COMM_WORLD, -1);
   }
 
@@ -143,7 +157,7 @@ void ExodusModel::createElementalKdTree() {
   // Need to keep the index arrays allocated.
   mElementalKdTreeData.resize(mNumberElements);
 
-    // TODO: Multiple blocks?
+  // TODO: Multiple blocks?
   int num_vertex_per_elem = mVerticesPerElementPerBlock[0]; // first block
 
   if (mNumberDimension == 2) {
@@ -164,29 +178,28 @@ void ExodusModel::createElementalKdTree() {
                 &mElementalKdTreeData[i]);
     }
 
-  } else if(mNumberDimension == 3) {
-      mElementalKdTree = kd_create(3);
-      for (auto i = 0; i < mNumberElements; i++) {
+  } else if (mNumberDimension == 3) {
+    mElementalKdTree = kd_create(3);
+    for (auto i = 0; i < mNumberElements; i++) {
 
-        // Calculate element centers.
-        double avg_x = 0, avg_y = 0, avg_z = 0;
-        for (auto j = num_vertex_per_elem*i; j < num_vertex_per_elem*(i+1); j++) {
-          avg_x += mNodalX[mElementConnectivity[j]-1];
-          avg_y += mNodalY[mElementConnectivity[j]-1];
-          avg_z += mNodalZ[mElementConnectivity[j]-1];
-        }
-
-        // Insert centers into tree.
-        mElementalKdTreeData[i] = i;
-        kd_insert(mElementalKdTree,
-                  std::vector<double> {
-                    avg_x / (double) num_vertex_per_elem,
-                      avg_y / (double) num_vertex_per_elem,
-                      avg_z / (double) num_vertex_per_elem}.data(),
-                  &mElementalKdTreeData[i]);
+      // Calculate element centers.
+      double avg_x = 0, avg_y = 0, avg_z = 0;
+      for (auto j = num_vertex_per_elem * i; j < num_vertex_per_elem * (i + 1); j++) {
+        avg_x += mNodalX[mElementConnectivity[j] - 1];
+        avg_y += mNodalY[mElementConnectivity[j] - 1];
+        avg_z += mNodalZ[mElementConnectivity[j] - 1];
       }
-    }
 
+      // Insert centers into tree.
+      mElementalKdTreeData[i] = i;
+      kd_insert(mElementalKdTree,
+                std::vector<double> {
+                    avg_x / (double) num_vertex_per_elem,
+                    avg_y / (double) num_vertex_per_elem,
+                    avg_z / (double) num_vertex_per_elem}.data(),
+                &mElementalKdTreeData[i]);
+    }
+  }
 
 }
 
@@ -241,7 +254,7 @@ PetscReal ExodusModel::getMaterialParameterAtPoint(const std::vector<double> poi
 void ExodusModel::readConnectivity() {
 
   int block_id = 0;
-  mElementConnectivity.resize(mVerticesPerElementPerBlock[block_id]*mNumberElements);
+  mElementConnectivity.resize(mVerticesPerElementPerBlock[block_id] * mNumberElements);
   exodusError(ex_get_elem_conn(mExodusId, mElementBlockIds[block_id], mElementConnectivity.data()), "ex_get_elem_conn");
 
 }
@@ -265,7 +278,8 @@ double ExodusModel::getElementalMaterialParameterAtVertex(const Eigen::VectorXd 
     std::string full_name = parameter_name + "_" + std::to_string((long long) vertex_num);
     for (auto &name: mElementalVariableNames) {
       if (name == full_name) {
-        parameter_index = i; found = true;
+        parameter_index = i;
+        found = true;
       }
       i++;
     }
@@ -279,11 +293,11 @@ double ExodusModel::getElementalMaterialParameterAtVertex(const Eigen::VectorXd 
 
 std::string ExodusModel::getElementType(const Eigen::VectorXd &elem_center) {
 
-//  assert(elem_center.size() == mNumberDimension);
+  assert(elem_center.size() == mNumberDimension);
 
   // Get spatial element index.
   auto *set = kd_nearest(mElementalKdTree, elem_center.data());
-  auto spatial_index = * (int *) kd_res_item_data(set);
+  auto spatial_index = *(int *) kd_res_item_data(set);
   kd_res_free(set);
 
   int i = 0;
@@ -294,12 +308,10 @@ std::string ExodusModel::getElementType(const Eigen::VectorXd &elem_center) {
     i++;
   }
 
-  if(parameter_index == -1) {
-    std::cout << "FLUID DEFAULT!!!!!!!" << std::endl;
-    return "fluid";
+  if (parameter_index == -1) {
     throw std::runtime_error("ERROR: `fluid` field not found in mesh!");
   }
-  
+
   auto type = mElementalVariables[parameter_index * mNumberElements + spatial_index];
   if (type == 1) {
     return "fluid";
@@ -328,14 +340,18 @@ void ExodusModel::readElementalVariables() {
     int time_step = 1;
     std::vector<double> buffer(mNumberElements);
     for (auto i = 0; i < mNumberElementalVariables; i++) {
-      exodusError(ex_get_var(mExodusId, 1, EX_ELEM_BLOCK, (i+1), 1, mNumberElements, buffer.data()),
-          "ex_get_var " + mElementalVariableNames[i]);
+      exodusError(ex_get_var(mExodusId, 1, EX_ELEM_BLOCK, (i + 1), 1, mNumberElements, buffer.data()),
+                  "ex_get_var " + mElementalVariableNames[i]);
       mElementalVariables.insert(mElementalVariables.end(), buffer.begin(), buffer.end());
     }
+
+    for (int i = 0; i < mNumberElementalVariables; i++) { free (nm[i]); }
+
   } catch (std::runtime_error &e) {
     std::cout << e.what() << std::endl;
     MPI_Abort(PETSC_COMM_WORLD, -1);
   }
+
 
 }
 
@@ -345,6 +361,7 @@ void ExodusModel::readSideSets() {
   for (int i = 0; i < mNumberSideSets; i++) { nm[i] = (char *) calloc((MAX_STR_LENGTH + 1), sizeof(char)); }
   exodusError(ex_get_names(mExodusId, EX_SIDE_SET, nm), "ex_get_names");
   for (int i = 0; i < mNumberSideSets; i++) { mSideSetNames.push_back(std::string(nm[i])); }
+  for (int i = 0; i < mNumberSideSets; i++) { free (nm[i]); }
 
 }
 

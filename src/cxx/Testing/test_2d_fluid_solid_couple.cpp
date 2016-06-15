@@ -39,13 +39,13 @@ TEST_CASE("test_fluid_solid_couple", "[couple/fluid_solid]") {
 
   PetscOptionsInsert(&argc, &argv, NULL);
 
-  std::unique_ptr<Options> options;
+  std::unique_ptr<Options> options(new Options);
   options->setOptions();
 
   Mesh *mesh = Mesh::factory(options);
   mesh->read(options);
 
-  ExodusModel *model = new ExodusModel(options);
+  std::unique_ptr<ExodusModel> model(new ExodusModel(options));
   model->initializeParallel();
   mesh->setupGlobalDof(1, 3, 9, 0, 2, model);
 

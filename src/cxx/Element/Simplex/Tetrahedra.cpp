@@ -514,7 +514,7 @@ VectorXd Tetrahedra<ConcreteShape>::ParAtIntPts(const std::string &par) {
 }
 
 template <typename ConcreteShape>
-void Tetrahedra<ConcreteShape>::attachMaterialProperties(const ExodusModel *model, std::string parameter_name) {
+void Tetrahedra<ConcreteShape>::attachMaterialProperties(std::unique_ptr<ExodusModel> const &model, std::string parameter_name) {
 
   Vector4d material_at_vertices;
 

@@ -13,7 +13,7 @@
 using namespace Eigen;
 
 void NewmarkGeneral::initialize(Mesh *mesh,
-                                ExodusModel *model,
+                                std::unique_ptr<ExodusModel> const &model,
                                 std::unique_ptr<Options> const &options) {
 
   // Save references to mesh and element base.
@@ -95,7 +95,6 @@ void NewmarkGeneral::initialize(Mesh *mesh,
   mMesh->checkInFieldEnd("m");
 
   // TODO: NOTE HERE! Need to make this a smart pointer as well.
-  delete model;
 
 }
 

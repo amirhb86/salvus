@@ -17,6 +17,8 @@
 class Options;
 class ExodusModel;
 
+using std::unique_ptr;
+
 /**
  * Struct holding the vectors representing the global DOFs.
  * The global PETSc vector is defined across processors,
@@ -24,11 +26,13 @@ class ExodusModel;
  * current processor.
  */
 struct vec_struct {
-  std::string name;
-  /** < Field name (i.e. displacement_x) */
-  Vec glb;
-  /** < Global PETSc vector */
-  Vec loc;            /** < Local PETSc vector */
+  std::string name; /** < Field name (i.e. displacement_x) */
+  Vec glb;          /** < Global PETSc vector */
+  Vec loc;          /** < Local PETSc vector */
+//  ~vec_struct() {   /** < Clean memory. */
+//    if (glb) { VecDestroy(&glb); }
+//    if (loc) { VecDestroy(&loc); }
+//  }
 };
 
 class Mesh {
@@ -42,34 +46,30 @@ class Mesh {
   /** Keeps track of any (possible) coupling fields on each element. **/
   std::map<PetscInt,std::set<std::string>> mCouplingFields;
 
-  /** Keeps (sparse) track of any specific couplings. **/
-  std::map<PetscInt,std::vector<std::tuple<PetscInt,std::vector<std::string>>>> mCpl;
-
-  int mNumberElementsLocal;
-  /** < Num of elements on this processor. */
-  int mNumberDimensions;
-  /** < Num of dimensions of the mesh. */
-  int mNumberSideSets;
-  /** < Num of flagged boundaries. */
-
-  std::string mExodusFileName;
   /** < Exodus file from which this mesh (skeleton) was defined. */
+  std::string mExodusFileName;
 
-  DM mDistributedMesh;
   /** < PETSc distributed mesh defining parallel element layout. */
-  PetscSection mMeshSection;      /** < Mesh section describing location of the integration points. In the future we
-                                        * may have many of these per mesh. */
-  int int_tstep;
+  DM mDistributedMesh;
 
+  /** < Mesh section describing location of the integration points. */
+  PetscSection mMeshSection;
+
+  PetscInt mNumberElementsLocal; /** < Num of elements on this processor. */
+  PetscInt mNumberDimensions;    /** < Num of dimensions of the mesh. */
+  PetscInt mNumberSideSets;      /** < Num of flagged boundaries. */
+  PetscInt int_tstep;            /** < Timestep number. */
 
  protected:
 
-  std::vector<std::string> mGlobalFields;
   /** < List of field names on global dof ("u","v",etc) */
-  std::map<std::string, vec_struct> mFields;
+  std::vector<std::string> mGlobalFields;
+
   /** < Dictionary holding the fields on the global dof. */
-  PetscViewer mViewer;
+  std::map<std::string, vec_struct> mFields;
+
   /** < Holds information used to dump field values to disk. */
+  PetscViewer mViewer;
 
   /** The CFL constant for the time-stepping scheme (Newmark 2nd-order sets 1.0)*/
   double mCFL = 1.0;
@@ -90,13 +90,15 @@ class Mesh {
 
  public:
 
+  Mesh(const std::unique_ptr<Options> &options);
+
   /**
    * Factory which returns a `Mesh` based on user defined options.
    * The `Mesh` is really a collection of the global dofs, and the fields defined on these dofs will depend on both
    * the physics of the system under consideration, and the method of time-stepping chosen.
    * @return Some derived mesh class.
    */
-  static Mesh *factory(std::unique_ptr<Options> const &options);
+  static Mesh *factory(const std::unique_ptr<Options> &options);
 
   /**
    * Given an existing vector of continuous fields, append a new set of fields based on a
@@ -108,7 +110,10 @@ class Mesh {
   static std::vector<std::string> appendPhysicalFields(const std::vector<std::string>& fields,
                                                        const std::string& physics);
 
-  virtual ~Mesh() { DMDestroy(&mDistributedMesh); }
+  virtual ~Mesh() {
+    if (mMeshSection) { PetscSectionDestroy(&mMeshSection); }
+    if (mDistributedMesh) { DMDestroy(&mDistributedMesh); }
+  }
 
   /**
    * Reads an exodus mesh from a file defined in options.
@@ -118,12 +123,7 @@ class Mesh {
    */
   void read(std::unique_ptr<Options> const &options);
 
-  /**
-   * Alternate version of read, which creates a mesh given a matrix of verts and cells.
-   */
-  void read(int dim, int numCells, int numVerts, int numVertsPerElem,
-            Eigen::MatrixXi cells, Eigen::MatrixXd coords);
-  
+
   /**
    * Sets up the dofs across elements and processor boundaries.
    * Specifically, this function defines a `DMPlex section` spread across all elements. It is this section that
@@ -141,7 +141,7 @@ class Mesh {
                                 int number_dof_face,
                                 int number_dof_volume,
                                 int number_dimensions,
-                                ExodusModel *model);
+                                unique_ptr<ExodusModel> const &model);
 
   /**
    * Registers both the global (across parallel partition) and local (on a single parallel partition) vectors for a

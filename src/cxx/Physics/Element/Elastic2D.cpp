@@ -25,7 +25,7 @@ Elastic2D<Element>::Elastic2D(std::unique_ptr<Options> const &options): Element(
 }
 
 template <typename Element>
-void Elastic2D<Element>::attachMaterialPropertiesNew(const ExodusModel *model) {
+void Elastic2D<Element>::attachMaterialProperties(std::unique_ptr<ExodusModel> const &model) {
   Element::attachMaterialProperties(model, "RHO");
   Element::attachMaterialProperties(model, "C11");
 //  Element::attachMaterialProperties(model, "C12");

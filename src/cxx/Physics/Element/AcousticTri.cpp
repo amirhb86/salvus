@@ -19,7 +19,7 @@ AcousticTri<Element>::AcousticTri(std::unique_ptr<Options> const &options): Elem
 }
 
 template <typename Element>
-void AcousticTri<Element>::attachMaterialPropertiesNew(const ExodusModel *model) {
+void AcousticTri<Element>::attachMaterialProperties(std::unique_ptr<ExodusModel> const &model) {
   Element::attachMaterialProperties(model, "VP");
 }
 

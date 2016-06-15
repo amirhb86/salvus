@@ -13,34 +13,46 @@
 
 namespace utilities {
 
-void print_from_root_mpi(const std::string msg);
+  /**
+   * Small function to return an MPI datatype based on a template datatype.
+   */
+  template <typename T>
+  MPI_Datatype mpitype();
 
-int broadcastInt(int send_buffer);
-std::vector<int> broadcastStdVecFromRoot(std::vector<int> &send_buffer);
-std::vector<double> broadcastStdVecFromRoot(std::vector<double> &send_buffer);
-std::string broadcastStringFromRank(std::string &buf, int rank);
-std::vector<std::string> broadcastStringVecFromRank(std::vector<std::string> &send_buffer, int rank);
+  /**
+   * Broadcasts a number on some rank to all processors.
+   * @param [in] send_buffer Number to send.
+   * @param [in] rank Rank to send from.
+   * @returns Number broadcasted to all processors.
+   */
+  template <typename T>
+  T broadcastNumberFromRank(T send_buffer, int rank);
 
+  /**
+  * Broadcasts a vector of numbers on some rank to all processors.
+  * @param [in] send_buffer Vector of numbers to send.
+  * @param [in] rank Rank to send from.
+  * @returns Vector broadcasted to all processors.
+  */
+  template <typename T>
+  std::vector<T> broadcastNumberVecFromRank(std::vector<T> &send_buffer, int rank);
 
-class PrintFromRoot {
+  /**
+   * c++ strings are a bit harder to broadcast than fundamental datatypes. This function
+   * serializes a string, and broadcasts it to all ranks.
+   * @param [in] buf String to send.
+   * @param [in] rank Rank to send from.
+   * @returns String broadcasted to all processors.
+   */
+  std::string broadcastStringFromRank(std::string &buf, int rank);
 
- protected:
-  std::ostringstream os;
- private:
-  PrintFromRoot(const PrintFromRoot &);
-  PrintFromRoot &operator=(const PrintFromRoot &);
-
- public:
-  PrintFromRoot();
-  virtual ~PrintFromRoot();
-  std::ostringstream &Get() { return os; }
-};
+  /**
+   * c++ string are a bit harder to broadcast than fundamental datatypes. This function
+   * serializes a vector of strings, and broadcasts it to all ranks.
+   * @param [in] send_buffer Vector of strings to send.
+   * @param [in] rank Rank to send from.
+   * @returns Vector of strings broadcasted to all processors.
+   */
+  std::vector<std::string> broadcastStringVecFromRank(std::vector<std::string> &send_buffer, int rank);
 
 }
-
-#define PRINT_ROOT() utilities::PrintFromRoot().Get()
-
-enum class AcousticFields {
-  displacement = 0, velocity = 1, acceleration = 2, force = 3, acceleration_ = 4, mass_matrix = -1,
-  mass_matrix_inverse = -2
-};

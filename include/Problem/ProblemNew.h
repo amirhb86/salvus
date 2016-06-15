@@ -21,7 +21,7 @@ class ProblemNew {
   static std::unique_ptr<ProblemNew> Factory(std::unique_ptr<Options> const &options);
 
   std::vector<std::unique_ptr<Element>> initializeElements(std::unique_ptr<Mesh> &mesh,
-                                                           std::unique_ptr<Model> &model,
+                                                           std::unique_ptr<ExodusModel> &model,
                                                            std::unique_ptr<Options> const &options);
   void integrateElements(std::unique_ptr<Mesh> mesh);
 

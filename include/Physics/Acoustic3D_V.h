@@ -42,7 +42,7 @@ class Acoustic3D_V: public Shape {
   /**** Setup functions ****/
   void prepareStiffness();
   void assembleElementMassMatrix(Mesh *mesh);
-  void attachMaterialPropertiesNew(const ExodusModel *model);
+  void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model);
   double CFL_estimate();
   
   /**** Time loop functions ****/

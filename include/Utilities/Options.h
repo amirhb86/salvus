@@ -75,52 +75,52 @@ class Options {
   PetscErrorCode setOptions();
 
   // Bool getters
-  inline PetscBool SaveMovie() { return mSaveMovie; }
-  inline PetscBool TestIC() { return mTestIC; }
-  inline PetscBool DisplayDiagnostics() { return mDisplayDiagnostics; }
+  inline PetscBool SaveMovie() const { return mSaveMovie; }
+  inline PetscBool TestIC() const { return mTestIC; }
+  inline PetscBool DisplayDiagnostics() const { return mDisplayDiagnostics; }
   
   // Integer getters
-  inline PetscInt Dimension() { return mDimension; }
-  inline PetscInt PolynomialOrder() { return mPolynomialOrder; }
+  inline PetscInt Dimension() const { return mDimension; }
+  inline PetscInt PolynomialOrder() const { return mPolynomialOrder; }
   inline PetscInt NumberSources() {  return mNumberSources; }
-  inline PetscInt NumberReceivers() { return mNumRec; }
-  inline PetscInt SaveFrameEvery() { return mSaveFrameEvery; }
-  inline PetscInt DisplayDiagnosticsEvery() { return mDisplayDiagnosticsEvery; }
+  inline PetscInt NumberReceivers() const { return mNumRec; }
+  inline PetscInt SaveFrameEvery() const { return mSaveFrameEvery; }
+  inline PetscInt DisplayDiagnosticsEvery() const { return mDisplayDiagnosticsEvery; }
   
   
   // Double getters
-  inline double Duration() { return mDuration; }
-  inline double TimeStep() { return mTimeStep; }
-  inline PetscReal IC_Center_x() { return mCenter_x; }
-  inline PetscReal IC_Center_y() { return mCenter_y; }
-  inline PetscReal IC_Center_z() { return mCenter_z; }
-  inline PetscReal IC_SquareSide_L() { return mSquareSide_L; }
+  inline double Duration() const { return mDuration; }
+  inline double TimeStep() const { return mTimeStep; }
+  inline PetscReal IC_Center_x() const { return mCenter_x; }
+  inline PetscReal IC_Center_y() const { return mCenter_y; }
+  inline PetscReal IC_Center_z() const { return mCenter_z; }
+  inline PetscReal IC_SquareSide_L() const { return mSquareSide_L; }
 
   // String getters
-  inline std::string PhysicsSystem() { return mPhysicsSystem; }
-  inline std::string ExodusMeshFile() { return mExodusMeshFile; }
-  inline std::string MeshType() { return mMeshType; }
-  inline std::string ElementShape() { return mElementShape; }
-  inline std::string ExodusModelFile() { return mExodusModelFile; }
-  inline std::string SourceType() { return mSourceType; }
-  inline std::string OutputMovieFile() { return mOutputMovieFile; }
-  inline std::string ProblemType() { return mProblemType; }
-  inline std::string ReceiverType() { return "hdf5"; } // TODO: GENERAL
-  inline std::string ReceiverFileName() { return mReceiverFileName; }
+  inline std::string PhysicsSystem() const { return mPhysicsSystem; }
+  inline std::string ExodusMeshFile() const { return mExodusMeshFile; }
+  inline std::string MeshType() const { return mMeshType; }
+  inline std::string ElementShape() const { return mElementShape; }
+  inline std::string ExodusModelFile() const { return mExodusModelFile; }
+  inline std::string SourceType() const { return mSourceType; }
+  inline std::string OutputMovieFile() const { return mOutputMovieFile; }
+  inline std::string ProblemType() const { return mProblemType; }
+  inline std::string ReceiverType() const { return "hdf5"; } // TODO: GENERAL
+  inline std::string ReceiverFileName() const { return mReceiverFileName; }
 
-  inline std::vector<std::string> DirichletBoundaries() { return mDirichletBoundaryNames; }
-  inline std::vector<std::string> RecNames() { return mRecNames; }
+  inline std::vector<std::string> DirichletBoundaries() const { return mDirichletBoundaryNames; }
+  inline std::vector<std::string> RecNames() const { return mRecNames; }
 
   // Vector getters
-  inline std::vector<double> RecLocX1() { return mRecLocX1; }
-  inline std::vector<double> RecLocX2() { return mRecLocX2; }
-  inline std::vector<double> RecLocX3() { return mRecLocX3; }
-  inline std::vector<double> SourceLocationX() { return mSourceLocationX; }
-  inline std::vector<double> SourceLocationY() { return mSourceLocationY; }
-  inline std::vector<double> SourceLocationZ() { return mSourceLocationZ; }
-  inline std::vector<double> SourceRickerAmplitude() { return mSourceRickerAmplitude; }
-  inline std::vector<double> SourceRickerCenterFreq() { return mSourceRickerCenterFreq; }
-  inline std::vector<double> SourceRickerTimeDelay() { return mSourceRickerTimeDelay; }
+  inline std::vector<double> RecLocX1() const { return mRecLocX1; }
+  inline std::vector<double> RecLocX2() const { return mRecLocX2; }
+  inline std::vector<double> RecLocX3() const { return mRecLocX3; }
+  inline std::vector<double> SourceLocationX() const { return mSourceLocationX; }
+  inline std::vector<double> SourceLocationY() const { return mSourceLocationY; }
+  inline std::vector<double> SourceLocationZ() const { return mSourceLocationZ; }
+  inline std::vector<double> SourceRickerAmplitude() const { return mSourceRickerAmplitude; }
+  inline std::vector<double> SourceRickerCenterFreq() const { return mSourceRickerCenterFreq; }
+  inline std::vector<double> SourceRickerTimeDelay() const { return mSourceRickerTimeDelay; }
 
   // for setting timestep automatically.
   void SetTimeStep(double timestep);

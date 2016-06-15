@@ -11,6 +11,13 @@
 #include <Model/ExodusModel.h>
 #include <Utilities/Options.h>
 #include <Utilities/Utilities.h>
+#include <Utilities/Logging.h>
+
+extern "C" {
+#include <exodusII.h>
+}
+
+using std::unique_ptr;
 
 void exodusError(const int retval, std::string func_name) {
 
@@ -20,16 +27,16 @@ void exodusError(const int retval, std::string func_name) {
 
 }
 
-extern "C" {
-#include <exodusII.h>
+Mesh::Mesh(const std::unique_ptr<Options> &options) {
+  mDistributedMesh = NULL;
 }
 
-Mesh *Mesh::factory(std::unique_ptr<Options> const &options) {
+Mesh *Mesh::factory(const std::unique_ptr<Options> &options) {
 
   std::string mesh_type(options->MeshType());
   try {
     if (mesh_type == "newmark") {
-      auto sc_nm_mesh = new ScalarNewmark2D();
+      auto sc_nm_mesh = new ScalarNewmark2D(options);
       if (options->TestIC()) {
         // add nodal location to global field vectors for testing
         sc_nm_mesh->AddToGlobalFields("x");
@@ -40,16 +47,16 @@ Mesh *Mesh::factory(std::unique_ptr<Options> const &options) {
       }
       return sc_nm_mesh;
     } else if (mesh_type == "newmark_2d_elastic") {
-      return new ElasticNewmark2D();
+      return new ElasticNewmark2D(options);
     } else if (mesh_type == "2d_couple") {
-      return new ElasticAcousticNewmark2D();
+      return new ElasticAcousticNewmark2D(options);
     } else if (mesh_type == "3d_couple") {
-      return new ElasticAcousticNewmark3D();
+      return new ElasticAcousticNewmark3D(options);
     } else {
       throw std::runtime_error("Runtime Error: Mesh type " + mesh_type + " not supported");
     }
   } catch (std::exception &e) {
-    utilities::print_from_root_mpi(e.what());
+    LOG() << e.what();
     MPI_Abort(PETSC_COMM_WORLD, -1);
     return nullptr;
   };
@@ -85,7 +92,7 @@ int Mesh::readBoundaryNames(std::unique_ptr<Options> const &options) {
         boundary_names.push_back(name);
       }
     } catch (std::exception &e) {
-      std::cerr << "ERROR(rank=" << rank << ")!: " << e.what();
+      LOG() << "ERROR(rank=" << rank << ")!: " << e.what();
       MPI_Abort(PETSC_COMM_WORLD, -1);
     }
   } // rank==0
@@ -113,7 +120,7 @@ void Mesh::read(std::unique_ptr<Options> const &options) {
   if (rank == 0) {
     std::ifstream f(mExodusFileName.c_str());
     if (!f.good()) {
-      std::cerr << "ERROR: Mesh " << mExodusFileName << " does not exist!\n";
+      LOG() << "ERROR: Mesh " << mExodusFileName << " does not exist!";
       MPI_Abort(PETSC_COMM_WORLD, -1);
     }
   }
@@ -125,35 +132,6 @@ void Mesh::read(std::unique_ptr<Options> const &options) {
 
   // Read exodus file.
   DMPlexCreateExodusFromFile(PETSC_COMM_WORLD, mExodusFileName.c_str(), interpolate_edges, &dm);
-
-  // May be a race condition on distribute.
-  MPI_Barrier(PETSC_COMM_WORLD);
-  DMPlexDistribute(dm, 0, NULL, &mDistributedMesh);
-
-  // We don't need the serial mesh anymore.
-  if (mDistributedMesh) { DMDestroy(&dm); }
-    // mDistributedMesh == NULL when only 1 proc is used.
-  else { mDistributedMesh = dm; }
-
-  DMGetDimension(mDistributedMesh, &mNumberDimensions);
-  DMPlexGetDepthStratum(mDistributedMesh, mNumberDimensions, NULL, &mNumberElementsLocal);
-}
-
-void Mesh::read(int dim, int numCells, int numVerts, int numVertsPerElem,
-                Eigen::MatrixXi cells, Eigen::MatrixXd vertex_coords) {
-
-  // Class variables.
-  mDistributedMesh = NULL;
-  DM dm = NULL;
-  PetscBool interpolate_edges = PETSC_TRUE;
-
-  printf("cells=[");
-  for (int i = 0; i < numCells * numVertsPerElem; i++) {
-    printf("%d, ", cells.data()[i]);
-  }
-  printf("]\n");
-  DMPlexCreateFromCellList(PETSC_COMM_WORLD, dim, numCells, numVerts, numVertsPerElem,
-                           interpolate_edges, cells.data(), dim, vertex_coords.data(), &dm);
 
   // May be a race condition on distribute.
   MPI_Barrier(PETSC_COMM_WORLD);
@@ -188,8 +166,7 @@ int Mesh::setupBoundaries(std::unique_ptr<Options> const &options) {
 
   // if no side sets are present, proceed with no boundaries (naturally a free surface)
   if (label == NULL) { return 0; }
-  ierr = DMLabelGetNumValues(label, &mNumberSideSets);
-  CHKERRQ(ierr);
+  ierr = DMLabelGetNumValues(label, &mNumberSideSets); CHKERRQ(ierr);
   if (mNumberSideSets == 0) { return 0; }
 
   IS idIS;
@@ -235,7 +212,7 @@ int Mesh::setupBoundaries(std::unique_ptr<Options> const &options) {
 
 PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
                                     int num_dof_fac, int num_dof_vol,
-                                    int num_dim, ExodusModel *model) {
+                                    int num_dim, unique_ptr<ExodusModel> const &model) {
 
   assert(num_dim == mNumberDimensions);
 
@@ -256,8 +233,7 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
     // Get the transitive closure for this element.
     PetscInt num_pnts;
     PetscInt *points = NULL;
-    ier = DMPlexGetTransitiveClosure(mDistributedMesh, i, PETSC_TRUE, &num_pnts, &points);
-    CHKERRQ(ier);
+    ier = DMPlexGetTransitiveClosure(mDistributedMesh, i, PETSC_TRUE, &num_pnts, &points); CHKERRQ(ier);
 
     // Extract the string defining the element type.
     if (mNumberDimensions == 2) {
@@ -280,7 +256,9 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
       PetscInt pnt = points[2 * j];
       for (auto &field: appendPhysicalFields({}, type)) { mCouplingFields[pnt].insert(field); }
     }
+    DMPlexRestoreTransitiveClosure(mDistributedMesh, i, PETSC_TRUE, &num_pnts, &points);
   }
+
 
   // Create the section and add the fields we've defined.
   ier = PetscSectionCreate(PetscObjectComm((PetscObject) mDistributedMesh), &mMeshSection);
@@ -377,30 +355,14 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
   }
 
   // Clean up.
-  ier = PetscFree(p_max);
-  CHKERRQ(ier);
+  ier = PetscFree(p_max); CHKERRQ(ier);
 
   // Finalize the section, and attach it to the DM.
-  ier = PetscSectionSetUp(mMeshSection);
-  CHKERRQ(ier);
+  ier = PetscSectionSetUp(mMeshSection); CHKERRQ(ier);
   DMSetDefaultSection(mDistributedMesh, mMeshSection);
 
   // Improves performance of closure calls (for a 1.5x application perf. boost)
   DMPlexCreateClosureIndex(mDistributedMesh, mMeshSection);
-
-  // Go through the elements once more and assign specific couplings.
-  for (PetscInt i = 0; i < mNumberElementsLocal; i++) {
-    PetscInt num_pnts;
-    PetscInt *points = NULL;
-    ier = DMPlexGetTransitiveClosure(mDistributedMesh, i, PETSC_TRUE, &num_pnts, &points);
-    CHKERRQ(ier);
-    for (PetscInt j = 0; j < num_pnts; j++) {
-      std::vector<std::string> v(8);
-      PetscInt pnt = points[2 * j];
-    }
-
-  }
-
 
   return ier;
 }
@@ -419,6 +381,7 @@ std::vector<PetscInt> Mesh::EdgeNumbers(const PetscInt elm) {
       edges.push_back(pnt);
     }
   }
+  DMPlexRestoreTransitiveClosure(mDistributedMesh, elm, PETSC_TRUE, &num_pts, &points);
   return edges;
 }
 
@@ -432,9 +395,10 @@ PetscInt Mesh::GetNeighbouringElement(const PetscInt interface, const PetscInt t
       neighbour = pnt;
     }
   }
+  DMPlexRestoreTransitiveClosure(mDistributedMesh, interface, PETSC_FALSE, &num_pts, &points);
 
   if (neighbour == -1) {
-    PRINT_ROOT() << "ERROR IN GetNeighbouringElement";
+    LOG() << "ERROR IN GetNeighbouringElement";
     MPI_Abort(PETSC_COMM_WORLD, -1);
   }
   return neighbour;
@@ -462,6 +426,7 @@ std::vector<std::tuple<PetscInt,std::vector<std::string>>> Mesh::CouplingFields(
       couple.push_back(std::make_tuple(pnt, field));
     }
   }
+  DMPlexRestoreTransitiveClosure(mDistributedMesh, elm, PETSC_TRUE, &num_pts, &points);
   return couple;
 }
 
@@ -481,6 +446,7 @@ std::vector<std::string> Mesh::TotalCouplingFields(const PetscInt elm) {
       if (coupling_edge) { fields.insert(f); }
     }
   }
+  DMPlexRestoreTransitiveClosure(mDistributedMesh, elm, PETSC_TRUE, &num_pts, &points);
   return std::vector<std::string> (fields.begin(), fields.end());
 }
 
@@ -539,7 +505,7 @@ void Mesh::setFieldFromFace(const std::string &name, const int face_number, cons
   int ierr = DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
                                  face_number, val.data(), INSERT_VALUES);
   if (ierr > 0) {
-    std::cerr << "Error after DMPlexVecSetClosure in setFieldFromFace" << "\n";
+    LOG() << "Error after DMPlexVecSetClosure in setFieldFromFace";
   }
 }
 
@@ -560,7 +526,6 @@ Eigen::VectorXd Mesh::getFieldOnPoint(int point, std::string name) {
                       point, &num_values, &values);
   Eigen::VectorXd field(num_values);
   for (auto j = 0; j < num_values; j++) { field(j) = values[j]; }
-  // printf("getting %d into %d\n",closure(47),47);
   DMPlexVecRestoreClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
                           point, &num_values, &values);
   return field;
@@ -589,8 +554,8 @@ void Mesh::setFieldFromElement(const std::string &name, const int element_number
   int ierr = DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
                                  element_number, val.data(), INSERT_VALUES);
   if (ierr > 0) {
-    std::cerr << "Error after DMPlexVecSetClosure in setFieldFromElement" << "\n";
-    exit(1);
+    LOG() << "Error after DMPlexVecSetClosure in setFieldFromElement";
+    MPI_Abort(PETSC_COMM_WORLD, -1);
   }
 }
 
@@ -603,8 +568,8 @@ void Mesh::addFieldFromElement(const std::string &name, const int element_number
   int ierr = DMPlexVecSetClosure(mDistributedMesh, mMeshSection, mFields[name].loc,
                                  element_number, val.data(), ADD_VALUES);
   if (ierr > 0) {
-    std::cerr << "Error after DMPlexVecSetClosure in addFieldFromElement" << "\n";
-    exit(1);
+    LOG() << "Error after DMPlexVecSetClosure in addFieldFromElement";
+    MPI_Abort(PETSC_COMM_WORLD, -1);
   }
 }
 
@@ -680,12 +645,12 @@ void Mesh::setUpMovie(const std::string &movie_filename) {
 void Mesh::saveFrame(std::string name, PetscInt timestep) {
 
   int rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-  if (!rank) std::cout << "SAVING FRAME: " << name << ' ' << timestep << std::endl;
+  if (!rank) LOG() << "SAVING FRAME: " << name << ' ' << timestep;
   DMSetOutputSequenceNumber(mDistributedMesh, timestep, timestep);
   int ierr = VecView(mFields[name].glb, mViewer);
   if (ierr > 0) {
-    std::cerr << "ERROR @ saveFrame->VecView()\n";
-    exit(1);
+    LOG() << "ERROR @ saveFrame->VecView()";
+    MPI_Abort(PETSC_COMM_WORLD, -1);
   }
 }
 
@@ -733,7 +698,7 @@ std::vector<std::string> Mesh::appendPhysicalFields(const std::vector<std::strin
   } else if (physics == "3delastic") {
     new_fields = {"ux", "uy", "uz"};
   } else {
-    PRINT_ROOT() << "ERROR IN FIELD TYPE " + physics;
+    LOG() << "ERROR IN FIELD TYPE " + physics;
     MPI_Abort(PETSC_COMM_WORLD, -1);
   }
 
@@ -741,8 +706,6 @@ std::vector<std::string> Mesh::appendPhysicalFields(const std::vector<std::strin
   return new_fields;
 
 }
-
-
 
 int Mesh::numFieldPerPhysics(std::string physics) {
   int num;
@@ -754,22 +717,9 @@ int Mesh::numFieldPerPhysics(std::string physics) {
       throw std::runtime_error("Derived type " + physics + " is not known.");
     }
   } catch (std::exception &e) {
-    PRINT_ROOT() << e.what();
+    LOG() << e.what();
     MPI_Abort(PETSC_COMM_WORLD, -1);
   }
   return num;
 }
-
-// int Mesh::BoundarylementFaces(int elm, int ss_num) {
-
-//     // Make sure we're looking for a side set that actually exists.
-//     // assert(mBoundaryElementFaces.find(ss_num) != mBoundaryElementFaces.end());
-
-//     // if (mBoundaryElementFaces[ss_num].find(elm) == mBoundaryElementFaces[ss_num].end()) {
-//     //     return -1;
-//     // } else {
-//     //     return mBoundaryElementFaces[ss_num][elm][0];
-//     // }
-
-// }
 

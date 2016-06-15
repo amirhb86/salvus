@@ -22,7 +22,7 @@ Acoustic3D<Element>::Acoustic3D(std::unique_ptr<Options> const &options): Elemen
 }
 
 template <typename Element>
-void Acoustic3D<Element>::attachMaterialPropertiesNew(const ExodusModel *model) {
+void Acoustic3D<Element>::attachMaterialProperties(std::unique_ptr<ExodusModel> const &model) {
   Element::attachMaterialProperties(model, "VP");
 }
 

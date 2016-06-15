@@ -83,7 +83,7 @@ TEST_CASE("test_quad", "[quad]") {
       PetscOptionsSetValue("--polynomial_order", num.c_str());
 
       // Initialize options.
-      std::unique_ptr<Options> options;
+      std::unique_ptr<Options> options(new Options);
       options->setOptions();
 
       // Setup test element.

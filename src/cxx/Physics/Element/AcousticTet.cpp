@@ -19,7 +19,7 @@ AcousticTet<Element>::AcousticTet(std::unique_ptr<Options> const &options): Elem
 }
 
 template <typename Element>
-void AcousticTet<Element>::attachMaterialPropertiesNew(const ExodusModel *model) {
+void AcousticTet<Element>::attachMaterialProperties(std::unique_ptr<ExodusModel> const &model) {
   Element::attachMaterialProperties(model, "VP");
 }
 

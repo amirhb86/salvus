@@ -29,7 +29,7 @@ Elastic3D<Element>::Elastic3D(std::unique_ptr<Options> const &options): Element(
 }
 
 template <typename Element>
-void Elastic3D<Element>::attachMaterialPropertiesNew(const ExodusModel *model) {
+void Elastic3D<Element>::attachMaterialProperties(std::unique_ptr<ExodusModel> const &model) {
 
   Element::attachMaterialProperties(model, "RHO");
   Element::attachMaterialProperties(model, "VPV");

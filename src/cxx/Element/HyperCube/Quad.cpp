@@ -15,6 +15,9 @@ using namespace Eigen;
 template <typename ConcreteShape>
 Quad<ConcreteShape>::Quad(std::unique_ptr<Options> const &options) {
 
+  /* Ensure we've set parameters correctly. */
+  assert(options->PolynomialOrder() > 0);
+
   mPlyOrd = options->PolynomialOrder();
   mNumDofVtx = 1;
   mNumDofEdg = mPlyOrd - 1;
@@ -220,7 +223,7 @@ double Quad<ConcreteShape>::estimatedElementRadius() {
 
 
 template <typename ConcreteShape>
-void Quad<ConcreteShape>::attachMaterialProperties(const ExodusModel *model, std::string parameter) {
+void Quad<ConcreteShape>::attachMaterialProperties(std::unique_ptr<ExodusModel> const &model, std::string parameter) {
   Vector4d material_at_vertices;
   for (int i = 0; i < mNumVtx; i++) {
     material_at_vertices(i) = model->getElementalMaterialParameterAtVertex(
@@ -597,7 +600,8 @@ void Quad<ConcreteShape>::setBoundaryConditions(Mesh *mesh) {
 }
 
 template <typename ConcreteShape>
-void Quad<ConcreteShape>::applyDirichletBoundaries(Mesh *mesh, std::unique_ptr<Options> const &options, const std::string &fieldname) {
+void Quad<ConcreteShape>::applyDirichletBoundaries(Mesh *mesh, std::unique_ptr<Options> const &options,
+                                                   const std::string &fieldname) {
 
   if (! mBndElm) return;
 

@@ -162,7 +162,7 @@ double Triangle<ConcreteShape>::estimatedElementRadius() {
 
 
 template <typename ConcreteShape>
-void Triangle<ConcreteShape>::attachMaterialProperties(const ExodusModel *model, std::string parameter_name) {
+void Triangle<ConcreteShape>::attachMaterialProperties(std::unique_ptr<ExodusModel> const &model, std::string parameter_name) {
 
   Vector3d material_at_vertices;
 

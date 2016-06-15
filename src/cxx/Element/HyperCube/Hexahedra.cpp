@@ -748,7 +748,7 @@ double Hexahedra<ConcreteHex>::estimatedElementRadius() {
 }
 
 template <typename ConcreteHex>
-void Hexahedra<ConcreteHex>::attachMaterialProperties(const ExodusModel *model,std::string parameter_name) {
+void Hexahedra<ConcreteHex>::attachMaterialProperties(std::unique_ptr<ExodusModel> const &model,std::string parameter_name) {
 
   Eigen::VectorXd material_at_vertices(mNumVtx);
 

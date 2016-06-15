@@ -361,7 +361,7 @@ TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
   PetscOptionsInsert(&argc, &argv, NULL);
 
   // Set options for exact tests
-  std::unique_ptr<Options> options;
+  std::unique_ptr<Options> options(new Options());
   options->setOptions();
   
   AcousticHexP1 ref_hex(options);
@@ -374,7 +374,7 @@ TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
   auto num_pts = num_pts_r*num_pts_s*num_pts_t;
 
   // Get model.
-  ExodusModel *model = new ExodusModel(options);
+  std::unique_ptr<ExodusModel> model(new ExodusModel(options));
   model->initializeParallel();
 
   // Get mesh.
@@ -388,7 +388,7 @@ TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
                        model);
 
   // Register all global field required for time stepping.  
-  for (auto field : mesh->GlobalFields()) {        
+  for (auto field : mesh->GlobalFields()) {
     mesh->registerFieldVectors(field);
   }
   
