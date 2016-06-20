@@ -1,7 +1,7 @@
-#if !defined(__PETSCEXTEN_H)
-#define __PETSCEXTEN_H
+#pragma once
 
-#include <petsc.h>
+#include "petsc.h"
+#include "petscsys.h"
 
 PetscErrorCode _DMPlexVecGetClosure_Depth1_Static_GetIndices(
     DM dm, PetscSection section, PetscInt point, PetscInt *csize, PetscInt *idx[]);
@@ -19,10 +19,3 @@ PetscErrorCode DMPlexGetClosureIndices(DM dm, PetscSection section, PetscInt poi
 
 PetscErrorCode DMPlexGetClosureWorkArray(DM dm, PetscInt npoints,PetscSection section,
                                          PetscInt *bsize, PetscScalar **buffer);
-
-#endif
-
-
-
-
-

@@ -1,15 +1,18 @@
+#include <mpi.h>
 #include <petsc.h>
 #include <Utilities/Utilities.h>
 
 /* Template specifications for different MPI datatypes. */
-template <>
-MPI_Datatype utilities::mpitype<double>() { return MPI_DOUBLE; }
+namespace utilities {
+  template<>
+  MPI_Datatype mpitype<double>() { return MPI_DOUBLE; }
 
-template <>
-MPI_Datatype utilities::mpitype<float>() { return MPI_FLOAT; }
+  template<>
+  MPI_Datatype mpitype<float>() { return MPI_FLOAT; }
 
-template <>
-MPI_Datatype utilities::mpitype<PetscInt>() { return MPIU_INT; }
+  template<>
+  MPI_Datatype mpitype<PetscInt>() { return MPIU_INT; }
+}
 
 template <typename T>
 T utilities::broadcastNumberFromRank(T send_buffer, int rank) {

@@ -173,19 +173,20 @@ void Triangle<ConcreteShape>::attachMaterialProperties(std::unique_ptr<ExodusMod
 }
 
 template <typename ConcreteShape>
-void Triangle<ConcreteShape>::attachSource(std::vector<std::shared_ptr<Source>> sources) {
+bool Triangle<ConcreteShape>::attachSource(std::unique_ptr<Source> &source, const bool finalize) {
 
-  for (auto &source: sources) {
-    if (ConcreteShape::checkHull(source->PhysicalLocationX(), source->PhysicalLocationZ(), mVtxCrd)) {
-      Vector2d reference_location = ConcreteShape::inverseCoordinateTransform(source->PhysicalLocationX(),
-                                                                                     source->PhysicalLocationZ(),
-                                                                                     mVtxCrd);
-      source->setReferenceLocationR(reference_location(0));
-      source->setReferenceLocationS(reference_location(1));
-      mSrc.push_back(source);
-    }
+  if(!source) { return false; }
+  if (ConcreteShape::checkHull(source->LocX(), source->LocZ(), mVtxCrd)) {
+    if (!finalize) { return true; }
+    Vector2d reference_location = ConcreteShape::inverseCoordinateTransform(source->LocX(),
+                                                                            source->LocZ(),
+                                                                            mVtxCrd);
+    source->SetLocR(reference_location(0));
+    source->SetLocS(reference_location(1));
+    mSrc.push_back(std::move(source));
+    return true;
   }
-
+  return false;
 }
 
 template <typename ConcreteShape>
@@ -259,7 +260,7 @@ double Triangle<ConcreteShape>::integrateField(const VectorXd &field) {
 }
 
 template <typename ConcreteShape>
-void Triangle<ConcreteShape>::attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers) {
+void Triangle<ConcreteShape>::attachReceiver(std::vector<std::unique_ptr<Receiver>> receivers) {
   printf("TODO: attachedReciever\n");
   exit(1);
 }

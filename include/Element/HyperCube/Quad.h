@@ -199,7 +199,7 @@ private:
    * save a pointer to the source.
    * @param [in] sources A vector of source objects.
    */
-  void attachSource(std::vector<std::shared_ptr<Source>> sources);
+  bool attachSource(std::unique_ptr<Source> &source, const bool finalize);
 
   /**
    * Attach some abstract receiver instance to the element.
@@ -207,7 +207,7 @@ private:
    * save a pointer to the receiver.
    * @param [in] sources A vector of receiver objects.
    */
-  void attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers);
+  void attachReceiver(std::vector<std::unique_ptr<Receiver>> receivers);
 
   
   

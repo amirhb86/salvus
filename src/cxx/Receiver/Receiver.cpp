@@ -4,23 +4,24 @@
 #include <Receiver/Receiver.h>
 #include <Receiver/ReceiverHdf5.h>
 #include <stdexcept>
+#include <Utilities/Logging.h>
 
 // Initialize counter to zero.
 long Receiver::num = 0;
 
-std::vector<std::shared_ptr<Receiver>> Receiver::factory(std::unique_ptr<Options> const &options) {
+std::vector<std::unique_ptr<Receiver>> Receiver::Factory(std::unique_ptr<Options> const &options) {
 
-  std::vector<std::shared_ptr<Receiver>> receivers;
+  std::vector<std::unique_ptr<Receiver>> receivers;
   for (int i = 0; i < options->NumberReceivers(); i++) {
     try {
       if (options->ReceiverType() == "hdf5") {
-        receivers.push_back(std::shared_ptr<ReceiverHdf5>(new ReceiverHdf5(options)));
+        receivers.push_back(std::unique_ptr<ReceiverHdf5>(new ReceiverHdf5(options)));
       } else {
         throw std::runtime_error("Runtime error: Receiver type " + options->ReceiverType() + " not supported.");
       }
 
     } catch (std::exception &e) {
-      std::cout << e.what() << std::endl;
+      LOG() << e.what();
       MPI_Abort(MPI_COMM_WORLD, -1);
     }
   }

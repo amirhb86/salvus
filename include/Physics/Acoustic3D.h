@@ -2,6 +2,7 @@
 
 // stl.
 #include <vector>
+#include <memory>
 
 // 3rd party.
 #include <Eigen/Dense>

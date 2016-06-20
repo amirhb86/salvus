@@ -4,64 +4,59 @@
 #include <vector>
 #include <memory>
 
+// 3rd party.
+#include <petsc.h>
+
 // forward decl.
 class Options;
 
 class Source {
 
-  double mPhysicalLocationX;
-  double mPhysicalLocationY;
-  double mPhysicalLocationZ;
+  double mLocX;
+  double mLocY;
+  double mLocZ;
 
-  double mReferenceLocationR;
-  double mReferenceLocationS;
-  double mReferenceLocationT;
+  double mLocR;
+  double mLocS;
+  double mLocT;
+
+  PetscInt mNum;
+  static PetscInt number;
 
  public:
 
-  static std::vector<std::shared_ptr<Source>> factory(std::unique_ptr<Options> const &options);
+  /* Constructor. */
+  Source(std::unique_ptr<Options> const &options);
+  virtual ~Source();
 
-  /**
-   * Set the source x coordinate in physical (model) space.
-   */
-  inline void SetPhysicalLocationX(double location_x) { mPhysicalLocationX = location_x; }
+  /* Factory method returning single sources. */
+  static std::vector<std::unique_ptr<Source>> Factory(std::unique_ptr<Options> const &options);
 
-  /**
-   * Set the source y coordinate in physical (model) space.
-   */
-  inline void SetPhysicalLocationY(double location_y) { mPhysicalLocationY = location_y; }
+  /* Unique numbers. */
+  inline void SetNum(const PetscInt num) { mNum = num; }
+  PetscInt Num() { return mNum; }
 
-  /**
-   * Set the source z coordinate in physical (model) space.
-   */
-  inline void SetPhysicalLocationZ(double location_z) { mPhysicalLocationZ = location_z; }
+  /* Physical coordinates. */
+  inline void SetLocX(double location_x) { mLocX = location_x; }
+  inline void SetLocY(double location_y) { mLocY = location_y; }
+  inline void SetLocZ(double location_z) { mLocZ = location_z; }
 
-  /**
-   * Set the source epsilon coordinate on the reference element.
-   */
-  inline void setReferenceLocationR(double location_r) { mReferenceLocationR = location_r; }
+  /* Reference coordinates. */
+  inline void SetLocR(double location_r) { mLocR = location_r; }
+  inline void SetLocS(double location_s) { mLocS = location_s; }
+  inline void SetLocT(double location_t) { mLocT = location_t; }
 
-  /**
-   * Set the source MAYBE WE SHOULD CHANGE COORDINATE NAMES coordinate on the reference element.
-   */
-  inline void setReferenceLocationS(double location_s) { mReferenceLocationS = location_s; }
+  inline double LocX() { return mLocX; }
+  inline double LocY() { return mLocY; }
+  inline double LocZ() { return mLocZ; }
 
-  /**
-   * Set the source eta coordinate on the reference element.
-   */
-  inline void setReferenceLocationT(double location_t) { mReferenceLocationT = location_t; }
-
-  inline double PhysicalLocationX() { return mPhysicalLocationX; }
-  inline double PhysicalLocationY() { return mPhysicalLocationY; }
-  inline double PhysicalLocationZ() { return mPhysicalLocationZ; }
-
-  inline double ReferenceLocationR() { return mReferenceLocationR; }
-  inline double ReferenceLocationS() { return mReferenceLocationS; }
-  inline double ReferenceLocationT() { return mReferenceLocationT; }
+  inline double LocR() { return mLocR; }
+  inline double LocS() { return mLocS; }
+  inline double LocT() { return mLocT; }
 
   /**
    * Returns a value for the force, given a certain time. This needs to be implemented by each derived class. For
-   * instance, a Ricker source will need to implement the source time characeristics of a ricker source time
+   * instance, a Ricker source will need to implement the source time characteristics of a ricker source time
    * function.
    */
   virtual double fire(const double &time) = 0;
@@ -76,7 +71,7 @@ class Ricker: public Source {
 
  public:
 
-  Ricker(std::unique_ptr<Options> const &options, int number);
+  Ricker(std::unique_ptr<Options> const &options);
   double fire(const double &time);
 
 };

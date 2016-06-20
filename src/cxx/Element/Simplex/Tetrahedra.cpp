@@ -527,24 +527,25 @@ void Tetrahedra<ConcreteShape>::attachMaterialProperties(std::unique_ptr<ExodusM
 }
 
 template <typename ConcreteShape>
-void Tetrahedra<ConcreteShape>::attachSource(std::vector<std::shared_ptr<Source>> sources) {
+bool Tetrahedra<ConcreteShape>::attachSource(std::unique_ptr<Source> &source, const bool finalize) {
 
-  for (auto &source: sources) {
-    if (ConcreteShape::checkHull(source->PhysicalLocationX(),
-                                 source->PhysicalLocationY(),
-                                 source->PhysicalLocationZ(),
-                                 mVtxCrd)) {
-      Vector3d reference_location = ConcreteShape::inverseCoordinateTransform(source->PhysicalLocationX(),
-                                                                              source->PhysicalLocationY(),
-                                                                              source->PhysicalLocationZ(),
-                                                                              mVtxCrd);
-      source->setReferenceLocationR(reference_location(0));
-      source->setReferenceLocationS(reference_location(1));
-      source->setReferenceLocationT(reference_location(2));
-      mSrc.push_back(source);
-    }
+  if (!source) { return false; }
+  if (ConcreteShape::checkHull(source->LocX(),
+                               source->LocY(),
+                               source->LocZ(),
+                               mVtxCrd)) {
+    if (!finalize) { return true; }
+    Vector3d reference_location = ConcreteShape::inverseCoordinateTransform(source->LocX(),
+                                                                            source->LocY(),
+                                                                            source->LocZ(),
+                                                                            mVtxCrd);
+    source->SetLocR(reference_location(0));
+    source->SetLocS(reference_location(1));
+    source->SetLocT(reference_location(2));
+    mSrc.push_back(std::move(source));
+    return true;
   }
-
+  return false;
 }
 
 template <typename ConcreteShape>
@@ -767,7 +768,7 @@ void Tetrahedra<ConcreteShape>::setupGradientOperator() {
 }
 
 template <typename ConcreteShape>
-void Tetrahedra<ConcreteShape>::attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers) {
+void Tetrahedra<ConcreteShape>::attachReceiver(std::vector<std::unique_ptr<Receiver>> receivers) {
   printf("TODO: attachedReciever\n");
   exit(1);
 }

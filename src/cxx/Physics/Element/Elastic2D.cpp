@@ -114,7 +114,7 @@ MatrixXd Elastic2D<Element>::computeSourceTerm(const double time) {
   MatrixXd s = MatrixXd::Zero(Element::NumIntPnt(), Element::NumDim());
   for (auto &source : Element::Sources()) {
     s.col(0) += (source->fire(time) * Element::getDeltaFunctionCoefficients(
-        source->ReferenceLocationR(), source->ReferenceLocationS()));
+        source->LocR(), source->LocS()));
   }
   return s;
 }

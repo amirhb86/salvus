@@ -3,6 +3,7 @@
 // stl.
 #include <vector>
 #include <assert.h>
+#include <memory>
 
 // 3rd party.
 #include <mpi.h>

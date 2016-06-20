@@ -16,6 +16,9 @@ class Options;
 class Receiver;
 class ExodusModel;
 
+#include <Source/Source.h>
+#include <Receiver/Receiver.h>
+
 class Element {
   /** \class Element
     *
@@ -60,11 +63,11 @@ class Element {
   /** Attach receivers to the element (if required).
    * @param [in/out] receivers Vector of all receivers in the model. Receiver reference coordinates are attached.
    */
-  virtual void attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers) = 0;
+  virtual void attachReceiver(std::vector<std::unique_ptr<Receiver>> receivers) = 0;
   /** Attach sources to the element (if required).
    * @param [in] sources Vector of all sources in the model.
    */
-  virtual void attachSource(std::vector<std::shared_ptr<Source>> sources) = 0;
+  virtual bool attachSource(std::unique_ptr<Source> &source, const bool finalize) = 0;
   /** Attach vertex coordinates to the element.
    * @param [in] distributed_mesh The parallel DM provided by PETSc.
    */

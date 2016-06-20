@@ -56,3 +56,6 @@ namespace utilities {
   std::vector<std::string> broadcastStringVecFromRank(std::vector<std::string> &send_buffer, int rank);
 
 }
+
+void seg_scan(int *invec, int *inoutvec, int *len, MPI_Datatype *dtype);
+

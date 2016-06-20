@@ -17,9 +17,6 @@ class ReceiverHdf5 : public Receiver {
 
 public:
 
-  std::unique_ptr<Receiver> move() {
-    return std::unique_ptr<ReceiverHdf5> (this);
-  }
   ReceiverHdf5(std::unique_ptr<Options> const &options);
   ~ReceiverHdf5();
 

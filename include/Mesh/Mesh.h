@@ -2,6 +2,7 @@
 
 // stl.
 #include <set>
+#include <memory>
 #include <map>
 #include <iosfwd>
 #include <string>
@@ -30,7 +31,6 @@ struct vec_struct {
   Vec glb;          /** < Global PETSc vector */
   Vec loc;          /** < Local PETSc vector */
   ~vec_struct() {   /** < Clean memory. */
-    std::cout << "DESTROY" << std::endl;
     if (glb) { VecDestroy(&glb); }
     if (loc) { VecDestroy(&loc); }
   }
@@ -112,8 +112,8 @@ class Mesh {
                                                        const std::string& physics);
 
   virtual ~Mesh() {
-    std::cout << "DES" << std::endl;
-    for (auto &f: mFields) { std::cout << "DEL" << std::endl; f.second->~vec_struct(); }
+    /* Destroy all PETSc objects. */
+    for (auto &f: mFields) { f.second->~vec_struct(); }
     if (mMeshSection) { PetscSectionDestroy(&mMeshSection); }
     if (mDistributedMesh) { DMDestroy(&mDistributedMesh); }
   }

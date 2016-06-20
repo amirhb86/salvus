@@ -10,9 +10,10 @@
 // 3rd party.
 #include <mpi.h>
 
+#include <Element/Element.h>
+
 class Mesh;
 class Options;
-class Element;
 class ExodusModel;
 
 class Problem {

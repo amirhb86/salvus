@@ -44,8 +44,8 @@ void NewmarkGeneral::initialize(std::unique_ptr<Mesh> mesh,
 
 
   // Get a list of all sources and receivers.
-  auto sources = Source::factory(options);
-  mRecs = Receiver::factory(options);
+  auto sources = Source::Factory(options);
+  mRecs = Receiver::Factory(options);
 
   // Set up elements.
   Eigen::VectorXd h_all(mElements.size());
@@ -68,8 +68,8 @@ void NewmarkGeneral::initialize(std::unique_ptr<Mesh> mesh,
     element->assembleElementMassMatrix(mMesh);
 
     // Attach any external sources and receivers.
-    element->attachSource(sources);
-    element->attachReceiver(mRecs);
+    for (auto &source: sources) { element->attachSource(source, true); }
+    element->attachReceiver(std::move(mRecs));
 
     // Prepare stiffness terms.
     element->prepareStiffness();

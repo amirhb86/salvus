@@ -232,7 +232,7 @@ void Quad<ConcreteShape>::attachMaterialProperties(std::unique_ptr<ExodusModel> 
 }
 
 template <typename ConcreteShape>
-void Quad<ConcreteShape>::attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers) {
+void Quad<ConcreteShape>::attachReceiver(std::vector<std::unique_ptr<Receiver>> receivers) {
 
   for (auto &rec: receivers) {
     double x1 = rec->PysLocX1();
@@ -241,23 +241,25 @@ void Quad<ConcreteShape>::attachReceiver(std::vector<std::shared_ptr<Receiver>> 
       Vector2d ref_loc = ConcreteShape::inverseCoordinateTransform(x1, x2, mVtxCrd);
       rec->SetRefLocR(ref_loc(0));
       rec->SetRefLocS(ref_loc(1));
-      mRec.push_back(rec);
+      mRec.push_back(std::move(rec));
     }
   }
 }
 
 template <typename ConcreteShape>
-void Quad<ConcreteShape>::attachSource(std::vector<std::shared_ptr<Source>> sources) {
-  for (auto &source: sources) {
-    double x1 = source->PhysicalLocationX();
-    double x2 = source->PhysicalLocationZ();
-    if (ConcreteShape::checkHull(x1, x2, mVtxCrd)) {
-      Vector2d ref_loc = ConcreteShape::inverseCoordinateTransform(x1, x2, mVtxCrd);
-      source->setReferenceLocationR(ref_loc(0));
-      source->setReferenceLocationS(ref_loc(1));
-      mSrc.push_back(source);
-    }
+bool Quad<ConcreteShape>::attachSource(std::unique_ptr<Source> &source, const bool finalize) {
+  if (!source) { return false; }
+  double x1 = source->LocX();
+  double x2 = source->LocZ();
+  if (ConcreteShape::checkHull(x1, x2, mVtxCrd)) {
+    if (!finalize) { return true; }
+    Vector2d ref_loc = ConcreteShape::inverseCoordinateTransform(x1, x2, mVtxCrd);
+    source->SetLocR(ref_loc(0));
+    source->SetLocS(ref_loc(1));
+    mSrc.push_back(std::move(source));
+    return true;
   }
+  return false;
 }
 
 template <typename ConcreteShape>

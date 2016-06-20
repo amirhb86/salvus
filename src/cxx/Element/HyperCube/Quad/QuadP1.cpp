@@ -16,10 +16,12 @@ bool QuadP1::checkHull(const double x, const double y,
     Vector2d v_seg = p1 - p0;
     Vector2d p_seg = test_point - p0;
     double x_0 = v_seg(0) * p_seg(1) - v_seg(1) * p_seg(0);
-    if (x_0 <= 0) {
+    if (x_0 < 0) {
       n_neg++;
-    } else {
+    } else if (x_0 > 0) {
       n_pos++;
+    } else {
+      n_pos++; n_neg++;
     }
   }
   return n_neg == mNumVtx || n_pos == mNumVtx;

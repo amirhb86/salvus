@@ -5,10 +5,10 @@
 #include <memory>
 
 // parents.
+#include <Receiver/Receiver.h>
 #include <Problem/Problem.h>
 #include <Mesh/Mesh.h>
 
-class Receiver;
 
 class NewmarkGeneral: public Problem {
 
@@ -16,8 +16,8 @@ private:
 
     std::unique_ptr<Mesh> mMesh;
     std::shared_ptr<Element> mReferenceElem;
-    std::vector<std::shared_ptr<Element>> mElements;
-    std::vector<std::shared_ptr<Receiver>> mRecs;
+    std::vector<std::unique_ptr<Element>> mElements;
+    std::vector<std::unique_ptr<Receiver>> mRecs;
 
 public:
 

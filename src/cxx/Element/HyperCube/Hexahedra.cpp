@@ -762,7 +762,7 @@ void Hexahedra<ConcreteHex>::attachMaterialProperties(std::unique_ptr<ExodusMode
 }
 
 template <typename ConcreteHex>
-void Hexahedra<ConcreteHex>::attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers) {
+void Hexahedra<ConcreteHex>::attachReceiver(std::vector<std::unique_ptr<Receiver>> receivers) {
 
   for (auto &rec: receivers) {
     double x1 = rec->PysLocX1();
@@ -773,25 +773,27 @@ void Hexahedra<ConcreteHex>::attachReceiver(std::vector<std::shared_ptr<Receiver
       rec->SetRefLocR(ref_loc(0));
       rec->SetRefLocS(ref_loc(1));
       rec->SetRefLocT(ref_loc(2));
-      mRec.push_back(rec);
+      mRec.push_back(std::move(rec));
     }
   }
 }
 
 template <typename ConcreteHex>
-void Hexahedra<ConcreteHex>::attachSource(std::vector<std::shared_ptr<Source>> sources) {
-  for (auto &source: sources) {
-    double x1 = source->PhysicalLocationX();
-    double x2 = source->PhysicalLocationY();
-    double x3 = source->PhysicalLocationZ();
-    if (ConcreteHex::checkHull(x1, x2, x3, mVtxCrd)) {
-      Vector3d ref_loc = ConcreteHex::inverseCoordinateTransform(x1, x2, x3, mVtxCrd);
-      source->setReferenceLocationR(ref_loc(0));
-      source->setReferenceLocationS(ref_loc(1));
-      source->setReferenceLocationT(ref_loc(2));
-      mSrc.push_back(source);
-    }
+bool Hexahedra<ConcreteHex>::attachSource(std::unique_ptr<Source> &source, const bool finalize) {
+  if (!source) { return false; }
+  double x1 = source->LocX();
+  double x2 = source->LocY();
+  double x3 = source->LocZ();
+  if (ConcreteHex::checkHull(x1, x2, x3, mVtxCrd)) {
+    if (!finalize) { return true; }
+    Vector3d ref_loc = ConcreteHex::inverseCoordinateTransform(x1, x2, x3, mVtxCrd);
+    source->SetLocR(ref_loc(0));
+    source->SetLocS(ref_loc(1));
+    source->SetLocT(ref_loc(2));
+    mSrc.push_back(std::move(source));
+    return true;
   }
+  return false;
 }
 
 template <typename ConcreteHex>

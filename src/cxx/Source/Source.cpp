@@ -3,36 +3,51 @@
 #include <Utilities/Options.h>
 #include <stdexcept>
 #include <iostream>
+#include <Utilities/Logging.h>
 
-std::vector<std::shared_ptr<Source>> Source::factory(std::unique_ptr<Options> const &options) {
+/* Initialize counter. */
+PetscInt Source::number = 0;
 
-  std::vector<std::shared_ptr<Source>> sources;
-  for (auto i = 0; i < options->NumberSources(); i++) {
+std::vector<std::unique_ptr<Source>> Source::Factory(std::unique_ptr<Options> const &options) {
+
+  std::vector<std::unique_ptr<Source>> sources;
+  for (PetscInt i = 0; i < options->NumberSources(); i++) {
     try {
       if (options->SourceType() == "ricker") {
-        sources.push_back(std::shared_ptr<Source>(new Ricker(options, i)));
+        sources.push_back(std::unique_ptr<Ricker>(new Ricker(options)));
       } else {
         throw std::runtime_error("Runtime error: Source type " + options->SourceType() + " not supported.");
       }
 
     } catch (std::exception &e) {
-      std::cout << e.what() << std::endl;
-      MPI::COMM_WORLD.Abort(-1);
+      LOG() << e.what();
+      MPI_Abort(PETSC_COMM_WORLD, -1);
     }
   }
 
   return sources;
 }
 
-Ricker::Ricker(std::unique_ptr<Options> const &options, int number) {
+Source::Source(std::unique_ptr<Options> const &options) {
 
-  SetPhysicalLocationX(options->SourceLocationX()[number]);
-  SetPhysicalLocationY(options->SourceLocationY()[number]);
-  SetPhysicalLocationZ(options->SourceLocationZ()[number]);
+  /* Incremenet global number, save this particular one. */
+  SetNum(number++);
 
-  mTimeDelay = options->SourceRickerTimeDelay()[number];
-  mAmplitude = options->SourceRickerAmplitude()[number];
-  mCenterFreq = options->SourceRickerCenterFreq()[number];
+  /* Set locations. */
+  SetLocX(options->SourceLocationX()[Num()]);
+  SetLocY(options->SourceLocationY()[Num()]);
+  SetLocZ(options->SourceLocationZ()[Num()]);
+
+}
+
+Source::~Source() { --number; std::cout << "DESTROY SOURCE." << std::endl; }
+
+Ricker::Ricker(std::unique_ptr<Options> const &options): Source(options) {
+
+  mTimeDelay = options->SourceRickerTimeDelay()[Num()];
+  mAmplitude = options->SourceRickerAmplitude()[Num()];
+  mCenterFreq = options->SourceRickerCenterFreq()[Num()];
+
 }
 
 double Ricker::fire(const double &time) {

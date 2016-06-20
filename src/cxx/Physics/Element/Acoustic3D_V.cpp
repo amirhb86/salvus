@@ -95,9 +95,9 @@ template <typename Element>
 MatrixXd Acoustic3D_V<Element>::computeSourceTerm(const double time) {
   mSource.setZero();  
   for (auto source : Element::Sources()) {
-    mSource += (source->fire(time) * Element::getDeltaFunctionCoefficients(source->ReferenceLocationR(),
-                                                                           source->ReferenceLocationS(),
-                                                                           source->ReferenceLocationT()));
+    mSource += (source->fire(time) * Element::getDeltaFunctionCoefficients(source->LocR(),
+                                                                           source->LocS(),
+                                                                           source->LocT()));
   }
   return mSource;
 }

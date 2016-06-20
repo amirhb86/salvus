@@ -97,7 +97,7 @@ MatrixXd AcousticTri<Element>::computeSourceTerm(const double time) {
   mSource.setZero();
   for (auto source : Element::Sources()) {
     mSource += (source->fire(time) * Element::getDeltaFunctionCoefficients(
-        source->ReferenceLocationR(), source->ReferenceLocationS()));
+        source->LocR(), source->LocS()));
   }
   return mSource;
 }

@@ -42,7 +42,7 @@ TEST_CASE("test quadbase", "[quad]") {
     std::unique_ptr<Options> options(new Options);
     options->setOptions();
 
-    auto sources = Source::factory(options);
+    auto sources = Source::Factory(options);
     std::unique_ptr<Mesh> msh(Mesh::factory(options));
     msh->read(options);
     std::unique_ptr<Element> elm = Element::Factory({"u"}, {}, options);
@@ -70,7 +70,7 @@ TEST_CASE("test quadbase", "[quad]") {
       element->attachVertexCoordinates(msh);
 
       // Attach source.
-      element->attachSource(sources);
+      for (auto &src: sources) { element->attachSource(src, 0); }
 
     }
 
