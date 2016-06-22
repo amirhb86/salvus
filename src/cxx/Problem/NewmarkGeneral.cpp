@@ -69,7 +69,7 @@ void NewmarkGeneral::initialize(std::unique_ptr<Mesh> mesh,
 
     // Attach any external sources and receivers.
     for (auto &source: sources) { element->attachSource(source, true); }
-    element->attachReceiver(std::move(mRecs));
+    for (auto &rec: mRecs) { element->attachReceiver(rec, true); }
 
     // Prepare stiffness terms.
     element->prepareStiffness();

@@ -25,6 +25,9 @@ class Source {
 
  public:
 
+  /* Get number of active sources. */
+  static PetscInt NumSources() { return number; }
+
   /* Constructor. */
   Source(std::unique_ptr<Options> const &options);
   virtual ~Source();
@@ -72,6 +75,7 @@ class Ricker: public Source {
  public:
 
   Ricker(std::unique_ptr<Options> const &options);
+  ~Ricker() {};
   double fire(const double &time);
 
 };

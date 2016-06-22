@@ -260,7 +260,7 @@ double Triangle<ConcreteShape>::integrateField(const VectorXd &field) {
 }
 
 template <typename ConcreteShape>
-void Triangle<ConcreteShape>::attachReceiver(std::vector<std::unique_ptr<Receiver>> receivers) {
+bool Triangle<ConcreteShape>::attachReceiver(std::unique_ptr<Receiver> &receiver, const bool finalize) {
   printf("TODO: attachedReciever\n");
   exit(1);
 }

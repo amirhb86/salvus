@@ -225,6 +225,7 @@ VectorXi internalTetMapping(int element, DM &distributed_mesh) {
   for(int i=5;i<11;i++) {
     edges[i-5] = std::make_tuple(points[2*i],points[2*i+1]);
   }
+  DMPlexRestoreTransitiveClosure(distributed_mesh, element, PETSC_TRUE, &numPoints, &points);
 
   int dof_counter = 0;
   // 0-9 are internal points
@@ -768,7 +769,7 @@ void Tetrahedra<ConcreteShape>::setupGradientOperator() {
 }
 
 template <typename ConcreteShape>
-void Tetrahedra<ConcreteShape>::attachReceiver(std::vector<std::unique_ptr<Receiver>> receivers) {
+bool Tetrahedra<ConcreteShape>::attachReceiver(std::unique_ptr<Receiver> &receiver, const bool finalize) {
   printf("TODO: attachedReciever\n");
   exit(1);
 }

@@ -232,18 +232,19 @@ void Quad<ConcreteShape>::attachMaterialProperties(std::unique_ptr<ExodusModel> 
 }
 
 template <typename ConcreteShape>
-void Quad<ConcreteShape>::attachReceiver(std::vector<std::unique_ptr<Receiver>> receivers) {
-
-  for (auto &rec: receivers) {
-    double x1 = rec->PysLocX1();
-    double x2 = rec->PysLocX2();
-    if (ConcreteShape::checkHull(x1, x2, mVtxCrd)) {
-      Vector2d ref_loc = ConcreteShape::inverseCoordinateTransform(x1, x2, mVtxCrd);
-      rec->SetRefLocR(ref_loc(0));
-      rec->SetRefLocS(ref_loc(1));
-      mRec.push_back(std::move(rec));
-    }
+bool Quad<ConcreteShape>::attachReceiver(std::unique_ptr<Receiver> &receiver, const bool finalize) {
+  if (!receiver) { return false; }
+  double x1 = receiver->PysLocX1();
+  double x2 = receiver->PysLocX2();
+  if (ConcreteShape::checkHull(x1, x2, mVtxCrd)) {
+    if (!finalize) { return true; }
+    Vector2d ref_loc = ConcreteShape::inverseCoordinateTransform(x1, x2, mVtxCrd);
+    receiver->SetRefLocR(ref_loc(0));
+    receiver->SetRefLocS(ref_loc(1));
+    mRec.push_back(std::move(receiver));
+    return true;
   }
+  return false;
 }
 
 template <typename ConcreteShape>

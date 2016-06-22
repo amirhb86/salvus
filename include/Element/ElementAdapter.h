@@ -63,8 +63,8 @@ class ElementAdapter: public Element, public T {
   /** Attach receivers to the element (if required).
    * @param [in/out] receivers Vector of all receivers in the model. Receiver reference coordinates are attached.
    */
-  virtual void attachReceiver(std::vector<std::unique_ptr<Receiver>> receivers) {
-    T::attachReceiver(std::move(receivers));
+  virtual bool attachReceiver(std::unique_ptr<Receiver> &receiver, const bool finalize) {
+    return T::attachReceiver(receiver, finalize);
   }
   /** Attach sources to the element (if required).
    * @param [in] sources Vector of all sources in the model.

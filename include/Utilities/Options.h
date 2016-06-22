@@ -126,6 +126,13 @@ class Options {
   void SetTimeStep(double timestep);
   
   // Setters for testing.
+  inline void __SetNumSources(const PetscInt num) { mNumberSources = num; }
+  inline void __SetSourceLocationX(const std::vector<PetscReal> x) { mSourceLocationX = x; }
+  inline void __SetSourceLocationY(const std::vector<PetscReal> y) { mSourceLocationY = y; }
+  inline void __SetSourceLocationZ(const std::vector<PetscReal> z) { mSourceLocationZ = z; }
+  inline void __SetRickerAmplitude(const std::vector<PetscReal> a) { mSourceRickerAmplitude = a; }
+  inline void __SetRickerTimeDelay(const std::vector<PetscReal> t) { mSourceRickerTimeDelay = t; }
+  inline void __SetRickerCenterFreq(const std::vector<PetscReal> f) { mSourceRickerCenterFreq = f; }
   inline void __SetPolynomialOrder(int ord) { mPolynomialOrder = ord; }
   inline void __SetSourceType(std::string type) { mSourceType = type; }
 

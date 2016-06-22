@@ -42,7 +42,8 @@ std::vector<std::unique_ptr<Element>> ProblemNew::initializeElements(std::unique
 
   bool true_attach = true;
   bool trial_attach = false;
-  std::vector<PetscInt> sources_this_partition(srcs.size(), false);
+  std::vector<PetscInt> srcs_this_partition(srcs.size(), false);
+  std::vector<PetscInt> recs_this_partition(recs.size(), false);
 
   /* Allocate all elements. */
   for (PetscInt i = 0; i < mesh->NumberElementsLocal(); i++)
@@ -63,36 +64,53 @@ std::vector<std::unique_ptr<Element>> ProblemNew::initializeElements(std::unique
     /* Set any (external) boundary conditions. */
     elements.back()->setBoundaryConditions(mesh);
 
-    /* Add any sources. */
+    /* Test for any sources. */
     for (auto &src: srcs) {
-      sources_this_partition[src->Num()] = elements.back()->attachSource(src, trial_attach) ? rank : 0;
+      srcs_this_partition[src->Num()] = elements.back()->attachSource(src, trial_attach) ? rank : 0;
+    }
+
+    /* Test for any receivers. */
+    for (auto &rec: recs) {
+      recs_this_partition[rec->Num()] = elements.back()->attachReceiver(rec, trial_attach) ? rank : 0;
     }
 
   }
 
   /* Check sources and receivers across all parallel partitions. */
-  MPI_Allreduce(MPI_IN_PLACE, sources_this_partition.data(), sources_this_partition.size(),
+  MPI_Allreduce(MPI_IN_PLACE, srcs_this_partition.data(), srcs_this_partition.size(),
+                MPIU_INT, MPI_MAX, PETSC_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, recs_this_partition.data(), recs_this_partition.size(),
                 MPIU_INT, MPI_MAX, PETSC_COMM_WORLD);
 
-  /* Finish up adding parallel-aware properties. */
+  /* Finish up adding parallel-aware sources and receivers. */
   for (auto &elm: elements) {
     for (auto &src: srcs) {
       if (!src) { continue; }
-      if (sources_this_partition[src->Num()] == rank) { elm->attachSource(src, true_attach); }
+      if (srcs_this_partition[src->Num()] == rank) { elm->attachSource(src, true_attach); }
+    }
+    for (auto &rec: recs) {
+      if (!rec) { continue; }
+      if (recs_this_partition[rec->Num()] == rank) { elm->attachReceiver(rec, true_attach); }
     }
   }
 
   /* Finally, go back and ensure that everything has been added as expected. */
-  for (auto &src: srcs) {
-    try {
+  try {
+    for (auto &src: srcs) {
       /* Was there a source that should have been added by this processor that wasn't? */
-      if (src && sources_this_partition[src->Num()] == rank) {
+      if (src && srcs_this_partition[src->Num()] == rank) {
         throw std::runtime_error("Error. One or more sources were not added properly.");
       }
-    } catch (std::exception &e) {
-      std::cout << e.what() << std::endl;
-      MPI_Abort(PETSC_COMM_WORLD, -1);
     }
+    for (auto &rec: recs) {
+      /* Was there a receiver that should have been added by this processor that wasn't? */
+      if (rec && recs_this_partition[rec->Num()] == rank) {
+        throw std::runtime_error("Error. One or more receivers was not added properly.");
+      }
+    }
+  } catch (std::exception &e) {
+    std::cout << e.what() << std::endl;
+    MPI_Abort(PETSC_COMM_WORLD, -1);
   }
 
   return elements;

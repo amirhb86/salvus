@@ -63,7 +63,7 @@ class Element {
   /** Attach receivers to the element (if required).
    * @param [in/out] receivers Vector of all receivers in the model. Receiver reference coordinates are attached.
    */
-  virtual void attachReceiver(std::vector<std::unique_ptr<Receiver>> receivers) = 0;
+  virtual bool attachReceiver(std::unique_ptr<Receiver> &receiver, const bool finalize) = 0;
   /** Attach sources to the element (if required).
    * @param [in] sources Vector of all sources in the model.
    */

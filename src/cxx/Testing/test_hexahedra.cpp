@@ -10,6 +10,7 @@
 
 #include <Physics/Acoustic3D.h>
 #include <Physics/Acoustic3D_V.h>
+#include <Mesh/ElasticAcousticNewmark3D.h>
 
 using namespace Eigen;
 
@@ -378,7 +379,7 @@ TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
   model->initializeParallel();
 
   // Get mesh.
-  std::unique_ptr<Mesh> const &mesh = Mesh::factory(options);
+  std::unique_ptr<Mesh> mesh(new ElasticAcousticNewmark3D(options));
   mesh->read(options);
   mesh->setupGlobalDof(ref_hex.NumDofVtx(),
                        ref_hex.NumDofEdg(),
@@ -391,7 +392,7 @@ TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
   for (auto field : mesh->GlobalFields()) {
     mesh->registerFieldVectors(field);
   }
-  
+
   // Setup reference element.
   std::shared_ptr<Element> reference_element = std::make_shared<AcousticHexP1>(ref_hex);
 
@@ -423,8 +424,8 @@ TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
     307,311;
 
   std::map<std::tuple<double,double,double>,double> value_lookup;
-  
-    
+
+
   VectorXd computed_value(expected_multiplier.size());
   // auto hex0 = (elements[0]);
   // Get vertex coordinates from the PETSc DMPLEX.
@@ -441,7 +442,7 @@ TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
                         double>(std::make_tuple(x,y,z),value_to_set[i]));
     // printf("inserted %f @ (%e,%e,%e))\n",value_to_set[i],x,y,z);
   }
-  
+
   for(int n=0;n<expected_multiplier.size();n++) {
 
     auto x_test = pts0_x[n];

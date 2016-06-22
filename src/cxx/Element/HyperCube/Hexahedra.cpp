@@ -104,8 +104,8 @@ std::vector<int> getVertsFromPoint(int point, int numVerts, DM &distributed_mesh
   for(int i=numPoints-numVerts;i<numPoints;i++) {
     verts[i-(numPoints-numVerts)] = points[2*i];
   }
-  return verts;
   DMPlexRestoreTransitiveClosure(distributed_mesh, point, PETSC_TRUE, &numPoints, &points);
+  return verts;
 }
 
 void edgeHandler(std::vector<std::vector<int>> canonical_edges,
@@ -201,7 +201,7 @@ void surfHandler(std::vector<int> canonical_verts, // the vertices as we expect 
 
 // order 3 only
 VectorXi internalMappingOrder3(int element, DM &distributed_mesh) {
-  
+
   auto canonical_element_vertices = getVertsFromPoint(element,8,distributed_mesh);
   // std::cout << "canonical_element_vertices=" << canonical_element_vertices << "\n";
   VectorXi element_dof_map(64);
@@ -246,7 +246,8 @@ VectorXi internalMappingOrder3(int element, DM &distributed_mesh) {
   for(int i=7;i<19;i++) {
     edges[i-7] = std::make_tuple(points[2*i],points[2*i+1]);
   }
-  
+  DMPlexRestoreTransitiveClosure(distributed_mesh,element,PETSC_TRUE,&numPoints,&points);
+
   int dof_counter = 0;
   // 0-7 are internal points
   for(int i=0;i<8;i++) { element_dof_map[dof_counter] = std_layout[0][i]; dof_counter++; }
@@ -468,7 +469,6 @@ VectorXi internalMappingOrder3(int element, DM &distributed_mesh) {
     dof_counter++;
   }
 
-  DMPlexRestoreTransitiveClosure(distributed_mesh,element,PETSC_TRUE,&numPoints,&points);
   // printf("dof_counter=%d\n",dof_counter);
   // std::cout << "element_dof_map=" << element_dof_map << "\n";
   return element_dof_map;
@@ -478,7 +478,7 @@ template <typename ConcreteHex>
 VectorXi Hexahedra<ConcreteHex>::ClosureMapping(int order, int elem_num, DM &distributed_mesh) {
   if( order == 3) {
     auto petsc_mapping = internalMappingOrder3(elem_num,distributed_mesh);
-    
+
     /**
        |  DOFs are ordered: {cell, faces, edges, vertices}
        |  The faces are ordered:
@@ -672,11 +672,12 @@ void Hexahedra<ConcreteHex>::attachVertexCoordinates(std::unique_ptr<Mesh> const
 
   // needs building after mesh is loaded
   mClsMap = ClosureMapping(mPlyOrd, mElmNum, mesh->DistributedMesh());
-  
+
   Vec coordinates_local;
   PetscInt coordinate_buffer_size;
   PetscSection coordinate_section;
   PetscReal *coordinates_buffer = NULL;
+
 
   DMGetCoordinatesLocal(mesh->DistributedMesh(), &coordinates_local);
   DMGetCoordinateSection(mesh->DistributedMesh(), &coordinate_section);
@@ -697,7 +698,7 @@ void Hexahedra<ConcreteHex>::attachVertexCoordinates(std::unique_ptr<Mesh> const
     mVtxCrd.col(0).mean(),
     mVtxCrd.col(1).mean(),
     mVtxCrd.col(2).mean();
-  
+
 }
 
 template <typename ConcreteHex>
@@ -762,20 +763,21 @@ void Hexahedra<ConcreteHex>::attachMaterialProperties(std::unique_ptr<ExodusMode
 }
 
 template <typename ConcreteHex>
-void Hexahedra<ConcreteHex>::attachReceiver(std::vector<std::unique_ptr<Receiver>> receivers) {
-
-  for (auto &rec: receivers) {
-    double x1 = rec->PysLocX1();
-    double x2 = rec->PysLocX2();
-    double x3 = rec->PysLocX3();
-    if (ConcreteHex::checkHull(x1, x2, x3, mVtxCrd)) {
-      Vector3d ref_loc = ConcreteHex::inverseCoordinateTransform(x1, x2, x3, mVtxCrd);
-      rec->SetRefLocR(ref_loc(0));
-      rec->SetRefLocS(ref_loc(1));
-      rec->SetRefLocT(ref_loc(2));
-      mRec.push_back(std::move(rec));
-    }
+bool Hexahedra<ConcreteHex>::attachReceiver(std::unique_ptr<Receiver> &receiver, const bool finalize) {
+  if (!receiver) { return false; }
+  double x1 = receiver->PysLocX1();
+  double x2 = receiver->PysLocX2();
+  double x3 = receiver->PysLocX3();
+  if (ConcreteHex::checkHull(x1, x2, x3, mVtxCrd)) {
+    if (!finalize) { return true; }
+    Vector3d ref_loc = ConcreteHex::inverseCoordinateTransform(x1, x2, x3, mVtxCrd);
+    receiver->SetRefLocR(ref_loc(0));
+    receiver->SetRefLocS(ref_loc(1));
+    receiver->SetRefLocT(ref_loc(2));
+    mRec.push_back(std::move(receiver));
+    return true;
   }
+  return false;
 }
 
 template <typename ConcreteHex>

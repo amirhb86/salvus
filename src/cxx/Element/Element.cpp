@@ -24,7 +24,6 @@
 #include <Physics/AcousticElastic2D.h>
 #include <Physics/ElasticAcoustic2D.h>
 #include <Utilities/Utilities.h>
-#include <stdexcept>
 
 /* Define all possible element classes as types here. */
 typedef class ElementAdapter<Acoustic2D<Quad<QuadP1>>> AcousticQuadP1;

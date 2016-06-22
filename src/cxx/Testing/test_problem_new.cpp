@@ -52,7 +52,6 @@ TEST_CASE("Test new problem formulation", "[problem_new]") {
   mesh->addFieldFromElement("u", 0, elements.front()->ClsMap(), t);
   mesh->getFieldOnElement("u", 0, elements.front()->ClsMap());
 
-  std::cout << "END" << std::endl;
   MPI_Barrier(PETSC_COMM_WORLD);
 
 

@@ -40,7 +40,7 @@ Source::Source(std::unique_ptr<Options> const &options) {
 
 }
 
-Source::~Source() { --number; std::cout << "DESTROY SOURCE." << std::endl; }
+Source::~Source() { --number; }
 
 Ricker::Ricker(std::unique_ptr<Options> const &options): Source(options) {
 

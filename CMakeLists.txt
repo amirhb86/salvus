@@ -94,13 +94,11 @@ add_executable(salvus_test
         src/cxx/Testing/test_hexahedra.cpp
         src/cxx/Testing/test_tetrahedra.cpp
         src/cxx/Testing/test_exactsolution.cpp
-        src/cxx/Testing/test_receiver.cpp
-        src/cxx/Testing/test_multi_field.cpp
-        src/cxx/Testing/test_strides.cpp
         src/cxx/Testing/test_QuadP1.cpp
-        src/cxx/Testing/test_quadbase.cpp
         src/cxx/Testing/test_quad.cpp
-        src/cxx/Testing/test_2d_fluid_solid_couple.cpp src/cxx/Testing/test_problem_new.cpp)
+        src/cxx/Testing/test_2d_fluid_solid_couple.cpp
+        src/cxx/Testing/test_problem_new.cpp
+        src/cxx/Testing/test_source.cpp)
 
 # run `make` (or `make -j5`) to build `salvus` executable
 target_link_libraries(salvus salvusCommon ${MPI_LIBRARIES} petsc exodus netcdf hdf5)

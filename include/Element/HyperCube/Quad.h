@@ -207,7 +207,7 @@ private:
    * save a pointer to the receiver.
    * @param [in] sources A vector of receiver objects.
    */
-  void attachReceiver(std::vector<std::unique_ptr<Receiver>> receivers);
+  bool attachReceiver(std::unique_ptr<Receiver> &receiver, const bool finalize);
 
   
   

@@ -28,21 +28,21 @@ int main(int argc, char *argv[]) {
   options->setOptions();
 
   // Get mesh.
-  std::unique_ptr<Mesh> const &mesh = Mesh::factory(options);
+  auto mesh = Mesh::factory(options);
   mesh->read(options);
 
   // Get model.
-  ExodusModel *model = new ExodusModel(options);
+  std::unique_ptr<ExodusModel> model(new ExodusModel(options));
   model->initializeParallel();
 
   // Get sources.
-  std::vector<std::shared_ptr<Source>> sources = Source::factory(options);
+  auto sources = Source::Factory(options);
 
   // Use above elements to define the problem.
   Problem *problem = Problem::factory(options->ProblemType());
 
   problem->initialize(std::move(mesh), model, options);
-  problem->solve(options);
+//  problem->solve(options);
 
   PetscFinalize();
 }
