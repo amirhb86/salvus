@@ -35,14 +35,10 @@ template <typename Element>
 std::vector<std::string> AcousticHex3D_LF<Element>::PushElementalFields() const { return { "a" }; }
 
 template <typename Element>
-void AcousticHex3D_LF<Element>::assembleElementMassMatrix(std::unique_ptr<Mesh> const &mesh) {
+MatrixXd AcousticHex3D_LF<Element>::assembleElementMassMatrix() {
 
   // In this acoustic formulation we just multiply shape functions together.
-  VectorXd mass_matrix = Element::applyTestAndIntegrate(VectorXd::Ones(Element::NumIntPnt()));
-  
-  // Sum up into global DOFs.  
-  mesh->addFieldFromElement("m", Element::ElmNum(), Element::ClsMap(), mass_matrix);
-
+  return Element::applyTestAndIntegrate(VectorXd::Ones(Element::NumIntPnt()));
 }
 
 template <typename Element>

@@ -45,14 +45,18 @@ TEST_CASE("Test new problem formulation", "[problem_new]") {
   std::unique_ptr<ProblemNew> problem(ProblemNew::Factory(options));
 
   auto elements = problem->initializeElements(mesh, model, options);
+  auto fields = problem->initializeGlobalDofs(elements, mesh);
 
-  Eigen::VectorXd t = Eigen::VectorXd::Zero(elements.front()->ClsMap().size());
-  for (auto &f: {"u", "ua"}) { mesh->registerFieldVectors(f); }
-  mesh->setFieldFromElement("u", 0, elements.front()->ClsMap(), t);
-  mesh->addFieldFromElement("u", 0, elements.front()->ClsMap(), t);
-  mesh->getFieldOnElement("u", 0, elements.front()->ClsMap());
+  int i = 0;
+  while (true) {
+    std::tie(elements, fields) = problem->assembleIntoGlobalDof(std::move(elements), std::move(fields),
+                                                                mesh->DistributedMesh(), mesh->MeshSection(),
+                                                                options);
 
-  MPI_Barrier(PETSC_COMM_WORLD);
+    fields = problem->applyInverseMassMatrix(std::move(fields));
+    fields = problem->takeTimeStep(std::move(fields));
+  }
+
 
 
 }

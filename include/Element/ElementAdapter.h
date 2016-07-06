@@ -51,8 +51,8 @@ class ElementAdapter: public Element, public T {
   /** Construct the mass matrix on the element, and sum into global DOF.
    * @param [in/out] mesh Mesh instance. Global and local vectors modified.
    */
-  virtual void assembleElementMassMatrix(std::unique_ptr<Mesh> const &mesh) {
-    T::assembleElementMassMatrix(mesh);
+  virtual Eigen::MatrixXd assembleElementMassMatrix() {
+     return T::assembleElementMassMatrix();
   }
   /** Attach material parameters to the element given some model.
    * @param [in] model Model instance.

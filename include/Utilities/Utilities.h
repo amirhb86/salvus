@@ -10,6 +10,8 @@
 
 // 3rd party.
 #include <mpi.h>
+#include <Eigen/Dense>
+#include <set>
 
 namespace utilities {
 

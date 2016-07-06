@@ -41,7 +41,7 @@ class AcousticTet: public Shape {
 
   /**** Setup functions ****/
   void prepareStiffness();
-  void assembleElementMassMatrix(std::unique_ptr<Mesh> const &mesh);
+  Eigen::MatrixXd assembleElementMassMatrix();
   void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model);
   double CFL_estimate();
   

@@ -30,14 +30,10 @@ template <typename Element>
 std::vector<std::string> AcousticTet<Element>::PushElementalFields() const { return { "a" }; }
 
 template <typename Element>
-void AcousticTet<Element>::assembleElementMassMatrix(std::unique_ptr<Mesh> const &mesh) {
+MatrixXd AcousticTet<Element>::assembleElementMassMatrix() {
 
   // In this acoustic formulation we just multiply shape functions together.
-  VectorXd mass_matrix = Element::applyTestAndIntegrate(VectorXd::Ones(Element::NumIntPnt()));
-  
-  // Sum up into global DOFs.  
-  mesh->addFieldFromElement("m", Element::ElmNum(), Element::ClsMap(), mass_matrix);
-
+  return Element::applyTestAndIntegrate(VectorXd::Ones(Element::NumIntPnt()));
 }
 
 template <typename Element>

@@ -58,7 +58,7 @@ std::vector<std::shared_ptr<ElementVersion>> initialize_exact(std::unique_ptr<Me
     element->setBoundaryConditions(mesh);
 
     // Assemble the (elemental) mass matrix.
-    element->assembleElementMassMatrix(mesh);
+    element->assembleElementMassMatrix();
 
     // Prepare stiffness terms
     element->prepareStiffness();

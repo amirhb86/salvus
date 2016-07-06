@@ -42,10 +42,9 @@ template <typename Element>
 std::vector<std::string> Elastic2D<Element>::PushElementalFields() const { return { "ax", "ay"}; }
 
 template <typename Element>
-void Elastic2D<Element>::assembleElementMassMatrix(std::unique_ptr<Mesh> const &mesh) {
+MatrixXd Elastic2D<Element>::assembleElementMassMatrix() {
 
-  VectorXd mass_matrix = Element::applyTestAndIntegrate(Element::ParAtIntPts("RHO"));
-  mesh->addFieldFromElement("m", Element::ElmNum(), Element::ClsMap(), mass_matrix);
+  return Element::applyTestAndIntegrate(Element::ParAtIntPts("RHO"));
 
 }
 

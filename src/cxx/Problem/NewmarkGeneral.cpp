@@ -65,7 +65,7 @@ void NewmarkGeneral::initialize(std::unique_ptr<Mesh> mesh,
     element->attachMaterialProperties(model);
 
     // Assemble the (elemental) mass matrix.
-    element->assembleElementMassMatrix(mMesh);
+    element->assembleElementMassMatrix();
 
     // Attach any external sources and receivers.
     for (auto &source: sources) { element->attachSource(source, true); }

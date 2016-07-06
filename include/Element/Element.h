@@ -55,7 +55,7 @@ class Element {
   /** Construct the mass matrix on the element, and sum into global DOF.
    * @param [in/out] mesh Mesh instance. Global and local vectors modified.
    */
-  virtual void assembleElementMassMatrix(std::unique_ptr<Mesh> const &mesh) = 0;
+  virtual Eigen::MatrixXd assembleElementMassMatrix() = 0;
   /** Attach material parameters to the element given some model.
    * @param [in] model Model instance.
    */
