@@ -4,10 +4,15 @@
 #include <map>
 #include <memory>
 #include <vector>
+#include <iostream>
+#include <stdexcept>
 
 // 3rd party.
 #include <petsc.h>
 #include <Eigen/Dense>
+
+// salvus
+#include <Utilities/Types.h>
 
 // forward decl.
 class Mesh;
@@ -17,29 +22,29 @@ class Receiver;
 class ExodusModel;
 
 template <typename ConcreteShape>
-class Quad: public ConcreteShape {
+class TensorQuad: public ConcreteShape {
 
-  /** \class Quad
+  /** \class TensorQuad
    *
    * \brief Base class for all Quads with a tensorized basis.
    *
-   * This class is at the base mixin level for all tensorized Quad elements. It should concretely define things common
+   * This class is at the base mixin level for all tensorized TensorQuad elements. It should concretely define things common
    * to all Quads. For example, here we define specific methods to attach vertex coordinates to each element, as well
    * as sources and receivers. These last two methods bring up an interesting point however. As you might notice, the
    * mixin approach lets us be perform class nesting to an arbitrary depth, without incurring any runtime cost. So,
    * for example, we could have a super class called something like Element2D, where source and receiver attachments
-   * are implemented. However, at one point we need to decide on an optimal level of complexity. Since Quad is the
+   * are implemented. However, at one point we need to decide on an optimal level of complexity. Since TensorQuad is the
    * absolute base for all further derivations, this means that attachReceiver() and attachSource() will need to be
    * duplicated for Triangles, and for all other 2D elements. Is this an acceptable level of code duplication, in order
    * to cut down on the class heiarchy depth? Perhaps. Either way, we should discuss this, and also note that following
    * these mixin principles, things are easily modified.
    *
-   * To initialize a new Quad element, you'll need at least one template parameter. For instance:
+   * To initialize a new TensorQuad element, you'll need at least one template parameter. For instance:
    *
    * \code
-   * auto elem = Quad<QuadP1>
-   * auto elem = Quad<Acoustic<QuadP1>>
-   * auto elem = Quad<Gravity<Attenuation<Acoustic<QuadP1>>>>
+   * auto elem = TensorQuad<QuadP1>
+   * auto elem = TensorQuad<Acoustic<QuadP1>>
+   * auto elem = TensorQuad<Gravity<Attenuation<Acoustic<QuadP1>>>>
    * \endcode
    *
    * are all valid (provided that the relevant physics classes are written). Just as an example of what it would take
@@ -59,92 +64,101 @@ class Quad: public ConcreteShape {
 private:
 
   // Static variables.
-  const static int mNumDim = 2;
-  const static int mNumVtx = 4;
+  const static PetscInt mNumDim = 2;
+  const static PetscInt mNumVtx = 4;
+  const static PetscInt mMaxOrder = 10;
 
   // Workspace.
-  Eigen::VectorXd mDetJac;
-  Eigen::VectorXd mParWork;
-  Eigen::VectorXd mStiffWork;
-  Eigen::MatrixXd mGradWork;
+  RealVec mDetJac;
+  RealVec mParWork;
+  RealVec mStiffWork;
+  RealMat mGradWork;
 
   // On Boundary.
   bool mBndElm;
-  std::map<std::string,std::vector<int>> mBnd;
-
-  // Vector of tuples to any (possible) coupling edges.
-  std::vector<std::tuple<PetscInt,std::vector<std::string>>> mCpl;
+  std::map<std::string,std::vector<PetscInt>> mBnd;
 
   // Instance variables.
   PetscInt mElmNum;
-  int mPlyOrd;
-  int mNumIntPnt;
-  int mNumDofVtx;
-  int mNumDofEdg;
-  int mNumDofFac;
-  int mNumDofVol;
-  int mNumIntPtsR;
-  int mNumIntPtsS;
+  PetscInt mPlyOrd;
+  PetscInt mNumIntPnt;
+  PetscInt mNumDofVtx;
+  PetscInt mNumDofEdg;
+  PetscInt mNumDofFac;
+  PetscInt mNumDofVol;
+  PetscInt mNumIntPtsR;
+  PetscInt mNumIntPtsS;
 
   // Vertex coordinates.
-  Eigen::Matrix<double,mNumVtx,mNumDim> mVtxCrd;
+  QuadVtx mVtxCrd;
 
   // Element center.
-  Eigen::Vector2d mElmCtr;
+  RealVec2 mElmCtr;
 
   // Closure mapping.
-  Eigen::VectorXi mClsMap;
+  IntVec mClsMap;
   std::vector<PetscInt> mEdgMap;
 
   // Quadrature parameters.
-  Eigen::VectorXd mIntCrdR;
-  Eigen::VectorXd mIntCrdS;
-  Eigen::VectorXd mIntWgtR;
-  Eigen::VectorXd mIntWgtS;
+  RealVec mIntCrdR;
+  RealVec mIntCrdS;
+  RealVec mIntWgtR;
+  RealVec mIntWgtS;
 
   // Matrix holding gradient information.
-  Eigen::MatrixXd mGrd;
+  RealMat mGrd;
 
   // Material parameters.
-  std::map<std::string,Eigen::Vector4d> mPar;
+  std::map<std::string,RealVec4> mPar;
 
   // Sources and receivers.
-  std::vector<std::shared_ptr<Source>> mSrc;
-  std::vector<std::shared_ptr<Receiver>> mRec;
+  std::vector<std::unique_ptr<Source>> mSrc;
+  std::vector<std::unique_ptr<Receiver>> mRec;
 
  public:
 
-  /** Allocates memory for work arrays, most private variables. */
-  Quad<ConcreteShape>(std::unique_ptr<Options> const &options);
+  /// Allocates memory for work arrays, most private variables.
+  TensorQuad<ConcreteShape>(std::unique_ptr<Options> const &options);
 
-  /** Sets up the test function parameters. */
-  static Eigen::VectorXd GllPointsForOrder(const int order);
-  static Eigen::VectorXi ClosureMappingForOrder(const int order);
-  static Eigen::VectorXd GllIntegrationWeightsForOrder(const int order);
-  static Eigen::MatrixXd setupGradientOperator(const int order);
-  static Eigen::VectorXd interpolateLagrangePolynomials(const double r, const double s, const int order);
+  /// All memory should be properly managed already.
+  ~TensorQuad<ConcreteShape>() {};
 
   /**
-   * Returns an optimized stride along the r direction.
-   * @param [in] f Function defined at GLL points.
-   * @param [in] s_ind Index of GLL points along s-axis.
-   * @param [in] numPtsS Number of integration points along the s-axis.
-   * @param [in] numPtsR Number of integration points along the r-axis.
+   * Returns GLL point locations for a given polynomial order.
+   * @param [in] order Polynomial order.
+   * @returns Vector of GLL point locations.
    */
-  static Eigen::VectorXd rVectorStride(const Eigen::Ref<const Eigen::VectorXd>& f,
-                                       const int s_ind, const int numPtsS,
-                                       const int numPtsR);
+  static RealVec GllPointsForOrder(const PetscInt order);
+
   /**
-   * Returns an optimized stride along the s direction.
-   * @param [in] f Function defined at GLL points.
-   * @param [in] s_ind Index of GLL points along s-axis.
-   * @param [in] numPtsS Number of integration points along the s-axis.
-   * @param [in] numPtsR Number of integration points along the r-axis.
-   *
+   * Returns GLL integration weights for a given polynomial order.
+   * @param [in] order Polynomial order.
+   * @returns Vector of GLL integration weights.
    */
-  static Eigen::VectorXd sVectorStride(const Eigen::Ref<const Eigen::VectorXd>& f,
-                                       const int r_ind, const int numPtsS,
-                                       const int numPtsR);
+  static RealVec GllIntegrationWeightsForOrder(const PetscInt order);
+
+  /**
+   * TODO: Document matrix order.
+   * Returns a matrix of the test function derivatives for a given polynomial order.
+   * @param [in] order Polynomial order.
+   * @returns Matrix of derivatives with the ordering described above.
+   */
+  static RealMat setupGradientOperator(const PetscInt order);
+
+  /**
+   * Given reference coordinates, interpolate Lagrange polynomials at a point.
+   * @param [in] r Reference coordinate r.
+   * @param [in] s Reference coordinate s.
+   * @param [in] order Polynomial order.
+   */
+  static RealVec interpolateLagrangePolynomials(const PetscReal r, const PetscReal s,
+                                                const PetscInt order);
+
+  static IntVec  ClosureMappingForOrder(const PetscInt order);
+
+
+
+
 
   /**
    * Compute the gradient of a field at all GLL points.
@@ -233,12 +247,14 @@ private:
    */
   void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model, std::string parameter);
 
-  virtual double CFL_constant();
+  // TODO: MODIFY
+  virtual double CFL_constant() { return 1; };
   
   /** Return the estimated element radius
    * @return The CFL estimate
    */
-  double estimatedElementRadius();
+  // TODO: MODIFY
+  double estimatedElementRadius() { return 1; };
   
   /**
    * Given some field at the GLL points, interpolate the field to some general point.
@@ -255,15 +271,16 @@ private:
   inline bool BndElm() const { return mBndElm; }
   inline int NumDim() const { return mNumDim; }
   inline PetscInt ElmNum() const { return mElmNum; }
-  inline int NumIntPnt() const { return mNumIntPnt; }
-  inline int NumDofVol() const { return mNumDofVol; }
-  inline int NumDofFac() const { return mNumDofFac; }
-  inline int NumDofEdg() const { return mNumDofEdg; }
-  inline int NumDofVtx() const { return mNumDofVtx; }
+  inline PetscInt NumVtx() const { return mNumVtx; }
+  inline PetscInt NumIntPnt() const { return mNumIntPnt; }
+  inline PetscInt NumDofVol() const { return mNumDofVol; }
+  inline PetscInt NumDofFac() const { return mNumDofFac; }
+  inline PetscInt NumDofEdg() const { return mNumDofEdg; }
+  inline PetscInt NumDofVtx() const { return mNumDofVtx; }
 
   inline Eigen::MatrixXi ClsMap() const { return mClsMap; }
   inline Eigen::MatrixXd VtxCrd() const { return mVtxCrd; }
-  std::vector<std::shared_ptr<Source>> Sources() { return mSrc; }
+  const inline std::vector<std::unique_ptr<Source>> &Sources() const { return mSrc; }
 
   // Delegates.
   std::tuple<Eigen::VectorXd, Eigen::VectorXd> buildNodalPoints() {

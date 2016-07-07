@@ -9,7 +9,7 @@
 #include <Element/ElementAdapter.h>
 #include <Model/ExodusModel.h>
 #include <Utilities/Options.h>
-#include <Element/HyperCube/Quad.h>
+#include <Element/HyperCube/TensorQuad.h>
 #include <Element/HyperCube/QuadP1.h>
 
 using namespace Eigen;
@@ -22,7 +22,7 @@ class TestPlugin: public Element {
   TestPlugin<Element>(std::unique_ptr<Options> const &options): Element(options) {};
 
 };
-TEST_CASE("test_quad", "[quad]") {
+TEST_CASE("test_quad", "[tensor_quad]") {
 
   // Precision with which to compare matrices.
   double precision = 1e-5;
@@ -87,7 +87,7 @@ TEST_CASE("test_quad", "[quad]") {
       options->setOptions();
 
       // Setup test element.
-      TestPlugin<Quad<QuadP1>> basequad(options);
+      TestPlugin<TensorQuad<QuadP1>> basequad(options);
       basequad.SetVtxCrd(vtx);
       basequad.SetCplEdg(cpl);
 
@@ -99,11 +99,11 @@ TEST_CASE("test_quad", "[quad]") {
 
       Eigen::VectorXd pts_x, pts_y;
       std::tie(pts_x, pts_y) = QuadP1::buildNodalPoints(
-          Quad<QuadP1>::GllPointsForOrder(ord), Quad<QuadP1>::GllPointsForOrder(ord), vtx);
+          TensorQuad<QuadP1>::GllPointsForOrder(ord), TensorQuad<QuadP1>::GllPointsForOrder(ord), vtx);
 
       // Set up functions at GLL points.
       double x = 0, y = 0;
-      Eigen::VectorXd gll_val, coords = Quad<QuadP1>::GllPointsForOrder(ord);
+      Eigen::VectorXd gll_val, coords = TensorQuad<QuadP1>::GllPointsForOrder(ord);
       gll_val.setZero(basequad.NumIntPnt());
       int num_pts_p_dim = sqrt(basequad.NumIntPnt());
       for (int o = 0; o < x_exp.size(); o++) {

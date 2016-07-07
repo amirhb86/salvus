@@ -55,6 +55,6 @@ Eigen::MatrixXd AcousticToElastic2D<BasePhysics>::computeSurfaceIntegral(const E
 }
 
 #include <Physics/Elastic2D.h>
-#include <Element/HyperCube/Quad.h>
+#include <Element/HyperCube/TensorQuad.h>
 #include <Element/HyperCube/QuadP1.h>
-template class AcousticToElastic2D<Elastic2D<Quad<QuadP1>>>;
+template class AcousticToElastic2D<Elastic2D<TensorQuad<QuadP1>>>;

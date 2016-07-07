@@ -18,6 +18,7 @@ if (NOT CMAKE_BUILD_TYPE)
 endif (NOT CMAKE_BUILD_TYPE)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g --coverage -std=c++11")
 
 find_package(MPI REQUIRED)
 
@@ -56,7 +57,7 @@ set(SALVUS_SOURCES
         src/cxx/Source/Source.cpp
         src/cxx/Receiver/Receiver.cpp
         src/cxx/Receiver/ReceiverHdf5.cpp
-        src/cxx/Element/HyperCube/Quad.cpp
+        src/cxx/Element/HyperCube/TensorQuad.cpp
         src/cxx/Element/HyperCube/Quad/QuadP1.cpp
         src/cxx/Element/HyperCube/Hexahedra.cpp
         src/cxx/Element/HyperCube/Hex/HexP1.cpp

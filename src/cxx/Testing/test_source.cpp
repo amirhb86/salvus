@@ -4,7 +4,7 @@
 #include <Mesh/ElasticAcousticNewmark3D.h>
 #include <Model/ExodusModel.h>
 #include <Problem/ProblemNew.h>
-#include <Element/HyperCube/Quad.h>
+#include <Element/HyperCube/TensorQuad.h>
 #include <Element/HyperCube/QuadP1.h>
 #include "catch.h"
 
@@ -23,7 +23,7 @@ class QuadTestPlugin: public Element {
   QuadTestPlugin<Element>(unique_ptr<Options> const &options): Element(options) {};
 };
 
-typedef class Quad<QuadP1> quadtest_p1;
+typedef class TensorQuad<QuadP1> quadtest_p1;
 
 
 TEST_CASE("Test source functionality", "[source]") {

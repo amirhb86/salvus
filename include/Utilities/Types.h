@@ -24,7 +24,19 @@ struct field {
 };
 
 /* Here and some convienience typedefs to save space in functions. */
-typedef Eigen::Matrix<PetscInt, Eigen::Dynamic, 1> IntVec;
+/// Floating points.
+typedef Eigen::Matrix<PetscReal, 2, 1> RealVec2;
+typedef Eigen::Matrix<PetscReal, 4, 1> RealVec4;
+typedef Eigen::Matrix<PetscReal, 4, 2> QuadVtx;
+typedef Eigen::Matrix<PetscReal, 8, 3> HexVtx;
+typedef Eigen::Matrix<PetscReal, 2, 2> RealMat2x2;
+typedef Eigen::Matrix<PetscReal, 3, 3> RealMat3x3;
 typedef Eigen::Matrix<PetscReal, Eigen::Dynamic, 1> RealVec;
+typedef Eigen::Matrix<PetscReal, Eigen::Dynamic, Eigen::Dynamic> RealMat;
+
+/// Integers and idicies.
+typedef Eigen::Matrix<PetscInt, Eigen::Dynamic, 1> IntVec;
+
+/// Complex objects.
 typedef std::vector<std::unique_ptr<Element>> ElemVec;
 typedef std::map<std::string, std::unique_ptr<field>> FieldDict;

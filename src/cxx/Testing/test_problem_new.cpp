@@ -4,6 +4,8 @@
 #include <Problem/ProblemNew.h>
 #include <Model/ExodusModel.h>
 #include <Mesh/ElasticAcousticNewmark3D.h>
+#include <Element/HyperCube/QuadP1.h>
+#include <Element/HyperCube/TensorQuad.h>
 
 TEST_CASE("Test new problem formulation", "[problem_new]") {
 
@@ -55,8 +57,10 @@ TEST_CASE("Test new problem formulation", "[problem_new]") {
 
     fields = problem->applyInverseMassMatrix(std::move(fields));
     fields = problem->takeTimeStep(std::move(fields));
+    break;
   }
 
+  TensorQuad<QuadP1> t(options);
 
 
 }

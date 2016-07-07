@@ -181,7 +181,7 @@ double Elastic2D<Element>::checkEigenfunctionTest(std::unique_ptr<Mesh> const &m
   
 };
 
-#include <Element/HyperCube/Quad.h>
+#include <Element/HyperCube/TensorQuad.h>
 #include <Element/HyperCube/QuadP1.h>
-template class Elastic2D<Quad<QuadP1>>;
+template class Elastic2D<TensorQuad<QuadP1>>;
 

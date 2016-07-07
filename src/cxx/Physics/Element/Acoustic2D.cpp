@@ -39,8 +39,9 @@ MatrixXd Acoustic2D<Element>::assembleElementMassMatrix() {
 
 template <typename Element>
 double Acoustic2D<Element>::CFL_estimate() {
-  double vpMax = Element::ParAtIntPts("VP").maxCoeff();
-  return Element::CFL_constant() * Element::estimatedElementRadius() / vpMax;
+//  double vpMax = Element::ParAtIntPts("VP").maxCoeff();
+//  return Element::CFL_constant() * Element::estimatedElementRadius() / vpMax;
+  return 1.0;
 }
 
 
@@ -82,7 +83,7 @@ MatrixXd Acoustic2D<Element>::computeSurfaceIntegral(const Eigen::Ref<const Eige
 template <typename Element>
 MatrixXd Acoustic2D<Element>::computeSourceTerm(const double time) {
   mSource.setZero();
-  for (auto source : Element::Sources()) {
+  for (auto &source : Element::Sources()) {
     mSource += (source->fire(time) * Element::getDeltaFunctionCoefficients(
         source->LocR(), source->LocS()));
   }
@@ -130,7 +131,7 @@ double Acoustic2D<Element>::checkEigenfunctionTest(std::unique_ptr<Mesh> const &
 
 }
 
-#include <Element/HyperCube/Quad.h>
+#include <Element/HyperCube/TensorQuad.h>
 #include <Element/HyperCube/QuadP1.h>
-template class Acoustic2D<Quad<QuadP1>>;
+template class Acoustic2D<TensorQuad<QuadP1>>;
 

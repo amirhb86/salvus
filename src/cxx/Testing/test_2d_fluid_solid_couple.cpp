@@ -9,7 +9,7 @@
 #include <Element/ElementAdapter.h>
 #include <Model/ExodusModel.h>
 #include <Utilities/Options.h>
-#include <Element/HyperCube/Quad.h>
+#include <Element/HyperCube/TensorQuad.h>
 #include <Element/HyperCube/QuadP1.h>
 
 using namespace Eigen;

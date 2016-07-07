@@ -3,7 +3,7 @@
 #include <Element/Element.h>
 #include <Element/ElementAdapter.h>
 
-#include <Element/HyperCube/Quad.h>
+#include <Element/HyperCube/TensorQuad.h>
 #include <Element/HyperCube/QuadP1.h>
 #include <Element/Simplex/Triangle.h>
 #include <Element/Simplex/TriP1.h>
@@ -26,7 +26,7 @@
 #include <Utilities/Utilities.h>
 
 /* Define all possible element classes as types here. */
-typedef class ElementAdapter<Acoustic2D<Quad<QuadP1>>> AcousticQuadP1;
+typedef class ElementAdapter<Acoustic2D<TensorQuad<QuadP1>>> AcousticQuadP1;
 typedef class ElementAdapter<AcousticTri<Triangle<TriP1>>> AcousticTriP1;
 typedef class ElementAdapter<Acoustic3D<Hexahedra<HexP1>>> AcousticHexP1;
 typedef class ElementAdapter<AcousticHex3D<Hexahedra<HexP1>>> AcousticHexP1v2;
@@ -34,12 +34,12 @@ typedef class ElementAdapter<AcousticHex3D_LF<Hexahedra<HexP1>>> AcousticHexP1_f
 typedef class ElementAdapter<Acoustic3D<Tetrahedra<TetP1>>> AcousticTetP1v2;
 typedef class ElementAdapter<Acoustic3D_V<Hexahedra<HexP1>>> AcousticVHexP1;
 typedef class ElementAdapter<AcousticTet<Tetrahedra<TetP1>>> AcousticTetP1;
-typedef class ElementAdapter<Elastic2D<Quad<QuadP1>>> ElasticQuadP1;
+typedef class ElementAdapter<Elastic2D<TensorQuad<QuadP1>>> ElasticQuadP1;
 typedef class ElementAdapter<Elastic3D<Hexahedra<HexP1>>> ElasticHexP1;
 
 /* Coupled classes. */
-typedef class ElementAdapter<AcousticToElastic2D<Elastic2D<Quad<QuadP1>>>> AcousticCplElasticQuadP1;
-typedef class ElementAdapter<ElasticToAcoustic2D<Acoustic2D<Quad<QuadP1>>>> ElasticCplAcousticQuadP1;
+typedef class ElementAdapter<AcousticToElastic2D<Elastic2D<TensorQuad<QuadP1>>>> AcousticCplElasticQuadP1;
+typedef class ElementAdapter<ElasticToAcoustic2D<Acoustic2D<TensorQuad<QuadP1>>>> ElasticCplAcousticQuadP1;
 
 std::unique_ptr<Element> Element::Factory(const std::vector<std::string>& physics_base,
                                           const std::vector<std::string>& physics_couple,
@@ -124,5 +124,6 @@ std::unique_ptr<Element> Element::Factory(const std::vector<std::string>& physic
     MPI_Abort(PETSC_COMM_WORLD, -1);
   }
 
+  return NULL;
   MPI_Abort(PETSC_COMM_WORLD, -1);
 }
