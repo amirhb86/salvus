@@ -84,7 +84,9 @@ template <typename Element>
 MatrixXd Elastic2D<Element>::computeStiffnessTerm(const Eigen::MatrixXd &u) {
 
   // strain ux_x, ux_y, uy_x, uy_y.
+  EIGEN_ASM_COMMENT("BEGIN_GRADIENT");
   mStrain.leftCols<2>()  = Element::computeGradient(u.col(0));
+  EIGEN_ASM_COMMENT("END_GRADIENT");
   mStrain.rightCols<2>() = Element::computeGradient(u.col(1));
 
   // compute stress from strain.

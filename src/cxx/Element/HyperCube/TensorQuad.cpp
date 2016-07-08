@@ -197,6 +197,42 @@ IntVec TensorQuad<ConcreteShape>::ClosureMappingForOrder(const PetscInt order) {
 }
 
 template<typename ConcreteShape>
+RealMat TensorQuad<ConcreteShape>::computeGradient(const Ref<const RealVec> &field) {
+
+  Matrix2d invJac;
+  Vector2d refGrad;
+
+  // Loop over all GLL points.
+  for (PetscInt s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
+    for (PetscInt r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
+
+      // gll index.
+      PetscInt index = r_ind + s_ind * mNumIntPtsR;
+
+      // (r,s) coordinates for this point.
+      PetscReal r = mIntCrdR(r_ind);
+      PetscReal s = mIntCrdS(s_ind);
+
+      // inverse jacobian at this point.
+      ConcreteShape::inverseJacobianAtPoint(r, s, mVtxCrd, mDetJac(index), invJac);
+
+      // compute gradient in the reference quad.
+      refGrad.setZero(2);
+      for (int i = 0; i < mNumIntPtsR; i++) {
+        refGrad(0) += mGrd(r_ind, i) * field(i + s_ind * mNumIntPtsR);
+        refGrad(1) += mGrd(s_ind, i) * field(r_ind + i * mNumIntPtsR);
+      }
+
+      // transform gradient to physical coordinates.
+      mGradWork.row(index).noalias() = invJac * refGrad;
+    }
+  }
+
+  return mGradWork;
+
+}
+
+template<typename ConcreteShape>
 void TensorQuad<ConcreteShape>::attachVertexCoordinates(std::unique_ptr<Mesh> const &mesh) {
 
   Vec coordinates_local;
@@ -282,7 +318,7 @@ VectorXd TensorQuad<ConcreteShape>::getDeltaFunctionCoefficients(const double r,
       double si = mIntCrdS(s_ind);
 
       double detJac;
-      std::tie(_, detJac) = ConcreteShape::inverseJacobianAtPoint(ri, si, mVtxCrd);
+      ConcreteShape::inverseJacobianAtPoint(ri, si, mVtxCrd, detJac, _);
 
       mParWork(r_ind + s_ind * mNumIntPtsR) /= (mIntWgtR(r_ind) * mIntWgtS(s_ind) * detJac);
 
@@ -291,48 +327,14 @@ VectorXd TensorQuad<ConcreteShape>::getDeltaFunctionCoefficients(const double r,
   return mParWork;
 }
 
-
 template<typename ConcreteShape>
-MatrixXd TensorQuad<ConcreteShape>::computeGradient(const Ref<const VectorXd> &field) {
+RealVec TensorQuad<ConcreteShape>::ParAtIntPts(const std::string &par) {
 
-  Matrix2d invJac;
-  Vector2d refGrad;
+  for (PetscInt s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
+    for (PetscInt r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
 
-  // Loop over all GLL points.
-  for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
-    for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
-
-      // gll index.
-      int index = r_ind + s_ind * mNumIntPtsR;
-
-      // (r,s) coordinates for this point.
-      double r = mIntCrdR(r_ind);
-      double s = mIntCrdS(s_ind);
-      std::tie(invJac, mDetJac(index)) = ConcreteShape::inverseJacobianAtPoint(r, s, mVtxCrd);
-
-      // optimized version (17us->13us)
-      refGrad.setZero(2);
-      for (int i = 0; i < mNumIntPtsR; i++) {
-        refGrad(0) += mGrd(r_ind, i) * field(i + s_ind * mNumIntPtsR);
-        refGrad(1) += mGrd(s_ind, i) * field(r_ind + i * mNumIntPtsR);
-      }
-      mGradWork.row(index).noalias() = invJac * refGrad;
-
-    }
-  }
-
-  return mGradWork;
-
-}
-
-template<typename ConcreteShape>
-VectorXd TensorQuad<ConcreteShape>::ParAtIntPts(const std::string &par) {
-
-  for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
-    for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
-
-      double r = mIntCrdR(r_ind);
-      double s = mIntCrdS(s_ind);
+      PetscReal r = mIntCrdR(r_ind);
+      PetscReal s = mIntCrdS(s_ind);
       mParWork(r_ind + s_ind * mNumIntPtsR) =
           ConcreteShape::interpolateAtPoint(r, s).dot(mPar[par]);
 
@@ -345,35 +347,82 @@ VectorXd TensorQuad<ConcreteShape>::ParAtIntPts(const std::string &par) {
 template<typename ConcreteShape>
 VectorXd TensorQuad<ConcreteShape>::applyTestAndIntegrate(const Ref<const VectorXd> &f) {
 
-  int i = 0;
-  double detJac;
-  Matrix2d invJac;
-  VectorXd result(mNumIntPnt);
-  for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
-    for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
+  RealMat2x2 invJac;
+  for (PetscInt s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
+    for (PetscInt r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
 
       // gll index.
-      int index = r_ind + s_ind * mNumIntPtsR;
+      PetscInt index = r_ind + s_ind * mNumIntPtsR;
 
       // (r,s) coordinate at this point.
-      double r = mIntCrdR(r_ind);
-      double s = mIntCrdS(s_ind);
+      PetscReal r = mIntCrdR(r_ind);
+      PetscReal s = mIntCrdS(s_ind);
 
-      std::tie(invJac, detJac) = ConcreteShape::inverseJacobianAtPoint(r, s, mVtxCrd);
-      result(index) = f(index) * detJac * mIntWgtR(r_ind) * mIntWgtS(s_ind);
+      PetscReal detJac;
+      ConcreteShape::inverseJacobianAtPoint(r, s, mVtxCrd, detJac, invJac);
+      mParWork(index) = f(index) * detJac * mIntWgtR(r_ind) * mIntWgtS(s_ind);
 
     }
   }
 
-  return result;
+  mParWork;
 
 }
 
 template<typename ConcreteShape>
-Eigen::Vector2d TensorQuad<ConcreteShape>::getEdgeNormal(const PetscInt edg) {
+RealVec TensorQuad<ConcreteShape>::applyGradTestAndIntegrate(const Ref<const RealMat> &f) {
 
-  Vector2d n;
-  double x0, x1, y0, y1;
+  RealMat2x2 invJac;
+  RealVec2 dphi_rs_dfx, dphi_rs_dfy;
+
+  // Loop over all GLL points.
+  for (PetscInt s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
+    for (PetscInt r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
+
+      // Reset derivatives for this point.
+      dphi_rs_dfx.setZero(); dphi_rs_dfy.setZero();
+
+      // Get reference coordinates.
+      PetscReal r = mIntCrdR(r_ind);
+      PetscReal s = mIntCrdS(s_ind);
+
+      // Loop over the tensor basis. Note we already have detJac at the relevant points.
+      for (PetscInt i = 0; i < mNumIntPtsR; i++) {
+        PetscInt r_index = i + s_ind * mNumIntPtsR;
+        PetscInt s_index = r_ind + i * mNumIntPtsR;
+        dphi_rs_dfx(0) += mDetJac(r_index) * f(r_index, 0) * mGrd(i, r_ind) * mIntWgtR(i);
+        dphi_rs_dfx(1) += mDetJac(s_index) * f(s_index, 0) * mGrd(i, s_ind) * mIntWgtS(i);
+        dphi_rs_dfy(0) += mDetJac(r_index) * f(r_index, 1) * mGrd(i, r_ind) * mIntWgtR(i);
+        dphi_rs_dfy(1) += mDetJac(s_index) * f(s_index, 1) * mGrd(i, s_ind) * mIntWgtS(i);
+      }
+
+      // Multiply by relevant integration weights.
+      dphi_rs_dfx(0) *= mIntWgtS(s_ind);
+      dphi_rs_dfx(1) *= mIntWgtR(r_ind);
+      dphi_rs_dfy(0) *= mIntWgtS(s_ind);
+      dphi_rs_dfy(1) *= mIntWgtR(r_ind);
+
+      // Get the inverse Jacobain again at this point.
+      PetscReal _;
+      ConcreteShape::inverseJacobianAtPoint(r, s, mVtxCrd, _, invJac);
+
+      // Optimization opportunity.
+      // Transform the quantities to physical coordinates.
+      PetscInt index = r_ind + s_ind * mNumIntPtsR;
+      mStiffWork(index)  = invJac.row(0).dot(dphi_rs_dfx) + invJac.row(1).dot(dphi_rs_dfy);
+
+    }
+  }
+
+  return mStiffWork;
+
+}
+
+template<typename ConcreteShape>
+RealVec2 TensorQuad<ConcreteShape>::getEdgeNormal(const PetscInt edg) {
+
+  RealVec2 n;
+  PetscReal x0, x1, y0, y1;
   for (int i = 0; i < mNumVtx; i++) {
     if (mEdgMap[i] == edg) {
       x0 = mVtxCrd(i, 0);
@@ -390,16 +439,15 @@ Eigen::Vector2d TensorQuad<ConcreteShape>::getEdgeNormal(const PetscInt edg) {
 }
 
 template<typename ConcreteShape>
-Eigen::VectorXd TensorQuad<ConcreteShape>::applyTestAndIntegrateEdge(const Eigen::Ref<const Eigen::VectorXd> &f,
-                                                                     const PetscInt edg) {
+RealVec TensorQuad<ConcreteShape>::applyTestAndIntegrateEdge(const Eigen::Ref<const RealVec> &f,
+                                                             const PetscInt edg) {
 
-  // Allocate return vector (return-value optimization)?
-  Eigen::VectorXd result = Eigen::VectorXd::Zero(mNumIntPnt);
+  mParWork.setZero();
 
   // get edge vertices.
-  int start, stride;
-  double x0, x1, y0, y1;
-  for (int i = 0; i < mNumVtx; i++) {
+  PetscInt start, stride;
+  PetscReal x0, x1, y0, y1;
+  for (PetscInt i = 0; i < mNumVtx; i++) {
     if (mEdgMap[i] == edg) {
       x0 = mVtxCrd(i, 0);
       x1 = mVtxCrd((i + 1) % mNumVtx, 0);
@@ -422,148 +470,72 @@ Eigen::VectorXd TensorQuad<ConcreteShape>::applyTestAndIntegrateEdge(const Eigen
   }
 
   // compute 'edge jacobian'.
-  double dx = x1 - x0;
-  double dy = y1 - y0;
-  double d = sqrt(dx * dx + dy * dy) / 2.0;
+  PetscReal dx = x1 - x0;
+  PetscReal dy = y1 - y0;
+  PetscReal d = sqrt(dx * dx + dy * dy) / 2.0;
 
   // compute coefficients.
-  for (int i = start, j = 0; j < mNumIntPtsR; i += stride, j++) {
-    result(i) = f(i) * d * mIntWgtR(j);
+  for (PetscInt i = start, j = 0; j < mNumIntPtsR; i += stride, j++) {
+    mParWork(i) = f(i) * d * mIntWgtR(j);
   }
 
-  return result;
+  return mParWork;
 
 }
 
-template<typename ConcreteShape>
-VectorXd TensorQuad<ConcreteShape>::applyGradTestAndIntegrate(const Ref<const MatrixXd> &f) {
-
-  Matrix2d invJac;
-  for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
-
-    for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
-
-      double r = mIntCrdR(r_ind);
-      double s = mIntCrdS(s_ind);
-
-      double _;
-      std::tie(invJac, _) = ConcreteShape::inverseJacobianAtPoint(r, s, mVtxCrd);
-
-      // double dphi_r_dfx = mIntWgtS(s_ind) *
-      //     mIntWgtR.dot(((rVectorStride(mDetJac, s_ind, mNumIntPtsS, mNumIntPtsR)).array() *
-      //     rVectorStride(f.col(0), s_ind, mNumIntPtsS, mNumIntPtsR).array() *
-      //     mGrd.col(r_ind).array()).matrix());
-
-      // double dphi_s_dfx = mIntWgtR(r_ind) *
-      //     mIntWgtS.dot(((sVectorStride(mDetJac, r_ind, mNumIntPtsS, mNumIntPtsR)).array() *
-      //     sVectorStride(f.col(0), r_ind, mNumIntPtsS, mNumIntPtsR).array() *
-      //     mGrd.col(s_ind).array()).matrix());
-
-      // double dphi_r_dfy = mIntWgtS(s_ind) *
-      //     mIntWgtR.dot(((rVectorStride(mDetJac, s_ind, mNumIntPtsS, mNumIntPtsR)).array() *
-      //     rVectorStride(f.col(1), s_ind, mNumIntPtsS, mNumIntPtsR).array() *
-      //     mGrd.col(r_ind).array()).matrix());
-
-      // double dphi_s_dfy = mIntWgtR(r_ind) *
-      //     mIntWgtS.dot(((sVectorStride(mDetJac, r_ind, mNumIntPtsS, mNumIntPtsR)).array() *
-      //     sVectorStride(f.col(1), r_ind, mNumIntPtsS, mNumIntPtsR).array() *
-      //     mGrd.col(s_ind).array()).matrix());
-
-      auto lr = mGrd.col(r_ind);
-      auto ls = mGrd.col(s_ind);
-
-      double dphi_r_dfx = 0;
-      double dphi_s_dfx = 0;
-
-      double dphi_r_dfy = 0;
-      double dphi_s_dfy = 0;
-
-      for (int i = 0; i < mNumIntPtsR; i++) {
-        int r_index = i + s_ind * mNumIntPtsR;
-        int s_index = r_ind + i * mNumIntPtsR;
-
-        dphi_r_dfx += mDetJac[r_index] * f(r_index, 0) * lr[i] * mIntWgtR[i];
-        dphi_s_dfx += mDetJac[s_index] * f(s_index, 0) * ls[i] * mIntWgtS[i];
-
-        // -- y --
-        dphi_r_dfy += mDetJac[r_index] * f(r_index, 1) * lr[i] * mIntWgtR[i];
-        dphi_s_dfy += mDetJac[s_index] * f(s_index, 1) * ls[i] * mIntWgtS[i];
-
-      }
-
-      dphi_r_dfx *= mIntWgtS(s_ind);
-      dphi_s_dfx *= mIntWgtR(r_ind);
-
-      dphi_r_dfy *= mIntWgtS(s_ind);
-      dphi_s_dfy *= mIntWgtR(r_ind);
-
-      Vector2d dphi_epseta_dfx, dphi_epseta_dfy;
-      dphi_epseta_dfx << dphi_r_dfx, dphi_s_dfx;
-      dphi_epseta_dfy << dphi_r_dfy, dphi_s_dfy;
-
-      mStiffWork(r_ind + s_ind * mNumIntPtsR) =
-          invJac.row(0).dot(dphi_epseta_dfx) + invJac.row(1).dot(dphi_epseta_dfy);
-
-    }
-  }
-
-  return mStiffWork;
-
-}
-
-template<typename ConcreteShape>
-double TensorQuad<ConcreteShape>::integrateField(const Eigen::Ref<const Eigen::VectorXd> &field) {
-
-  double val = 0;
-  Matrix2d inverse_Jacobian;
-  double detJ;
-  for (int i = 0; i < mNumIntPtsS; i++) {
-    for (int j = 0; j < mNumIntPtsR; j++) {
-
-      double r = mIntCrdR(j);
-      double s = mIntCrdS(i);
-      std::tie(inverse_Jacobian, detJ) = ConcreteShape::inverseJacobianAtPoint(r, s, mVtxCrd);
-      val += field(j + i * mNumIntPtsR) * mIntWgtR(j) * mIntWgtS(i) * detJ;
-
-    }
-  }
-
-  return val;
-}
-
-template<typename ConcreteShape>
-void TensorQuad<ConcreteShape>::setBoundaryConditions(std::unique_ptr<Mesh> const &mesh) {
-
-  mBndElm = false;
-  for (auto &keys: mesh->BoundaryElementFaces()) {
-    auto boundary_name = keys.first;
-    auto element_in_boundary = keys.second;
-    if (element_in_boundary.find(mElmNum) != element_in_boundary.end()) {
-      mBndElm = true;
-      mBnd[boundary_name] = element_in_boundary[mElmNum];
-    }
-  }
-
-}
-
-template<typename ConcreteShape>
-void TensorQuad<ConcreteShape>::applyDirichletBoundaries(std::unique_ptr<Mesh> const &mesh,
-                                                         std::unique_ptr<Options> const &options,
-                                                         const std::string &fieldname) {
-
-  if (!mBndElm) return;
-
-  double value = 0;
-  auto dirchlet_boundary_names = options->DirichletBoundaries();
-  for (auto &bndry: dirchlet_boundary_names) {
-    auto faceids = mBnd[bndry];
-    for (auto &faceid: faceids) {
-      auto field = mesh->getFieldOnFace(fieldname, faceid);
-      field = 0 * field.array() + value;
-      mesh->setFieldFromFace(fieldname, faceid, field);
-    }
-  }
-}
+//template<typename ConcreteShape>
+//double TensorQuad<ConcreteShape>::integrateField(const Eigen::Ref<const Eigen::VectorXd> &field) {
+//
+//  double val = 0;
+//  Matrix2d inverse_Jacobian;
+//  double detJ;
+//  for (int i = 0; i < mNumIntPtsS; i++) {
+//    for (int j = 0; j < mNumIntPtsR; j++) {
+//
+//      double r = mIntCrdR(j);
+//      double s = mIntCrdS(i);
+//      ConcreteShape::inverseJacobianAtPoint(r, s, mVtxCrd, detJ, inverse_Jacobian);
+//      val += field(j + i * mNumIntPtsR) * mIntWgtR(j) * mIntWgtS(i) * detJ;
+//
+//    }
+//  }
+//
+//  return val;
+//}
+//
+//template<typename ConcreteShape>
+//void TensorQuad<ConcreteShape>::setBoundaryConditions(std::unique_ptr<Mesh> const &mesh) {
+//
+//  mBndElm = false;
+//  for (auto &keys: mesh->BoundaryElementFaces()) {
+//    auto boundary_name = keys.first;
+//    auto element_in_boundary = keys.second;
+//    if (element_in_boundary.find(mElmNum) != element_in_boundary.end()) {
+//      mBndElm = true;
+//      mBnd[boundary_name] = element_in_boundary[mElmNum];
+//    }
+//  }
+//
+//}
+//
+//template<typename ConcreteShape>
+//void TensorQuad<ConcreteShape>::applyDirichletBoundaries(std::unique_ptr<Mesh> const &mesh,
+//                                                         std::unique_ptr<Options> const &options,
+//                                                         const std::string &fieldname) {
+//
+//  if (!mBndElm) return;
+//
+//  double value = 0;
+//  auto dirchlet_boundary_names = options->DirichletBoundaries();
+//  for (auto &bndry: dirchlet_boundary_names) {
+//    auto faceids = mBnd[bndry];
+//    for (auto &faceid: faceids) {
+//      auto field = mesh->getFieldOnFace(fieldname, faceid);
+//      field = 0 * field.array() + value;
+//      mesh->setFieldFromFace(fieldname, faceid, field);
+//    }
+//  }
+//}
 
 // Instantiate combinatorical cases.
 template

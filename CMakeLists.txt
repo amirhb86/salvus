@@ -18,7 +18,8 @@ if (NOT CMAKE_BUILD_TYPE)
 endif (NOT CMAKE_BUILD_TYPE)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g --coverage -std=c++11")
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -std=c++11")
+#set(CMAKE_CXX_FLAGS_DEBUG "-O3 -msse2 -save-temps")
 
 find_package(MPI REQUIRED)
 
@@ -96,7 +97,7 @@ add_executable(salvus_test
         src/cxx/Testing/test_tetrahedra.cpp
         src/cxx/Testing/test_exactsolution.cpp
         src/cxx/Testing/test_QuadP1.cpp
-        src/cxx/Testing/test_quad.cpp
+        src/cxx/Testing/test_TensorQuad.cpp
         src/cxx/Testing/test_2d_fluid_solid_couple.cpp
         src/cxx/Testing/test_problem_new.cpp
         src/cxx/Testing/test_source.cpp)

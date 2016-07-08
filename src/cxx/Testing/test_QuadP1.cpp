@@ -108,7 +108,7 @@ TEST_CASE("test functions in quadP1", "[quadP1]") {
 
     PetscReal detJac;
     Eigen::Matrix<PetscReal, 2, 2> invJac;
-    std::tie(invJac, detJac) = QuadP1::inverseJacobianAtPoint(0, 0, vtx);
+    QuadP1::inverseJacobianAtPoint(0, 0, vtx, detJac, invJac);
 
     REQUIRE(invJac.isApprox(true_inv, 1e-6));
     REQUIRE(detJac == Approx(true_det));

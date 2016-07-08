@@ -138,7 +138,6 @@ private:
   static RealVec GllIntegrationWeightsForOrder(const PetscInt order);
 
   /**
-   * TODO: Document matrix order.
    * Returns a matrix of the test function derivatives for a given polynomial order.
    * @param [in] order Polynomial order.
    * @returns Matrix of derivatives with the ordering described above.
@@ -156,50 +155,50 @@ private:
 
   static IntVec  ClosureMappingForOrder(const PetscInt order);
 
-
-
-
-
   /**
    * Compute the gradient of a field at all GLL points.
    * @param [in] field Field to take the gradient of.
+   * @returns nGll x nDim matrix containing field gradient components.
    */
-  Eigen::MatrixXd computeGradient(const Eigen::Ref<const Eigen::VectorXd>& field);
+  RealMat computeGradient(const Eigen::Ref<const RealVec>& field);
 
   /**
    * Interpolate a parameter from vertex to GLL point.
    * @param [in] par Parameter to interpolate (i.e. VP, VS).
+   * @returns ngll vector containing material parameters.
    */
-  Eigen::VectorXd ParAtIntPts(const std::string& par);
+  RealVec ParAtIntPts(const std::string& par);
 
   /**
    * Multiply a field by the test functions and integrate.
    * @param [in] f Field to calculate on.
+   * @returns Coefficients at gll points.
    */
-  Eigen::VectorXd applyTestAndIntegrate(const Eigen::Ref<const Eigen::VectorXd>& f);
+  RealVec applyTestAndIntegrate(const Eigen::Ref<const RealVec>& f);
 
   /**
    * Multiply a field by the gradient of the test functions and integrate.
    * @param [in] f Field to calculate on.
+   * @returns Coefficients at gll points.
    */
-  Eigen::VectorXd applyGradTestAndIntegrate(const Eigen::Ref<const Eigen::MatrixXd>& f);
+  RealVec applyGradTestAndIntegrate(const Eigen::Ref<const RealMat>& f);
 
 
-  Eigen::VectorXd applyTestAndIntegrateEdge(const Eigen::Ref<const Eigen::VectorXd>& f,
-                                            const PetscInt edg);
+  /**
+   * Multiply a field by the test functions on a certain edge, and integrate.
+   * @param [in] field Working field, defined at all GLL points.
+   * @param [in] edg Edge number to integrate.
+   * @returns Coefficients at all gll points (i.e. zeroes in the interior).
+   */
+  RealVec applyTestAndIntegrateEdge(const Eigen::Ref<const RealVec>& f,
+                                    const PetscInt edg);
+
+  /**
+   * Given an edge, return a perpendicular normal vector to that edge.
+   * @param [in] edg Edge number.
+   * @returns A 2d "normal" pointing outwards.
+   */
   Eigen::Vector2d getEdgeNormal(const PetscInt edg);
-
-  /**
-   * Figure out and set boundaries.
-   * @param [in] mesh The mesh instance.
-   */
-  void setBoundaryConditions(std::unique_ptr<Mesh> const &mesh);
-
-  /**
-   * Integrate a field over the element, returning a scalar.
-   * @param [in] field The field to integrate.
-   */
-  double integrateField(const Eigen::Ref<const Eigen::VectorXd>& field);
 
   /**
    * Attach the (4) vertex coordinates to the element.
@@ -223,20 +222,11 @@ private:
    */
   bool attachReceiver(std::unique_ptr<Receiver> &receiver, const bool finalize);
 
-  
-  
-  
   /**
-   * If an element is detected to be on a boundary, apply the Dirichlet condition to the
-   * dofs on that boundary.
-   * @param [in] mesh The mesh instance.
-   * @param [in] options The options class.
-   * @param [in] fieldname The field to which the boundary must be applied.
-   */
-  void applyDirichletBoundaries(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options, const std::string &fieldname);
-
-  /**
-   *
+   * Given a delta function at some location (r,s), computes the coefficients at the
+   * GLL points that would integrate to the delta function over the element.
+   * @param [in] r Reference coordinate.
+   * @param [in] s Reference coordinate.
    */
   Eigen::VectorXd getDeltaFunctionCoefficients(const double r, const double s);
 
@@ -247,15 +237,6 @@ private:
    */
   void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model, std::string parameter);
 
-  // TODO: MODIFY
-  virtual double CFL_constant() { return 1; };
-  
-  /** Return the estimated element radius
-   * @return The CFL estimate
-   */
-  // TODO: MODIFY
-  double estimatedElementRadius() { return 1; };
-  
   /**
    * Given some field at the GLL points, interpolate the field to some general point.
    * @param [in] pnt Position in reference coordinates.
@@ -268,24 +249,60 @@ private:
   inline void SetCplEdg(const std::vector<PetscInt> &v) { mEdgMap = v; }
 
   // Getters.
-  inline bool BndElm() const { return mBndElm; }
-  inline int NumDim() const { return mNumDim; }
-  inline PetscInt ElmNum() const { return mElmNum; }
-  inline PetscInt NumVtx() const { return mNumVtx; }
+  inline bool BndElm()        const { return mBndElm; }
+  inline PetscInt NumDim()    const { return mNumDim; }
+  inline PetscInt ElmNum()    const { return mElmNum; }
+  inline PetscInt NumVtx()    const { return mNumVtx; }
   inline PetscInt NumIntPnt() const { return mNumIntPnt; }
   inline PetscInt NumDofVol() const { return mNumDofVol; }
   inline PetscInt NumDofFac() const { return mNumDofFac; }
   inline PetscInt NumDofEdg() const { return mNumDofEdg; }
   inline PetscInt NumDofVtx() const { return mNumDofVtx; }
-
-  inline Eigen::MatrixXi ClsMap() const { return mClsMap; }
-  inline Eigen::MatrixXd VtxCrd() const { return mVtxCrd; }
+  inline IntVec ClsMap()      const { return mClsMap; }
+  inline QuadVtx VtxCrd()     const { return mVtxCrd; }
   const inline std::vector<std::unique_ptr<Source>> &Sources() const { return mSrc; }
+
+  inline static PetscInt MaxOrder() { return mMaxOrder; }
 
   // Delegates.
   std::tuple<Eigen::VectorXd, Eigen::VectorXd> buildNodalPoints() {
     return ConcreteShape::buildNodalPoints(mIntCrdR, mIntCrdS, mVtxCrd);
   };
+
+
+  // TODO: DO WE STILL NEED THESE?
+  /**
+   * Figure out and set boundaries.
+   * @param [in] mesh The mesh instance.
+   */
+  void setBoundaryConditions(std::unique_ptr<Mesh> const &mesh) {};
+
+  /**
+   * Integrate a field over the element, returning a scalar.
+   * @param [in] field The field to integrate.
+   */
+  double integrateField(const Eigen::Ref<const Eigen::VectorXd>& field) {};
+
+  virtual double CFL_constant() { return 1; };
+
+  /** Return the estimated element radius
+   * @return The CFL estimate
+   */
+  // TODO: MODIFY
+  double estimatedElementRadius() { return 1; };
+
+  /**
+   * If an element is detected to be on a boundary, apply the Dirichlet condition to the
+   * dofs on that boundary.
+   * @param [in] mesh The mesh instance.
+   * @param [in] options The options class.
+   * @param [in] fieldname The field to which the boundary must be applied.
+   */
+  void applyDirichletBoundaries(std::unique_ptr<Mesh> const &mesh,
+                                std::unique_ptr<Options> const &options,
+                                const std::string &fieldname) {};
+
+
 
 };
 
