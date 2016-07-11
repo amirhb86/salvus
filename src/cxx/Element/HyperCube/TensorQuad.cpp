@@ -199,8 +199,8 @@ IntVec TensorQuad<ConcreteShape>::ClosureMappingForOrder(const PetscInt order) {
 template<typename ConcreteShape>
 RealMat TensorQuad<ConcreteShape>::computeGradient(const Ref<const RealVec> &field) {
 
-  Matrix2d invJac;
-  Vector2d refGrad;
+  RealVec2 refGrad;
+  RealMat2x2 invJac;
 
   // Loop over all GLL points.
   for (PetscInt s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
@@ -266,7 +266,7 @@ void TensorQuad<ConcreteShape>::attachVertexCoordinates(std::unique_ptr<Mesh> co
 template<typename ConcreteShape>
 void TensorQuad<ConcreteShape>::attachMaterialProperties(std::unique_ptr<ExodusModel> const &model,
                                                          std::string parameter) {
-  Vector4d material_at_vertices;
+  RealVec4 material_at_vertices;
   for (int i = 0; i < mNumVtx; i++) {
     material_at_vertices(i) = model->getElementalMaterialParameterAtVertex(mElmCtr, parameter, i);
   }
@@ -281,7 +281,7 @@ bool TensorQuad<ConcreteShape>::attachReceiver(std::unique_ptr<Receiver> &receiv
   double x2 = receiver->PysLocX2();
   if (ConcreteShape::checkHull(x1, x2, mVtxCrd)) {
     if (!finalize) { return true; }
-    Vector2d ref_loc = ConcreteShape::inverseCoordinateTransform(x1, x2, mVtxCrd);
+    RealVec2 ref_loc = ConcreteShape::inverseCoordinateTransform(x1, x2, mVtxCrd);
     receiver->SetRefLocR(ref_loc(0));
     receiver->SetRefLocS(ref_loc(1));
     mRec.push_back(std::move(receiver));
@@ -297,7 +297,7 @@ bool TensorQuad<ConcreteShape>::attachSource(std::unique_ptr<Source> &source, co
   double x2 = source->LocZ();
   if (ConcreteShape::checkHull(x1, x2, mVtxCrd)) {
     if (!finalize) { return true; }
-    Vector2d ref_loc = ConcreteShape::inverseCoordinateTransform(x1, x2, mVtxCrd);
+    RealVec2 ref_loc = ConcreteShape::inverseCoordinateTransform(x1, x2, mVtxCrd);
     source->SetLocR(ref_loc(0));
     source->SetLocS(ref_loc(1));
     mSrc.push_back(std::move(source));
@@ -307,17 +307,17 @@ bool TensorQuad<ConcreteShape>::attachSource(std::unique_ptr<Source> &source, co
 }
 
 template<typename ConcreteShape>
-VectorXd TensorQuad<ConcreteShape>::getDeltaFunctionCoefficients(const double r, const double s) {
+RealVec TensorQuad<ConcreteShape>::getDeltaFunctionCoefficients(const double r, const double s) {
 
-  Matrix2d _;
+  RealMat2x2 _;
   mParWork = interpolateLagrangePolynomials(r, s, mPlyOrd);
-  for (int s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
-    for (int r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
+  for (PetscInt s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
+    for (PetscInt r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
 
-      double ri = mIntCrdR(r_ind);
-      double si = mIntCrdS(s_ind);
+      PetscReal ri = mIntCrdR(r_ind);
+      PetscReal si = mIntCrdS(s_ind);
 
-      double detJac;
+      PetscReal detJac;
       ConcreteShape::inverseJacobianAtPoint(ri, si, mVtxCrd, detJac, _);
 
       mParWork(r_ind + s_ind * mNumIntPtsR) /= (mIntWgtR(r_ind) * mIntWgtS(s_ind) * detJac);
@@ -365,7 +365,7 @@ VectorXd TensorQuad<ConcreteShape>::applyTestAndIntegrate(const Ref<const Vector
     }
   }
 
-  mParWork;
+  return mParWork;
 
 }
 
@@ -432,8 +432,9 @@ RealVec2 TensorQuad<ConcreteShape>::getEdgeNormal(const PetscInt edg) {
     }
   }
 
-  n(0) = -1 * (y1 - y0);
-  n(1) = +1 * (x1 - x0);
+  // Should be outwards normal with right hand rule.
+  n(0) = +1 * (y1 - y0);
+  n(1) = -1 * (x1 - x0);
   return n / n.norm();
 
 }

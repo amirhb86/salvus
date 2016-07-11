@@ -261,6 +261,7 @@ private:
   inline IntVec ClsMap()      const { return mClsMap; }
   inline QuadVtx VtxCrd()     const { return mVtxCrd; }
   const inline std::vector<std::unique_ptr<Source>> &Sources() const { return mSrc; }
+  const inline std::vector<std::unique_ptr<Receiver>> &Receivers() const { return mRec; }
 
   inline static PetscInt MaxOrder() { return mMaxOrder; }
 

@@ -8,8 +8,11 @@ std::vector<std::string> ReceiverHdf5::mWriteRegisteredFields;
 
 ReceiverHdf5::ReceiverHdf5(std::unique_ptr<Options> const &options) : Receiver(options) {
 
+  // Initialize to void file.
+  mFileId = 0;
+
   // Only create one hdf5 file for all receivers.
-  if (Num() == 0) {
+  if ((Num() == 0) && (options->ReceiverFileName().size())) {
 
     // Create file and set access.
     std::string fname = options->ReceiverFileName();
@@ -23,7 +26,7 @@ ReceiverHdf5::ReceiverHdf5(std::unique_ptr<Options> const &options) : Receiver(o
 }
 
 ReceiverHdf5::~ReceiverHdf5() {
-  if (Num() == 0) {
+  if ((Num() == 0) && mFileId) {
     H5Fclose(mFileId);
   }
 }

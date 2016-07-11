@@ -7,6 +7,12 @@ from ..code_generation.quadrature_points_weights import \
     gauss_lobatto_legendre_quadruature_points_weights
 
 
+
+@click.group()
+def main():
+    pass
+
+
 def poly_2D(degree, verbose=False):
     """Generate a 2D polynomial for analytical testing."""
 
@@ -112,10 +118,14 @@ def analytic_acoustic_to_elastic():
     print(sympy.integrate(expr, (x, 0, 50000)))
 
 
-@click.group()
-def main():
-    pass
+@main.command()
+@click.argument('degree', default=4)
+def analytic_edge_integral(degree):
 
+    # bottom edge.
+    r, s = sympy.symbols('r s')
+    at_edge = sympy.integrate(poly_2D(degree), (r, -1, 1))
+    sympy.pprint(at_edge)
 
 if __name__ == '__main__':
     main()

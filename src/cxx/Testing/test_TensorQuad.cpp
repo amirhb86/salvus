@@ -6,6 +6,7 @@
 #include <Eigen/Dense>
 #include <petsc.h>
 
+#include <Problem/ProblemNew.h>
 #include <Mesh/Mesh.h>
 #include <Model/ExodusModel.h>
 
@@ -16,17 +17,23 @@
 
 #include <Utilities/Types.h>
 #include <Utilities/Options.h>
+#include <Mesh/ElasticAcousticNewmark3D.h>
 
 using namespace std;
 using namespace Eigen;
 
 TEST_CASE("Test tensor quad", "[tensor_quad]") {
 
+  std::string e_file = "fluid_layer_over_elastic_cartesian_2D_50s.e";
+
   PetscOptionsClear();
   const char *arg[] = {
       "salvus_test",
       "--testing", "true",
       "--element_shape", "quad_new",
+      "--exodus_file_name", e_file.c_str(),
+      "--exodus_model_file_name", e_file.c_str(),
+      NULL
   };
 
   // Fake setting via command line.
@@ -38,11 +45,20 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
   QuadVtx vtx;
   vtx << -1, -1, +1, -1, +1, +1, -1, +1;
 
+  // Initialize dummy mesh and model.
+  std::unique_ptr<Options> options(new Options);
+  options->setOptions();
+  std::unique_ptr<ProblemNew> problem(ProblemNew::Factory(options));
+  std::unique_ptr<ExodusModel> model(new ExodusModel(options));
+  model->initializeParallel();
+  std::unique_ptr<Mesh> mesh(new ElasticAcousticNewmark3D(options));
+  mesh->read(options);
+  mesh->setupGlobalDof(1, 3, 9, 0, 2, model);
+
   // Initialize options.
-  for (PetscInt i = 1; i < TensorQuad<QuadP1>::MaxOrder(); i++) {
+  for (PetscInt i = 1; i < TensorQuad<QuadP1>::MaxOrder() + 1; i++) {
 
     PetscOptionsSetValue("--polynomial_order", std::to_string(i).c_str());
-    std::unique_ptr<Options> options(new Options);
     options->setOptions();
 
     TensorQuad<QuadP1> test_quad(options);
@@ -89,10 +105,15 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
     REQUIRE(test_quad.computeGradient(test_field).col(0).isApprox(test_field_grad_x));
     REQUIRE(test_quad.computeGradient(test_field).col(1).isApprox(test_field_grad_y));
 
-    // TODO: This needs to be improved.
+    // TODO: This needs to be checked.
     // Test integral of applyTestGradAndIntegrate.
     RealMat grad = test_quad.computeGradient(test_field);
     REQUIRE(test_quad.applyGradTestAndIntegrate(grad).sum() == Approx(0.0));
+
+    // TODO: Need to finish coupling edges test.
+    // Mock coupling edges.
+    test_quad.SetCplEdg({0, 1, 2, 3});
+    test_quad.applyTestAndIntegrateEdge(test_field, 0);
 
     // Interpolate lagrange polynomials at certain points.
     for (PetscInt j = 0; j < locations.size(); j++) {
@@ -106,8 +127,59 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
       }
     }
 
+    /*
+     * Interpolate of delta function. We place a delta function at the center of
+     * the reference element, and ensure that, when the test functions are applied and
+     * integrated against, the correct value of 1.0 is returned. This has the added
+     * value of also testing applyTestAndIntegrate().
+     */
+    RealVec coefficients = test_quad.getDeltaFunctionCoefficients(0, 0);
+    REQUIRE(test_quad.applyTestAndIntegrate(coefficients).sum() == Approx(1.0));
+
+
   }
 
+  // Mock sources and receivers.
+  PetscOptionsSetValue("--number_of_sources", "2");
+  PetscOptionsSetValue("--source_type", "ricker");
+  PetscOptionsSetValue("--source_location_x", "50000,50000");
+  PetscOptionsSetValue("--source_location_y", "0,0");
+  PetscOptionsSetValue("--source_location_z", "80000,90000");
+  PetscOptionsSetValue("--ricker_amplitude", "10,20");
+  PetscOptionsSetValue("--ricker_time_delay", "0.1,0.01");
+  PetscOptionsSetValue("--ricker_center_freq", "50,60");
+  PetscOptionsSetValue("--number_of_receivers", "2");
+  PetscOptionsSetValue("--receiver_names", "rec1,rec2");
+  PetscOptionsSetValue("--receiver_location_x1", "50000,50000");
+  PetscOptionsSetValue("--receiver_location_x2", "80000,90000");
+
+  options->setOptions();
+
+  // Vertex coordiantes.
+  std::vector<QuadVtx> true_vtx(4);
+  true_vtx[0] << 0,   0,   5e4, 0,   5e4, 8e4, 0,   8e4;
+  true_vtx[1] << 5e4, 0,   1e5, 0,   1e5, 8e4, 5e4, 8e4;
+  true_vtx[2] << 0,   8e4, 5e4, 8e4, 5e4, 1e5, 0,   1e5;
+  true_vtx[3] << 5e4, 8e4, 1e5, 8e4, 1e5, 1e5, 5e4, 1e5;
+
+  // True source locations.
+  vector<PetscInt> locations {1, 0, 1, 0};
+
+  auto elements = problem->initializeElements(mesh, model, options);
+  std::vector<TensorQuad<QuadP1>*> p1_test;
+  for (auto &e: elements) { p1_test.push_back(dynamic_cast<TensorQuad<QuadP1>*> (e.get())); }
+  for (PetscInt i = 0; i < true_vtx.size(); i++) {
+    REQUIRE(p1_test[i]->VtxCrd().isApprox(true_vtx[i]));
+    REQUIRE(p1_test[i]->Sources().size() == locations[i]);
+    REQUIRE(p1_test[i]->Receivers().size() == locations[i]);
+  }
+
+  // test for outward edge normals.
+  vector<RealVec2> normals(4); vector<PetscInt> edg_elm_zero {13, 14, 15, 16};
+  normals[0] << 0, -1; normals[1] << 1, 0; normals[2] << 0, 1; normals[3] << -1, 0;
+  for (PetscInt i = 0; i < edg_elm_zero.size(); i++) {
+    REQUIRE(p1_test[0]->getEdgeNormal(edg_elm_zero[i]).isApprox(normals[i]));
+  }
 
 
 
