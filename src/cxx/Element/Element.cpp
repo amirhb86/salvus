@@ -12,7 +12,7 @@
 #include <Element/HyperCube/Hexahedra.h>
 #include <Element/HyperCube/HexP1.h>
 
-#include <Physics/Acoustic2D.h>
+#include <Physics/Scalar.h>
 #include <Physics/AcousticTri.h>
 #include <Physics/Acoustic3D.h>
 #include <Physics/AcousticHex3D.h>
@@ -26,7 +26,7 @@
 #include <Utilities/Utilities.h>
 
 /* Define all possible element classes as types here. */
-typedef class ElementAdapter<Acoustic2D<TensorQuad<QuadP1>>> AcousticQuadP1;
+typedef class ElementAdapter<Scalar<TensorQuad<QuadP1>>> AcousticQuadP1;
 typedef class ElementAdapter<AcousticTri<Triangle<TriP1>>> AcousticTriP1;
 typedef class ElementAdapter<Acoustic3D<Hexahedra<HexP1>>> AcousticHexP1;
 typedef class ElementAdapter<AcousticHex3D<Hexahedra<HexP1>>> AcousticHexP1v2;
@@ -39,7 +39,7 @@ typedef class ElementAdapter<Elastic3D<Hexahedra<HexP1>>> ElasticHexP1;
 
 /* Coupled classes. */
 typedef class ElementAdapter<AcousticToElastic2D<Elastic2D<TensorQuad<QuadP1>>>> AcousticCplElasticQuadP1;
-typedef class ElementAdapter<ElasticToAcoustic2D<Acoustic2D<TensorQuad<QuadP1>>>> ElasticCplAcousticQuadP1;
+typedef class ElementAdapter<ElasticToAcoustic2D<Scalar<TensorQuad<QuadP1>>>> ElasticCplAcousticQuadP1;
 
 std::unique_ptr<Element> Element::Factory(const std::vector<std::string>& physics_base,
                                           const std::vector<std::string>& physics_couple,
@@ -104,6 +104,7 @@ std::unique_ptr<Element> Element::Factory(const std::vector<std::string>& physic
       } else if (options->PhysicsSystem() == "acoustic_fast") {
         return std::unique_ptr<Element> (new AcousticHexP1v2(options));
       } else if (options->PhysicsSystem() == "acoustic_v") {
+        std::cout << "HI" << std::endl;
         return std::unique_ptr<Element> (new AcousticVHexP1(options));
       } else if (options->PhysicsSystem() == "acoustic_lf") {
         return std::unique_ptr<Element> (new AcousticHexP1_fast_lf(options));

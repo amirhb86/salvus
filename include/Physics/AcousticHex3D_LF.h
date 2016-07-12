@@ -15,7 +15,7 @@ class ExodusModel;
 template <typename Shape>
 class AcousticHex3D_LF: public Shape {
   /**
-   * \class Acoustic2D
+   * \class Scalar
    *
    * \brief Class in charge of handling wave propagation in acoustic regions.
    *

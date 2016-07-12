@@ -40,7 +40,7 @@ MatrixXd ElasticToAcoustic2D<BasePhysics>::computeSurfaceIntegral(const Ref<cons
 
 }
 
-#include <Physics/Acoustic2D.h>
+#include <Physics/Scalar.h>
 #include <Element/HyperCube/TensorQuad.h>
 #include <Element/HyperCube/QuadP1.h>
-template class ElasticToAcoustic2D<Acoustic2D<TensorQuad<QuadP1>>>;
+template class ElasticToAcoustic2D<Scalar<TensorQuad<QuadP1>>>;

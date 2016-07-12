@@ -73,6 +73,9 @@ FieldDict Order2Newmark::takeTimeStep(FieldDict fields) {
     }
   }
 
+  PetscScalar max; VecMax(fields["u"]->mGlb, NULL, &max);
+  std::cout << "Max value: " << max << std::endl;
+
   return fields;
 
 }

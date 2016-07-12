@@ -5,7 +5,7 @@
 #include "../../../include/Element/ElementAdapter.h"
 #include <Element/HyperCube/TensorQuad.h>
 #include <Element/HyperCube/QuadP1.h>
-#include <Physics/Acoustic2D.h>
+#include <Physics/Scalar.h>
 #include <Element/Simplex/Triangle.h>
 #include <Element/Simplex/TriP1.h>
 #include <Element/HyperCube/TensorQuad.h>

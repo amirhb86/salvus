@@ -5,6 +5,7 @@
 
 // 3rd party.
 #include <Eigen/Dense>
+#include <Utilities/Types.h>
 
 // forward decl.
 class Mesh;
@@ -12,9 +13,9 @@ class Options;
 class ExodusModel;
 
 template <typename Shape>
-class Acoustic2D: public Shape {
+class Scalar: public Shape {
   /**
-   * \class Acoustic2D
+   * \class Scalar
    *
    * \brief Class in charge of handling wave propagation in acoustic regions.
    *
@@ -26,38 +27,39 @@ class Acoustic2D: public Shape {
  private:
 
   /**** Workspace vectors (allocated in the constructor). ****/
-  Eigen::VectorXd mVpSquared;
-  Eigen::VectorXd mStiff;
-  Eigen::VectorXd mSource;
-  Eigen::MatrixXd mStress;
-  Eigen::MatrixXd mStrain;
+  RealVec mVpSquared;
+  RealVec mStiff;
+  RealVec mSource;
+  RealMat mStress;
+  RealMat mStrain;
 
  public:
 
   /**** Initializers ****/
-  Acoustic2D<Shape>(std::unique_ptr<Options> const &options);
-  ~Acoustic2D<Shape>() {};
+  Scalar<Shape>(std::unique_ptr<Options> const &options);
+  ~Scalar<Shape>() {};
   std::vector<std::string> PullElementalFields() const;
   std::vector<std::string> PushElementalFields() const;
 
   /**** Setup functions ****/
   void prepareStiffness() {};
-  Eigen::MatrixXd assembleElementMassMatrix();
+  RealMat assembleElementMassMatrix();
   void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model);
   double CFL_estimate();
   
   /**** Time loop functions ****/
-  Eigen::MatrixXd computeStress(const Eigen::Ref<const Eigen::MatrixXd>& strain);
-  Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &u);
-  Eigen::MatrixXd computeSurfaceIntegral(const Eigen::Ref<const Eigen::MatrixXd>& u);
-  Eigen::MatrixXd computeSourceTerm(const double time);
-  void recordField(const Eigen::MatrixXd &u) {};
+  RealMat computeStress(const Eigen::Ref<const RealMat>& strain);
+  RealMat computeStiffnessTerm(const Eigen::Ref<const RealMat>& u);
+  RealMat computeSurfaceIntegral(const Eigen::Ref<const RealMat>& u);
+  RealMat computeSourceTerm(const double time);
+  void recordField(const Eigen::Ref<const RealMat>& u) {};
 
   /**** Test helpers ****/
-  void setupEigenfunctionTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options);
+  void setupEigenfunctionTest(std::unique_ptr<Mesh> const &mesh,
+                              std::unique_ptr<Options> const &options) {};
   double checkEigenfunctionTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options,
                                 const Eigen::Ref<const Eigen::MatrixXd>& u,
-                                double time);
+                                double time) {};
 
 };
 

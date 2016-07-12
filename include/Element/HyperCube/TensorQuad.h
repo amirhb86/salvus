@@ -198,7 +198,7 @@ private:
    * @param [in] edg Edge number.
    * @returns A 2d "normal" pointing outwards.
    */
-  Eigen::Vector2d getEdgeNormal(const PetscInt edg);
+  RealVec2 getEdgeNormal(const PetscInt edg);
 
   /**
    * Attach the (4) vertex coordinates to the element.
@@ -228,7 +228,7 @@ private:
    * @param [in] r Reference coordinate.
    * @param [in] s Reference coordinate.
    */
-  Eigen::VectorXd getDeltaFunctionCoefficients(const double r, const double s);
+  RealVec getDeltaFunctionCoefficients(const double r, const double s);
 
   /**
    * Given a model, save the material parameters at the element vertices.
@@ -241,7 +241,7 @@ private:
    * Given some field at the GLL points, interpolate the field to some general point.
    * @param [in] pnt Position in reference coordinates.
    */
-  Eigen::MatrixXd interpolateFieldAtPoint(const Eigen::VectorXd &pnt) { return Eigen::MatrixXd(1, 1); }
+  RealMat interpolateFieldAtPoint(const Eigen::VectorXd &pnt) { return Eigen::MatrixXd(1, 1); }
 
   // Setters.
   inline void SetNumNew(const PetscInt num) { mElmNum = num; }

@@ -26,68 +26,6 @@ class Options;
  */
 class ProblemNew {
 
- protected:
-
-  /**
-   * Queries the graph closure for the mesh, and gets the field on a given element. Note that this
-   * does not perform any parallel scattering.
-   * @param [in] name A string specifying the field name.
-   * @param [in] num The element number.
-   * @param [in] closure A vector of indices specifying the correct locations in the global DOFs.
-   * @param [in] PETScDM The PETSc DM object.
-   * @param [in] PETScSection the PETSc section object.
-   * @param [in/out] fields A map containing references to the global fields.
-   * @returns A vector containing the field values on the element.
-   */
-  static RealVec getFieldOnElement(const std::string &name, const PetscInt num,
-                                   const Eigen::Ref<const IntVec> &closure,
-                                   DM PETScDM, PetscSection PETScSection,
-                                   FieldDict &fields);
-
-  /**
-   * Queries the graph closure for the mesh, and sums (assembles) local field contribution
-   * on a given element into the correct global DOFs. Note that this does not perform an parallel scattering.
-   * @param [in] name A string specifying the field name.
-   * @param [in] num The element number.
-   * @param [in] closure A vector of indices specifying the correct locations in the global DOFs.
-   * @param [in] field A vector containing the values to assemble.
-   * @param [in] PETScDM The PETSc DM object.
-   * @param [in] PETScSection the PETSc section object.
-   * @param [in/out] fields A map containing references to the global fields.
-   */
-  static void addFieldOnElement(const std::string &name, const PetscInt num,
-                                const Eigen::Ref<const IntVec> &closure,
-                                const Eigen::Ref<const RealVec> &field,
-                                DM PETScDM, PetscSection PETScSection,
-                                FieldDict &fields);
-
-  /**
-   * Queries the global distributed DOFs for a certain field vector. If the vector exists,
-   * it is properly transferred to the local partition (GlobalToLocal). If it does not exist,
-   * an assertation error is thrown.
-   * @param [in] name A string specifying the field name.
-   * @param [in] PETScDM A pointer to the governing PETScDM.
-   * @param [in/out] A map containing references to the global fields.
-   */
-  static void checkOutField(const std::string &name, DM PETScDM, FieldDict &fields);
-
-  /**
-   * Queries the global distributed DOfs for a certain field vector. If the vector exists,
-   * it is properly transferred to the global partition (LocalToGlobal). If it does not exist,
-   * and assertation error is thrown.
-   * @param [in] name A string specifying the field name.
-   * @param [in] PETScDM A pointer to the governing PETScDM.
-   * @param [in/out] A map containing references to the global fields.
-   */
-  static void checkInField(const std::string &name, DM PETScDM, FieldDict &fields);
-
-  /**
-   * Sets a global/local field pair to zero.
-   * @param [in] name A string specifying the field name.
-   * @param [in/out] A map containing references to the global fields.
-   */
-  static void zeroField(const std::string &name, FieldDict &fields);
-
  public:
 
   /// Empty constructor.
@@ -155,6 +93,85 @@ class ProblemNew {
    * @returns A dictionary of modified fields.
    */
   virtual FieldDict takeTimeStep(FieldDict fields) = 0;
+
+  /**
+   * Queries the graph closure for the mesh, and gets the field on a given element. Note that this
+   * does not perform any parallel scattering.
+   * @param [in] name A string specifying the field name.
+   * @param [in] num The element number.
+   * @param [in] closure A vector of indices specifying the correct locations in the global DOFs.
+   * @param [in] PETScDM The PETSc DM object.
+   * @param [in] PETScSection the PETSc section object.
+   * @param [in/out] fields A map containing references to the global fields.
+   * @returns A vector containing the field values on the element.
+   */
+  static RealVec getFieldOnElement(const std::string &name, const PetscInt num,
+                                   const Eigen::Ref<const IntVec> &closure,
+                                   DM PETScDM, PetscSection PETScSection,
+                                   FieldDict &fields);
+
+  /**
+   * Queries the graph closure for the mesh, and sums (assembles) local field contribution
+   * on a given element into the correct global DOFs. Note that this does not perform an parallel scattering.
+   * @param [in] name A string specifying the field name.
+   * @param [in] num The element number.
+   * @param [in] closure A vector of indices specifying the correct locations in the global DOFs.
+   * @param [in] field A vector containing the values to assemble.
+   * @param [in] PETScDM The PETSc DM object.
+   * @param [in] PETScSection the PETSc section object.
+   * @param [in/out] fields A map containing references to the global fields.
+   */
+  static void addFieldOnElement(const std::string &name, const PetscInt num,
+                                const Eigen::Ref<const IntVec> &closure,
+                                const Eigen::Ref<const RealVec> &field,
+                                DM PETScDM, PetscSection PETScSection,
+                                FieldDict &fields);
+
+  /**
+   * Queries the graph closure for the mesh, and inserts local field contribution
+   * on a given element into the correct global DOFs. This is useful for setting initial
+   * conditions, etc. The function also goes a step further and performs the proper parallel
+   * scattering to the global DOFs (i.e. no assembly is done).
+   * @param [in] name A string specifying the field name.
+   * @param [in] num The element number.
+   * @param [in] closure A vector of indices specifying the correct locations in the global DOFs.
+   * @param [in] field A vector containing the values to assemble.
+   * @param [in] PETScDM The PETSc DM object.
+   * @param [in] PETScSection the PETSc section object.
+   * @param [in/out] fields A map containing references to the global fields.
+   */
+  static void insertElementalFieldIntoMesh(const std::string &name, const PetscInt num,
+                                           const Eigen::Ref<const IntVec> &closure,
+                                           const Eigen::Ref<const RealVec> &field,
+                                           DM PETScDM, PetscSection PETScSection,
+                                           FieldDict &fields);
+
+  /**
+   * Queries the global distributed DOFs for a certain field vector. If the vector exists,
+   * it is properly transferred to the local partition (GlobalToLocal). If it does not exist,
+   * an assertation error is thrown.
+   * @param [in] name A string specifying the field name.
+   * @param [in] PETScDM A pointer to the governing PETScDM.
+   * @param [in/out] A map containing references to the global fields.
+   */
+  static void checkOutField(const std::string &name, DM PETScDM, FieldDict &fields);
+
+  /**
+   * Queries the global distributed DOfs for a certain field vector. If the vector exists,
+   * it is properly transferred to the global partition (LocalToGlobal). If it does not exist,
+   * and assertation error is thrown.
+   * @param [in] name A string specifying the field name.
+   * @param [in] PETScDM A pointer to the governing PETScDM.
+   * @param [in/out] A map containing references to the global fields.
+   */
+  static void checkInField(const std::string &name, DM PETScDM, FieldDict &fields);
+
+  /**
+   * Sets a global/local field pair to zero.
+   * @param [in] name A string specifying the field name.
+   * @param [in/out] A map containing references to the global fields.
+   */
+  static void zeroField(const std::string &name, FieldDict &fields);
 
 };
 

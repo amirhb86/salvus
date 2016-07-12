@@ -75,12 +75,14 @@ ElemVec ProblemNew::initializeElements(unique_ptr<Mesh> const &mesh,
 
     /* Test for any sources. */
     for (auto &src: srcs) {
-      srcs_this_partition[src->Num()] = elements.back()->attachSource(src, trial_attach) ? rank : 0;
+      srcs_this_partition[src->Num()] =
+          elements.back()->attachSource(src, trial_attach) ? rank : 0;
     }
 
     /* Test for any receivers. */
     for (auto &rec: recs) {
-      recs_this_partition[rec->Num()] = elements.back()->attachReceiver(rec, trial_attach) ? rank : 0;
+      recs_this_partition[rec->Num()] =
+          elements.back()->attachReceiver(rec, trial_attach) ? rank : 0;
     }
 
   }
@@ -126,9 +128,9 @@ ElemVec ProblemNew::initializeElements(unique_ptr<Mesh> const &mesh,
   return elements;
 
 }
-std::tuple<ElemVec, FieldDict> ProblemNew::assembleIntoGlobalDof(ElemVec elements, FieldDict fields,
-                                                                 DM PETScDM, PetscSection PETScSection,
-                                                                 std::unique_ptr<Options> const &options) {
+std::tuple<ElemVec, FieldDict> ProblemNew::assembleIntoGlobalDof(
+    ElemVec elements, FieldDict fields, DM PETScDM, PetscSection PETScSection,
+    std::unique_ptr<Options> const &options) {
 
   /* Get some derived quantities. */
   PetscInt maxLocalFields = 0;
@@ -242,6 +244,22 @@ void ProblemNew::addFieldOnElement(const std::string &name,
   RealVec reorder(closure.size());
   for (PetscInt i = 0; i < closure.size(); i++) { reorder(i) = field(closure(i)); }
   DMPlexVecSetClosure(PETScDM, PETScSection, fields[name]->mLoc, num, reorder.data(), ADD_VALUES);
+
+}
+
+void ProblemNew::insertElementalFieldIntoMesh(const std::string &name,
+                                              const PetscInt num,
+                                              const Eigen::Ref<const IntVec> &closure,
+                                              const Eigen::Ref<const RealVec> &field,
+                                              DM PETScDM, PetscSection PETScSection,
+                                              FieldDict &fields) {
+
+  RealVec reorder(closure.size());
+  for (PetscInt i = 0; i < closure.size(); i++) { reorder(i) = field(closure(i)); }
+  DMPlexVecSetClosure(PETScDM, PETScSection, fields[name]->mLoc, num, reorder.data(),
+                      INSERT_VALUES);
+  DMLocalToGlobalBegin(PETScDM, fields[name]->mLoc, INSERT_VALUES, fields[name]->mGlb);
+  DMLocalToGlobalEnd(PETScDM, fields[name]->mLoc, INSERT_VALUES, fields[name]->mGlb);
 
 }
 

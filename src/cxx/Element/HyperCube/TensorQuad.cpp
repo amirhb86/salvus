@@ -345,7 +345,7 @@ RealVec TensorQuad<ConcreteShape>::ParAtIntPts(const std::string &par) {
 }
 
 template<typename ConcreteShape>
-VectorXd TensorQuad<ConcreteShape>::applyTestAndIntegrate(const Ref<const VectorXd> &f) {
+RealVec TensorQuad<ConcreteShape>::applyTestAndIntegrate(const Ref<const RealVec> &f) {
 
   RealMat2x2 invJac;
   for (PetscInt s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {

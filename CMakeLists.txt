@@ -18,7 +18,7 @@ if (NOT CMAKE_BUILD_TYPE)
 endif (NOT CMAKE_BUILD_TYPE)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -coverage -std=c++11")
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -std=c++11")
 #set(CMAKE_CXX_FLAGS_DEBUG "-O3 -msse2 -save-temps")
 
 find_package(MPI REQUIRED)
@@ -62,7 +62,7 @@ set(SALVUS_SOURCES
         src/cxx/Element/HyperCube/Quad/QuadP1.cpp
         src/cxx/Element/HyperCube/Hexahedra.cpp
         src/cxx/Element/HyperCube/Hex/HexP1.cpp
-        src/cxx/Physics/Element/Acoustic2D.cpp
+        src/cxx/Physics/Element/Scalar.cpp
         src/cxx/Physics/Element/AcousticTet.cpp
         src/cxx/Physics/Element/Acoustic3D.cpp
         src/cxx/Physics/Element/AcousticHex3D.cpp
@@ -100,7 +100,8 @@ add_executable(salvus_test
         src/cxx/Testing/test_TensorQuad.cpp
         src/cxx/Testing/test_2d_fluid_solid_couple.cpp
         src/cxx/Testing/test_problem_new.cpp
-        src/cxx/Testing/test_source.cpp)
+        src/cxx/Testing/test_source.cpp
+        src/cxx/Testing/test_Quad_Scalar_2D.cpp)
 
 # run `make` (or `make -j5`) to build `salvus` executable
 target_link_libraries(salvus salvusCommon ${MPI_LIBRARIES} petsc exodus netcdf hdf5)
