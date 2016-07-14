@@ -46,13 +46,13 @@ std::unique_ptr<Element> Element::Factory(const std::vector<std::string>& physic
                                           std::unique_ptr<Options> const &options) {
 
   // define field combinations.
-  std::vector<std::string> acoustic_fields = {"u"};
-  std::vector<std::string> elastic_2d_fields = {"ux", "uy"};
-  std::vector<std::string> elastic_3d_fields = {"ux", "uy", "uz"};
+  std::vector<std::string> fluid {"fluid"};
+  std::vector<std::string> elastic_2d {"elastic2d"};
+  std::vector<std::string> elastic_3d {"elastic3d"};
 
   try {
     if (options->ElementShape() == "quad_new") {
-      if (physics_base == acoustic_fields) {
+      if (physics_base == fluid) {
 
         /* If only acoustic, return a base acoustic. */
         if (!physics_couple.size()) {
@@ -60,11 +60,11 @@ std::unique_ptr<Element> Element::Factory(const std::vector<std::string>& physic
         }
 
         /* If elastic fields detected, return a coupled elastic element. */
-        else if (physics_couple == elastic_2d_fields) {
+        else if (physics_couple == elastic_2d) {
           return std::unique_ptr<Element> (new ElasticCplAcousticQuadP1(options));
         }
 
-      } else if (physics_base == elastic_2d_fields) {
+      } else if (physics_base == elastic_2d) {
 
         /* If only elastic, return a base elastic. */
         if (!physics_couple.size()) {
@@ -72,7 +72,7 @@ std::unique_ptr<Element> Element::Factory(const std::vector<std::string>& physic
         }
 
         /* If acoustic fields are detected, return a coupled acoustic element. */
-        else if (physics_couple == acoustic_fields) {
+        else if (physics_couple == fluid) {
           return std::unique_ptr<Element>(new AcousticCplElasticQuadP1(options));
         }
 
@@ -81,45 +81,6 @@ std::unique_ptr<Element> Element::Factory(const std::vector<std::string>& physic
       }
     }
 
-    else if (options->ElementShape() == "triangle_new") {
-      if (options->PhysicsSystem() == "acoustic") {
-        return std::unique_ptr<Element>(new AcousticTriP1(options));
-      } else {
-        throw std::runtime_error("Runtime Error: Element physics " + options->PhysicsSystem() + " not supported.");
-      }
-    }
-    else if (options->ElementShape() == "hex_new") {
-      if (physics_base == acoustic_fields) {
-        if (!physics_couple.size()) {
-          return std::unique_ptr<Element>(new AcousticVHexP1(options));
-        }
-      } else if (physics_base == elastic_3d_fields) {
-        if (!physics_couple.size()) {
-          return std::unique_ptr<Element>(new ElasticHexP1(options));
-        }
-      }
-
-      if (options->PhysicsSystem() == "acoustic") {
-        return std::unique_ptr<Element> (new AcousticHexP1(options));
-      } else if (options->PhysicsSystem() == "acoustic_fast") {
-        return std::unique_ptr<Element> (new AcousticHexP1v2(options));
-      } else if (options->PhysicsSystem() == "acoustic_v") {
-        std::cout << "HI" << std::endl;
-        return std::unique_ptr<Element> (new AcousticVHexP1(options));
-      } else if (options->PhysicsSystem() == "acoustic_lf") {
-        return std::unique_ptr<Element> (new AcousticHexP1_fast_lf(options));
-      } else {
-        throw std::runtime_error("Runtime Error: Element physics " + options->PhysicsSystem() + " not supported.");
-      }
-    } else if (options->ElementShape() == "tet_new") {
-      if (options->PhysicsSystem() == "acoustic") {
-        return std::unique_ptr<Element>(new AcousticTetP1(options));
-      } else {
-        throw std::runtime_error("Runtime Error: Element physics " + options->PhysicsSystem() + " not supported.");
-      }
-    } else {
-      throw std::runtime_error("Runtime Error: Element shape " + options->ElementShape() + " not supported.");
-    }
   } catch (std::exception &e) {
     std::cout << e.what();
     MPI_Abort(PETSC_COMM_WORLD, -1);

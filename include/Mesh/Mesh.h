@@ -45,7 +45,7 @@ class Mesh {
   std::vector<std::set<std::string>> mElmFields;
 
   /** Keeps track of any (possible) coupling fields on each element. **/
-  std::map<PetscInt,std::set<std::string>> mCouplingFields;
+  std::map<PetscInt,std::set<std::string>> mPointFields;
 
   /** < Exodus file from which this mesh (skeleton) was defined. */
   std::string mExodusFileName;
@@ -57,7 +57,7 @@ class Mesh {
   PetscSection mMeshSection;
 
   PetscInt mNumberElementsLocal; /** < Num of elements on this processor. */
-  PetscInt mNumberDimensions;    /** < Num of dimensions of the mesh. */
+  PetscInt mNumDim;    /** < Num of dimensions of the mesh. */
   PetscInt mNumberSideSets;      /** < Num of flagged boundaries. */
   PetscInt int_tstep;            /** < Timestep number. */
 
@@ -365,7 +365,7 @@ class Mesh {
   int numFieldPerPhysics(std::string physics);
 
   inline std::vector<std::string> ElementFields(const PetscInt num) {
-    return std::vector<std::string> (mElmFields[num].begin(), mElmFields[num].end());
+    return std::vector<std::string> (mPointFields[num].begin(), mPointFields[num].end());
   }
 
   inline DM &DistributedMesh() { return mDistributedMesh; }
@@ -373,7 +373,7 @@ class Mesh {
   virtual std::map<PetscInt, std::string> &BoundaryIds() { return mBoundaryIds; }
 
   inline int NumberSideSets() { return mNumberSideSets; }
-  inline int NumberDimensions() { return mNumberDimensions; }
+  inline int NumberDimensions() { return mNumDim; }
 
   inline std::map<std::string, std::map<int, std::vector<int>>>
   BoundaryElementFaces() { return mBoundaryElementFaces; }

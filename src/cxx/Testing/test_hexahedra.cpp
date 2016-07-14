@@ -346,7 +346,7 @@ TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
 
   int order = 3;
   
-  PetscOptionsClear();
+  PetscOptionsClear(NULL);
   const char *arg[] = {
     "salvus_test",
     "--testing","true",
@@ -359,7 +359,7 @@ TEST_CASE("Test closure mapping","[element/hexahedra_new]") {
   
   char **argv = const_cast<char **> (arg);
   int argc = sizeof(arg) / sizeof(const char *) - 1;
-  PetscOptionsInsert(&argc, &argv, NULL);
+  PetscOptionsInsert(NULL, &argc, &argv, NULL);
 
   // Set options for exact tests
   std::unique_ptr<Options> options(new Options());

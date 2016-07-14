@@ -92,7 +92,8 @@ class ProblemNew {
    * @param [in] fields A map containing references to the global fields.
    * @returns A dictionary of modified fields.
    */
-  virtual FieldDict takeTimeStep(FieldDict fields) = 0;
+  virtual std::tuple<FieldDict, PetscScalar> takeTimeStep(
+      FieldDict fields, PetscScalar time, std::unique_ptr<Options> const &options) = 0;
 
   /**
    * Queries the graph closure for the mesh, and gets the field on a given element. Note that this

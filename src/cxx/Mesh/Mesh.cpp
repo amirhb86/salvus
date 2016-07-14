@@ -12,6 +12,8 @@
 #include <Utilities/Options.h>
 #include <Utilities/Utilities.h>
 #include <Utilities/Logging.h>
+#include <petscdmplex.h>
+#include <Utilities/Types.h>
 
 extern "C" {
 #include <exodusII.h>
@@ -142,8 +144,8 @@ void Mesh::read(std::unique_ptr<Options> const &options) {
     // mDistributedMesh == NULL when only 1 proc is used.
   else { mDistributedMesh = dm; }
 
-  DMGetDimension(mDistributedMesh, &mNumberDimensions);
-  DMPlexGetDepthStratum(mDistributedMesh, mNumberDimensions, NULL, &mNumberElementsLocal);
+  DMGetDimension(mDistributedMesh, &mNumDim);
+  DMPlexGetDepthStratum(mDistributedMesh, mNumDim, NULL, &mNumberElementsLocal);
 }
 
 #undef __FUNCT__
@@ -161,7 +163,7 @@ int Mesh::setupBoundaries(std::unique_ptr<Options> const &options) {
   // faces on absorbing boundary get label value "1", and faces on
   // free surface get value "2".
   DMLabel label;
-  ierr = DMPlexGetLabel(mDistributedMesh, "Face Sets", &label);
+  ierr = DMGetLabel(mDistributedMesh, "Face Sets", &label);
   CHKERRQ(ierr);
 
   // if no side sets are present, proceed with no boundaries (naturally a free surface)
@@ -214,157 +216,66 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
                                     int num_dof_fac, int num_dof_vol,
                                     int num_dim, unique_ptr<ExodusModel> const &model) {
 
-  assert(num_dim == mNumberDimensions);
 
-  // Generic error code.
-  PetscErrorCode ier;
-
-  // Resize vector of all element types.
+  /* Allocate vector which will hold element types. */
   mElmFields.resize(mNumberElementsLocal);
 
-  // Save the types for all the elements. Get the types with our (could be better)
-  // centroid method.
+  /* Walk through the mesh and extract element types. */
   for (PetscInt i = 0; i < mNumberElementsLocal; i++) {
 
-    // Get the type of this element.
-    Eigen::MatrixXd vtx = getElementCoordinateClosure(i);
-    Eigen::VectorXd ctr(vtx.cols());
+    /* Get and save the type of element i. */
+    RealMat vtx = getElementCoordinateClosure(i); RealVec ctr(vtx.cols());
+    for (PetscInt j = 0; j < mNumDim; j++) { ctr(j) = vtx.col(j).mean(); }
+    std::string type = model->getElementType(ctr); mPointFields[i].insert(type);
 
-    // Get the transitive closure for this element.
-    PetscInt num_pnts;
-    PetscInt *points = NULL;
-    ier = DMPlexGetTransitiveClosure(mDistributedMesh, i, PETSC_TRUE, &num_pnts, &points); CHKERRQ(ier);
+    /* Add the type of element i to all mesh points connected via the Hasse graph. */
+    PetscInt num_pts; const PetscInt *pts = NULL;
+    DMPlexGetCone(mDistributedMesh, i, &pts); DMPlexGetConeSize(mDistributedMesh, i, &num_pts);
+    for (PetscInt j = 0; j < num_pts; j++) { mPointFields[pts[j]].insert(type); }
 
-    // Extract the string defining the element type.
-    if (mNumberDimensions == 2) {
-      ctr << vtx.col(0).mean(), vtx.col(1).mean();
-    }
-    else if (mNumberDimensions == 3) {
-      ctr << vtx.col(0).mean(), vtx.col(1).mean(), vtx.col(2).mean();
-    }
-    std::string type = model->getElementType(ctr);
+    /* Finally, add the type type to the global fields. */
+    mMeshFields.insert(type);
 
-    // Set primary fields.
-    for (auto &field: appendPhysicalFields({}, type)) {
-      mElmFields[i].insert(field);
-      mMeshFields.insert(field);
-    }
-
-    // Traverse the closure, and add types accordingly.
-    for (PetscInt j = 0; j < num_pnts; j++) {
-      // Make a map of pnt -> set of types at each graph point.
-      PetscInt pnt = points[2 * j];
-      for (auto &field: appendPhysicalFields({}, type)) { mCouplingFields[pnt].insert(field); }
-    }
-    DMPlexRestoreTransitiveClosure(mDistributedMesh, i, PETSC_TRUE, &num_pnts, &points);
   }
 
+  /* Use the information extracted above to inform the global DOF layout. */
+  PetscInt num_bc = 0;
+  PetscInt poly_order = 4;
+  PetscInt num_fields = mMeshFields.size();
+  PetscInt *num_comps; PetscMalloc1(num_fields, &num_comps);
+  {
+    PetscInt i = 0;
+    for (auto &f: mMeshFields) { num_comps[i++] = numFieldPerPhysics(f); }
+  }
+  PetscInt *num_dof; PetscMalloc1(num_fields * (mNumDim + 1), &num_dof);
 
-  // Create the section and add the fields we've defined.
-  ier = PetscSectionCreate(PetscObjectComm((PetscObject) mDistributedMesh), &mMeshSection);
-  CHKERRQ(ier);
-  ier = PetscSectionSetNumFields(mMeshSection, 1);
-  CHKERRQ(ier);
+  /* For each field... */
+  for (PetscInt f = 0; f < num_fields; f++) {
 
-  /* TODO: Below is the proper way to handle multiple fields. Not working atm. */
-//  // Create the section and add the fields we've defined.
-//  ier = PetscSectionCreate(PetscObjectComm((PetscObject) mDistributedMesh), &mMeshSection);
-//  CHKERRQ(ier);
-//  ier = PetscSectionSetNumFields(mMeshSection, mMeshFields.size());
-//  CHKERRQ(ier);
-//
-//  int itr = 0;
-//  int one_field = 1;
-//  for (auto field: mMeshFields) {
-//    ier = PetscSectionSetFieldComponents(mMeshSection, itr, one_field);
-//    CHKERRQ(ier);
-//    ier = PetscSectionSetFieldName(mMeshSection, itr, field.c_str());
-//    CHKERRQ(ier);
-//    itr++;
-//  }
-  /**** !* !* !* *!*! !*!*!**!*!*!*!! */
+    /* For each element point... (vertex, edge, face, volume) */
+    for (PetscInt d = 0; d < (mNumDim + 1); d++) {
 
-  // Get the indices of  the entire Hasse Diagram.
-  PetscInt p_start, p_end;
-  ier = DMPlexGetChart(mDistributedMesh, &p_start, &p_end);
-  CHKERRQ(ier);
+      /* Number of dofs per this element point. */
+      num_dof[f * (mNumDim + 1) + d] = PetscPowInt(poly_order - 1, d) * num_comps[f];
 
-  // Tell the section about its' bounds.
-  ier = PetscSectionSetChart(mMeshSection, p_start, p_end);
-  CHKERRQ(ier);
-
-  // Get the number of levels of the Hasse diagram. Should be dimension + 1 (fac, edg, vtx. for 2D)
-  PetscInt depth;
-  ier = DMPlexGetDepth(mDistributedMesh, &depth);
-  CHKERRQ(ier);
-
-  // Wat
-  PetscInt *p_max;
-  ier = PetscMalloc1(depth + 1, &p_max);
-  CHKERRQ(ier);
-  ier = DMPlexGetHybridBounds(mDistributedMesh,
-                              depth >= 0 ? &p_max[depth] : NULL,
-                              depth > 1 ? &p_max[depth - 1] : NULL,
-                              depth > 2 ? &p_max[1] : NULL,
-                              &p_max[0]);
-  CHKERRQ(ier);
-
-  // dep = 0 -> fac; dep = 1 -> edg; dep = 2 -> vtx.
-  for (int dep = 0; dep <= depth; dep++) {
-    int num_dof = 0;
-    if (dep == 0) { num_dof = num_dof_vtx; }
-    else if (dep == 1) { num_dof = num_dof_edg; }
-    else if (dep == 2) { num_dof = num_dof_fac; }
-    else if (dep == 3) { num_dof = num_dof_vol; }
-    PetscInt d = mNumberDimensions == depth ? dep : (!dep ? 0 : mNumberDimensions);
-    // Get the number of components in each level of the Hasse diagram.
-    ier = DMPlexGetDepthStratum(mDistributedMesh, dep, &p_start, &p_end);
-    CHKERRQ(ier);
-    p_max[dep] = p_max[dep] < 0 ? p_end : p_max[dep];
-    // Loop over all mesh points on this level.
-    for (int p = p_start; p < p_end; ++p) {
-      PetscInt tot = 0;
-      for (int f = 0; f < mMeshFields.size(); ++f) {
-
-        // Loop through all fields defined on the mesh.
-        const char *nm;
-        PetscSectionGetFieldName(mMeshSection, f, &nm);
-
-        // Is this particular field defined at this mesh point?
-        bool exists = mCouplingFields[p].find((std::string(nm))) != mCouplingFields[p].end();
-
-        // If so, add num_dof points to this field. Otherwise add 0 dofs.
-        // Remember: the number of components given to any particular field
-        // has already been set above.
-        int num_dof_field_elem = exists ? num_dof : 0;
-
-        // Actually set the DOFs into the section.
-        ier = PetscSectionSetFieldDof(mMeshSection, p, f, num_dof);
-        CHKERRQ(ier);
-
-        // Set a custom number of dofs for each field.
-        tot += num_dof;
-
-        /* TODO: The break is here until we properly handle multiple fields. */
-        break;
-      }
-      // Total number of dofs per points is a sum of all the field dofs.
-      ier = PetscSectionSetDof(mMeshSection, p, tot);
-      CHKERRQ(ier);
     }
   }
 
-  // Clean up.
-  ier = PetscFree(p_max); CHKERRQ(ier);
+  /* Generate the section which will define the global dofs. */
+  DMPlexCreateSection(mDistributedMesh, mNumDim, num_fields, num_comps, num_dof,
+                      num_bc, NULL, NULL, NULL, NULL, &mMeshSection);
+  PetscFree(num_dof); PetscFree(num_comps);
 
-  // Finalize the section, and attach it to the DM.
-  ier = PetscSectionSetUp(mMeshSection); CHKERRQ(ier);
+  /* Attach some meta-information to the section. */
+  {
+    PetscInt i = 0;
+    for (auto &f: mMeshFields) { PetscSectionSetFieldName(mMeshSection, i++, f.c_str()); }
+  }
+
+  /* Attach the section to our DM, and set the spectral ordering. */
   DMSetDefaultSection(mDistributedMesh, mMeshSection);
+  DMPlexCreateSpectralClosurePermutation(mDistributedMesh, NULL);
 
-  // Improves performance of closure calls (for a 1.5x application perf. boost)
-  DMPlexCreateClosureIndex(mDistributedMesh, mMeshSection);
-
-  return ier;
 }
 
 std::vector<PetscInt> Mesh::EdgeNumbers(const PetscInt elm) {
@@ -417,7 +328,7 @@ std::vector<std::tuple<PetscInt,std::vector<std::string>>> Mesh::CouplingFields(
   for (PetscInt j = 0; j < num_pts; j++) {
     std::vector<std::string> field;
     PetscInt pnt = points[2*j];
-    for (auto f: mCouplingFields[pnt]) {
+    for (auto f: mPointFields[pnt]) {
       bool coupling_edge = mElmFields[elm].find(f) == mElmFields[elm].end();
       // if we're an edge (not vertex)
       if (coupling_edge && pnt >= e_start && pnt < e_end) { field.push_back(f); }
@@ -432,22 +343,16 @@ std::vector<std::tuple<PetscInt,std::vector<std::string>>> Mesh::CouplingFields(
 
 std::vector<std::string> Mesh::TotalCouplingFields(const PetscInt elm) {
 
-  std::set<std::string> fields;
-  std::set<std::string> elm_fields = mElmFields[elm];
-
-  PetscInt num_pts;
-  PetscInt *points = NULL;
-  PetscErrorCode ier = DMPlexGetTransitiveClosure(mDistributedMesh, elm, PETSC_TRUE, &num_pts, &points);
+  std::set<std::string> coupling_fields;
+  PetscInt num_pts; const PetscInt *pts = NULL;
+  DMPlexGetCone(mDistributedMesh, elm, &pts); DMPlexGetConeSize(mDistributedMesh, elm, &num_pts);
   for (PetscInt j = 0; j < num_pts; j++) {
-    std::vector<std::string> field;
-    PetscInt pnt = points[2 * j];
-    for (auto f: mCouplingFields[pnt]) {
-      bool coupling_edge = mElmFields[elm].find(f) == mElmFields[elm].end();
-      if (coupling_edge) { fields.insert(f); }
+    if (mPointFields[pts[j]] != mPointFields[elm]) {
+      coupling_fields.insert(mPointFields[pts[j]].begin(), mPointFields[pts[j]].end());
     }
   }
-  DMPlexRestoreTransitiveClosure(mDistributedMesh, elm, PETSC_TRUE, &num_pts, &points);
-  return std::vector<std::string> (fields.begin(), fields.end());
+  return std::vector<std::string> (coupling_fields.begin(), coupling_fields.end());
+
 }
 
 void Mesh::registerFieldVectors(const std::string &name) {
@@ -672,13 +577,13 @@ Eigen::MatrixXd Mesh::getElementCoordinateClosure(PetscInt elem_num) {
   PetscReal *coord_buf = NULL;
   DMPlexVecGetClosure(mDistributedMesh, coord_section, coord, elem_num, &coord_buf_size, &coord_buf);
 
-  int num_vtx = coord_buf_size / mNumberDimensions;
-  Eigen::MatrixXd vtx(num_vtx, mNumberDimensions);
+  int num_vtx = coord_buf_size / mNumDim;
+  Eigen::MatrixXd vtx(num_vtx, mNumDim);
   for (int i = 0; i < num_vtx; i++) {
-    vtx(i, 0) = coord_buf[mNumberDimensions * i + 0];
-    vtx(i, 1) = coord_buf[mNumberDimensions * i + 1];
-    if (mNumberDimensions == 3) {
-      vtx(i, 2) = coord_buf[mNumberDimensions * i + 2];
+    vtx(i, 0) = coord_buf[mNumDim * i + 0];
+    vtx(i, 1) = coord_buf[mNumDim * i + 1];
+    if (mNumDim == 3) {
+      vtx(i, 2) = coord_buf[mNumDim * i + 2];
     }
   }
 

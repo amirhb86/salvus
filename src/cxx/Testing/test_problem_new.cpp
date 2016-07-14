@@ -11,7 +11,7 @@ TEST_CASE("Test new problem formulation", "[problem_new]") {
 
   std::string e_file = "fluid_layer_over_elastic_cartesian_2D_50s.e";
 
-  PetscOptionsClear();
+  PetscOptionsClear(NULL);
   const char *arg[] = {
       "salvus_test",
       "--testing", "true",
@@ -32,7 +32,7 @@ TEST_CASE("Test new problem formulation", "[problem_new]") {
 
   char **argv = const_cast<char **> (arg);
   int argc = sizeof(arg) / sizeof(const char *) - 1;
-  PetscOptionsInsert(&argc, &argv, NULL);
+  PetscOptionsInsert(NULL, &argc, &argv, NULL);
 
   std::unique_ptr<Options> options(new Options);
   options->setOptions();
@@ -50,13 +50,14 @@ TEST_CASE("Test new problem formulation", "[problem_new]") {
   auto fields = problem->initializeGlobalDofs(elements, mesh);
 
   int i = 0;
+  PetscScalar time = 0;
   while (true) {
     std::tie(elements, fields) = problem->assembleIntoGlobalDof(std::move(elements), std::move(fields),
                                                                 mesh->DistributedMesh(), mesh->MeshSection(),
                                                                 options);
 
     fields = problem->applyInverseMassMatrix(std::move(fields));
-    fields = problem->takeTimeStep(std::move(fields));
+    std::tie(fields, time) = problem->takeTimeStep(std::move(fields), time, options);
     break;
   }
 

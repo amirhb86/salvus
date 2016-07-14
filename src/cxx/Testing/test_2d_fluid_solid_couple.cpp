@@ -24,7 +24,7 @@ class TestPlugin: public Element {
 };
 TEST_CASE("test_fluid_solid_couple", "[couple/fluid_solid]") {
 
-  PetscOptionsClear();
+  PetscOptionsClear(NULL);
   const char *arg[] = {
       "salvus_test",
       "--testing", "true",
@@ -37,7 +37,7 @@ TEST_CASE("test_fluid_solid_couple", "[couple/fluid_solid]") {
   char **argv = const_cast<char **> (arg);
   int argc = sizeof(arg) / sizeof(const char *) - 1;
 
-  PetscOptionsInsert(&argc, &argv, NULL);
+  PetscOptionsInsert(NULL, &argc, &argv, NULL);
 
   std::unique_ptr<Options> options(new Options);
   options->setOptions();

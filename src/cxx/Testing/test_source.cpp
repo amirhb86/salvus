@@ -1,3 +1,4 @@
+#include <petsc.h>
 #include <Utilities/Options.h>
 #include <Source/Source.h>
 #include <Mesh/Mesh.h>
@@ -30,7 +31,7 @@ TEST_CASE("Test source functionality", "[source]") {
 
   SECTION("unit") {
 
-    PetscOptionsClear();
+    PetscOptionsClear(NULL);
     const char *arg[] = {
         "salvus_test",
         "--testing", "true",
@@ -47,7 +48,7 @@ TEST_CASE("Test source functionality", "[source]") {
 
     char **argv = const_cast<char **> (arg);
     int argc = sizeof(arg) / sizeof(const char *) - 1;
-    PetscOptionsInsert(&argc, &argv, NULL);
+    PetscOptionsInsert(NULL, &argc, &argv, NULL);
 
     SECTION("general") {
 
@@ -56,9 +57,9 @@ TEST_CASE("Test source functionality", "[source]") {
       vector<PetscReal> z{80000, 90000};
 
       /* Need something to complete the source, so we choose ricker. */
-      PetscOptionsSetValue("--ricker_amplitude", "10,20");
-      PetscOptionsSetValue("--ricker_time_delay", "0.1,0.01");
-      PetscOptionsSetValue("--ricker_center_freq", "50,60");
+      PetscOptionsSetValue(NULL, "--ricker_amplitude", "10,20");
+      PetscOptionsSetValue(NULL, "--ricker_time_delay", "0.1,0.01");
+      PetscOptionsSetValue(NULL, "--ricker_center_freq", "50,60");
       std::unique_ptr<Options> options(new Options);
       options->setOptions();
       auto sources = Source::Factory(options);
@@ -81,9 +82,9 @@ TEST_CASE("Test source functionality", "[source]") {
     SECTION("ricker") {
 
       /* Options for ricker. */
-      PetscOptionsSetValue("--ricker_amplitude", "10,20");
-      PetscOptionsSetValue("--ricker_time_delay", "0.1,0.01");
-      PetscOptionsSetValue("--ricker_center_freq", "50,60");
+      PetscOptionsSetValue(NULL, "--ricker_amplitude", "10,20");
+      PetscOptionsSetValue(NULL, "--ricker_time_delay", "0.1,0.01");
+      PetscOptionsSetValue(NULL, "--ricker_center_freq", "50,60");
       std::unique_ptr<Options> options(new Options);
       options->setOptions();
 
@@ -109,10 +110,10 @@ TEST_CASE("Test source functionality", "[source]") {
     SECTION("integration") {
 
       string e_file = "fluid_layer_over_elastic_cartesian_2D_50s.e";
-      PetscOptionsSetValue("--exodus_file_name", e_file.c_str());
-      PetscOptionsSetValue("--exodus_model_file_name", e_file.c_str());
-      PetscOptionsSetValue("--element_shape", "quad_new");
-      PetscOptionsSetValue("--polynomial_order", "1");
+      PetscOptionsSetValue(NULL, "--exodus_file_name", e_file.c_str());
+      PetscOptionsSetValue(NULL, "--exodus_model_file_name", e_file.c_str());
+      PetscOptionsSetValue(NULL, "--element_shape", "quad_new");
+      PetscOptionsSetValue(NULL, "--polynomial_order", "1");
       std::unique_ptr<Options> options(new Options);
       options->setOptions();
 

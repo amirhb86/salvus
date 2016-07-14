@@ -49,10 +49,11 @@ FieldDict Order2Newmark::applyInverseMassMatrix(FieldDict fields) {
 
 }
 
-FieldDict Order2Newmark::takeTimeStep(FieldDict fields) {
+std::tuple<FieldDict, PetscScalar> Order2Newmark::takeTimeStep(
+    FieldDict fields, PetscScalar time, std::unique_ptr<Options> const &options) {
 
   /* Constants from Newmark scheme. */
-  PetscReal dt = 0.1;
+  PetscReal dt = 1e-2;
   PetscReal acl_factor = (1.0/2.0) * dt;
   PetscReal dsp_factor = (1.0/2.0) * (dt * dt);
 
@@ -73,9 +74,17 @@ FieldDict Order2Newmark::takeTimeStep(FieldDict fields) {
     }
   }
 
-  PetscScalar max; VecMax(fields["u"]->mGlb, NULL, &max);
-  std::cout << "Max value: " << max << std::endl;
+//  PetscScalar max;
+//  VecMax(fields["mi"]->mGlb, NULL, &max);
+//  std::cout << "Max value mi: " << max << std::endl;
+//  VecMax(fields["a"]->mGlb, NULL, &max);
+//  std::cout << "Max value a: " << max << std::endl;
+//  VecMax(fields["v"]->mGlb, NULL, &max);
+//  std::cout << "Max value v: " << max << std::endl;
+//  VecMax(fields["u"]->mGlb, NULL, &max);
+//  std::cout << "Max value u: " << max << std::endl;
 
-  return fields;
+  time += dt;
+  return std::tuple<FieldDict, PetscScalar> (std::move(fields), time);
 
 }

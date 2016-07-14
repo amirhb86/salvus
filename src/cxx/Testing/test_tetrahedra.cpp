@@ -97,7 +97,7 @@ TEST_CASE("Test mapping from reference tet to physical coords and back","[elemen
 // TEST_CASE("Testing fluid vs. non-fluid meshes", "[model]") {
   
 //   std::cout << "Testing if model crashes without fluid flag.\n";
-//   PetscOptionsClear();
+//   PetscOptionsClear(NULL);
 //   const char *arg[] = {
 //     "salvus_test",
 //     "--testing","true",
@@ -124,7 +124,7 @@ TEST_CASE("Test mapping from reference tet to physical coords and back","[elemen
 //     NULL};
 //   char **argv = const_cast<char **> (arg);
 //   int argc = sizeof(arg) / sizeof(const char *) - 1;
-//   PetscOptionsInsert(&argc, &argv, NULL);
+//   PetscOptionsInsert(NULL, &argc, &argv, NULL);
   
 //   // Set options for exact tests
 //   Options options;
@@ -157,7 +157,7 @@ TEST_CASE("Test mapping from reference tet to physical coords and back","[elemen
 
 //   int order = 3;
   
-//   PetscOptionsClear();
+//   PetscOptionsClear(NULL);
 //   const char *arg[] = {
 //     "salvus_test",
 //     "--testing","true",
@@ -170,7 +170,7 @@ TEST_CASE("Test mapping from reference tet to physical coords and back","[elemen
 
 //   char **argv = const_cast<char **> (arg);
 //   int argc = sizeof(arg) / sizeof(const char *) - 1;
-//   PetscOptionsInsert(&argc, &argv, NULL);
+//   PetscOptionsInsert(NULL, &argc, &argv, NULL);
 
 //   // Set options for exact tests
 //   Options options;

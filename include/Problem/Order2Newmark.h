@@ -9,7 +9,8 @@ class Order2Newmark: public ProblemNew {
 
   FieldDict initializeGlobalDofs(ElemVec const &elements, std::unique_ptr<Mesh> &mesh);
   FieldDict applyInverseMassMatrix(FieldDict fields);
-  FieldDict takeTimeStep(FieldDict fields);
+  std::tuple<FieldDict, PetscScalar> takeTimeStep(
+      FieldDict fields, PetscScalar time, std::unique_ptr<Options> const &options);
 
 };
 

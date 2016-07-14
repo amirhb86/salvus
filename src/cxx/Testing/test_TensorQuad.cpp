@@ -26,7 +26,7 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
 
   std::string e_file = "fluid_layer_over_elastic_cartesian_2D_50s.e";
 
-  PetscOptionsClear();
+  PetscOptionsClear(NULL);
   const char *arg[] = {
       "salvus_test",
       "--testing", "true",
@@ -39,7 +39,7 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
   // Fake setting via command line.
   char **argv = const_cast<char **> (arg);
   int argc = sizeof(arg) / sizeof(const char *) - 1;
-  PetscOptionsInsert(&argc, &argv, NULL);
+  PetscOptionsInsert(NULL, &argc, &argv, NULL);
 
   // Default vertices.
   QuadVtx vtx;
@@ -58,7 +58,7 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
   // Initialize options.
   for (PetscInt i = 1; i < TensorQuad<QuadP1>::MaxOrder() + 1; i++) {
 
-    PetscOptionsSetValue("--polynomial_order", std::to_string(i).c_str());
+    PetscOptionsSetValue(NULL, "--polynomial_order", std::to_string(i).c_str());
     options->setOptions();
 
     TensorQuad<QuadP1> test_quad(options);
@@ -140,18 +140,18 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
   }
 
   // Mock sources and receivers.
-  PetscOptionsSetValue("--number_of_sources", "2");
-  PetscOptionsSetValue("--source_type", "ricker");
-  PetscOptionsSetValue("--source_location_x", "50000,50000");
-  PetscOptionsSetValue("--source_location_y", "0,0");
-  PetscOptionsSetValue("--source_location_z", "80000,90000");
-  PetscOptionsSetValue("--ricker_amplitude", "10,20");
-  PetscOptionsSetValue("--ricker_time_delay", "0.1,0.01");
-  PetscOptionsSetValue("--ricker_center_freq", "50,60");
-  PetscOptionsSetValue("--number_of_receivers", "2");
-  PetscOptionsSetValue("--receiver_names", "rec1,rec2");
-  PetscOptionsSetValue("--receiver_location_x1", "50000,50000");
-  PetscOptionsSetValue("--receiver_location_x2", "80000,90000");
+  PetscOptionsSetValue(NULL, "--number_of_sources", "2");
+  PetscOptionsSetValue(NULL, "--source_type", "ricker");
+  PetscOptionsSetValue(NULL, "--source_location_x", "50000,50000");
+  PetscOptionsSetValue(NULL, "--source_location_y", "0,0");
+  PetscOptionsSetValue(NULL, "--source_location_z", "80000,90000");
+  PetscOptionsSetValue(NULL, "--ricker_amplitude", "10,20");
+  PetscOptionsSetValue(NULL, "--ricker_time_delay", "0.1,0.01");
+  PetscOptionsSetValue(NULL, "--ricker_center_freq", "50,60");
+  PetscOptionsSetValue(NULL, "--number_of_receivers", "2");
+  PetscOptionsSetValue(NULL, "--receiver_names", "rec1,rec2");
+  PetscOptionsSetValue(NULL, "--receiver_location_x1", "50000,50000");
+  PetscOptionsSetValue(NULL, "--receiver_location_x2", "80000,90000");
 
   options->setOptions();
 
@@ -221,7 +221,7 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
 //  QuadEdgeTrue(20,3) = +3.85;
 //
 //  // Set up custom command line arguments.
-//  PetscOptionsClear();
+//  PetscOptionsClear(NULL);
 //  const char *arg[] = {
 //      "salvus_test",
 //      "--testing", "true",
@@ -232,7 +232,7 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
 //  // Fake setting via command line.
 //  char **argv = const_cast<char **> (arg);
 //  int argc = sizeof(arg) / sizeof(const char *) - 1;
-//  PetscOptionsInsert(&argc, &argv, NULL);
+//  PetscOptionsInsert(NULL, &argc, &argv, NULL);
 //
 //  // Set vertices.
 //  Eigen::Matrix<double,4,2> vtx;
@@ -246,7 +246,7 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
 //    for (int order = 4; order < max_order + 1; order++) {
 //
 //      std::string num = std::to_string((long long) order);
-//      PetscOptionsSetValue("--polynomial_order", num.c_str());
+//      PetscOptionsSetValue(NULL, "--polynomial_order", num.c_str());
 //
 //      // Initialize options.
 //      std::unique_ptr<Options> options(new Options);

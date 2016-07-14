@@ -141,6 +141,8 @@ std::tuple<ElemVec, FieldDict> ProblemNew::assembleIntoGlobalDof(
     maxLocalFields = numLocalFields > maxLocalFields ? numLocalFields : maxLocalFields;
     for (auto &f: elm->PullElementalFields()) {
       pullFields.insert(f);
+    }
+    for (auto &f: elm->PushElementalFields()) {
       pushFields.insert(f);
     }
   }
@@ -219,6 +221,9 @@ void ProblemNew::checkInField(const std::string &name, DM PETScDM, FieldDict &fi
   DMLocalToGlobalBegin(PETScDM, fields[name]->mLoc, ADD_VALUES, fields[name]->mGlb);
   DMLocalToGlobalEnd(PETScDM, fields[name]->mLoc, ADD_VALUES, fields[name]->mGlb);
 
+  PetscScalar max; VecMax(fields[name]->mGlb, NULL, &max);
+  std::cout << "Max value of " + name + ": " << max << std::endl;
+
 }
 
 
@@ -241,9 +246,8 @@ void ProblemNew::addFieldOnElement(const std::string &name,
                                    PetscSection PETScSection,
                                    FieldDict &fields) {
 
-  RealVec reorder(closure.size());
-  for (PetscInt i = 0; i < closure.size(); i++) { reorder(i) = field(closure(i)); }
-  DMPlexVecSetClosure(PETScDM, PETScSection, fields[name]->mLoc, num, reorder.data(), ADD_VALUES);
+  DMPlexVecSetClosure(PETScDM, PETScSection, fields[name]->mLoc,
+                      num, field.data(), ADD_VALUES);
 
 }
 
@@ -254,10 +258,8 @@ void ProblemNew::insertElementalFieldIntoMesh(const std::string &name,
                                               DM PETScDM, PetscSection PETScSection,
                                               FieldDict &fields) {
 
-  RealVec reorder(closure.size());
-  for (PetscInt i = 0; i < closure.size(); i++) { reorder(i) = field(closure(i)); }
-  DMPlexVecSetClosure(PETScDM, PETScSection, fields[name]->mLoc, num, reorder.data(),
-                      INSERT_VALUES);
+  DMPlexVecSetClosure(PETScDM, PETScSection, fields[name]->mLoc,
+                      num, field.data(), INSERT_VALUES);
   DMLocalToGlobalBegin(PETScDM, fields[name]->mLoc, INSERT_VALUES, fields[name]->mGlb);
   DMLocalToGlobalEnd(PETScDM, fields[name]->mLoc, INSERT_VALUES, fields[name]->mGlb);
 
@@ -276,11 +278,7 @@ RealVec ProblemNew::getFieldOnElement(const std::string &name,
 
   /* Populate 'val' with field on element, in PETSc ordering. */
   DMPlexVecGetClosure(PETScDM, PETScSection, fields[name]->mLoc, num, NULL, &val);
-
-  /* Re-order into our tensorized basis ordering. */
-  for (PetscInt i = 0; i < closure.size(); i++) { field(closure(i)) = val[i]; }
-
-  /* De-allocate the PETSc pointer. */
+  for (PetscInt i = 0; i < field.size(); i++) { field(i) = val[i]; }
   DMPlexVecRestoreClosure(PETScDM, PETScSection, fields[name]->mLoc, num, NULL, &val);
 
   return field;

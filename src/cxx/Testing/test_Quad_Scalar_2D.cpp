@@ -34,7 +34,74 @@ class TestPlugin: public Element {
     problem->insertElementalFieldIntoMesh("u", Element::ElmNum(), Element::ClsMap(), un,
                                           mesh->DistributedMesh(), mesh->MeshSection(),
                                           fields);
+    problem->insertElementalFieldIntoMesh("v", Element::ElmNum(), Element::ClsMap(), vn,
+                                          mesh->DistributedMesh(), mesh->MeshSection(),
+                                          fields);
+    problem->insertElementalFieldIntoMesh("a", Element::ElmNum(), Element::ClsMap(), an,
+                                          mesh->DistributedMesh(), mesh->MeshSection(),
+                                          fields);
 
+  }
+
+  void checkEigenfunctionTestNew(std::unique_ptr<Mesh> const &mesh,
+                                 std::unique_ptr<Options> const &options,
+                                 const PetscScalar time,
+                                 std::unique_ptr<ProblemNew> &problem,
+                                 FieldDict &fields) {
+
+    PetscScalar x0 = 5e4, y0 = 5e4, L = 1e5;
+    RealVec pts_x, pts_y;
+    std::tie(pts_x, pts_y) = Element::buildNodalPoints();
+    RealVec un_xy = (M_PI / L * (pts_x.array() - (x0 + L / 2))).sin() *
+        (M_PI / L * (pts_y.array() - (y0 + L / 2))).sin();
+    PetscScalar vp = Element::ParAtIntPts("VP").mean();
+    PetscScalar un_t = cos(M_PI / L * sqrt(2) * time * vp);
+    RealVec exact = un_t * un_xy;
+
+    RealVec u = problem->getFieldOnElement(
+        "u", Element::ElmNum(), Element::ClsMap(),
+        mesh->DistributedMesh(), mesh->MeshSection(), fields);
+
+    PetscScalar element_error = (exact - u).array().abs().maxCoeff();
+//    std::cout << "ERROR ON ELEMENT " << Element::ElmNum() << ": " << element_error << std::endl;
+
+  }
+
+  void applyDirichletBoundariesNew(std::unique_ptr<Mesh> const &mesh,
+                                   std::unique_ptr<Options> const &options,
+                                   std::unique_ptr<ProblemNew> &problem,
+                                   FieldDict &fields) {
+
+    /* Get face set labels. */
+    PetscErrorCode ier; PetscInt num; DMLabel label;
+
+    /* There will be one label for each side set (x0, x1, ...). */
+    ier = DMGetLabel(mesh->DistributedMesh(), "Face Sets", &label);
+    ier = DMLabelGetNumValues(label, &num);
+
+    /* For each side set, get mesh points which belong to this set. */
+    for (PetscInt i = 0; i < num; i++) {
+      PetscInt numFaces; ier = DMLabelGetStratumSize(label, i + 1, &numFaces);
+      IS pointIs; ier = DMLabelGetStratumIS(label, i+1, &pointIs);
+
+      /* Get all faces belonging to this side set. */
+      const PetscInt *faces; ier = ISGetIndices(pointIs, &faces);
+
+      /* Get "cone", which is represents the edges of this element. */
+      const PetscInt *cone; DMPlexGetCone(mesh->DistributedMesh(), Element::ElmNum(), &cone);
+
+      /* For each face in the side set... */
+      for (PetscInt j = 0; j < numFaces; j++) {
+
+        /* For each edge of this element... */
+        for (PetscInt k = 0; k < 4; k++) {
+          if (faces[j] == cone[k]) {
+            std::cout << "ELEMENT " << Element::ElmNum() << " is on boundary." << std::endl;
+          }
+        }
+      }
+
+    }
   }
 };
 
@@ -48,7 +115,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
 
   std::string e_file = "quad_eigenfunction.e";
 
-  PetscOptionsClear();
+  PetscOptionsClear(NULL);
   const char *arg[] = {
       "salvus_test",
       "--testing", "true",
@@ -58,7 +125,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
       "--polynomial_order", "4", NULL};
   char **argv = const_cast<char **> (arg);
   int argc = sizeof(arg) / sizeof(const char *) - 1;
-  PetscOptionsInsert(&argc, &argv, NULL);
+  PetscOptionsInsert(NULL, &argc, &argv, NULL);
 
   std::unique_ptr<Options> options(new Options);
   options->setOptions();
@@ -94,17 +161,18 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
 
   }
 
+  std::string filename = "test.h5";
+  PetscViewer viewer = nullptr;
+  PetscViewerHDF5Open(PETSC_COMM_WORLD, filename.c_str(),
+                      FILE_MODE_WRITE, &viewer);
+  PetscViewerHDF5PushGroup(viewer, "/");
+  DMView(mesh->DistributedMesh(), viewer);
+  VecView(fields["u"]->mGlb, viewer);
+  PetscViewerDestroy(&viewer);
 
+  return;
 
-//  std::string filename = "test.h5";
-//  PetscViewer viewer = nullptr;
-//  PetscViewerHDF5Open(PETSC_COMM_WORLD, filename.c_str(),
-//                      FILE_MODE_WRITE, &viewer);
-//  PetscViewerHDF5PushGroup(viewer, "/");
-//  DMView(mesh->DistributedMesh(), viewer);
-//  VecView(fields["u"]->mGlb, viewer);
-//  PetscViewerDestroy(&viewer);
-
+  PetscScalar time = 0;
   while (true) {
 
     std::tie(test_elements, fields) = problem->assembleIntoGlobalDof(
@@ -112,8 +180,21 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
         mesh->DistributedMesh(), mesh->MeshSection(),
         options);
 
+    for (auto &elm: test_elements) {
+      auto boundary = static_cast<test_init*>(static_cast<test_insert*>(elm.get()));
+      boundary->applyDirichletBoundariesNew(mesh, options, problem, fields);
+    }
+
     fields = problem->applyInverseMassMatrix(std::move(fields));
-    fields = problem->takeTimeStep(std::move(fields));
+    std::tie(fields, time) = problem->takeTimeStep
+        (std::move(fields), time, options);
+
+    for (auto &elm: test_elements) {
+
+      auto validate = static_cast<test_init*>(static_cast<test_insert*>(elm.get()));
+      validate->checkEigenfunctionTestNew(mesh, options, time, problem, fields);
+
+    }
 
   }
 
