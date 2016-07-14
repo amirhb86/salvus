@@ -24,31 +24,30 @@
 #include <Physics/AcousticElastic2D.h>
 #include <Physics/ElasticAcoustic2D.h>
 #include <Utilities/Utilities.h>
+#include <Utilities/Logging.h>
+#include <Physics/HomogeneousDirichlet.h>
 
 /* Define all possible element classes as types here. */
-typedef class ElementAdapter<Scalar<TensorQuad<QuadP1>>> AcousticQuadP1;
-typedef class ElementAdapter<AcousticTri<Triangle<TriP1>>> AcousticTriP1;
-typedef class ElementAdapter<Acoustic3D<Hexahedra<HexP1>>> AcousticHexP1;
-typedef class ElementAdapter<AcousticHex3D<Hexahedra<HexP1>>> AcousticHexP1v2;
-typedef class ElementAdapter<AcousticHex3D_LF<Hexahedra<HexP1>>> AcousticHexP1_fast_lf;
-typedef class ElementAdapter<Acoustic3D<Tetrahedra<TetP1>>> AcousticTetP1v2;
-typedef class ElementAdapter<Acoustic3D_V<Hexahedra<HexP1>>> AcousticVHexP1;
-typedef class ElementAdapter<AcousticTet<Tetrahedra<TetP1>>> AcousticTetP1;
+typedef class ElementAdapter<Scalar<TensorQuad<QuadP1>>> ScalarQuadP1;
 typedef class ElementAdapter<Elastic2D<TensorQuad<QuadP1>>> ElasticQuadP1;
-typedef class ElementAdapter<Elastic3D<Hexahedra<HexP1>>> ElasticHexP1;
 
 /* Coupled classes. */
 typedef class ElementAdapter<AcousticToElastic2D<Elastic2D<TensorQuad<QuadP1>>>> AcousticCplElasticQuadP1;
 typedef class ElementAdapter<ElasticToAcoustic2D<Scalar<TensorQuad<QuadP1>>>> ElasticCplAcousticQuadP1;
 
-std::unique_ptr<Element> Element::Factory(const std::vector<std::string>& physics_base,
-                                          const std::vector<std::string>& physics_couple,
-                                          std::unique_ptr<Options> const &options) {
+/* Boundary conditions. */
+typedef class ElementAdapter<HomogeneousDirichlet<Scalar<TensorQuad<QuadP1>>>> Tester;
+
+std::unique_ptr<Element> Element::Factory(
+    const std::vector<std::string>& physics_base,
+    const std::vector<std::string>& physics_couple,
+    std::unique_ptr<Options> const &options) {
 
   // define field combinations.
   std::vector<std::string> fluid {"fluid"};
   std::vector<std::string> elastic_2d {"elastic2d"};
   std::vector<std::string> elastic_3d {"elastic3d"};
+  std::vector<std::string> boundary {"boundary"};
 
   try {
     if (options->ElementShape() == "quad_new") {
@@ -56,12 +55,16 @@ std::unique_ptr<Element> Element::Factory(const std::vector<std::string>& physic
 
         /* If only acoustic, return a base acoustic. */
         if (!physics_couple.size()) {
-          return std::unique_ptr<Element> (new AcousticQuadP1(options));
+          return std::unique_ptr<Element> (new ScalarQuadP1(options));
         }
 
         /* If elastic fields detected, return a coupled elastic element. */
         else if (physics_couple == elastic_2d) {
           return std::unique_ptr<Element> (new ElasticCplAcousticQuadP1(options));
+        }
+
+        else if (physics_couple == boundary) {
+          return std::unique_ptr<Element> (new Tester(options));
         }
 
       } else if (physics_base == elastic_2d) {
@@ -77,15 +80,16 @@ std::unique_ptr<Element> Element::Factory(const std::vector<std::string>& physic
         }
 
       } else {
-        throw std::runtime_error("Runtime Error: Element physics " + options->PhysicsSystem() + " not supported.");
+        throw std::runtime_error(
+            "Runtime Error: Element physics " + options->PhysicsSystem() + " not supported.");
       }
     }
 
   } catch (std::exception &e) {
-    std::cout << e.what();
+    LOG() << e.what();
     MPI_Abort(PETSC_COMM_WORLD, -1);
   }
 
   return NULL;
-  MPI_Abort(PETSC_COMM_WORLD, -1);
+
 }

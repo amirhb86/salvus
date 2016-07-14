@@ -238,6 +238,11 @@ private:
   void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model, std::string parameter);
 
   /**
+   *
+   */
+  void setEdgeToValue(const PetscInt edg, const PetscScalar val, Eigen::Ref<RealVec> f);
+
+  /**
    * Given some field at the GLL points, interpolate the field to some general point.
    * @param [in] pnt Position in reference coordinates.
    */

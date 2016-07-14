@@ -439,6 +439,24 @@ RealVec2 TensorQuad<ConcreteShape>::getEdgeNormal(const PetscInt edg) {
 
 }
 
+template <typename ConcreteShape>
+void TensorQuad<ConcreteShape>::setEdgeToValue(
+    const PetscInt edg, const PetscScalar val, Eigen::Ref<RealVec> f) {
+
+  /* Get proper dofs in the tensor basis. */
+  PetscInt start, stride;
+  if      (edg == 0) { start = 0;                               stride = 1; }
+  else if (edg == 1) { start = mNumIntPtsR - 1;                 stride = mNumIntPtsR; }
+  else if (edg == 2) { start = mNumIntPtsR * mNumIntPtsS - 1;   stride = -1; }
+  else if (edg == 3) { start = mNumIntPtsR * (mNumIntPtsS - 1); stride = -1 * mNumIntPtsR; }
+
+  for (PetscInt i = start, j = 0; j < mNumIntPtsR; i += stride, j++) {
+    f(i) = val;
+  }
+
+}
+
+
 template<typename ConcreteShape>
 RealVec TensorQuad<ConcreteShape>::applyTestAndIntegrateEdge(const Eigen::Ref<const RealVec> &f,
                                                              const PetscInt edg) {

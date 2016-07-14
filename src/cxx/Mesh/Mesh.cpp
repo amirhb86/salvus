@@ -220,6 +220,16 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
   /* Allocate vector which will hold element types. */
   mElmFields.resize(mNumberElementsLocal);
 
+  /* Find all the mesh boundaries. */
+  DMLabel label; DMGetLabel(mDistributedMesh, "Face Sets", &label);
+  PetscInt size; DMGetLabelSize(mDistributedMesh, "Face Sets", &size);
+  for (PetscInt i = 0; i < size; i++) {
+    PetscInt numFaces; DMLabelGetStratumSize(label, (i + 1), &numFaces);
+    IS pointIs; DMLabelGetStratumIS(label, (i + 1), &pointIs);
+    const PetscInt *faces; ISGetIndices(pointIs, &faces);
+    for (PetscInt j = 0; j < numFaces; j++) { mBndPts.insert(faces[j]); }
+  }
+
   /* Walk through the mesh and extract element types. */
   for (PetscInt i = 0; i < mNumberElementsLocal; i++) {
 
@@ -231,7 +241,12 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
     /* Add the type of element i to all mesh points connected via the Hasse graph. */
     PetscInt num_pts; const PetscInt *pts = NULL;
     DMPlexGetCone(mDistributedMesh, i, &pts); DMPlexGetConeSize(mDistributedMesh, i, &num_pts);
-    for (PetscInt j = 0; j < num_pts; j++) { mPointFields[pts[j]].insert(type); }
+    for (PetscInt j = 0; j < num_pts; j++) {
+      mPointFields[pts[j]].insert(type);
+      if (mBndPts.find(pts[j]) != mBndPts.end()) {
+        mPointFields[pts[j]].insert("boundary");
+      }
+    }
 
     /* Finally, add the type type to the global fields. */
     mMeshFields.insert(type);
@@ -347,8 +362,10 @@ std::vector<std::string> Mesh::TotalCouplingFields(const PetscInt elm) {
   PetscInt num_pts; const PetscInt *pts = NULL;
   DMPlexGetCone(mDistributedMesh, elm, &pts); DMPlexGetConeSize(mDistributedMesh, elm, &num_pts);
   for (PetscInt j = 0; j < num_pts; j++) {
-    if (mPointFields[pts[j]] != mPointFields[elm]) {
-      coupling_fields.insert(mPointFields[pts[j]].begin(), mPointFields[pts[j]].end());
+    for (auto &f: mPointFields[pts[j]]) {
+      if (mPointFields[elm].find(f) == mPointFields[elm].end()) {
+        coupling_fields.insert(f);
+      }
     }
   }
   return std::vector<std::string> (coupling_fields.begin(), coupling_fields.end());

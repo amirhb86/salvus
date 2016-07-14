@@ -63,45 +63,22 @@ class TestPlugin: public Element {
         mesh->DistributedMesh(), mesh->MeshSection(), fields);
 
     PetscScalar element_error = (exact - u).array().abs().maxCoeff();
-//    std::cout << "ERROR ON ELEMENT " << Element::ElmNum() << ": " << element_error << std::endl;
 
   }
 
-  void applyDirichletBoundariesNew(std::unique_ptr<Mesh> const &mesh,
-                                   std::unique_ptr<Options> const &options,
-                                   std::unique_ptr<ProblemNew> &problem,
-                                   FieldDict &fields) {
+  void setBoundaryConditions(std::unique_ptr<Mesh> const &mesh) {
 
     /* Get face set labels. */
-    PetscErrorCode ier; PetscInt num; DMLabel label;
+    PetscErrorCode ier; DMLabel label; PetscInt num;
+    std::cout << "SET" << std::endl;
 
     /* There will be one label for each side set (x0, x1, ...). */
-    ier = DMGetLabel(mesh->DistributedMesh(), "Face Sets", &label);
-    ier = DMLabelGetNumValues(label, &num);
+    DMGetLabel(mesh->DistributedMesh(), "Face Sets", &label);
+    DMGetLabelSize(mesh->DistributedMesh(), "Face Sets", &num);
+    const char **lname;
+    DMGetLabelName(mesh->DistributedMesh(), 2, lname);
+    std::cout << lname[0] << std::endl;
 
-    /* For each side set, get mesh points which belong to this set. */
-    for (PetscInt i = 0; i < num; i++) {
-      PetscInt numFaces; ier = DMLabelGetStratumSize(label, i + 1, &numFaces);
-      IS pointIs; ier = DMLabelGetStratumIS(label, i+1, &pointIs);
-
-      /* Get all faces belonging to this side set. */
-      const PetscInt *faces; ier = ISGetIndices(pointIs, &faces);
-
-      /* Get "cone", which is represents the edges of this element. */
-      const PetscInt *cone; DMPlexGetCone(mesh->DistributedMesh(), Element::ElmNum(), &cone);
-
-      /* For each face in the side set... */
-      for (PetscInt j = 0; j < numFaces; j++) {
-
-        /* For each edge of this element... */
-        for (PetscInt k = 0; k < 4; k++) {
-          if (faces[j] == cone[k]) {
-            std::cout << "ELEMENT " << Element::ElmNum() << " is on boundary." << std::endl;
-          }
-        }
-      }
-
-    }
   }
 };
 
@@ -167,10 +144,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
                       FILE_MODE_WRITE, &viewer);
   PetscViewerHDF5PushGroup(viewer, "/");
   DMView(mesh->DistributedMesh(), viewer);
-  VecView(fields["u"]->mGlb, viewer);
-  PetscViewerDestroy(&viewer);
-
-  return;
+  PetscInt ii = 0;
 
   PetscScalar time = 0;
   while (true) {
@@ -179,11 +153,6 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
         std::move(test_elements), std::move(fields),
         mesh->DistributedMesh(), mesh->MeshSection(),
         options);
-
-    for (auto &elm: test_elements) {
-      auto boundary = static_cast<test_init*>(static_cast<test_insert*>(elm.get()));
-      boundary->applyDirichletBoundariesNew(mesh, options, problem, fields);
-    }
 
     fields = problem->applyInverseMassMatrix(std::move(fields));
     std::tie(fields, time) = problem->takeTimeStep
@@ -196,6 +165,11 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
 
     }
 
+    DMSetOutputSequenceNumber(mesh->DistributedMesh(), ii, time);
+    VecView(fields["u"]->mGlb, viewer);
+    ii++;
+
   }
 
+//  PetscViewerDestroy(&viewer);
 }

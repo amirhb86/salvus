@@ -148,11 +148,11 @@ std::tuple<ElemVec, FieldDict> ProblemNew::assembleIntoGlobalDof(
   }
 
   /* Matrices to hold pulled values on each element. */
-  Matrix<PetscReal, Dynamic, Dynamic> a(numDofPerElm, maxLocalFields); /// acceleration.
-  Matrix<PetscReal, Dynamic, Dynamic> s(numDofPerElm, maxLocalFields); /// surf/edg integral.
-  Matrix<PetscReal, Dynamic, Dynamic> f(numDofPerElm, maxLocalFields); /// forcing.
-  Matrix<PetscReal, Dynamic, Dynamic> u(numDofPerElm, maxLocalFields); /// vol/face integral.
-  Matrix<PetscReal, Dynamic, Dynamic> k(numDofPerElm, maxLocalFields); /// stiffness.
+  RealMat a(numDofPerElm, maxLocalFields); /// acceleration.
+  RealMat s(numDofPerElm, maxLocalFields); /// surf/edg integral.
+  RealMat f(numDofPerElm, maxLocalFields); /// forcing.
+  RealMat u(numDofPerElm, maxLocalFields); /// vol/face integral.
+  RealMat k(numDofPerElm, maxLocalFields); /// stiffness.
 
   /* Get fields on local partitions. */
   for (auto &field: pullFields) { checkOutField(field, PETScDM, fields); }
@@ -221,8 +221,10 @@ void ProblemNew::checkInField(const std::string &name, DM PETScDM, FieldDict &fi
   DMLocalToGlobalBegin(PETScDM, fields[name]->mLoc, ADD_VALUES, fields[name]->mGlb);
   DMLocalToGlobalEnd(PETScDM, fields[name]->mLoc, ADD_VALUES, fields[name]->mGlb);
 
+  PetscScalar min; VecMin(fields[name]->mGlb, NULL, &min);
   PetscScalar max; VecMax(fields[name]->mGlb, NULL, &max);
   std::cout << "Max value of " + name + ": " << max << std::endl;
+  std::cout << "Min value of " + name + ": " << min << std::endl;
 
 }
 

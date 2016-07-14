@@ -38,6 +38,8 @@ struct vec_struct {
 
 class Mesh {
 
+  std::set<PetscInt> mBndPts;
+
   /** Keeps track of all the fields defined in the mesh. **/
   std::set<std::string> mMeshFields;
 
@@ -371,6 +373,8 @@ class Mesh {
   inline DM &DistributedMesh() { return mDistributedMesh; }
   inline PetscSection &MeshSection() { return mMeshSection; }
   virtual std::map<PetscInt, std::string> &BoundaryIds() { return mBoundaryIds; }
+
+  inline std::set<PetscInt> BoundaryPoints() { return mBndPts; }
 
   inline int NumberSideSets() { return mNumberSideSets; }
   inline int NumberDimensions() { return mNumDim; }
