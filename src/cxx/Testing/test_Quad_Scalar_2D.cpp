@@ -43,11 +43,11 @@ class TestPlugin: public Element {
 
   }
 
-  void checkEigenfunctionTestNew(std::unique_ptr<Mesh> const &mesh,
-                                 std::unique_ptr<Options> const &options,
-                                 const PetscScalar time,
-                                 std::unique_ptr<ProblemNew> &problem,
-                                 FieldDict &fields) {
+  PetscReal checkEigenfunctionTestNew(std::unique_ptr<Mesh> const &mesh,
+                                      std::unique_ptr<Options> const &options,
+                                      const PetscScalar time,
+                                      std::unique_ptr<ProblemNew> &problem,
+                                      FieldDict &fields) {
 
     PetscScalar x0 = 5e4, y0 = 5e4, L = 1e5;
     RealVec pts_x, pts_y;
@@ -63,21 +63,7 @@ class TestPlugin: public Element {
         mesh->DistributedMesh(), mesh->MeshSection(), fields);
 
     PetscScalar element_error = (exact - u).array().abs().maxCoeff();
-
-  }
-
-  void setBoundaryConditions(std::unique_ptr<Mesh> const &mesh) {
-
-    /* Get face set labels. */
-    PetscErrorCode ier; DMLabel label; PetscInt num;
-    std::cout << "SET" << std::endl;
-
-    /* There will be one label for each side set (x0, x1, ...). */
-    DMGetLabel(mesh->DistributedMesh(), "Face Sets", &label);
-    DMGetLabelSize(mesh->DistributedMesh(), "Face Sets", &num);
-    const char **lname;
-    DMGetLabelName(mesh->DistributedMesh(), 2, lname);
-    std::cout << lname[0] << std::endl;
+    return element_error;
 
   }
 };
@@ -138,15 +124,8 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
 
   }
 
-  std::string filename = "test.h5";
-  PetscViewer viewer = nullptr;
-  PetscViewerHDF5Open(PETSC_COMM_WORLD, filename.c_str(),
-                      FILE_MODE_WRITE, &viewer);
-  PetscViewerHDF5PushGroup(viewer, "/");
-  DMView(mesh->DistributedMesh(), viewer);
-  PetscInt ii = 0;
-
-  PetscScalar time = 0;
+  PetscReal cycle_time = 24.39; PetscReal max_error = 0;
+  RealVec element_error(test_elements.size()); PetscScalar time = 0;
   while (true) {
 
     std::tie(test_elements, fields) = problem->assembleIntoGlobalDof(
@@ -158,18 +137,22 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
     std::tie(fields, time) = problem->takeTimeStep
         (std::move(fields), time, options);
 
+    PetscInt i = 0;
     for (auto &elm: test_elements) {
-
       auto validate = static_cast<test_init*>(static_cast<test_insert*>(elm.get()));
-      validate->checkEigenfunctionTestNew(mesh, options, time, problem, fields);
-
+      element_error(i++) = validate->checkEigenfunctionTestNew(
+          mesh, options, time, problem, fields);
     }
 
-    DMSetOutputSequenceNumber(mesh->DistributedMesh(), ii, time);
-    VecView(fields["u"]->mGlb, viewer);
-    ii++;
+    problem->saveSolution(time, {"u"}, fields, mesh->DistributedMesh());
+
+    std::cout << "TIME:      " << time << std::endl;
+    max_error = element_error.maxCoeff() > max_error ? element_error.maxCoeff() : max_error;
+    if (time > cycle_time) break;
 
   }
 
-//  PetscViewerDestroy(&viewer);
+  PetscReal regression_error = 0.001288;
+  REQUIRE(max_error == Approx(regression_error));
+
 }

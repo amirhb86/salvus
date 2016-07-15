@@ -4,6 +4,7 @@
 #include <Problem/Order2Newmark.h>
 #include <Mesh/Mesh.h>
 #include <stdexcept>
+#include <petscviewerhdf5.h>
 
 using namespace Eigen;
 
@@ -14,7 +15,7 @@ std::unique_ptr<ProblemNew> ProblemNew::Factory(std::unique_ptr<Options> const &
   try {
 
     if (timestep_scheme == "newmark") {
-      return std::unique_ptr<ProblemNew> (new Order2Newmark);
+      return std::unique_ptr<ProblemNew> (new Order2Newmark(options));
     }
     else
     {
@@ -124,6 +125,13 @@ ElemVec ProblemNew::initializeElements(unique_ptr<Mesh> const &mesh,
     MPI_Abort(PETSC_COMM_WORLD, -1);
   }
 
+  /* If we want to save a solution, initialize this here. */
+  if (options->SaveMovie()) {
+    PetscViewerHDF5Open(PETSC_COMM_WORLD, "test.h5", FILE_MODE_WRITE, &mViewer);
+    PetscViewerHDF5PushGroup(mViewer, "/");
+    DMView(mesh->DistributedMesh(), mViewer);
+  }
+
   /* Now all elements are complete. */
   return elements;
 
@@ -203,6 +211,17 @@ std::tuple<ElemVec, FieldDict> ProblemNew::assembleIntoGlobalDof(
 
 }
 
+void ProblemNew::saveSolution(const PetscReal time, const std::vector<std::string> &save_fields,
+                              FieldDict &fields, DM PetscDM) {
+
+  if (!mViewer) return;
+  for (auto &f: save_fields) {
+    DMSetOutputSequenceNumber(PetscDM, mOutputFrame++, time);
+    VecView(fields[f]->mGlb, mViewer);
+  }
+
+}
+
 void ProblemNew::zeroField(const std::string &name, FieldDict &fields) {
 
   /* Set both local and global vectors to zero. */
@@ -220,11 +239,6 @@ void ProblemNew::checkInField(const std::string &name, DM PETScDM, FieldDict &fi
   /* Assemble local -> global. */
   DMLocalToGlobalBegin(PETScDM, fields[name]->mLoc, ADD_VALUES, fields[name]->mGlb);
   DMLocalToGlobalEnd(PETScDM, fields[name]->mLoc, ADD_VALUES, fields[name]->mGlb);
-
-  PetscScalar min; VecMin(fields[name]->mGlb, NULL, &min);
-  PetscScalar max; VecMax(fields[name]->mGlb, NULL, &max);
-  std::cout << "Max value of " + name + ": " << max << std::endl;
-  std::cout << "Min value of " + name + ": " << min << std::endl;
 
 }
 

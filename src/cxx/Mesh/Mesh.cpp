@@ -222,10 +222,12 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
 
   /* Find all the mesh boundaries. */
   DMLabel label; DMGetLabel(mDistributedMesh, "Face Sets", &label);
-  PetscInt size; DMGetLabelSize(mDistributedMesh, "Face Sets", &size);
+  PetscInt size; DMLabelGetNumValues(label, &size);
+  IS idIS; DMLabelGetValueIS(label, &idIS);
+  const PetscInt *ids; ISGetIndices(idIS, &ids);
   for (PetscInt i = 0; i < size; i++) {
-    PetscInt numFaces; DMLabelGetStratumSize(label, (i + 1), &numFaces);
-    IS pointIs; DMLabelGetStratumIS(label, (i + 1), &pointIs);
+    PetscInt numFaces; DMLabelGetStratumSize(label, ids[i], &numFaces);
+    IS pointIs; DMLabelGetStratumIS(label, ids[i], &pointIs);
     const PetscInt *faces; ISGetIndices(pointIs, &faces);
     for (PetscInt j = 0; j < numFaces; j++) { mBndPts.insert(faces[j]); }
   }

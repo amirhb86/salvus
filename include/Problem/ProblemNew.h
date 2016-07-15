@@ -26,13 +26,28 @@ class Options;
  */
 class ProblemNew {
 
+ private:
+
+  /// Control the saving of the movie.
+  PetscViewer mViewer; PetscInt mOutputFrame;
+
  public:
 
   /// Empty constructor.
-  ProblemNew() {};
+  ProblemNew(const std::unique_ptr<Options> &options) {
+
+    /* Assume we're not going to save a movie. */
+    mViewer = nullptr; mOutputFrame = 1;
+
+  };
 
   /// Empty destructor.
-  virtual ~ProblemNew() {};
+  virtual ~ProblemNew() {
+
+    /* Clean up the viewer if it was initialized. */
+    if (mViewer) PetscViewerDestroy(&mViewer);
+
+  };
 
   /**
    * Factory function to return an object based on a set of runtime options.
@@ -51,9 +66,9 @@ class ProblemNew {
    * @param [in] options A reference to the options class.
    * @returns A vector of elements, ready for use.
    */
-  static ElemVec initializeElements(std::unique_ptr<Mesh> const &mesh,
-                                    std::unique_ptr<ExodusModel> const &model,
-                                    std::unique_ptr<Options> const &options);
+  ElemVec initializeElements(std::unique_ptr<Mesh> const &mesh,
+                             std::unique_ptr<ExodusModel> const &model,
+                             std::unique_ptr<Options> const &options);
 
 
   /**
@@ -66,9 +81,15 @@ class ProblemNew {
    * @param [in] options A reference to the options class.
    * @returns A dictionary of modified fields.
    */
-  static std::tuple<ElemVec, FieldDict> assembleIntoGlobalDof(ElemVec elements, FieldDict fields,
-                                                              DM PETScDM, PetscSection PETScSection,
-                                                              std::unique_ptr<Options> const &options);
+  std::tuple<ElemVec, FieldDict> assembleIntoGlobalDof(ElemVec elements, FieldDict fields,
+                                                       DM PETScDM, PetscSection PETScSection,
+                                                       std::unique_ptr<Options> const &options);
+
+  /**
+   * Save the solution at a certain time.
+   */
+  void saveSolution(const PetscReal time, const std::vector<std::string> &save_fields,
+                    FieldDict &fields, DM PetscDM);
 
   /**
    * Given a set of elements, initialize the global degrees of freedom in a way appropriate
@@ -173,6 +194,7 @@ class ProblemNew {
    * @param [in/out] A map containing references to the global fields.
    */
   static void zeroField(const std::string &name, FieldDict &fields);
+
 
 };
 
