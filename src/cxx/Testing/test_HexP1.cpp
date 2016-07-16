@@ -11,9 +11,9 @@ TEST_CASE("test functions in HexP1", "[hexP1]") {
 
   SECTION("Interpolation on reference element") {
 
-    Eigen::Matrix<double,8,1> ctr;
-    Eigen::Matrix<double,8,1> bot_lft_bk, bot_rgt_bk, bot_lft_ft, bot_rgt_ft;
-    Eigen::Matrix<double,8,1> top_lft_bk, top_rgt_bk, top_lft_ft, top_rgt_ft;
+    Eigen::Matrix<PetscReal,8,1> ctr;
+    Eigen::Matrix<PetscReal,8,1> bot_lft_bk, bot_rgt_bk, bot_lft_ft, bot_rgt_ft;
+    Eigen::Matrix<PetscReal,8,1> top_lft_bk, top_rgt_bk, top_lft_ft, top_rgt_ft;
 
     ctr << 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125;
     bot_lft_bk << 1, 0, 0, 0, 0, 0, 0, 0;
@@ -24,12 +24,6 @@ TEST_CASE("test functions in HexP1", "[hexP1]") {
     top_rgt_bk << 0, 0, 0, 0, 0, 1, 0, 0;
     top_rgt_ft << 0, 0, 0, 0, 0, 0, 1, 0;
     top_lft_ft << 0, 0, 0, 0, 0, 0, 0, 1;
-
-    const static int num_dim = 3;
-    const static int num_vtx = 8;
-
-    Eigen::Matrix<double, num_vtx, num_dim> vtx;
-    vtx << -1, -1, 1, -1, 1, 1, -1, 1;
 
     /* Inward normals. */
     REQUIRE(HexP1::interpolateAtPoint(0, 0, 0) == ctr);
@@ -46,7 +40,7 @@ TEST_CASE("test functions in HexP1", "[hexP1]") {
 
   SECTION("Build nodal points") {
 
-    int num_gll = 125;
+    PetscInt num_gll = 125;
     RealVec pts_x_true(num_gll);
     RealVec pts_y_true(num_gll);
     RealVec pts_z_true(num_gll);
