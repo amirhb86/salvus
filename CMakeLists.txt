@@ -18,7 +18,7 @@ if (NOT CMAKE_BUILD_TYPE)
 endif (NOT CMAKE_BUILD_TYPE)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -coverage -std=c++11")
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -fprofile-arcs -ftest-coverage -std=c++11")
 #set(CMAKE_CXX_FLAGS_DEBUG "-O3 -msse2 -save-temps")
 
 find_package(MPI REQUIRED)
