@@ -2,9 +2,8 @@
 #include <Utilities/Options.h>
 #include <Source/Source.h>
 #include <Mesh/Mesh.h>
-#include <Mesh/ElasticAcousticNewmark3D.h>
 #include <Model/ExodusModel.h>
-#include <Problem/ProblemNew.h>
+#include <Problem/Problem.h>
 #include <Element/HyperCube/TensorQuad.h>
 #include <Element/HyperCube/QuadP1.h>
 #include <Physics/Scalar.h>
@@ -115,7 +114,7 @@ TEST_CASE("Test source functionality", "[source]") {
       unique_ptr<ExodusModel> model(new ExodusModel(options));
       model->initializeParallel();
 
-      unique_ptr<Mesh> mesh(new ElasticAcousticNewmark3D(options));
+      unique_ptr<Mesh> mesh(new Mesh(options));
       mesh->read(options);
       mesh->setupGlobalDof(1, 3, 9, 0, 2, model);
 
@@ -124,7 +123,7 @@ TEST_CASE("Test source functionality", "[source]") {
       vector<PetscReal> ricker_amp{10, 20};
       vector<PetscReal> ricker_time{0.1, 0.01};
 
-      auto problem = ProblemNew::Factory(options);
+      auto problem = Problem::Factory(options);
       auto elements = problem->initializeElements(mesh, model, options);
 
       SECTION("quad") {

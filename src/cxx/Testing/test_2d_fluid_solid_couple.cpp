@@ -35,7 +35,7 @@ TEST_CASE("test_fluid_solid_couple", "[couple/fluid_solid]") {
   std::unique_ptr<Options> options(new Options);
   options->setOptions();
 
-  std::unique_ptr<Mesh> const &mesh = Mesh::factory(options);
+  std::unique_ptr<Mesh> const &mesh = Mesh::Factory(options);
   mesh->read(options);
 
   std::unique_ptr<ExodusModel> model(new ExodusModel(options));

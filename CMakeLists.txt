@@ -18,7 +18,7 @@ if (NOT CMAKE_BUILD_TYPE)
 endif (NOT CMAKE_BUILD_TYPE)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -std=c++11")
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -coverage -std=c++11")
 #set(CMAKE_CXX_FLAGS_DEBUG "-O3 -msse2 -save-temps")
 
 find_package(MPI REQUIRED)
@@ -37,16 +37,8 @@ include_directories(
         include/)
 
 set(SALVUS_SOURCES
-        src/cxx/Problem/Problem.cpp
-        src/cxx/Problem/FieldIo.cpp
-        src/cxx/Problem/NewmarkGeneral.cpp
         src/cxx/Mesh/Mesh.cpp
-        src/cxx/Mesh/ElasticNewmark2D.cpp
-        src/cxx/Mesh/ScalarNewmark2D.cpp
-        src/cxx/Mesh/ScalarLeapFrog4th.cpp
-        src/cxx/Mesh/ElasticAcousticNewmark2D.cpp
-        src/cxx/Mesh/ElasticAcousticNewmark3D.cpp
-        src/cxx/Problem/ProblemNew.cpp
+        src/cxx/Problem/Problem.cpp
         src/cxx/Problem/Order2Newmark.cpp
         src/cxx/Element/Simplex/Triangle.cpp
         src/cxx/Element/Simplex/Triangle/TriP1.cpp
@@ -63,19 +55,12 @@ set(SALVUS_SOURCES
         src/cxx/Element/HyperCube/Hexahedra.cpp
         src/cxx/Element/HyperCube/Hex/HexP1.cpp
         src/cxx/Physics/Element/Scalar.cpp
-        src/cxx/Physics/Element/AcousticTet.cpp
-        src/cxx/Physics/Element/Acoustic3D.cpp
-        src/cxx/Physics/Element/AcousticHex3D.cpp
-        src/cxx/Physics/Element/AcousticHex3D_LF.cpp
-        src/cxx/Physics/Element/Acoustic3D_V.cpp
-        src/cxx/Physics/Element/AcousticTri.cpp
+        src/cxx/Physics/Element/Elastic2D.cpp
         src/cxx/Physics/Element/Elastic3D.cpp
         src/cxx/Physics/Boundary/HomogeneousDirichlet.cpp
         src/cxx/Utilities/kdtree.c
-        src/cxx/Utilities/PETScExtensions.c
         src/cxx/Utilities/Logging.cpp
         src/cxx/Element/Element.cpp
-        src/cxx/Physics/Element/Elastic2D.cpp
         src/cxx/Element/HyperCube/Hexahedra.cpp
         src/cxx/Physics/Coupling/AcousticToElastic2D.cpp
         src/cxx/Physics/Coupling/ElasticToAcoustic.cpp

@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
   options->setOptions();
 
   // Get mesh.
-  auto mesh = Mesh::factory(options);
+  auto mesh = Mesh::Factory(options);
   mesh->read(options);
 
   // Get model.
@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
   auto sources = Source::Factory(options);
 
   // Use above elements to define the problem.
-  Problem *problem = Problem::factory(options->ProblemType());
+  Problem *problem = Problem::Factory(options->ProblemType());
 
   problem->initialize(std::move(mesh), model, options);
 //  problem->solve(options);

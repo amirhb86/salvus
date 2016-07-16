@@ -3,7 +3,7 @@
 
 
 FieldDict Order2Newmark::initializeGlobalDofs(ElemVec const &elements,
-    std::unique_ptr<Mesh> &mesh) {
+                                              std::unique_ptr<Mesh> &mesh) {
 
   FieldDict fields;
 
@@ -14,7 +14,7 @@ FieldDict Order2Newmark::initializeGlobalDofs(ElemVec const &elements,
   /* Sum mass matrix into local partition. */
   for (auto &elm: elements) {
     DMPlexVecSetClosure(mesh->DistributedMesh(), mesh->MeshSection(), fields["mi"]->mLoc,
-    elm->Num(), elm->assembleElementMassMatrix().data(), ADD_VALUES);
+                        elm->Num(), elm->assembleElementMassMatrix().data(), ADD_VALUES);
   }
 
   /* Sum mass matrix into global partition. */
@@ -73,16 +73,6 @@ std::tuple<FieldDict, PetscScalar> Order2Newmark::takeTimeStep(
       VecCopy(fields[recognized_acl[i]]->mGlb, fields[recognized_acl_[i]]->mGlb);
     }
   }
-
-//  PetscScalar max;
-//  VecMax(fields["mi"]->mGlb, NULL, &max);
-//  std::cout << "Max value mi: " << max << std::endl;
-//  VecMax(fields["a"]->mGlb, NULL, &max);
-//  std::cout << "Max value a: " << max << std::endl;
-//  VecMax(fields["v"]->mGlb, NULL, &max);
-//  std::cout << "Max value v: " << max << std::endl;
-//  VecMax(fields["u"]->mGlb, NULL, &max);
-//  std::cout << "Max value u: " << max << std::endl;
 
   time += dt;
   return std::tuple<FieldDict, PetscScalar> (std::move(fields), time);

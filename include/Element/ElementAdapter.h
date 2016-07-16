@@ -147,45 +147,6 @@ class ElementAdapter: public Element, public T {
   virtual void recordField(const Eigen::Ref<const Eigen::MatrixXd>& field) {
     T::recordField(field);
   }
-  /* TODO: Check if the following function is in the right place. */
-  /** Apply dirichlet boundary condtions on all edges flagged as requiring such conditions.
-   * @param [in] mesh The mesh instance.
-   * @param [in] options The options class.
-   * @param [in] fieldname The field which to apply the boundary condition to.
-   */
-  virtual void applyDirichletBoundaries(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options,
-                                        const std::string &fieldname) {
-    return T::applyDirichletBoundaries(mesh, options, fieldname);
-  }
-  ///@}  
-  
-  /** @name Tests.
-   * These functions should be contain routines to assist in integration testing. For example,
-   * unit testing of individual functions is not appropriate here (this is left to individual test plugins),
-   * but the testing of entire forward/adjoint runs through simple models is appropriate.
-   */
-  ///@{
-  /**
-   * Sets up the initial condition required for a given test.
-   * @param [in] mesh The mesh instance.
-   * @param [in] options The options class.
-   */
-  virtual void setupTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options) {
-    T::setupEigenfunctionTest(mesh, options);
-  }
-  /**
-   * Given a dynamic field (i.e. displacement), this functions checks the difference between the said field and
-   * some analytical reference solution.
-   * @param [in] mesh The mesh instance.
-   * @param [in] options The options class.
-   * @param [in] u The numerical solution to checi.
-   * @param [in] time The simulation time.
-   */
-  virtual double checkTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options,
-                           const Eigen::Ref<const Eigen::MatrixXd>& u, double time) {
-    return T::checkEigenfunctionTest(mesh, options, u, time);
-  }
-  ///@}
 
   /** @name Setters/Getters.
    * The time loop occasionally needs access to some instance variables stored in the derived classes. These functions

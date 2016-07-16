@@ -6,7 +6,7 @@
 #include <Eigen/Dense>
 #include <petsc.h>
 
-#include <Problem/ProblemNew.h>
+#include <Problem/Problem.h>
 #include <Mesh/Mesh.h>
 #include <Model/ExodusModel.h>
 
@@ -17,7 +17,6 @@
 
 #include <Utilities/Types.h>
 #include <Utilities/Options.h>
-#include <Mesh/ElasticAcousticNewmark3D.h>
 
 using namespace std;
 using namespace Eigen;
@@ -48,10 +47,10 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
   // Initialize dummy mesh and model.
   std::unique_ptr<Options> options(new Options);
   options->setOptions();
-  std::unique_ptr<ProblemNew> problem(ProblemNew::Factory(options));
+  std::unique_ptr<Problem> problem(Problem::Factory(options));
   std::unique_ptr<ExodusModel> model(new ExodusModel(options));
   model->initializeParallel();
-  std::unique_ptr<Mesh> mesh(new ElasticAcousticNewmark3D(options));
+  std::unique_ptr<Mesh> mesh(new Mesh(options));
   mesh->read(options);
   mesh->setupGlobalDof(1, 3, 9, 0, 2, model);
 

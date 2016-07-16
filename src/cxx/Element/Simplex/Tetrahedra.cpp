@@ -826,23 +826,23 @@ void Tetrahedra<ConcreteShape>::setBoundaryConditions(std::unique_ptr<Mesh> cons
 }
 
 
-template <typename ConcreteShape>
-void Tetrahedra<ConcreteShape>::applyDirichletBoundaries(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options,
-                                                         const std::string &fieldname) {
-
-  if (! mBndElm) return;
-
-  double value = 0;
-  auto dirchlet_boundary_names = options->DirichletBoundaries();
-  for (auto &bndry: dirchlet_boundary_names) {
-    auto faceids = mBnd[bndry];
-    for (auto &faceid: faceids) {
-      auto field = mesh->getFieldOnFace(fieldname, faceid);
-      field = 0 * field.array() + value;
-      mesh->setFieldFromFace(fieldname, faceid, field);
-    }
-  }
-}
+//template <typename ConcreteShape>
+//void Tetrahedra<ConcreteShape>::applyDirichletBoundaries(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options,
+//                                                         const std::string &fieldname) {
+//
+//  if (! mBndElm) return;
+//
+//  double value = 0;
+//  auto dirchlet_boundary_names = options->DirichletBoundaries();
+//  for (auto &bndry: dirchlet_boundary_names) {
+//    auto faceids = mBnd[bndry];
+//    for (auto &faceid: faceids) {
+//      auto field = mesh->getFieldOnFace(fieldname, faceid);
+//      field = 0 * field.array() + value;
+//      mesh->setFieldFromFace(fieldname, faceid, field);
+//    }
+//  }
+//}
 
 
 

@@ -13,12 +13,6 @@
 #include <Element/HyperCube/HexP1.h>
 
 #include <Physics/Scalar.h>
-#include <Physics/AcousticTri.h>
-#include <Physics/Acoustic3D.h>
-#include <Physics/AcousticHex3D.h>
-#include <Physics/AcousticHex3D_LF.h>
-#include <Physics/AcousticTet.h>
-#include <Physics/Acoustic3D_V.h>
 #include <Physics/Elastic2D.h>
 #include <Physics/Elastic3D.h>
 #include <Physics/AcousticElastic2D.h>

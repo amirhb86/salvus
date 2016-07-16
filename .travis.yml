@@ -26,7 +26,7 @@ before_install:
 install:
   - sh conf/install-deps.sh
   - mkdir build; cd build
-  - CC=gcc-4.8 CXX=g++-4.8 FC=gfortran-4.8 cmake ../ -DPETSC_DIR=/home/travis/petsc -DEIGEN_INCLUDE=/home/travis/eigen -DCMAKE_BUILD_TYPE=Release
+  - CC=gcc-4.8 CXX=g++-4.8 FC=gfortran-4.8 cmake ../ -DPETSC_DIR=/home/travis/petsc -DEIGEN_INCLUDE=/home/travis/eigen -DCMAKE_BUILD_TYPE=Debug
   - make VERBOSE=1
   - make salvus_test VERBOSE=1
 
@@ -38,6 +38,9 @@ script:
   - cd salvus_data/new_unit_tests
   - sh ./run_travis.sh
 
-#cache:
-#  directories:
-#    - $HOME/petsc
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+
+cache:
+  directories:
+    - $HOME/petsc
