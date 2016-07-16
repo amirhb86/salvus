@@ -35,7 +35,7 @@ install:
   - git clone https://github.com/SalvusHub/salvus_data.git
 
 script:
-  - cd salvus_data/unit_test_meshes
+  - cd salvus_data/new_unit_tests
   - sh ./run_travis.sh
 
 cache:

@@ -216,10 +216,6 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
                                     int num_dof_fac, int num_dof_vol,
                                     int num_dim, unique_ptr<ExodusModel> const &model) {
 
-
-  /* Allocate vector which will hold element types. */
-  mElmFields.resize(mNumberElementsLocal);
-
   /* Find all the mesh boundaries. */
   DMLabel label; DMGetLabel(mDistributedMesh, "Face Sets", &label);
   PetscInt size; DMLabelGetNumValues(label, &size);
@@ -315,46 +311,56 @@ std::vector<PetscInt> Mesh::EdgeNumbers(const PetscInt elm) {
 
 PetscInt Mesh::GetNeighbouringElement(const PetscInt interface, const PetscInt this_elm) const {
 
-  PetscInt neighbour = -1, num_pts, e_start, e_end, *points = NULL;
-  DMPlexGetTransitiveClosure(mDistributedMesh, interface, PETSC_FALSE, &num_pts, &points);
-  for (PetscInt i = 0; i < num_pts; i++) {
-    PetscInt pnt = points[2*i];
-    if (pnt != interface && pnt != this_elm) {
-      neighbour = pnt;
-    }
+  PetscInt neighbour = -1;
+  PetscInt ssize; DMPlexGetSupportSize(mDistributedMesh, interface, &ssize);
+  const PetscInt *supp; DMPlexGetSupport(mDistributedMesh, interface, &supp);
+  for (PetscInt i = 0; i < ssize; i++) {
+    if (supp[i] != this_elm) { neighbour = supp[i]; }
   }
-  DMPlexRestoreTransitiveClosure(mDistributedMesh, interface, PETSC_FALSE, &num_pts, &points);
-
-  if (neighbour == -1) {
-    LOG() << "ERROR IN GetNeighbouringElement";
-    MPI_Abort(PETSC_COMM_WORLD, -1);
-  }
+  assert(neighbour != -1);
   return neighbour;
+
+//  PetscInt neighbour = -1, num_pts, e_start, e_end, *points = NULL;
+//  DMPlexGetTransitiveClosure(mDistributedMesh, interface, PETSC_FALSE, &num_pts, &points);
+//  PetscInt ssize; DMPlexGetSupportSize(mDistributedMesh, interface, &ssize);
+//  const PetscInt *support; DMPlexGetSupport(mDistributedMesh, interface, &support);
+//  for (PetscInt i = 0; i < ssize; i++) {
+//    std::cout << support[i] << std::endl;
+//  }
+//  for (PetscInt i = 0; i < num_pts; i++) {
+//    PetscInt pnt = points[2*i];
+//    if (pnt != interface && pnt != this_elm) {
+//      neighbour = pnt;
+//    }
+//  }
+//  DMPlexRestoreTransitiveClosure(mDistributedMesh, interface, PETSC_FALSE, &num_pts, &points);
+//
+//  if (neighbour == -1) {
+//    LOG() << "ERROR IN GetNeighbouringElement";
+//    MPI_Abort(PETSC_COMM_WORLD, -1);
+//  }
+//  return neighbour;
 }
 
-std::vector<std::tuple<PetscInt,std::vector<std::string>>> Mesh::CouplingFields(const PetscInt elm) {
+std::vector<std::tuple<PetscInt,std::vector<std::string>>> Mesh::CouplingFields(
+    const PetscInt elm) {
 
   std::vector<std::tuple<PetscInt,std::vector<std::string>>> couple;
-  std::set<std::string> elm_fields = mElmFields[elm];
-
-  PetscInt num_pts, e_start, e_end;
-  PetscInt *points = NULL;
-  PetscErrorCode ier = DMPlexGetTransitiveClosure(mDistributedMesh, elm, PETSC_TRUE, &num_pts, &points);
-  PetscInt dep_edge = 1;
-  DMPlexGetDepthStratum(mDistributedMesh, dep_edge, &e_start, &e_end);
-  for (PetscInt j = 0; j < num_pts; j++) {
-    std::vector<std::string> field;
-    PetscInt pnt = points[2*j];
-    for (auto f: mPointFields[pnt]) {
-      bool coupling_edge = mElmFields[elm].find(f) == mElmFields[elm].end();
-      // if we're an edge (not vertex)
-      if (coupling_edge && pnt >= e_start && pnt < e_end) { field.push_back(f); }
-    }
-    if (field.size()) {
-      couple.push_back(std::make_tuple(pnt, field));
+  /* Step one level up in graph (reduce dim). */
+  PetscInt csize; DMPlexGetConeSize(mDistributedMesh, elm, &csize);
+  const PetscInt *cone; DMPlexGetCone(mDistributedMesh, elm, &cone);
+  for (PetscInt i = 0; i < csize; i++) {
+    /* Step through the support of each point (increase dim to element). */
+    PetscInt ssize; DMPlexGetSupportSize(mDistributedMesh, cone[i], &ssize);
+    const PetscInt *supp; DMPlexGetSupport(mDistributedMesh, cone[i], &supp);
+    for (PetscInt j = 0; j < ssize; j++) {
+      /* Get fields on this element, but skip parent element. */
+      std::vector<std::string> fields;
+      if (supp[j] == elm) { continue; }
+      for (auto &f: mPointFields[supp[j]]) { fields.push_back(f); }
+      couple.push_back(std::make_tuple(cone[i], fields));
     }
   }
-  DMPlexRestoreTransitiveClosure(mDistributedMesh, elm, PETSC_TRUE, &num_pts, &points);
   return couple;
 }
 

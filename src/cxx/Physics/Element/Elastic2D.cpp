@@ -117,7 +117,7 @@ MatrixXd Elastic2D<Element>::computeSourceTerm(const double time) {
     s.col(0) += (source->fire(time) * Element::getDeltaFunctionCoefficients(
         source->LocR(), source->LocS()));
   }
-  return s;
+  return Element::applyTestAndIntegrate(s.col(0));
 }
 
 template <typename Element>

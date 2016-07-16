@@ -7,6 +7,7 @@
 #include <Problem/ProblemNew.h>
 #include <Element/HyperCube/TensorQuad.h>
 #include <Element/HyperCube/QuadP1.h>
+#include <Physics/Scalar.h>
 #include "catch.h"
 
 using namespace std;
@@ -24,7 +25,7 @@ class QuadTestPlugin: public Element {
   QuadTestPlugin<Element>(unique_ptr<Options> const &options): Element(options) {};
 };
 
-typedef class TensorQuad<QuadP1> quadtest_p1;
+typedef class Scalar<TensorQuad<QuadP1>> quadtest_p1;
 
 
 TEST_CASE("Test source functionality", "[source]") {
@@ -32,19 +33,11 @@ TEST_CASE("Test source functionality", "[source]") {
   SECTION("unit") {
 
     PetscOptionsClear(NULL);
-    const char *arg[] = {
-        "salvus_test",
-        "--testing", "true",
-        "--number_of_sources", "2",
-        "--source_type", "ricker",
-        "--source_location_x", "50000,50000",
-        "--source_location_y", "0,0",
-        "--source_location_z", "80000,90000",
-        "--ricker_amplitude", "10,20",
-        "--ricker_time_delay", "0.1,0.01",
-        "--ricker_center_freq", "50,60",
-        NULL
-    };
+    const char *arg[] =
+        {"salvus_test", "--testing", "true", "--number_of_sources", "2", "--source_type", "ricker",
+         "--source_location_x", "50000,50000", "--source_location_y", "0,0", "--source_location_z",
+         "80000,90000", "--ricker_amplitude", "10,20", "--ricker_time_delay", "0.1,0.01",
+         "--ricker_center_freq", "50,60", NULL};
 
     char **argv = const_cast<char **> (arg);
     int argc = sizeof(arg) / sizeof(const char *) - 1;
@@ -74,8 +67,10 @@ TEST_CASE("Test source functionality", "[source]") {
       }
 
       /* Require deletion works properly. */
-      sources.back().reset(); REQUIRE(Source::NumSources() == 1);
-      sources[0].reset(); REQUIRE(Source::NumSources() == 0);
+      sources.back().reset();
+      REQUIRE(Source::NumSources() == 1);
+      sources[0].reset();
+      REQUIRE(Source::NumSources() == 0);
 
     }
 
@@ -89,9 +84,9 @@ TEST_CASE("Test source functionality", "[source]") {
       options->setOptions();
 
       /* True options. */
-      vector<PetscReal> ricker_amp  {10, 20};
-      vector<PetscReal> ricker_time {0.1, 0.01};
-      vector<PetscReal> ricker_freq {50, 60};
+      vector<PetscReal> ricker_amp{10, 20};
+      vector<PetscReal> ricker_time{0.1, 0.01};
+      vector<PetscReal> ricker_freq{50, 60};
 
       auto sources = Source::Factory(options);
 
@@ -100,8 +95,8 @@ TEST_CASE("Test source functionality", "[source]") {
         REQUIRE(sources[i]->Num() == i);
         for (PetscInt j = 0; j < 1000; j++) {
           PetscReal time = j * 1e-3;
-          REQUIRE(sources[i]->fire(time) == true_ricker(time, ricker_freq[i],
-                                                        ricker_time[i], ricker_amp[i]));
+          REQUIRE(sources[i]->fire(time)
+                      == true_ricker(time, ricker_freq[i], ricker_time[i], ricker_amp[i]));
         }
       }
 
@@ -113,7 +108,7 @@ TEST_CASE("Test source functionality", "[source]") {
       PetscOptionsSetValue(NULL, "--exodus_file_name", e_file.c_str());
       PetscOptionsSetValue(NULL, "--exodus_model_file_name", e_file.c_str());
       PetscOptionsSetValue(NULL, "--element_shape", "quad_new");
-      PetscOptionsSetValue(NULL, "--polynomial_order", "1");
+      PetscOptionsSetValue(NULL, "--polynomial_order", "9");
       std::unique_ptr<Options> options(new Options);
       options->setOptions();
 
@@ -125,36 +120,27 @@ TEST_CASE("Test source functionality", "[source]") {
       mesh->setupGlobalDof(1, 3, 9, 0, 2, model);
 
       /* True values. */
-      vector<int>       src_elm     {1, 0, 1, 0};
-      vector<PetscReal> ricker_amp  {10, 20};
-      vector<PetscReal> ricker_time {0.1, 0.01};
+      vector<int> src_elm{1, 0, 1, 0};
+      vector<PetscReal> ricker_amp{10, 20};
+      vector<PetscReal> ricker_time{0.1, 0.01};
 
       auto problem = ProblemNew::Factory(options);
       auto elements = problem->initializeElements(mesh, model, options);
 
       SECTION("quad") {
-        vector<quadtest_p1*> p1quads;
-        for (auto &e: elements) { p1quads.push_back(dynamic_cast<quadtest_p1*> (e.get())); }
-        int i = 0;
-        for (auto &e: p1quads) {
-          /* Ensure sources are on the correct elements. */
-          REQUIRE(e->Sources().size() == src_elm[i]);
-          for (auto &s: e->Sources()) {
-            if (i == 0) {
-              REQUIRE(e->integrateField(s->fire(0.1) *
-                  e->getDeltaFunctionCoefficients(s->LocR(), s->LocS())) == ricker_amp[0]);
-            }
-            if (i == 2) {
-              REQUIRE(e->integrateField(s->fire(0.01) *
-                  e->getDeltaFunctionCoefficients(s->LocR(), s->LocS())) == ricker_amp[1]);
-            }
+        for (auto &e: elements) {
+          if (e->Num() == 0) {
+            REQUIRE(e->computeSourceTerm(ricker_time[0]).sum() == Approx(ricker_amp[0]));
           }
-          i++;
+          else if (e->Num() == 2) {
+            REQUIRE(e->computeSourceTerm(ricker_time[1]).sum() == Approx(ricker_amp[1]));
+          }
+          else {
+            REQUIRE(e->computeSourceTerm(ricker_time[0]).sum() == Approx(0.0));
+            REQUIRE(e->computeSourceTerm(ricker_time[1]).sum() == Approx(0.0));
+          }
         }
       }
-
     }
-
   }
-
 }

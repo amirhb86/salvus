@@ -86,7 +86,7 @@ MatrixXd Scalar<Element>::computeSourceTerm(const double time) {
     mSource += (source->fire(time) * Element::getDeltaFunctionCoefficients(
         source->LocR(), source->LocS()));
   }
-  return mSource;
+  return Element::applyTestAndIntegrate(mSource);
 }
 
 
