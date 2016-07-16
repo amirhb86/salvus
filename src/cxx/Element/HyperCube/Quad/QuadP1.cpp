@@ -24,9 +24,7 @@ bool QuadP1::checkHull(const PetscReal x, const PetscReal y, const Ref<const Qua
   for (PetscInt i = 0; i < mNumVtx; i++) {
     RealVec2 p0 = vtx.row(edge_mapping[i + 0]);
     RealVec2 p1 = vtx.row(edge_mapping[i + 1]);
-    EIGEN_ASM_COMMENT("VECTORIZE BEGIN");
     RealVec2 v_seg = p1 - p0;
-    EIGEN_ASM_COMMENT("VECTORIZE END");
     RealVec2 p_seg = test_point - p0;
     PetscReal x_0 = v_seg(0) * p_seg(1) - v_seg(1) * p_seg(0);
     if (x_0 < 0) {

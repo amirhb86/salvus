@@ -26,6 +26,7 @@ struct field {
 /* Here and some convienience typedefs to save space in functions. */
 /// Floating points.
 typedef Eigen::Matrix<PetscReal, 2, 1> RealVec2;
+typedef Eigen::Matrix<PetscReal, 3, 1> RealVec3;
 typedef Eigen::Matrix<PetscReal, 4, 1> RealVec4;
 typedef Eigen::Matrix<PetscReal, 4, 2> QuadVtx;
 typedef Eigen::Matrix<PetscReal, 8, 3> HexVtx;

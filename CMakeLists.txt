@@ -83,6 +83,7 @@ add_executable(salvus_test
         src/cxx/Testing/test_TensorQuad.cpp
         src/cxx/Testing/test_2d_fluid_solid_couple.cpp
         src/cxx/Testing/test_source.cpp
+        src/cxx/Testing/test_HexP1.cpp
         src/cxx/Testing/test_Quad_Scalar_2D.cpp)
 
 # run `make` (or `make -j5`) to build `salvus` executable

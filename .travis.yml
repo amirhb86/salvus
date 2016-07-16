@@ -40,15 +40,12 @@ script:
   - cd /home/travis/build/SalvusHub/salvus/build
 
 after_success:
+  # Get the codecov script.
   - curl -s https://codecov.io/bash > cc.sh
+  # Change the executable to one appropriate for our compiler.
   - sed -i 's/gcov_exe="gcov"/gcov_exe="gcov-4.8"/g' cc.sh
+  # Run the codecov script.
   - bash cc.sh
-#  # Run gcov-4.8 on all relevant files. Note gcov must be the same version as the compiler.
-#  - find . | grep cpp | sort | awk '{print "gcov-4.8 "$1;}' | sh
-#  # Delete all unimportant gcov files.
-#  - find . -type f ! -name '*.cpp*'
-#  # Export the results to codecov.
-#  - bash <(curl -s https://codecov.io/bash)
 
 cache:
   directories:

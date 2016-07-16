@@ -1,5 +1,6 @@
 #include <Mesh/Mesh.h>
 #include <Problem/Order2Newmark.h>
+#include <Utilities/Logging.h>
 
 
 FieldDict Order2Newmark::initializeGlobalDofs(ElemVec const &elements,
@@ -25,9 +26,13 @@ FieldDict Order2Newmark::initializeGlobalDofs(ElemVec const &elements,
   VecReciprocal(fields["mi"]->mLoc); VecReciprocal(fields["mi"]->mGlb);
 
   /* Initialize global field vectors. */
-  for (auto f: mesh->GlobalFields()) {
+  if (!mesh->GlobalFields().empty()) {
+    for (auto &f: mesh->GlobalFields()) {
     fields.insert(std::pair<std::string,std::unique_ptr<field>>
                       (f, std::unique_ptr<field> (new field(f, mesh->DistributedMesh()))));
+    }
+  } else {
+    LOG() << "No global fields defined!"; MPI_Abort(PETSC_COMM_WORLD, -1);
   }
 
   return fields;
@@ -41,8 +46,10 @@ FieldDict Order2Newmark::applyInverseMassMatrix(FieldDict fields) {
 
   /* Multiply acceleration by inverse mass matrix (if a component exists) */
   std::vector<std::string> recognized_acl {"ax", "ay", "ax", "a"};
-  for (auto &f: recognized_acl) {
-    if (fields.count(f)) { VecPointwiseMult(fields[f]->mGlb, fields["mi"]->mGlb, fields[f]->mGlb) ;}
+  for (auto &f: {"ax", "ay", "az", "a"}) {
+    if (fields.count(f)) {
+      VecPointwiseMult(fields[f]->mGlb, fields["mi"]->mGlb, fields[f]->mGlb);
+    } else { continue; }
   }
 
   return fields;
@@ -71,7 +78,7 @@ std::tuple<FieldDict, PetscScalar> Order2Newmark::takeTimeStep(
       VecAXPBYPCZ(fields[recognized_dsp[i]]->mGlb, dt, dsp_factor, 1.0,
                   fields[recognized_vel[i]]->mGlb, fields[recognized_acl[i]]->mGlb);
       VecCopy(fields[recognized_acl[i]]->mGlb, fields[recognized_acl_[i]]->mGlb);
-    }
+    } else { continue; }
   }
 
   time += dt;
