@@ -1,6 +1,6 @@
 # salvus
 [![Build Status](https://travis-ci.org/SalvusHub/salvus.svg?branch=master)](https://travis-ci.org/SalvusHub/salvus)
-[![codecov](https://codecov.io/gh/SalvusHub/salvus/branch/master/graph/badge.svg)](https://codecov.io/gh/SalvusHub/salvus)
+[![codecov](https://codecov.io/gh/SalvusHub/salvus/branch/afanasiev%2Fproblem-new/graph/badge.svg)](https://codecov.io/gh/SalvusHub/salvus)
 
 
 Ask not what your spectral element wave propagator can do for you, but
