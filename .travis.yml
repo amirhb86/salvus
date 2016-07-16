@@ -38,6 +38,6 @@ script:
   - cd salvus_data/new_unit_tests
   - sh ./run_travis.sh
 
-cache:
-  directories:
-    - $HOME/petsc
+#cache:
+#  directories:
+#    - $HOME/petsc

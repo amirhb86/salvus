@@ -8,6 +8,9 @@ if [ ! -f /home/travis/petsc/include/petsc.h ]; then
     git clone -b maint-3.6 https://bitbucket.org/petsc/petsc petsc-src;
     cd petsc-src
 
+    # Get Matt's new branch.
+    git fetch && git checkout knepley/feature-plex-3d-sem-order
+
     # Configure and install.
     ./configure --download-exodusii --download-netcdf --download-hdf5 --download-chaco \
                 --prefix=/home/travis/petsc
