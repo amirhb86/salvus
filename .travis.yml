@@ -38,7 +38,7 @@ script:
   - cd salvus_data/new_unit_tests
   - sh ./run_travis.sh
   - cd /home/travis/build/SalvusHub/salvus/build
-  - gcov -o *
+  - find CMakeFiles/ -iname '*.cpp' | sort | awk '{print "gcov -o CMakeFiles/ "$1;}' | sh
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
