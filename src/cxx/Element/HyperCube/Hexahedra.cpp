@@ -200,31 +200,36 @@ template <typename ConcreteHex>
 void Hexahedra<ConcreteHex>::setEdgeToValue(
     const PetscInt edg, const PetscReal val, Eigen::Ref<RealVec> f) {
 
-//  /* Get proper dofs in the tensor basis. */
-//  std::vector<PetscInt> stride_ind(mNumIntPnt);
-//  for (PetscInt i = 0; i < mNumIntPnt; i++) {
-//    if (edg == 0) { }
-//  }
-//  PetscInt start, stride, flag;
-////  if (edg == 0) {start = 0; stride = 1; }
-////  else if (edg == 1) { start = mNumIntPnt - (mNumIntPtsR * mNumIntPtsS); stride = 1; }
-//  // else if (edg == 4) { start = mNumIntPtsS-1; stride = mNumIntPtsS; }
-//  // else if (edg == 5) { start = 0; stride = mNumIntPtsS; }
-//  if (edg != 2) { return;; }
-//  start = 0; stride = mNumIntPtsS;
-//  flag = 1;
-//
-//  for (PetscInt i = start, j = 0, k = 0; j < mNumIntPtsR * mNumIntPtsS; j++) {
-//    std::cout << i << std::endl;
-//    f(i) = flag;
-//    if      (edg == 0 || edg == 1) { start += 1; }
-//    else if (edg == 4 || edg == 5) { start += mNumIntPtsR; }
-//    else if (edg == 2 || edg == 3) {
-//      if (
-//    }
-//
-//  }
+  /* Get proper dofs in the tensor basis. */
+  PetscInt istart, istride, jstart, jstride;
+  if      (edg == 0) {
+    istart = 0;  jstart = 0;
+    istride = 1; jstride = 1; }
+  else if (edg == 1) {
+    istart = 0;  jstart = mNumIntPnt - mNumIntPtsR * mNumIntPtsS;
+    istride = 1; jstride = 1; }
+  else if (edg == 2) {
+    istart = 0; jstart = 0;
+    jstride = 1; istride = mNumIntPtsS;
+  }
+  else if (edg == 3) {
+    jstart = mNumIntPtsR * mNumIntPtsS - mNumIntPtsS; istart = 0;
+    jstride = 1; istride = mNumIntPtsR;
+  }
+  else if (edg == 4) {
+    jstart = mNumIntPtsR - 1; istart = 0;
+    jstride = mNumIntPtsS;    istride = mNumIntPtsR;
+  }
+  else if (edg == 5) {
+    jstart = 0; istart = 0;
+    jstride = mNumIntPtsS; istride = mNumIntPtsR;
+  }
 
+  for (PetscInt i = istart, icnt = 0; icnt < mNumIntPtsR; i += istride, icnt++) {
+    for (PetscInt j = jstart, jcnt = 0; jcnt < mNumIntPtsS; j += jstride, jcnt++) {
+      f(j + i * mNumIntPtsS) = val;
+    }
+  }
 
 }
 

@@ -28,10 +28,9 @@ RealMat HomogeneousDirichlet<Base>::computeStiffnessTerm(const Ref<const RealMat
 
   RealMat s = Base::computeStiffnessTerm(u);
   for (PetscInt i = 0; i < s.cols(); i++) {
-    for (auto edge: mBndEdg) { Base::setEdgeToValue(edge, 100, s.col(i)); }
+    for (auto edge: mBndEdg) { Base::setEdgeToValue(edge, 0, s.col(i)); }
   }
 
-  std::cout << s.maxCoeff() << std::endl;
   return s;
 
 }

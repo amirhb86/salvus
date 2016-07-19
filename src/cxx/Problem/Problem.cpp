@@ -262,9 +262,8 @@ void Problem::addFieldOnElement(const std::string &name,
                                    PetscSection PETScSection,
                                    FieldDict &fields) {
 
-  std::cout << "WARN" << std::endl;
   DMPlexVecSetClosure(PETScDM, PETScSection, fields[name]->mLoc,
-                      num, field.data(), INSERT_VALUES);
+                      num, field.data(), ADD_VALUES);
 
 }
 
