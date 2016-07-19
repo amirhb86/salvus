@@ -28,7 +28,7 @@ what you can do for your spectral element wave propagator.
     ```
 
 3. Eigen: <https://eigen.tuxfamily.org>  
-    You will need to install version 3.x of the     `eigen` library (we use 3.2.x for the automated builds and tests)
+    You will need to install the 3.2.x release version (at least 3.2.8) of the `eigen` library.
 
     ```bash
     brew install eigen                  # OSX
@@ -41,7 +41,7 @@ what you can do for your spectral element wave propagator.
     We recommend the MPICH implementation <https://www.mpich.org>
 
 5. PETSc: <https://www.mcs.anl.gov/petsc>  
-    You need version 3.6.x. Download it from <http://www.mcs.anl.gov/petsc/download>, unpack it, and install it with all the required libraries. 
+    You need version 3.7.x. Download it from <http://www.mcs.anl.gov/petsc/download>, unpack it, and install it with all the required libraries. 
     Adjust the `prefix` to where you want it installed.
     Salvus requires the following additional packages be used with PETSc 
 
@@ -56,10 +56,10 @@ what you can do for your spectral element wave propagator.
     If you do not have MPI installed on your machine, PETSc can install it for you
     
     ``` bash
-    ./configure --prefix=/opt/petsc \  
-      --with-cc=gcc-4.8 --with-cxx=g++-4.8 \  
-      --download-mpich=yes --download-exodusii=yes \  
-      --download-netcdf=yes --download-hdf5=yes \  
+    ./configure --prefix=/opt/petsc \
+      --with-cc=gcc-4.8 --with-cxx=g++-4.8 \
+      --download-mpich=yes --download-exodusii=yes \
+      --download-netcdf=yes --download-hdf5=yes \
       --download-chaco=yes
     ```
 
@@ -72,11 +72,11 @@ what you can do for your spectral element wave propagator.
     then you would configure PETSc like this
 
     ``` bash
-    ./configure --prefix=/home/software/petsc \  
-      --with-batch=no \  
-      --with-cc=/path/to/mpicc --with-cxx=/path/to/mpicxx \  
-      --with-mpi-dir=/path/to/mpi \  
-      --with-netcdf-dir=/path/to/netcdf --with-hdf5-dir=/path/to/h5 \  
+    ./configure --prefix=/home/software/petsc \
+      --with-batch=no \
+      --with-cc=/path/to/mpicc --with-cxx=/path/to/mpicxx \
+      --with-mpi-dir=/path/to/mpi \
+      --with-netcdf-dir=/path/to/netcdf --with-hdf5-dir=/path/to/h5 \
       --download-exodusii=yes --download-chaco=yes
     ```
 
@@ -100,10 +100,18 @@ cd build
 Several variables will need setting in order to successfully compile. From you build directory, you can directly set the `PETSC_DIR`, and `EIGEN_INCLUDE` directories via `ccmake ../`. Hit the `c` key to "configure", make your changes, and hit `g` to generate the Makefiles. Alternatively, you can achieve this via `cmake` on the command line
 
 ``` bash
-CC=/opt/petsc/bin/mpicc CXX=/opt/petsc/bin/mpicxx cmake ../ -DPETSC_DIR=/opt/petsc -DEIGEN_INCLUDE=/usr/include/eigen3
+CC=/opt/petsc/bin/mpicc \
+CXX=/opt/petsc/bin/mpicxx \
+cmake ../ \
+-DPETSC_DIR=/opt/petsc \
+-DEIGEN_INCLUDE=/usr/include/eigen3 \
+-DMPI_C_COMPILER=/opt/petsc/bin/mpicc \
+-DMPI_CXX_COMPILER=/opt/petsc/bin/mpicxx
 ```
 
-Note the usage of `CC=/opt/petsc/bin/mpicc` `CXX=/opt/petsc/bin/mpicxx`, which is used to change the default compiler used. This only works the **first** time `cmake` is run (it gets cached). 
+Note the usage of `CC=/opt/petsc/bin/mpicc` `CXX=/opt/petsc/bin/mpicxx`, which is used to change the default compiler used. This only works the **first** time `cmake` is run (it gets cached). The `-DMPI_C_COMPILER` (and `CXX`) ensures that `cmake` uses the same headers and libraries as used to install PETSc. This will avoid errors like:
+    
+    #error "PETSc was configured with MPICH but now appears to be compiling using a non-MPICH mpi.h"
 
 By default, Salvus is compiled with optimizations (i.e., a release build). To compile for debugging (which adds `-g` and removes `-O3`), add `-DCMAKE_BUILD_TYPE=Debug` (instead of `Release`) to the **first** run of `cmake ../`.
 

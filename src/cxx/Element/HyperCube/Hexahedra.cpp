@@ -166,6 +166,7 @@ PetscReal Hexahedra<ConcreteHex>::estimatedElementRadius() {
 
   PetscReal detJ;
   RealMat3x3 invJac;
+  RealMat3x3 Jac;
   RealVec3 refGrad;
   PetscInt num_pts = mNumIntPtsR*mNumIntPtsS*mNumIntPtsT;
   RealVec h_pts(num_pts);
@@ -185,7 +186,10 @@ PetscReal Hexahedra<ConcreteHex>::estimatedElementRadius() {
 
         // Optimized gradient for tensorized GLL basis.
         ConcreteHex::inverseJacobianAtPoint(r, s, t, mVtxCrd, detJ, invJac);
-        RealVec3 eivals_abs = invJac.inverse().eigenvalues().array().abs();
+
+        // we can do this in 1 line with Eigen 3.2.7 and above (save for Ubuntu compatibility)
+        Jac = invJac.inverse();
+        RealVec3 eivals_abs = Jac.eigenvalues().cwiseAbs();
 
         // get minimum h (smallest direction)
         h_pts(index) = eivals_abs.minCoeff();
