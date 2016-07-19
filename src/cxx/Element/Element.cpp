@@ -57,70 +57,68 @@ std::unique_ptr<Element> Element::Factory(
       /* If only acoustic, return a base acoustic. */
       if (physics_base == fluid) {
         if (!physics_couple.size()) {
-          return std::unique_ptr<Element> (
-              new ElementAdapter<
-                  Scalar<
-                      TensorQuad<
-                          QuadP1>>>(options)); }
-        /* If elastic fields detected, return a coupled elastic element. */
+          return std::unique_ptr<Element>(new ElementAdapter<Scalar<TensorQuad<QuadP1>>>(options));
+        }
+          /* If elastic fields detected, return a coupled elastic element. */
         else if (el2d) {
-          return std::unique_ptr<Element> (
-              new ElementAdapter<
-                  ElasticToAcoustic2D<
-                    Scalar<
-                      TensorQuad<
-                          QuadP1>>>>(options)); }
-        /* If a mesh boundary is detected but no coupling. */
+          return std::unique_ptr<Element>(new ElementAdapter<ElasticToAcoustic2D<Scalar<TensorQuad<
+              QuadP1>>>>(options));
+        }
+          /* If a mesh boundary is detected but no coupling. */
         else if (bnd && !el2d) {
-          return std::unique_ptr<Element> (
-              new ElementAdapter<
-                  HomogeneousDirichlet<
-                      Scalar<
-                          TensorQuad<
-                              QuadP1>>>>(options)); }
-        /* If a mesh boundary and coupling is detected. */
+          return std::unique_ptr<Element>(new ElementAdapter<HomogeneousDirichlet<Scalar<TensorQuad<
+              QuadP1>>>>(options));
+        }
+          /* If a mesh boundary and coupling is detected. */
         else if (bnd && el2d) {
-          return std::unique_ptr<Element> (
-              new ElementAdapter<
-                  HomogeneousDirichlet<
-                      ElasticToAcoustic2D<
-                          Scalar<
-                              TensorQuad<
-                                  QuadP1>>>>>(options)); }
+          return std::unique_ptr<Element>(new ElementAdapter<HomogeneousDirichlet<
+              ElasticToAcoustic2D<Scalar<TensorQuad<QuadP1>>>>>(options));
+        }
 
       } else if (physics_base == elastic_2d) {
         /* If only elastic, return a base elastic. */
         if (!physics_couple.size()) {
-          return std::unique_ptr<Element> (
-              new ElementAdapter<
-                  Elastic2D<
-                      TensorQuad<
-                          QuadP1>>>(options)); }
-        /* If acoustic fields are detected, return a coupled acoustic element. */
+          return std::unique_ptr<Element>(new ElementAdapter<Elastic2D<TensorQuad<QuadP1>>>(options));
+        }
+          /* If acoustic fields are detected, return a coupled acoustic element. */
         else if (fl) {
+          return std::unique_ptr<Element>(new ElementAdapter<AcousticToElastic2D<Elastic2D<
+              TensorQuad<QuadP1>>>>(options));
+        }
+          /* If a mesh boundary is detected, but no coupling. */
+        else if (bnd && !fl) {
+          return std::unique_ptr<Element>(new ElementAdapter<HomogeneousDirichlet<Elastic2D<
+              TensorQuad<QuadP1>>>>(options));
+        }
+          /* If a mesh boundary and coupling is detected. */
+        else if (bnd && fl) {
+          return std::unique_ptr<Element>(new ElementAdapter<HomogeneousDirichlet<
+              AcousticToElastic2D<Elastic2D<TensorQuad<QuadP1>>>>>(options));
+        }
+        else {
+          throw std::runtime_error(
+              "Runtime error: Element physics " + options->PhysicsSystem() + " and element "
+                  "type " + options->ElementShape() + " not supported.");
+        }
+      }
+    }
+    else if (options->ElementShape() == "hex") {
+      /* If only acoustic, return a base acoustic. */
+      if (physics_base == fluid) {
+        if (!physics_couple.size()) {
           return std::unique_ptr<Element> (
               new ElementAdapter<
-                  AcousticToElastic2D<
-                      Elastic2D<
-                          TensorQuad<
-                              QuadP1>>>>(options)); }
+                  Scalar<
+                      Hexahedra<
+                          HexP1>>>(options)); }
         /* If a mesh boundary is detected, but no coupling. */
         else if (bnd && !fl) {
           return std::unique_ptr<Element> (
               new ElementAdapter<
                   HomogeneousDirichlet<
-                      Elastic2D<
-                          TensorQuad<
-                              QuadP1>>>>(options)); }
-        /* If a mesh boundary and coupling is detected. */
-        else if (bnd && fl) {
-          return std::unique_ptr<Element> (
-            new ElementAdapter<
-                HomogeneousDirichlet<
-                    AcousticToElastic2D<
-                        Elastic2D<
-                            TensorQuad<
-                                QuadP1>>>>>(options)); }
+                      Scalar<
+                          Hexahedra<
+                              HexP1>>>>(options)); }
       } else {
         throw std::runtime_error(
             "Runtime Error: Element physics " + options->PhysicsSystem() + " not supported.");

@@ -307,8 +307,9 @@ bool TensorQuad<ConcreteShape>::attachSource(std::unique_ptr<Source> &source, co
 }
 
 template<typename ConcreteShape>
-RealVec TensorQuad<ConcreteShape>::getDeltaFunctionCoefficients(const double r, const double s) {
+RealVec TensorQuad<ConcreteShape>::getDeltaFunctionCoefficients(const Eigen::Ref<RealVec>& pnt) {
 
+  PetscReal r = pnt(0), s = pnt(1);
   RealMat2x2 _;
   mParWork = interpolateLagrangePolynomials(r, s, mPlyOrd);
   for (PetscInt s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {

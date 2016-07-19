@@ -54,6 +54,9 @@ RealMat Scalar<Element>::computeStress(const Ref<const RealMat> &strain) {
   // Calculate sigma_ux and sigma_uy.
   mStress.col(0) = mVpSquared.array().cwiseProduct(strain.col(0).array());
   mStress.col(1) = mVpSquared.array().cwiseProduct(strain.col(1).array());
+  if (Element::NumDim() == 3) {
+    mStress.col(2) = mVpSquared.array().cwiseProduct(strain.col(2).array());
+  }
   return mStress;
 
 }
@@ -70,6 +73,7 @@ RealMat Scalar<Element>::computeStiffnessTerm(const Ref<const RealMat>& u) {
   // Complete application of K->u.
   mStiff = Element::applyGradTestAndIntegrate(mStress);
 
+  mStiff.setZero();
   return mStiff;
 
 }
@@ -83,13 +87,19 @@ template <typename Element>
 MatrixXd Scalar<Element>::computeSourceTerm(const double time) {
   mSource.setZero();
   for (auto &source : Element::Sources()) {
-    mSource += (source->fire(time) * Element::getDeltaFunctionCoefficients(
-        source->LocR(), source->LocS()));
+    RealVec pnt;
+    if (Element::NumDim() == 2) { pnt.resize(2); pnt << source->LocR(), source->LocS(); }
+    if (Element::NumDim() == 3) { pnt.resize(3); pnt << source->LocR(), source->LocS(), source->LocT
+          (); }
+      mSource += (source->fire(time) * Element::getDeltaFunctionCoefficients(pnt));
   }
   return Element::applyTestAndIntegrate(mSource);
 }
 
 #include <Element/HyperCube/TensorQuad.h>
+#include <Element/HyperCube/Hexahedra.h>
+#include <Element/HyperCube/HexP1.h>
 #include <Element/HyperCube/QuadP1.h>
 template class Scalar<TensorQuad<QuadP1>>;
+template class Scalar<Hexahedra<HexP1>>;
 

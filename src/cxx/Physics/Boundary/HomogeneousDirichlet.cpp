@@ -28,9 +28,10 @@ RealMat HomogeneousDirichlet<Base>::computeStiffnessTerm(const Ref<const RealMat
 
   RealMat s = Base::computeStiffnessTerm(u);
   for (PetscInt i = 0; i < s.cols(); i++) {
-    for (auto edge: mBndEdg) { Base::setEdgeToValue(edge, 0, s.col(i)); }
+    for (auto edge: mBndEdg) { Base::setEdgeToValue(edge, 100, s.col(i)); }
   }
 
+  std::cout << s.maxCoeff() << std::endl;
   return s;
 
 }
@@ -40,6 +41,8 @@ RealMat HomogeneousDirichlet<Base>::computeStiffnessTerm(const Ref<const RealMat
 #include <Physics/Scalar.h>
 #include <Element/HyperCube/TensorQuad.h>
 #include <Element/HyperCube/QuadP1.h>
+#include <Element/HyperCube/Hexahedra.h>
+#include <Element/HyperCube/HexP1.h>
 #include <Physics/Elastic2D.h>
 #include <Physics/AcousticElastic2D.h>
 #include <Physics/ElasticAcoustic2D.h>
@@ -61,3 +64,7 @@ template class HomogeneousDirichlet<
         Scalar<
             TensorQuad<
                 QuadP1>>>>;
+template class HomogeneousDirichlet<
+    Scalar<
+        Hexahedra<
+            HexP1>>>;

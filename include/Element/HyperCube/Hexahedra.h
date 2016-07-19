@@ -178,6 +178,8 @@ private:
    * precompute constants needed for stiffness routine
    */
   void precomputeConstants();
+
+  void setEdgeToValue(const PetscInt edg, const PetscReal val, Eigen::Ref<RealVec> f);
   
   
   /**
@@ -189,7 +191,7 @@ private:
    * Figure out and set boundaries.
    * @param [in] mesh The mesh instance.
    */
-  void setBoundaryConditions(std::unique_ptr<Mesh> const &mesh);
+  void setBoundaryConditions(std::unique_ptr<Mesh> const &mesh) {};
 
   /**
    * Integrate a field over the element, returning a scalar.
@@ -231,7 +233,7 @@ private:
   /**
    *
    */
-  RealVec getDeltaFunctionCoefficients(const PetscReal r, const PetscReal s, const PetscReal t);
+  RealVec getDeltaFunctionCoefficients(const Eigen::Ref<RealVec>& pnt);
 
   /**
    * Given a model, save the material parameters at the element vertices.
@@ -268,7 +270,7 @@ private:
   inline PetscInt NumDofFac() const { return mNumDofFac; }
   inline PetscInt NumDofEdg() const { return mNumDofEdg; }
   inline PetscInt NumDofVtx() const { return mNumDofVtx; }
-  inline IntVec ClsMap() const { return mClsMap; }
+  inline IntVec ClsMap() const { return IntVec(mNumIntPnt); }
   inline RealMat VtxCrd() const { return mVtxCrd; }
   std::vector<std::shared_ptr<Source>> Sources() { return mSrc; }
 

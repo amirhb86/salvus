@@ -3,6 +3,7 @@
 #include <Model/ExodusModel.h>
 #include <Physics/Elastic3D.h>
 #include <Source/Source.h>
+#include <Utilities/Types.h>
 #include <Utilities/Logging.h>
 
 using namespace Eigen;
@@ -130,8 +131,8 @@ template <typename Element>
 MatrixXd Elastic3D<Element>::computeSourceTerm(const double time) {
   MatrixXd s = MatrixXd::Zero(Element::NumIntPnt(), Element::NumDim());
   for (auto &source : Element::Sources()) {
-    s.col(0) += (source->fire(time) * Element::getDeltaFunctionCoefficients(
-        source->LocR(), source->LocS(), source->LocT()));
+    RealVec3 pnt(source->LocR(), source->LocS(), source->LocT());
+    s.col(0) += (source->fire(time) * Element::getDeltaFunctionCoefficients(pnt));
   }
   return s;
 }

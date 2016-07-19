@@ -32,12 +32,12 @@ Hexahedra<ConcreteHex>::Hexahedra(std::unique_ptr<Options> const &options) {
   mNumDofVol = (mPlyOrd - 1) * (mPlyOrd - 1) * (mPlyOrd - 1);
 
   // Integration points.
-  mIntCrdR = Hexahedra<ConcreteHex>::GllPointsForOrder(mPlyOrd);
-  mIntCrdS = Hexahedra<ConcreteHex>::GllPointsForOrder(mPlyOrd);
-  mIntCrdT = Hexahedra<ConcreteHex>::GllPointsForOrder(mPlyOrd);
-  mIntWgtR = Hexahedra<ConcreteHex>::GllIntegrationWeights(mPlyOrd);
-  mIntWgtS = Hexahedra<ConcreteHex>::GllIntegrationWeights(mPlyOrd);
-  mIntWgtT = Hexahedra<ConcreteHex>::GllIntegrationWeights(mPlyOrd);
+  mIntCrdR = GllPointsForOrder(mPlyOrd);
+  mIntCrdS = GllPointsForOrder(mPlyOrd);
+  mIntCrdT = GllPointsForOrder(mPlyOrd);
+  mIntWgtR = GllIntegrationWeights(mPlyOrd);
+  mIntWgtS = GllIntegrationWeights(mPlyOrd);
+  mIntWgtT = GllIntegrationWeights(mPlyOrd);
   
   // Save number of integration points.
   mNumIntPtsR = mIntCrdR.size();
@@ -46,7 +46,7 @@ Hexahedra<ConcreteHex>::Hexahedra(std::unique_ptr<Options> const &options) {
   mNumIntPnt = mNumIntPtsR * mNumIntPtsS * mNumIntPtsT;
 
   // setup evaluated derivatives of test functions
-  mGrd = Hexahedra<ConcreteHex>::setupGradientOperator(mPlyOrd);
+  mGrd = setupGradientOperator(mPlyOrd);
   mGrdT = mGrd.transpose();
 
   mGrdWgt.resize(mNumIntPtsR,mNumIntPtsR);
@@ -197,6 +197,38 @@ PetscReal Hexahedra<ConcreteHex>::estimatedElementRadius() {
 }
 
 template <typename ConcreteHex>
+void Hexahedra<ConcreteHex>::setEdgeToValue(
+    const PetscInt edg, const PetscReal val, Eigen::Ref<RealVec> f) {
+
+//  /* Get proper dofs in the tensor basis. */
+//  std::vector<PetscInt> stride_ind(mNumIntPnt);
+//  for (PetscInt i = 0; i < mNumIntPnt; i++) {
+//    if (edg == 0) { }
+//  }
+//  PetscInt start, stride, flag;
+////  if (edg == 0) {start = 0; stride = 1; }
+////  else if (edg == 1) { start = mNumIntPnt - (mNumIntPtsR * mNumIntPtsS); stride = 1; }
+//  // else if (edg == 4) { start = mNumIntPtsS-1; stride = mNumIntPtsS; }
+//  // else if (edg == 5) { start = 0; stride = mNumIntPtsS; }
+//  if (edg != 2) { return;; }
+//  start = 0; stride = mNumIntPtsS;
+//  flag = 1;
+//
+//  for (PetscInt i = start, j = 0, k = 0; j < mNumIntPtsR * mNumIntPtsS; j++) {
+//    std::cout << i << std::endl;
+//    f(i) = flag;
+//    if      (edg == 0 || edg == 1) { start += 1; }
+//    else if (edg == 4 || edg == 5) { start += mNumIntPtsR; }
+//    else if (edg == 2 || edg == 3) {
+//      if (
+//    }
+//
+//  }
+
+
+}
+
+template <typename ConcreteHex>
 void Hexahedra<ConcreteHex>::attachMaterialProperties(
     std::unique_ptr<ExodusModel> const &model, std::string parameter_name) {
 
@@ -208,6 +240,8 @@ void Hexahedra<ConcreteHex>::attachMaterialProperties(
   mPar[parameter_name] = material_at_vertices;
   
 }
+
+
 
 template <typename ConcreteHex>
 bool Hexahedra<ConcreteHex>::attachReceiver(std::unique_ptr<Receiver> &receiver,
@@ -247,8 +281,9 @@ bool Hexahedra<ConcreteHex>::attachSource(std::unique_ptr<Source> &source, const
 }
 
 template <typename ConcreteHex>
-RealVec Hexahedra<ConcreteHex>::getDeltaFunctionCoefficients(const PetscReal r, const PetscReal s, const PetscReal t) {
+RealVec Hexahedra<ConcreteHex>::getDeltaFunctionCoefficients(const Eigen::Ref<RealVec>& pnt) {
 
+  PetscReal r = pnt(0), s = pnt(1), t = pnt(2);
   RealMat3x3 invJ;
   mParWork = interpolateLagrangePolynomials(r, s, t, mPlyOrd);
   for (PetscInt t_ind = 0; t_ind < mNumIntPtsT; t_ind++) {
@@ -297,7 +332,7 @@ RealVec Hexahedra<ConcreteHex>::interpolateLagrangePolynomials(const PetscReal r
 template <typename ConcreteHex>
 RealMat  Hexahedra<ConcreteHex>::setupGradientOperator(const PetscInt order) {
 
-  auto rn = Hexahedra<ConcreteHex>::GllPointsForOrder(order);
+  auto rn = GllPointsForOrder(order);
   PetscInt num_pts_r = rn.size();
   PetscInt num_pts_s = rn.size();
   PetscReal r = rn(0);
@@ -340,6 +375,7 @@ RealMat  Hexahedra<ConcreteHex>::computeGradient(const Ref<const RealVec> &field
   RealMat3x3 invJac;
   RealVec3 refGrad;
 
+
   // Loop over all GLL points.
   for (PetscInt t_ind = 0; t_ind < mNumIntPtsT; t_ind++) {
     for (PetscInt s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
@@ -354,7 +390,8 @@ RealMat  Hexahedra<ConcreteHex>::computeGradient(const Ref<const RealVec> &field
         PetscReal t = mIntCrdT(t_ind);
 
         // Optimized gradient for tensorized GLL basis.
-        // std::tie(invJac, mDetJac(index)) = ConcreteHex::inverseJacobianAtPoint(r, s, t, mVtxCrd);
+        PetscReal detJ;
+        ConcreteHex::inverseJacobianAtPoint(r, s, t, mVtxCrd, detJ, invJac);
         
         // mGradWork.row(index) = invJac * (refGrad <<
         //                                  mGrd.row(r_ind).dot(rVectorStride(field,s_ind,t_ind,
@@ -372,7 +409,7 @@ RealMat  Hexahedra<ConcreteHex>::computeGradient(const Ref<const RealVec> &field
           refGrad(2) += mGrd(t_ind,i)*field(r_ind + s_ind * mNumIntPtsR + i * mNumIntPtsR * mNumIntPtsS);
         }
         
-        mGradWork.row(index) = mInvJac[index] * refGrad;        
+        mGradWork.row(index) = invJac * refGrad;
 
 
       }
@@ -442,6 +479,7 @@ template <typename ConcreteHex>
 RealVec Hexahedra<ConcreteHex>::applyGradTestAndIntegrate(const Ref<const RealMat > &f) {
 
   // computes the rotatation into x-y-z, which would normally happen later with more terms.
+  RealMat3x3 invJac;
   RealVec3 fi;
   RealMat  fxyz(f.rows(),3);
   for (PetscInt t_ind = 0; t_ind < mNumIntPtsS; t_ind++) {
@@ -449,9 +487,11 @@ RealVec Hexahedra<ConcreteHex>::applyGradTestAndIntegrate(const Ref<const RealMa
       for (PetscInt r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
 
         // gll index.
+        PetscReal r = mIntCrdR(r_ind), s = mIntCrdS(s_ind), t = mIntCrdT(t_ind);
         PetscInt index = r_ind + s_ind * mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS;
+        ConcreteHex::inverseJacobianAtPoint(r, s, t, mVtxCrd, mDetJac(index), invJac);
         fi << f(index,0),f(index,1),f(index,2);
-        fi = mInvJac[index].transpose()*fi;
+        fi = invJac.transpose()*fi;
         fxyz(index,0) = fi[0];
         fxyz(index,1) = fi[1];
         fxyz(index,2) = fi[2];

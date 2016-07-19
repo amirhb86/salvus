@@ -132,7 +132,8 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
      * integrated against, the correct value of 1.0 is returned. This has the added
      * value of also testing applyTestAndIntegrate().
      */
-    RealVec coefficients = test_quad.getDeltaFunctionCoefficients(0, 0);
+    RealVec2 pnt (0.0, 0.0);
+    RealVec coefficients = test_quad.getDeltaFunctionCoefficients(pnt);
     REQUIRE(test_quad.applyTestAndIntegrate(coefficients).sum() == Approx(1.0));
 
 

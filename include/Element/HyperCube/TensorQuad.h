@@ -228,7 +228,7 @@ private:
    * @param [in] r Reference coordinate.
    * @param [in] s Reference coordinate.
    */
-  RealVec getDeltaFunctionCoefficients(const double r, const double s);
+  RealVec getDeltaFunctionCoefficients(const Eigen::Ref<RealVec>& pnt);
 
   /**
    * Given a model, save the material parameters at the element vertices.
