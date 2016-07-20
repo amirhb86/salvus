@@ -380,7 +380,6 @@ RealMat  Hexahedra<ConcreteHex>::computeGradient(const Ref<const RealVec> &field
   RealMat3x3 invJac;
   RealVec3 refGrad;
 
-
   // Loop over all GLL points.
   for (PetscInt t_ind = 0; t_ind < mNumIntPtsT; t_ind++) {
     for (PetscInt s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
@@ -487,7 +486,7 @@ RealVec Hexahedra<ConcreteHex>::applyGradTestAndIntegrate(const Ref<const RealMa
   RealMat3x3 invJac;
   RealVec3 fi;
   RealMat  fxyz(f.rows(),3);
-  for (PetscInt t_ind = 0; t_ind < mNumIntPtsS; t_ind++) {
+  for (PetscInt t_ind = 0; t_ind < mNumIntPtsT; t_ind++) {
     for (PetscInt s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
       for (PetscInt r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
 
@@ -505,7 +504,7 @@ RealVec Hexahedra<ConcreteHex>::applyGradTestAndIntegrate(const Ref<const RealMa
     }
   }
 
-  for (PetscInt t_ind = 0; t_ind < mNumIntPtsS; t_ind++) {
+  for (PetscInt t_ind = 0; t_ind < mNumIntPtsT; t_ind++) {
     for (PetscInt s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
       for (PetscInt r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
         

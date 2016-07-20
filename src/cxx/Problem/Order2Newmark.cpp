@@ -81,6 +81,9 @@ std::tuple<FieldDict, PetscScalar> Order2Newmark::takeTimeStep(
     } else { continue; }
   }
 
+  std::string f = "a";
+  PetscReal max, min; VecMax(fields[f]->mGlb, NULL, &max); VecMin(fields[f]->mGlb, NULL, &min);
+  std::cout << "MAX, MIN: " << max << ' ' << min << std::endl;
   time += dt;
   return std::tuple<FieldDict, PetscScalar> (std::move(fields), time);
 

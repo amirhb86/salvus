@@ -85,7 +85,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
       "--element_shape", "quad_new",
       "--exodus_file_name", e_file.c_str(),
       "--exodus_model_file_name", e_file.c_str(),
-      "--polynomial_order", "4", NULL};
+      "--polynomial_order", "4", "--saveMovie", NULL};
   char **argv = const_cast<char **> (arg);
   int argc = sizeof(arg) / sizeof(const char *) - 1;
   PetscOptionsInsert(NULL, &argc, &argv, NULL);
@@ -125,7 +125,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
   }
 
   PetscReal cycle_time = 24.39; PetscReal max_error = 0;
-  cycle_time = 0.05;
+//  cycle_time = 0.05;
   RealVec element_error(test_elements.size()); PetscScalar time = 0;
   while (true) {
 
@@ -145,7 +145,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
           mesh, options, time, problem, fields);
     }
 
-    problem->saveSolution(time, {"u"}, fields, mesh->DistributedMesh());
+    problem->saveSolution(time, {"a"}, fields, mesh->DistributedMesh());
 
     std::cout << "TIME:      " << time << std::endl;
     max_error = element_error.maxCoeff() > max_error ? element_error.maxCoeff() : max_error;

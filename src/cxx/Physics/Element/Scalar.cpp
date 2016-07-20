@@ -73,7 +73,6 @@ RealMat Scalar<Element>::computeStiffnessTerm(const Ref<const RealMat>& u) {
   // Complete application of K->u.
   mStiff = Element::applyGradTestAndIntegrate(mStress);
 
-  mStiff.setZero();
   return mStiff;
 
 }
