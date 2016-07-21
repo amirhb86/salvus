@@ -68,9 +68,8 @@ void Mesh::read(std::unique_ptr<Options> const &options) {
   DMPlexGetDepthStratum(mDistributedMesh, mNumDim, NULL, &mNumberElementsLocal);
 }
 
-PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
-                                    int num_dof_fac, int num_dof_vol,
-                                    int num_dim, unique_ptr<ExodusModel> const &model) {
+PetscErrorCode Mesh::setupGlobalDof(PetscInt num_dim, unique_ptr<ExodusModel> const &model,
+                                    unique_ptr<Options> const &options) {
 
   /* Find all the mesh boundaries. */
   DMLabel label; DMGetLabel(mDistributedMesh, "Face Sets", &label);
@@ -109,7 +108,7 @@ PetscErrorCode Mesh::setupGlobalDof(int num_dof_vtx, int num_dof_edg,
 
   /* Use the information extracted above to inform the global DOF layout. */
   PetscInt num_bc = 0;
-  PetscInt poly_order = 4;
+  PetscInt poly_order = options->PolynomialOrder();
   PetscInt num_fields = mMeshFields.size();
   PetscInt *num_comps; PetscMalloc1(num_fields, &num_comps);
   {

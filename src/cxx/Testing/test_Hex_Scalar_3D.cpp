@@ -11,6 +11,8 @@
 #include <Element/HyperCube/HexP1.h>
 #include "catch.h"
 
+using namespace std;
+
 template <typename Element>
 class TestPlugin: public Element {
 
@@ -50,14 +52,16 @@ class TestPlugin: public Element {
                                       std::unique_ptr<Problem> &problem,
                                       FieldDict &fields) {
 
-    PetscScalar x0 = 5e4, y0 = 5e4, L = 1e5;
-    RealVec pts_x, pts_y;
-    std::tie(pts_x, pts_y) = Element::buildNodalPoints();
-    RealVec un_xy = (M_PI / L * (pts_x.array() - (x0 + L / 2))).sin() *
-        (M_PI / L * (pts_y.array() - (y0 + L / 2))).sin();
+    PetscScalar x0 = 5e4, y0 = 5e4, z0 = 5e4, L = 1e5;
+    RealVec pts_x, pts_y, pts_z;
+    std::tie(pts_x, pts_y, pts_z) = Element::buildNodalPoints();
+    RealVec un_xyz =
+        (M_PI / L * (pts_x.array() - (x0 + L / 2))).sin() *
+        (M_PI / L * (pts_y.array() - (y0 + L / 2))).sin() *
+        (M_PI / L * (pts_z.array() - (z0 + L / 2))).sin();
     PetscScalar vp = Element::ParAtIntPts("VP").mean();
-    PetscScalar un_t = cos(M_PI / L * sqrt(2) * time * vp);
-    RealVec exact = un_t * un_xy;
+    PetscScalar un_t = cos(M_PI / L * sqrt(3) * time * vp);
+    RealVec exact = un_t * un_xyz;
 
     RealVec u = problem->getFieldOnElement(
         "u", Element::ElmNum(), Element::ClsMap(),
@@ -86,7 +90,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
       "--element_shape", "hex",
       "--exodus_file_name", e_file.c_str(),
       "--exodus_model_file_name", e_file.c_str(),
-      "--polynomial_order", "4", "--saveMovie", NULL};
+      "--polynomial_order", "2", "--saveMovie", NULL};
   char **argv = const_cast<char **> (arg);
   int argc = sizeof(arg) / sizeof(const char *) - 1;
   PetscOptionsInsert(NULL, &argc, &argv, NULL);
@@ -100,7 +104,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
 
   model->initializeParallel();
   mesh->read(options);
-  mesh->setupGlobalDof(1, 3, 9, 27, 3, model);
+  mesh->setupGlobalDof(3, model, options);
 
   std::vector<std::unique_ptr<Element>> test_elements;
   auto elements = problem->initializeElements(mesh, model, options);
@@ -125,12 +129,8 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
 
   }
 
-//  problem->saveSolution(1.0, {"u"}, fields, mesh->DistributedMesh());
-//  problem->saveSolution(2.0, {"u"}, fields, mesh->DistributedMesh());
-
-
-  PetscReal cycle_time = 24.39; PetscReal max_error = 0;
-  cycle_time = 1.00;
+  PetscReal cycle_time = 19.90862997205606; PetscReal max_error = 0;
+  cycle_time = 1.0;
   RealVec element_error(test_elements.size()); PetscScalar time = 0;
   while (true) {
 
@@ -143,22 +143,23 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
     std::tie(fields, time) = problem->takeTimeStep
         (std::move(fields), time, options);
 
-//    PetscInt i = 0;
-//    for (auto &elm: test_elements) {
-//      auto validate = static_cast<test_init*>(static_cast<test_insert*>(elm.get()));
-//      element_error(i++) = validate->checkEigenfunctionTestNew(
-//          mesh, options, time, problem, fields);
-//    }
+    PetscInt i = 0;
+    for (auto &elm: test_elements) {
+      auto validate = static_cast<test_init*>(static_cast<test_insert*>(elm.get()));
+      element_error(i++) = validate->checkEigenfunctionTestNew(
+          mesh, options, time, problem, fields);
+    }
 
-    problem->saveSolution(time, {"u"}, fields, mesh->DistributedMesh());
+//    problem->saveSolution(time, {"u"}, fields, mesh->DistributedMesh());
 
     std::cout << "TIME:      " << time << std::endl;
     max_error = element_error.maxCoeff() > max_error ? element_error.maxCoeff() : max_error;
+    std::cout << "ERROR: " << max_error << std::endl;
     if (time > cycle_time) break;
 
   }
-//
-//  PetscReal regression_error = 0.001288; PetscScalar eps = 0.01;
-//  REQUIRE(max_error <= regression_error * (1 + eps));
+
+  PetscReal regression_error = 0.00171; PetscScalar eps = 0.01;
+  REQUIRE(max_error <= regression_error * (1 + eps));
 
 }

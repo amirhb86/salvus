@@ -127,7 +127,7 @@ ElemVec Problem::initializeElements(unique_ptr<Mesh> const &mesh,
 
   /* If we want to save a solution, initialize this here. */
   if (options->SaveMovie()) {
-    PetscViewerHDF5Open(PETSC_COMM_WORLD, "test.h5", FILE_MODE_WRITE, &mViewer);
+    PetscViewerHDF5Open(PETSC_COMM_WORLD, "test_quad.h5", FILE_MODE_WRITE, &mViewer);
     PetscViewerHDF5PushGroup(mViewer, "/");
     DMView(mesh->DistributedMesh(), mViewer);
   }
@@ -195,6 +195,9 @@ std::tuple<ElemVec, FieldDict> Problem::assembleIntoGlobalDof(
     /* Compute acceleration. */
     a.leftCols(NumPushFields) = f.leftCols(NumPushFields).array() -
         k.leftCols(NumPushFields).array() + s.leftCols(NumPushFields).array();
+//    std::cout << a.leftCols(NumPushFields).maxCoeff() << ' ' << a.leftCols(NumPushFields).minCoeff()
+//        <<
+//            std::endl;
 
     /* Assemble fields into local partition. */
     for (PetscInt i = 0; i < NumPushFields; i++) {

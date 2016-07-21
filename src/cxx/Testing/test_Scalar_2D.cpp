@@ -87,45 +87,6 @@ typedef TestPlugin<Scalar<Triangle<TriP1>>> test_init_triP1;
 typedef ElementAdapter<Scalar<Triangle<TriP1>>> unguard_triP1;
 typedef Scalar<Triangle<TriP1>> raw_triP1;
 
-PetscReal runEigenFunctionTestQuad(std::vector<std::unique_ptr<Element>> test_elements,
-                               std::unique_ptr<Mesh> &mesh,
-                               std::unique_ptr<ExodusModel> const &model,
-                               std::unique_ptr<Options> const &options,
-                               std::unique_ptr<Problem> &problem,
-                               FieldDict &fields,
-                               PetscReal cycle_time
-                               ) {
-
-  RealVec element_error(test_elements.size()); PetscScalar time = 0;
-  PetscReal max_error = 0.0;
-  while (true) {
-
-    std::tie(test_elements, fields) = problem->assembleIntoGlobalDof(
-        std::move(test_elements), std::move(fields),
-        mesh->DistributedMesh(), mesh->MeshSection(),
-        options);
-
-    fields = problem->applyInverseMassMatrix(std::move(fields));
-    std::tie(fields, time) = problem->takeTimeStep
-        (std::move(fields), time, options);
-
-    PetscInt i = 0;
-    for (auto &elm: test_elements) {            
-        auto validate = static_cast<test_init_quadP1*>(static_cast<test_insert_quadP1*>(elm.get()));
-        element_error(i++) = validate->checkEigenfunctionTestNew(mesh, options, time, problem, fields);
-    }
-
-    // only saves if '--saveMovie' is set in command line options
-    problem->saveSolution(time, {"u"}, fields, mesh->DistributedMesh());
-
-    std::cout << "TIME:      " << time << std::endl;
-    max_error = element_error.maxCoeff() > max_error ? element_error.maxCoeff() : max_error;
-    if (time > cycle_time) break;
-    
-  }
-  return max_error;  
-}
-
 PetscReal runEigenFunctionTest(std::vector<std::unique_ptr<Element>> test_elements,
                                std::unique_ptr<Mesh> &mesh,
                                std::unique_ptr<ExodusModel> const &model,
@@ -207,10 +168,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
 
   model->initializeParallel();
   mesh->read(options);
-  mesh->setupGlobalDof(1, 3, 9, 0, 2, model);
-  
-  PetscReal cycle_time = 24.39; PetscReal max_error = 0;
-  cycle_time = 0.05;
+  mesh->setupGlobalDof(2, model, options);
 
   std::vector<std::unique_ptr<Element>> test_elements;
   auto elements = problem->initializeElements(mesh, model, options);
@@ -235,7 +193,9 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
 
   }
 
-  runEigenFunctionTest(std::move(test_elements),mesh,model,options,problem,fields,cycle_time, ElementType::QUADP1);
+  PetscReal cycle_time = 24.39;
+  
+  auto max_error = runEigenFunctionTest(std::move(test_elements),mesh,model,options,problem,fields,cycle_time, ElementType::QUADP1);
   
   PetscReal regression_error = 0.001288; PetscScalar eps = 0.01;
   REQUIRE(max_error <= regression_error * (1 + eps));

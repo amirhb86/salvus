@@ -141,12 +141,9 @@ class Mesh {
    * @param [in] number_dof_volume Num of dofs per 3-d mesh component (volume). Something something for the
    * standard GLL basis.
    */
-  PetscErrorCode setupGlobalDof(int number_dof_vertex,
-                                int number_dof_edge,
-                                int number_dof_face,
-                                int number_dof_volume,
-                                int number_dimensions,
-                                unique_ptr<ExodusModel> const &model);
+  PetscErrorCode setupGlobalDof(PetscInt num_dim,
+                                unique_ptr<ExodusModel> const &model,
+                                unique_ptr<Options> const &options);
 
   /**
    * Number of elements owned by the current processors.
