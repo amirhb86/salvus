@@ -294,7 +294,7 @@ RealVec Hexahedra<ConcreteHex>::getDeltaFunctionCoefficients(const Eigen::Ref<Re
   for (PetscInt t_ind = 0; t_ind < mNumIntPtsT; t_ind++) {
     for (PetscInt s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
       for (PetscInt r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
-      
+
 
         PetscReal ri = mIntCrdR(r_ind);
         PetscReal si = mIntCrdS(s_ind);
@@ -412,13 +412,32 @@ RealMat  Hexahedra<ConcreteHex>::computeGradient(const Ref<const RealVec> &field
           refGrad(1) += mGrd(s_ind,i)*field(r_ind + i * mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS);
           refGrad(2) += mGrd(t_ind,i)*field(r_ind + s_ind * mNumIntPtsR + i * mNumIntPtsR * mNumIntPtsS);
         }
-        
         mGradWork.row(index) = invJac * refGrad;
-
 
       }
     }
   }
+
+  PetscScalar x0 = 5e4, y0 = 5e4, z0 = 5e4, L = 1e5;
+  RealVec pts_x, pts_y, pts_z;
+  std::tie(pts_x, pts_y, pts_z) = buildNodalPoints();
+  RealVec un_x = (M_PI / L) *
+      (M_PI / L * (pts_x.array() - (x0 + L / 2))).cos() *
+      (M_PI / L * (pts_y.array() - (y0 + L / 2))).sin() *
+      (M_PI / L * (pts_z.array() - (z0 + L / 2))).sin();
+  RealVec un_y =(M_PI / L) *
+      (M_PI / L * (pts_x.array() - (x0 + L / 2))).sin() *
+      (M_PI / L * (pts_y.array() - (y0 + L / 2))).cos() *
+      (M_PI / L * (pts_z.array() - (z0 + L / 2))).sin();
+  RealVec un_z =(M_PI / L) *
+      (M_PI / L * (pts_x.array() - (x0 + L / 2))).sin() *
+      (M_PI / L * (pts_y.array() - (y0 + L / 2))).sin() *
+      (M_PI / L * (pts_z.array() - (z0 + L / 2))).cos();
+
+  RealMat test(mNumIntPnt, 3);
+  test.col(0) = un_x;
+  test.col(1) = un_y;
+  test.col(2) = un_z;
 
   return mGradWork;
 
@@ -496,6 +515,7 @@ RealVec Hexahedra<ConcreteHex>::applyGradTestAndIntegrate(const Ref<const RealMa
         ConcreteHex::inverseJacobianAtPoint(r, s, t, mVtxCrd, mDetJac(index), invJac);
         fi << f(index,0),f(index,1),f(index,2);
         fi = invJac.transpose()*fi;
+//        fi = invJac*fi;
         fxyz(index,0) = fi[0];
         fxyz(index,1) = fi[1];
         fxyz(index,2) = fi[2];
@@ -504,10 +524,11 @@ RealVec Hexahedra<ConcreteHex>::applyGradTestAndIntegrate(const Ref<const RealMa
     }
   }
 
+
   for (PetscInt t_ind = 0; t_ind < mNumIntPtsT; t_ind++) {
     for (PetscInt s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
       for (PetscInt r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
-        
+
         // map reference gradient (lr,ls,lt) to this element (lx,ly,lz)
         auto lr = mGrd.col(r_ind);
         auto ls = mGrd.col(s_ind);

@@ -99,7 +99,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
 
   model->initializeParallel();
   mesh->read(options);
-  mesh->setupGlobalDof(1, 3, 9, 0, 2, model);
+  mesh->setupGlobalDof(2, model, options);
 
   std::vector<std::unique_ptr<Element>> test_elements;
   auto elements = problem->initializeElements(mesh, model, options);
@@ -145,7 +145,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
           mesh, options, time, problem, fields);
     }
 
-    problem->saveSolution(time, {"a"}, fields, mesh->DistributedMesh());
+//    problem->saveSolution(time, {"a"}, fields, mesh->DistributedMesh());
 
     std::cout << "TIME:      " << time << std::endl;
     max_error = element_error.maxCoeff() > max_error ? element_error.maxCoeff() : max_error;

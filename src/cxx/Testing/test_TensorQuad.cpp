@@ -32,6 +32,7 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
       "--element_shape", "quad_new",
       "--exodus_file_name", e_file.c_str(),
       "--exodus_model_file_name", e_file.c_str(),
+      "--polynomial_order", "4",
       NULL
   };
 
@@ -52,7 +53,7 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
   model->initializeParallel();
   std::unique_ptr<Mesh> mesh(new Mesh(options));
   mesh->read(options);
-  mesh->setupGlobalDof(1, 3, 9, 0, 2, model);
+  mesh->setupGlobalDof(2, model, options);
 
   // Initialize options.
   for (PetscInt i = 1; i < TensorQuad<QuadP1>::MaxOrder() + 1; i++) {

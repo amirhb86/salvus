@@ -11,6 +11,8 @@
 #include <Element/HyperCube/HexP1.h>
 #include "catch.h"
 
+using namespace std;
+
 template <typename Element>
 class TestPlugin: public Element {
 
@@ -30,7 +32,6 @@ class TestPlugin: public Element {
         (M_PI / L * (pts_x.array() - (x0 + L / 2))).sin() *
         (M_PI / L * (pts_y.array() - (y0 + L / 2))).sin() *
         (M_PI / L * (pts_z.array() - (z0 + L / 2))).sin();
-    un.setConstant(Element::ElmNum());
     RealVec vn = RealVec::Zero(pts_x.size());
     RealVec an = RealVec::Zero(pts_x.size());
     problem->insertElementalFieldIntoMesh("u", Element::ElmNum(), Element::ClsMap(), un,
@@ -54,28 +55,17 @@ class TestPlugin: public Element {
     PetscScalar x0 = 5e4, y0 = 5e4, z0 = 5e4, L = 1e5;
     RealVec pts_x, pts_y, pts_z;
     std::tie(pts_x, pts_y, pts_z) = Element::buildNodalPoints();
-    RealVec un_xy =
+    RealVec un_xyz =
         (M_PI / L * (pts_x.array() - (x0 + L / 2))).sin() *
         (M_PI / L * (pts_y.array() - (y0 + L / 2))).sin() *
         (M_PI / L * (pts_z.array() - (z0 + L / 2))).sin();
     PetscScalar vp = Element::ParAtIntPts("VP").mean();
     PetscScalar un_t = cos(M_PI / L * sqrt(3) * time * vp);
-    RealVec exact = un_t * un_xy;
-    exact = pts_z;
+    RealVec exact = un_t * un_xyz;
 
     RealVec u = problem->getFieldOnElement(
         "u", Element::ElmNum(), Element::ClsMap(),
         mesh->DistributedMesh(), mesh->MeshSection(), fields);
-//    std::cout << "NUMERICAL: \n" << u << std::endl;
-//    std::cout << "REAL:      \n" << exact << std::endl;
-
-    RealMat test;
-    test.resize(Element::NumIntPnt(), 3);
-    test.col(0) = u;
-    test.col(1) = exact;
-    for (int i = 0; i < test.col(2).size(); i++) { test(i,2) = i; }
-    std::cout << "NUMERICAL, EXACT, INDEX\n" << test << std::endl;
-    std::cout << "\n\n\n" << Element::VtxCrd() << std::endl;
 
     PetscScalar element_error = (exact - u).array().abs().maxCoeff();
     return element_error;
@@ -100,7 +90,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
       "--element_shape", "hex",
       "--exodus_file_name", e_file.c_str(),
       "--exodus_model_file_name", e_file.c_str(),
-      "--polynomial_order", "4", "--saveMovie", NULL};
+      "--polynomial_order", "2", "--saveMovie", NULL};
   char **argv = const_cast<char **> (arg);
   int argc = sizeof(arg) / sizeof(const char *) - 1;
   PetscOptionsInsert(NULL, &argc, &argv, NULL);
@@ -114,9 +104,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
 
   model->initializeParallel();
   mesh->read(options);
-  mesh->setupGlobalDof(1, 3, 9, 27, 3, model);
-//  mesh->setupGlobalDof(1, 2, 4, 8, 3, model);
-//  mesh->setupGlobalDof(1, 1, 1, 1, 3, model);
+  mesh->setupGlobalDof(3, model, options);
 
   std::vector<std::unique_ptr<Element>> test_elements;
   auto elements = problem->initializeElements(mesh, model, options);
@@ -139,16 +127,10 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
     /* Now we have a class with testing, which is still really an element :) */
     test_elements.emplace_back(static_cast<test_insert*>(l3));
 
-    break;
-
   }
 
-//  problem->saveSolution(1.0, {"u"}, fields, mesh->DistributedMesh());
-//  problem->saveSolution(2.0, {"u"}, fields, mesh->DistributedMesh());
-
-
-  PetscReal cycle_time = 24.39; PetscReal max_error = 0;
-  cycle_time = 2.00;
+  PetscReal cycle_time = 19.90862997205606; PetscReal max_error = 0;
+  cycle_time = 1.0;
   RealVec element_error(test_elements.size()); PetscScalar time = 0;
   while (true) {
 
@@ -168,7 +150,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
           mesh, options, time, problem, fields);
     }
 
-    problem->saveSolution(time, {"a"}, fields, mesh->DistributedMesh());
+//    problem->saveSolution(time, {"u"}, fields, mesh->DistributedMesh());
 
     std::cout << "TIME:      " << time << std::endl;
     max_error = element_error.maxCoeff() > max_error ? element_error.maxCoeff() : max_error;
@@ -177,7 +159,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
 
   }
 
-//  PetscReal regression_error = 0.001288; PetscScalar eps = 0.01;
-//  REQUIRE(max_error <= regression_error * (1 + eps));
+  PetscReal regression_error = 0.00171; PetscScalar eps = 0.01;
+  REQUIRE(max_error <= regression_error * (1 + eps));
 
 }

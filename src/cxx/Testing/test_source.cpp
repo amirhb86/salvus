@@ -116,7 +116,7 @@ TEST_CASE("Test source functionality", "[source]") {
 
       unique_ptr<Mesh> mesh(new Mesh(options));
       mesh->read(options);
-      mesh->setupGlobalDof(1, 3, 9, 0, 2, model);
+      mesh->setupGlobalDof(2, model, options);
 
       /* True values. */
       vector<int> src_elm{1, 0, 1, 0};
