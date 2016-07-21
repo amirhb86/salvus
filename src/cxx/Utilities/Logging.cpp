@@ -5,6 +5,12 @@ Logger::Logger() {}
 
 Logger::~Logger() {
 
+  // catch error case
+  if (level == LogLevel::ERROR) {
+    std::cerr << "ERROR: " << os.str() << std::endl;
+    MPI_Abort(PETSC_COMM_WORLD,-1);      
+  }
+  
   int rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
   if (GLOBAL_LOGGER_STATE.proc == LogProc::ROOTONLY && rank == 0) {        
     // only print at correct verbosity level or higher

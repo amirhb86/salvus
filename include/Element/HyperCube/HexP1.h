@@ -37,6 +37,9 @@ class HexP1 {
                    const Eigen::Ref<const RealVec>& intCrdS,
                    const Eigen::Ref<const RealVec>& intCrdT,
                    const Eigen::Ref<const HexVtx>& vtx);
+
+  /// Class name
+  const static ElementType type() { return ElementType::HEXP1; }
   
 };
 

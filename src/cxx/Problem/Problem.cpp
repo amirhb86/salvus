@@ -212,7 +212,7 @@ std::tuple<ElemVec, FieldDict> Problem::assembleIntoGlobalDof(
 }
 
 void Problem::saveSolution(const PetscReal time, const std::vector<std::string> &save_fields,
-                              FieldDict &fields, DM PetscDM) {
+                           FieldDict &fields, DM PetscDM) {
 
   if (!mViewer) return;
   for (auto &f: save_fields) {

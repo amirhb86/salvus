@@ -6,6 +6,7 @@
 // 3rd party.
 #include <petsc.h>
 #include <Eigen/Dense>
+#include <Utilities/Types.h>
 
 class TriP1 {
 
@@ -55,6 +56,10 @@ class TriP1 {
       const Eigen::Ref<const Eigen::VectorXd>& intCrdR,
       const Eigen::Ref<const Eigen::VectorXd>& intCrdS,
       const Eigen::Ref<const Eigen::Matrix<double,mNumVtx,mNumDim>>& vtx);
+
+  /// Class name
+  const static ElementType type() { return ElementType::TRIP1; }
+  
 };
 
 

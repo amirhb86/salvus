@@ -41,3 +41,6 @@ typedef Eigen::Matrix<PetscInt, Eigen::Dynamic, 1> IntVec;
 /// Complex objects.
 typedef std::vector<std::unique_ptr<Element>> ElemVec;
 typedef std::map<std::string, std::unique_ptr<field>> FieldDict;
+
+/// Strongly typed Element types
+enum class ElementType {QUADP1, TRIP1, HEXP1, TETP1};
