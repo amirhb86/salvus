@@ -138,8 +138,8 @@ ElemVec Problem::initializeElements(unique_ptr<Mesh> const &mesh,
 
 }
 std::tuple<ElemVec, FieldDict> Problem::assembleIntoGlobalDof(
-    ElemVec elements, FieldDict fields, DM PETScDM, PetscSection PETScSection,
-    std::unique_ptr<Options> const &options) {
+    ElemVec elements, FieldDict fields, const PetscReal time,
+    DM PETScDM, PetscSection PETScSection, std::unique_ptr<Options> const &options) {
 
   /* Get some derived quantities. */
   PetscInt maxLocalFields = 0;
@@ -190,15 +190,11 @@ std::tuple<ElemVec, FieldDict> Problem::assembleIntoGlobalDof(
     s.leftCols(NumPushFields) = elm->computeSurfaceIntegral(u.leftCols(NumPullFields));
 
     /* Compute forcing. */
-    PetscReal time = 0;
     f.leftCols(NumPushFields) = elm->computeSourceTerm(time);
 
     /* Compute acceleration. */
     a.leftCols(NumPushFields) = f.leftCols(NumPushFields).array() -
         k.leftCols(NumPushFields).array() + s.leftCols(NumPushFields).array();
-//    std::cout << a.leftCols(NumPushFields).maxCoeff() << ' ' << a.leftCols(NumPushFields).minCoeff()
-//        <<
-//            std::endl;
 
     /* Assemble fields into local partition. */
     for (PetscInt i = 0; i < NumPushFields; i++) {

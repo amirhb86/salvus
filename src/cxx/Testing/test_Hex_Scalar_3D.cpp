@@ -133,10 +133,12 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
   RealVec element_error(test_elements.size()); PetscScalar time = 0;
   while (true) {
 
-    std::tie(test_elements, fields) = problem->assembleIntoGlobalDof(
-        std::move(test_elements), std::move(fields),
-        mesh->DistributedMesh(), mesh->MeshSection(),
-        options);
+    std::tie(test_elements, fields) = problem->assembleIntoGlobalDof(std::move(test_elements),
+                                                                     std::move(fields),
+                                                                     0,
+                                                                     mesh->DistributedMesh(),
+                                                                     mesh->MeshSection(),
+                                                                     options);
 
     fields = problem->applyInverseMassMatrix(std::move(fields));
     std::tie(fields, time) = problem->takeTimeStep

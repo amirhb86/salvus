@@ -81,8 +81,11 @@ class Problem {
    * @param [in] options A reference to the options class.
    * @returns A dictionary of modified fields.
    */
-  std::tuple<ElemVec, FieldDict> assembleIntoGlobalDof(ElemVec elements, FieldDict fields,
-                                                       DM PETScDM, PetscSection PETScSection,
+  std::tuple<ElemVec, FieldDict> assembleIntoGlobalDof(ElemVec elements,
+                                                       FieldDict fields,
+                                                       const PetscReal time,
+                                                       DM PETScDM,
+                                                       PetscSection PETScSection,
                                                        std::unique_ptr<Options> const &options);
 
   /**

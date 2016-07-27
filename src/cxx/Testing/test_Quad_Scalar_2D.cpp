@@ -73,6 +73,65 @@ typedef TestPlugin<Scalar<TensorQuad<QuadP1>>> test_init;
 typedef ElementAdapter<Scalar<TensorQuad<QuadP1>>> unguard;
 typedef Scalar<TensorQuad<QuadP1>> raw;
 
+TEST_CASE("Test point source receiver for scalar equation "
+              "in 2D", "[quad_pointsource]") {
+
+  std::string e_file = "test_pointsource.e";
+
+  PetscOptionsClear(NULL);
+  const char *arg[] = {
+      "salvus_test",
+      "--testing", "true",
+      "--mesh-file", e_file.c_str(),
+      "--model-file", e_file.c_str(),
+      "--polynomial-order", "4",
+      "--number-of-sources", "1",
+      "--source-type", "ricker",
+      "--source-location-x", "50000",
+      "--source-location-y", "50000",
+      "--source-location-z", "50000",
+      "--ricker-amplitude", "10",
+      "--ricker-time-delay", "10.0",
+      "--ricker-center-freq", "0.1",
+      "--save-movie", NULL };
+
+  char **argv = const_cast<char **> (arg);
+  int argc = sizeof(arg) / sizeof(const char *) - 1;
+  PetscOptionsInsert(NULL, &argc, &argv, NULL);
+
+  std::unique_ptr<Options> options(new Options);
+  options->setOptions();
+
+  std::unique_ptr<Problem>      problem(Problem::Factory(options));
+  std::unique_ptr<ExodusModel>  model(new ExodusModel(options));
+  std::unique_ptr<Mesh>         mesh(Mesh::Factory(options));
+
+  model->initializeParallel();
+  mesh->read(options);
+  mesh->setupGlobalDof(2, model, options);
+
+  auto elements = problem->initializeElements(mesh, model, options);
+  auto fields = problem->initializeGlobalDofs(elements, mesh);
+
+  PetscReal time = 0, max_time = 5;
+  while (true) {
+
+    std::tie(elements, fields) = problem->assembleIntoGlobalDof(
+        std::move(elements), std::move(fields), time,
+        mesh->DistributedMesh(), mesh->MeshSection(), options);
+
+    fields = problem->applyInverseMassMatrix(std::move(fields));
+    std::tie(fields, time) = problem->takeTimeStep
+        (std::move(fields), time, options);
+
+//    problem->saveSolution(time, {"u"}, fields, mesh->DistributedMesh());
+
+    std::cout << "TIME:      " << time << std::endl;
+    if (time > max_time) break;
+  }
+
+}
+
 TEST_CASE("Test analytic eigenfunction solution for scalar "
               "equation in 2D", "[quad_eigenfunction]") {
 
@@ -128,10 +187,12 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
   RealVec element_error(test_elements.size()); PetscScalar time = 0;
   while (true) {
 
-    std::tie(test_elements, fields) = problem->assembleIntoGlobalDof(
-        std::move(test_elements), std::move(fields),
-        mesh->DistributedMesh(), mesh->MeshSection(),
-        options);
+    std::tie(test_elements, fields) = problem->assembleIntoGlobalDof(std::move(test_elements),
+                                                                     std::move(fields),
+                                                                     0,
+                                                                     mesh->DistributedMesh(),
+                                                                     mesh->MeshSection(),
+                                                                     options);
 
     fields = problem->applyInverseMassMatrix(std::move(fields));
     std::tie(fields, time) = problem->takeTimeStep
