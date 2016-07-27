@@ -21,11 +21,10 @@ TEST_CASE("test_fluid_solid_couple", "[couple/fluid_solid]") {
   const char *arg[] = {
       "salvus_test",
       "--testing", "true",
-      "--exodus_file_name", "fluid_layer_over_elastic_cartesian_2D_50s.e",
-      "--exodus_model_file_name", "fluid_layer_over_elastic_cartesian_2D_50s.e",
-      "--mesh_type", "newmark",
-      "--element_shape", "quad_new",
-      "--polynomial_order", "4", NULL};
+      "--mesh-file", "fluid_layer_over_elastic_cartesian_2D_50s.e",
+      "--model-file", "fluid_layer_over_elastic_cartesian_2D_50s.e",
+      "--mesh-type", "newmark",
+      "--polynomial-order", "4", NULL};
 
   char **argv = const_cast<char **> (arg);
   int argc = sizeof(arg) / sizeof(const char *) - 1;
@@ -44,9 +43,7 @@ TEST_CASE("test_fluid_solid_couple", "[couple/fluid_solid]") {
 
   std::vector<std::shared_ptr<Element>> elms;
   for (PetscInt i = 0; i < mesh->NumberElementsLocal(); i++) {
-    elms.push_back(Element::Factory(mesh->ElementFields(i),
-                                    mesh->TotalCouplingFields(i),
-                                    options));
+    elms.push_back(Element::Factory("quad", mesh->ElementFields(i), mesh->TotalCouplingFields(i), options));
     elms.back()->SetNum(i);
   }
 

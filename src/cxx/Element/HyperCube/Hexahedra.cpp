@@ -151,52 +151,6 @@ void Hexahedra<ConcreteHex>::attachVertexCoordinates(std::unique_ptr<Mesh> const
 }
 
 template <typename ConcreteHex>
-PetscReal Hexahedra<ConcreteHex>::CFL_constant() {
-  if(mPlyOrd == 3) {
-    return 2.4; // determined by hand (about 10% conservative)
-  }
-  else {
-    std::cerr << "ERROR: Order CFL_constant not implemented yet\n";
-    exit(1);
-  }
-}
-
-template <typename ConcreteHex>
-PetscReal Hexahedra<ConcreteHex>::estimatedElementRadius() {
-
-  PetscReal detJ;
-  RealMat3x3 invJac;
-  RealVec3 refGrad;
-  PetscInt num_pts = mNumIntPtsR*mNumIntPtsS*mNumIntPtsT;
-  RealVec h_pts(num_pts);
-  
-  // Loop over all GLL points.
-  for (PetscInt t_ind = 0; t_ind < mNumIntPtsT; t_ind++) {
-    for (PetscInt s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
-      for (PetscInt r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
-
-        // gll index.
-        PetscInt index = r_ind + s_ind * mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS;
-
-        // (r,s,t) coordinates for this point.
-        PetscReal r = mIntCrdR(r_ind);
-        PetscReal s = mIntCrdS(s_ind);
-        PetscReal t = mIntCrdT(t_ind);
-
-        // Optimized gradient for tensorized GLL basis.
-        ConcreteHex::inverseJacobianAtPoint(r, s, t, mVtxCrd, detJ, invJac);
-        RealVec3 eivals_abs = invJac.inverse().eigenvalues().array().abs();
-
-        // get minimum h (smallest direction)
-        h_pts(index) = eivals_abs.minCoeff();
-      }
-    }
-  }
-  return h_pts.minCoeff();
-  
-}
-
-template <typename ConcreteHex>
 void Hexahedra<ConcreteHex>::setEdgeToValue(
     const PetscInt edg, const PetscReal val, Eigen::Ref<RealVec> f) {
 

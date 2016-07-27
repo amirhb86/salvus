@@ -87,10 +87,9 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
   const char *arg[] = {
       "salvus_test",
       "--testing", "true",
-      "--element_shape", "hex",
-      "--exodus_file_name", e_file.c_str(),
-      "--exodus_model_file_name", e_file.c_str(),
-      "--polynomial_order", "2", "--saveMovie", NULL};
+      "--mesh-file", e_file.c_str(),
+      "--model-file", e_file.c_str(),
+      "--polynomial-order", "2", "--save-movie", NULL};
   char **argv = const_cast<char **> (arg);
   int argc = sizeof(arg) / sizeof(const char *) - 1;
   PetscOptionsInsert(NULL, &argc, &argv, NULL);
@@ -149,8 +148,6 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
       element_error(i++) = validate->checkEigenfunctionTestNew(
           mesh, options, time, problem, fields);
     }
-
-//    problem->saveSolution(time, {"u"}, fields, mesh->DistributedMesh());
 
     std::cout << "TIME:      " << time << std::endl;
     max_error = element_error.maxCoeff() > max_error ? element_error.maxCoeff() : max_error;

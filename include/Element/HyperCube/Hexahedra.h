@@ -242,15 +242,6 @@ private:
    */
   void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model, std::string parameter);
 
-  /** Return the estimated CFL constant for the current order
-   * @return The CFL estimate
-   */
-  PetscReal CFL_constant();
-  
-  /** Return the estimated element radius
-   */
-  virtual PetscReal estimatedElementRadius();
-  
   /**
    * Given some field at the GLL points, interpolate the field to some general point.
    * @param [in] pnt Position in reference coordinates.

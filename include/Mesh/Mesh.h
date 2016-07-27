@@ -141,9 +141,16 @@ class Mesh {
    * @param [in] number_dof_volume Num of dofs per 3-d mesh component (volume). Something something for the
    * standard GLL basis.
    */
-  PetscErrorCode setupGlobalDof(PetscInt num_dim,
-                                unique_ptr<ExodusModel> const &model,
-                                unique_ptr<Options> const &options);
+  void setupGlobalDof(PetscInt num_dim,
+                      unique_ptr<ExodusModel> const &model,
+                      unique_ptr<Options> const &options);
+
+  /**
+   * Determines which type of mesh we are working with (tri/tet/quad/hex). For now, only supports
+   * single element types.
+   * @return Element type ("tri","tet","quad","hex").
+   */
+  std::string baseElementType();
 
   /**
    * Number of elements owned by the current processors.

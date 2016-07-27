@@ -82,10 +82,9 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
   const char *arg[] = {
       "salvus_test",
       "--testing", "true",
-      "--element_shape", "quad_new",
-      "--exodus_file_name", e_file.c_str(),
-      "--exodus_model_file_name", e_file.c_str(),
-      "--polynomial_order", "4", "--saveMovie", NULL};
+      "--mesh-file", e_file.c_str(),
+      "--model-file", e_file.c_str(),
+      "--polynomial-order", "4", "--save-movie", NULL};
   char **argv = const_cast<char **> (arg);
   int argc = sizeof(arg) / sizeof(const char *) - 1;
   PetscOptionsInsert(NULL, &argc, &argv, NULL);

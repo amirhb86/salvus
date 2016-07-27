@@ -18,6 +18,7 @@ TensorQuad<ConcreteShape>::TensorQuad(std::unique_ptr<Options> const &options) {
   /* Ensure we've set parameters correctly. */
   assert(options->PolynomialOrder() > 0);
 
+
   mPlyOrd = options->PolynomialOrder();
   mNumDofVtx = 1;
   mNumDofEdg = mPlyOrd - 1;

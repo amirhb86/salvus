@@ -9,7 +9,7 @@ ExodusModel::ExodusModel(std::unique_ptr<Options> const &options) {
   mNodalKdTree = NULL;
   mElementalKdTree = NULL;
   mExodusId = 0;
-  mExodusFileName = options->ExodusModelFile();
+  mExodusFileName = options->ModelFile();
 }
 
 ExodusModel::~ExodusModel() {

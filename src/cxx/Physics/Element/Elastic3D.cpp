@@ -137,12 +137,6 @@ MatrixXd Elastic3D<Element>::computeSourceTerm(const double time) {
   return s;
 }
 
-template <typename Element>
-double Elastic3D<Element>::CFL_estimate() {
-  double vpMax = Element::ParAtIntPts("VPV").maxCoeff();
-  return Element::CFL_constant() * Element::estimatedElementRadius() / vpMax;
-}
-
 #include <Element/HyperCube/Hexahedra.h>
 #include <Element/HyperCube/HexP1.h>
 template class Elastic3D<Hexahedra<HexP1>>;

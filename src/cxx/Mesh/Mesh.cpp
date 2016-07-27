@@ -35,7 +35,7 @@ void Mesh::read(std::unique_ptr<Options> const &options) {
 
   // Class variables.
   mDistributedMesh = NULL;
-  mExodusFileName = options->ExodusMeshFile();
+  mExodusFileName = options->MeshFile();
 
   // check if file exists
   PetscInt rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
@@ -68,8 +68,8 @@ void Mesh::read(std::unique_ptr<Options> const &options) {
   DMPlexGetDepthStratum(mDistributedMesh, mNumDim, NULL, &mNumberElementsLocal);
 }
 
-PetscErrorCode Mesh::setupGlobalDof(PetscInt num_dim, unique_ptr<ExodusModel> const &model,
-                                    unique_ptr<Options> const &options) {
+void Mesh::setupGlobalDof(PetscInt num_dim, unique_ptr<ExodusModel> const &model,
+                          unique_ptr<Options> const &options) {
 
   /* Find all the mesh boundaries. */
   DMLabel label; DMGetLabel(mDistributedMesh, "Face Sets", &label);
@@ -283,5 +283,19 @@ int Mesh::numFieldPerPhysics(std::string physics) {
     MPI_Abort(PETSC_COMM_WORLD, -1);
   }
   return num;
+}
+std::string Mesh::baseElementType() {
+  std::string type;
+  RealMat vtx = getElementCoordinateClosure(0);
+  if (vtx.rows() == 3) {
+    type = "tri";
+  } else if (vtx.rows() == 4 && mNumDim == 2) {
+    type = "quad";
+  } else if (vtx.rows() == 4 && mNumDim == 3) {
+    type = "tet";
+  } else {
+    type = "hex";
+  }
+  return type;
 }
 

@@ -246,11 +246,11 @@ private:
    * Given some field at the GLL points, interpolate the field to some general point.
    * @param [in] pnt Position in reference coordinates.
    */
-  RealMat interpolateFieldAtPoint(const Eigen::VectorXd &pnt) { return Eigen::MatrixXd(1, 1); }
+  RealMat interpolateFieldAtPoint(const RealVec2 &pnt) { return Eigen::MatrixXd(1, 1); }
 
   // Setters.
   inline void SetNumNew(const PetscInt num) { mElmNum = num; }
-  inline void SetVtxCrd(const Eigen::Ref<const Eigen::Matrix<double,4,2>> &v) { mVtxCrd = v; }
+  inline void SetVtxCrd(const Eigen::Ref<const QuadVtx> &v) { mVtxCrd = v; }
   inline void SetCplEdg(const std::vector<PetscInt> &v) { mEdgMap = v; }
 
   // Getters.
@@ -276,39 +276,11 @@ private:
   };
 
 
-  // TODO: DO WE STILL NEED THESE?
   /**
    * Figure out and set boundaries.
    * @param [in] mesh The mesh instance.
    */
   void setBoundaryConditions(std::unique_ptr<Mesh> const &mesh) {};
-
-  /**
-   * Integrate a field over the element, returning a scalar.
-   * @param [in] field The field to integrate.
-   */
-  double integrateField(const Eigen::Ref<const Eigen::VectorXd>& field) {};
-
-  virtual double CFL_constant() { return 1; };
-
-  /** Return the estimated element radius
-   * @return The CFL estimate
-   */
-  // TODO: MODIFY
-  double estimatedElementRadius() { return 1; };
-
-  /**
-   * If an element is detected to be on a boundary, apply the Dirichlet condition to the
-   * dofs on that boundary.
-   * @param [in] mesh The mesh instance.
-   * @param [in] options The options class.
-   * @param [in] fieldname The field to which the boundary must be applied.
-   */
-  void applyDirichletBoundaries(std::unique_ptr<Mesh> const &mesh,
-                                std::unique_ptr<Options> const &options,
-                                const std::string &fieldname) {};
-
-
 
 };
 

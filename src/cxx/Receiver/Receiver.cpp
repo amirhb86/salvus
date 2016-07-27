@@ -32,9 +32,9 @@ Receiver::Receiver(std::unique_ptr<Options> const &options) {
 
   // Check sanity of receiver coordinates.
   if (options->Dimension() == 2) {
-    assert(options->RecLocX3().size() == 0);
+    assert(options->RecLocZ().size() == 0);
   } else if (options->Dimension() == 3) {
-    assert(options->RecLocX3().size() == options->RecLocX2().size());
+    assert(options->RecLocZ().size() == options->RecLocY().size());
   }
 
 
@@ -43,10 +43,10 @@ Receiver::Receiver(std::unique_ptr<Options> const &options) {
   Receiver::num++;
 
   // Set physical location.
-  mPysLocX1 = options->RecLocX1()[mNum];
-  mPysLocX2 = options->RecLocX2()[mNum];
-  if (options->RecLocX3().size()) {
-    mPysLocX3 = options->RecLocX3()[mNum];
+  mPysLocX1 = options->RecLocX()[mNum];
+  mPysLocX2 = options->RecLocY()[mNum];
+  if (options->RecLocZ().size()) {
+    mPysLocX3 = options->RecLocZ()[mNum];
   }
 
   // Set name.

@@ -54,12 +54,5 @@ class Scalar: public Shape {
   RealMat computeSourceTerm(const double time);
   void recordField(const Eigen::Ref<const RealMat>& u) {};
 
-  /**** Test helpers ****/
-  void setupEigenfunctionTest(std::unique_ptr<Mesh> const &mesh,
-                              std::unique_ptr<Options> const &options) {};
-  double checkEigenfunctionTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options,
-                                const Eigen::Ref<const Eigen::MatrixXd>& u,
-                                double time) {};
-
 };
 

@@ -32,10 +32,10 @@ typedef class ElementAdapter<ElasticToAcoustic2D<Scalar<TensorQuad<QuadP1>>>> El
 /* Boundary conditions. */
 typedef class ElementAdapter<HomogeneousDirichlet<Scalar<TensorQuad<QuadP1>>>> Tester;
 
-std::unique_ptr<Element> Element::Factory(
-    const std::vector<std::string>& physics_base,
-    const std::vector<std::string>& physics_couple,
-    std::unique_ptr<Options> const &options) {
+std::unique_ptr<Element> Element::Factory(const std::string &shape,
+                                         const std::vector<std::string> &physics_base,
+                                         const std::vector<std::string> &physics_couple,
+                                         std::unique_ptr<Options> const &options) {
 
   // define field combinations.
   std::vector<std::string> fluid {"fluid"};
@@ -53,7 +53,7 @@ std::unique_ptr<Element> Element::Factory(
 
   try {
 
-    if (options->ElementShape() == "quad_new") {
+    if (shape == "quad") {
       /* If only acoustic, return a base acoustic. */
       if (physics_base == fluid) {
         if (!physics_couple.size()) {
@@ -96,13 +96,11 @@ std::unique_ptr<Element> Element::Factory(
               AcousticToElastic2D<Elastic2D<TensorQuad<QuadP1>>>>>(options));
         }
         else {
-          throw std::runtime_error(
-              "Runtime error: Element physics " + options->PhysicsSystem() + " and element "
-                  "type " + options->ElementShape() + " not supported.");
+          throw std::runtime_error("Runtime Error: Error in element assignment.");
         }
       }
     }
-    else if (options->ElementShape() == "hex") {
+    else if (shape == "hex") {
       /* If only acoustic, return a base acoustic. */
       if (physics_base == fluid) {
         if (!physics_couple.size()) {
@@ -120,8 +118,7 @@ std::unique_ptr<Element> Element::Factory(
                           Hexahedra<
                               HexP1>>>>(options)); }
       } else {
-        throw std::runtime_error(
-            "Runtime Error: Element physics " + options->PhysicsSystem() + " not supported.");
+        throw std::runtime_error("Runtime Error: Error in element assignment.");
       }
     }
 

@@ -58,7 +58,8 @@ ElemVec Problem::initializeElements(unique_ptr<Mesh> const &mesh,
   {
 
     /* Push back an appropriate element based on the mesh. */
-    elements.push_back(Element::Factory(mesh->ElementFields(i),
+    elements.push_back(Element::Factory(mesh->baseElementType(),
+                                        mesh->ElementFields(i),
                                         mesh->TotalCouplingFields(i),
                                         options));
 

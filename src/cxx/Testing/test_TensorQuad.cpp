@@ -29,10 +29,9 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
   const char *arg[] = {
       "salvus_test",
       "--testing", "true",
-      "--element_shape", "quad_new",
-      "--exodus_file_name", e_file.c_str(),
-      "--exodus_model_file_name", e_file.c_str(),
-      "--polynomial_order", "4",
+      "--mesh-file", e_file.c_str(),
+      "--model-file", e_file.c_str(),
+      "--polynomial-order", "4",
       NULL
   };
 
@@ -58,7 +57,7 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
   // Initialize options.
   for (PetscInt i = 1; i < TensorQuad<QuadP1>::MaxOrder() + 1; i++) {
 
-    PetscOptionsSetValue(NULL, "--polynomial_order", std::to_string(i).c_str());
+    PetscOptionsSetValue(NULL, "--polynomial-order", std::to_string(i).c_str());
     options->setOptions();
 
     TensorQuad<QuadP1> test_quad(options);
@@ -141,18 +140,18 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
   }
 
   // Mock sources and receivers.
-  PetscOptionsSetValue(NULL, "--number_of_sources", "2");
-  PetscOptionsSetValue(NULL, "--source_type", "ricker");
-  PetscOptionsSetValue(NULL, "--source_location_x", "50000,50000");
-  PetscOptionsSetValue(NULL, "--source_location_y", "0,0");
-  PetscOptionsSetValue(NULL, "--source_location_z", "80000,90000");
-  PetscOptionsSetValue(NULL, "--ricker_amplitude", "10,20");
-  PetscOptionsSetValue(NULL, "--ricker_time_delay", "0.1,0.01");
-  PetscOptionsSetValue(NULL, "--ricker_center_freq", "50,60");
-  PetscOptionsSetValue(NULL, "--number_of_receivers", "2");
-  PetscOptionsSetValue(NULL, "--receiver_names", "rec1,rec2");
-  PetscOptionsSetValue(NULL, "--receiver_location_x1", "50000,50000");
-  PetscOptionsSetValue(NULL, "--receiver_location_x2", "80000,90000");
+  PetscOptionsSetValue(NULL, "--number-of-sources", "2");
+  PetscOptionsSetValue(NULL, "--source-type", "ricker");
+  PetscOptionsSetValue(NULL, "--source-location-x", "50000,50000");
+  PetscOptionsSetValue(NULL, "--source-location-y", "0,0");
+  PetscOptionsSetValue(NULL, "--source-location-z", "80000,90000");
+  PetscOptionsSetValue(NULL, "--ricker-amplitude", "10,20");
+  PetscOptionsSetValue(NULL, "--ricker-time-delay", "0.1,0.01");
+  PetscOptionsSetValue(NULL, "--ricker-center-freq", "50,60");
+  PetscOptionsSetValue(NULL, "--number-of-receivers", "2");
+  PetscOptionsSetValue(NULL, "--receiver-names", "rec1,rec2");
+  PetscOptionsSetValue(NULL, "--receiver-location-x", "50000,50000");
+  PetscOptionsSetValue(NULL, "--receiver-location-y", "80000,90000");
 
   options->setOptions();
 

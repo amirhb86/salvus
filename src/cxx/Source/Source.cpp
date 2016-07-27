@@ -34,9 +34,9 @@ Source::Source(std::unique_ptr<Options> const &options) {
   SetNum(number++);
 
   /* Set locations. */
-  SetLocX(options->SourceLocationX()[Num()]);
-  SetLocY(options->SourceLocationY()[Num()]);
-  SetLocZ(options->SourceLocationZ()[Num()]);
+  SetLocX(options->SrcLocX()[Num()]);
+  SetLocY(options->SrcLocY()[Num()]);
+  SetLocZ(options->SrcLocZ()[Num()]);
 
 }
 
@@ -44,9 +44,9 @@ Source::~Source() { --number; }
 
 Ricker::Ricker(std::unique_ptr<Options> const &options): Source(options) {
 
-  mTimeDelay = options->SourceRickerTimeDelay()[Num()];
-  mAmplitude = options->SourceRickerAmplitude()[Num()];
-  mCenterFreq = options->SourceRickerCenterFreq()[Num()];
+  mTimeDelay = options->SrcRickerTimeDelay()[Num()];
+  mAmplitude = options->SrcRickerAmplitude()[Num()];
+  mCenterFreq = options->SrcRickerCenterFreq()[Num()];
 
 }
 
