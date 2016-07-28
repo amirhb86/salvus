@@ -294,8 +294,8 @@ bool TensorQuad<ConcreteShape>::attachReceiver(std::unique_ptr<Receiver> &receiv
 template<typename ConcreteShape>
 bool TensorQuad<ConcreteShape>::attachSource(std::unique_ptr<Source> &source, const bool finalize) {
   if (!source) { return false; }
-  double x1 = source->LocX();
-  double x2 = source->LocZ();
+  PetscReal x1 = source->LocX();
+  PetscReal x2 = source->LocY();
   if (ConcreteShape::checkHull(x1, x2, mVtxCrd)) {
     if (!finalize) { return true; }
     RealVec2 ref_loc = ConcreteShape::inverseCoordinateTransform(x1, x2, mVtxCrd);

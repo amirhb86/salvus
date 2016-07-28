@@ -103,7 +103,7 @@ class ExodusModel {
    * Reads in mesh on rank 0, and populates all necessary model quantities (parameters, etc.).
    * Broadcasts the necessary parameters to all processors.
    */
-  void initializeParallel();
+  void read();
 
   /**
    * Returns the closest parameter to a point (i.e. element node).

@@ -35,11 +35,11 @@ TEST_CASE("test_fluid_solid_couple", "[couple/fluid_solid]") {
   options->setOptions();
 
   std::unique_ptr<Mesh> const &mesh = Mesh::Factory(options);
-  mesh->read(options);
+  mesh->read();
 
   std::unique_ptr<ExodusModel> model(new ExodusModel(options));
-  model->initializeParallel();
-  mesh->setupGlobalDof(2, model, options);
+  model->read();
+  mesh->setupGlobalDof(model, options);
 
   std::vector<std::shared_ptr<Element>> elms;
   for (PetscInt i = 0; i < mesh->NumberElementsLocal(); i++) {

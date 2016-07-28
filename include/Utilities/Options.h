@@ -24,7 +24,7 @@ class Options {
   std::string mMeshFile;
   std::string mModelFile;
   std::string mSourceType;
-  std::string mOutputMovieFile;
+  std::string mMovieFile;
 
   // Sources.
   std::vector<PetscReal> mSrcLocX;
@@ -47,18 +47,22 @@ class Options {
   void setOptions();
 
   PetscBool SaveMovie() const { return mSaveMovie; }
+
   PetscInt Dimension() const { return mNumDim; }
   PetscInt PolynomialOrder() const { return mPolynomialOrder; }
   PetscInt NumberSources() {  return mNumSrc; }
   PetscInt NumberReceivers() const { return mNumRec; }
+
   PetscReal Duration() const { return mDuration; }
   PetscReal TimeStep() const { return mTimeStep; }
+
   std::string MeshFile() const { return mMeshFile; }
-  std::string ModelFile() const { return mModelFile; }
-  std::string SourceType() const { return mSourceType; }
   std::string ReceiverType() const { return "hdf5"; }
+  std::string ModelFile() const { return mModelFile; }
+  std::string MovieFile() const { return mMovieFile; }
+  std::string SourceType() const { return mSourceType; }
   std::string ReceiverFileName() const { return mReceiverFileName; }
-  std::vector<std::string> RecNames() const { return mRecNames; }
+
   std::vector<PetscReal> RecLocX() const { return mRecLocX; }
   std::vector<PetscReal> RecLocY() const { return mRecLocY; }
   std::vector<PetscReal> RecLocZ() const { return mRecLocZ; }
@@ -68,5 +72,7 @@ class Options {
   std::vector<PetscReal> SrcRickerAmplitude() const { return mSrcRickerAmplitude; }
   std::vector<PetscReal> SrcRickerCenterFreq() const { return mSrcRickerCenterFreq; }
   std::vector<PetscReal> SrcRickerTimeDelay() const { return mSrcRickerTimeDelay; }
+
+  std::vector<std::string> RecNames() const { return mRecNames; }
 
 };

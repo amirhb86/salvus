@@ -85,15 +85,17 @@ TEST_CASE("Test point source receiver for scalar equation "
       "--mesh-file", e_file.c_str(),
       "--model-file", e_file.c_str(),
       "--polynomial-order", "4",
-      "--number-of-sources", "1",
+      "--time-step", "1e-2",
+      "--duration", "5",
+      "--number-of-sources", "2",
       "--source-type", "ricker",
-      "--source-location-x", "50000",
-      "--source-location-y", "50000",
-      "--source-location-z", "50000",
-      "--ricker-amplitude", "10",
-      "--ricker-time-delay", "10.0",
-      "--ricker-center-freq", "0.1",
-      "--save-movie", NULL };
+      "--source-location-x", "50000,90000",
+      "--source-location-y", "50000,90000",
+      "--ricker-amplitude", "100,100",
+      "--ricker-time-delay", "1.0,1.5",
+      "--ricker-center-freq", "0.5,0.5",
+      "--save-movie", "--movie-file-name", "new_movie.h5",
+      NULL };
 
   char **argv = const_cast<char **> (arg);
   int argc = sizeof(arg) / sizeof(const char *) - 1;
@@ -106,15 +108,15 @@ TEST_CASE("Test point source receiver for scalar equation "
   std::unique_ptr<ExodusModel>  model(new ExodusModel(options));
   std::unique_ptr<Mesh>         mesh(Mesh::Factory(options));
 
-  model->initializeParallel();
-  mesh->read(options);
-  mesh->setupGlobalDof(2, model, options);
+  model->read();
+  mesh->read();
+  mesh->setupGlobalDof(model, options);
 
   auto elements = problem->initializeElements(mesh, model, options);
   auto fields = problem->initializeGlobalDofs(elements, mesh);
 
-  PetscReal time = 0, max_time = 5;
-  while (true) {
+  PetscReal time = 0;
+  while (time < options->Duration()) {
 
     std::tie(elements, fields) = problem->assembleIntoGlobalDof(
         std::move(elements), std::move(fields), time,
@@ -124,11 +126,16 @@ TEST_CASE("Test point source receiver for scalar equation "
     std::tie(fields, time) = problem->takeTimeStep
         (std::move(fields), time, options);
 
-//    problem->saveSolution(time, {"u"}, fields, mesh->DistributedMesh());
+    std::cout << "TIME:      " << time << "\r"; std::cout.flush();
 
-    std::cout << "TIME:      " << time << std::endl;
-    if (time > max_time) break;
   }
+
+  /* If the max value, and global index, is the same, assume that the regression has passed. */
+  PetscInt ind; PetscReal max;
+  PetscInt regression_ind = 17744; PetscReal regression_max = 2.77143e-07;
+  VecMax(fields["u"]->mGlb, &ind, &max);
+  REQUIRE(max == Approx(regression_max));
+  REQUIRE(ind == regression_ind);
 
 }
 
@@ -143,7 +150,8 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
       "--testing", "true",
       "--mesh-file", e_file.c_str(),
       "--model-file", e_file.c_str(),
-      "--polynomial-order", "4", "--save-movie", NULL};
+      "--time-step", "1e-2",
+      "--polynomial-order", "4", NULL};
   char **argv = const_cast<char **> (arg);
   int argc = sizeof(arg) / sizeof(const char *) - 1;
   PetscOptionsInsert(NULL, &argc, &argv, NULL);
@@ -155,9 +163,9 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
   std::unique_ptr<ExodusModel> model(new ExodusModel(options));
   std::unique_ptr<Mesh> mesh(Mesh::Factory(options));
 
-  model->initializeParallel();
-  mesh->read(options);
-  mesh->setupGlobalDof(2, model, options);
+  model->read();
+  mesh->read();
+  mesh->setupGlobalDof(model, options);
 
   std::vector<std::unique_ptr<Element>> test_elements;
   auto elements = problem->initializeElements(mesh, model, options);
@@ -205,9 +213,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
           mesh, options, time, problem, fields);
     }
 
-//    problem->saveSolution(time, {"a"}, fields, mesh->DistributedMesh());
-
-    std::cout << "TIME:      " << time << std::endl;
+    std::cout << "TIME:      " << time << "\r"; std::cout.flush();
     max_error = element_error.maxCoeff() > max_error ? element_error.maxCoeff() : max_error;
     if (time > cycle_time) break;
 

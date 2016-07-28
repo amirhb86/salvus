@@ -16,3 +16,7 @@
 #include <Utilities/Types.h>
 #include <Utilities/Utilities.h>
 
+#include <Mesh/Mesh.h>
+#include <Problem/Problem.h>
+#include <Model/ExodusModel.h>
+

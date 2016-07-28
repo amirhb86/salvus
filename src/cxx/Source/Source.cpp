@@ -30,13 +30,17 @@ std::vector<std::unique_ptr<Source>> Source::Factory(std::unique_ptr<Options> co
 
 Source::Source(std::unique_ptr<Options> const &options) {
 
-  /* Incremenet global number, save this particular one. */
+  /* Increment global number, save this particular one. */
   SetNum(number++);
 
   /* Set locations. */
   SetLocX(options->SrcLocX()[Num()]);
   SetLocY(options->SrcLocY()[Num()]);
-  SetLocZ(options->SrcLocZ()[Num()]);
+  if (options->SrcLocZ().size()) {
+    SetLocZ(options->SrcLocZ()[Num()]);
+  } else {
+    SetLocZ(0.0);
+  }
 
 }
 

@@ -49,10 +49,10 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
   options->setOptions();
   std::unique_ptr<Problem> problem(Problem::Factory(options));
   std::unique_ptr<ExodusModel> model(new ExodusModel(options));
-  model->initializeParallel();
+  model->read();
   std::unique_ptr<Mesh> mesh(new Mesh(options));
-  mesh->read(options);
-  mesh->setupGlobalDof(2, model, options);
+  mesh->read();
+  mesh->setupGlobalDof(model, options);
 
   // Initialize options.
   for (PetscInt i = 1; i < TensorQuad<QuadP1>::MaxOrder() + 1; i++) {
@@ -143,8 +143,7 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
   PetscOptionsSetValue(NULL, "--number-of-sources", "2");
   PetscOptionsSetValue(NULL, "--source-type", "ricker");
   PetscOptionsSetValue(NULL, "--source-location-x", "50000,50000");
-  PetscOptionsSetValue(NULL, "--source-location-y", "0,0");
-  PetscOptionsSetValue(NULL, "--source-location-z", "80000,90000");
+  PetscOptionsSetValue(NULL, "--source-location-y", "80000,90000");
   PetscOptionsSetValue(NULL, "--ricker-amplitude", "10,20");
   PetscOptionsSetValue(NULL, "--ricker-time-delay", "0.1,0.01");
   PetscOptionsSetValue(NULL, "--ricker-center-freq", "50,60");

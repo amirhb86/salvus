@@ -34,8 +34,8 @@ TEST_CASE("Test source functionality", "[source]") {
     PetscOptionsClear(NULL);
     const char *arg[] =
         {"salvus_test", "--testing", "true", "--number-of-sources", "2", "--source-type", "ricker",
-         "--source-location-x", "50000,50000", "--source-location-y", "0,0", "--source-location-z",
-         "80000,90000", "--ricker-amplitude", "10,20", "--ricker-time-delay", "0.1,0.01",
+         "--source-location-x", "50000,50000", "--source-location-y", "80000,90000", "--source-location-z",
+         "0,0", "--ricker-amplitude", "10,20", "--ricker-time-delay", "0.1,0.01",
          "--ricker-center-freq", "50,60", NULL};
 
     char **argv = const_cast<char **> (arg);
@@ -45,8 +45,8 @@ TEST_CASE("Test source functionality", "[source]") {
     SECTION("general") {
 
       vector<PetscReal> x{50000, 50000};
-      vector<PetscReal> y{0, 0};
-      vector<PetscReal> z{80000, 90000};
+      vector<PetscReal> y{80000, 90000};
+      vector<PetscReal> z {0, 0};
 
       /* Need something to complete the source, so we choose ricker. */
       PetscOptionsSetValue(NULL, "--ricker-amplitude", "10,20");
@@ -111,11 +111,11 @@ TEST_CASE("Test source functionality", "[source]") {
       options->setOptions();
 
       unique_ptr<ExodusModel> model(new ExodusModel(options));
-      model->initializeParallel();
+      model->read();
 
       unique_ptr<Mesh> mesh(new Mesh(options));
-      mesh->read(options);
-      mesh->setupGlobalDof(2, model, options);
+      mesh->read();
+      mesh->setupGlobalDof(model, options);
 
       /* True values. */
       vector<int> src_elm{1, 0, 1, 0};

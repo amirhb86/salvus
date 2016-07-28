@@ -25,17 +25,19 @@ void exodusError(const int retval, std::string func_name) {
 
 }
 
-Mesh::Mesh(const std::unique_ptr<Options> &options) { mDistributedMesh = NULL; }
+Mesh::Mesh(const std::unique_ptr<Options> &options) {
+  mExodusFileName = options->MeshFile();
+  mDistributedMesh = NULL;
+}
 
 std::unique_ptr<Mesh> Mesh::Factory(const std::unique_ptr<Options> &options) {
   return std::unique_ptr<Mesh> (new Mesh(options));
 }
 
-void Mesh::read(std::unique_ptr<Options> const &options) {
+void Mesh::read() {
 
   // Class variables.
   mDistributedMesh = NULL;
-  mExodusFileName = options->MeshFile();
 
   // check if file exists
   PetscInt rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
@@ -68,8 +70,7 @@ void Mesh::read(std::unique_ptr<Options> const &options) {
   DMPlexGetDepthStratum(mDistributedMesh, mNumDim, NULL, &mNumberElementsLocal);
 }
 
-void Mesh::setupGlobalDof(PetscInt num_dim, unique_ptr<ExodusModel> const &model,
-                          unique_ptr<Options> const &options) {
+void Mesh::setupGlobalDof(unique_ptr<ExodusModel> const &model, unique_ptr<Options> const &options) {
 
   /* Find all the mesh boundaries. */
   DMLabel label; DMGetLabel(mDistributedMesh, "Face Sets", &label);

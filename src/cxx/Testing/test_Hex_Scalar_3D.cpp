@@ -89,7 +89,8 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
       "--testing", "true",
       "--mesh-file", e_file.c_str(),
       "--model-file", e_file.c_str(),
-      "--polynomial-order", "2", "--save-movie", NULL};
+      "--time-step", "1e-2",
+      "--polynomial-order", "2", NULL};
   char **argv = const_cast<char **> (arg);
   int argc = sizeof(arg) / sizeof(const char *) - 1;
   PetscOptionsInsert(NULL, &argc, &argv, NULL);
@@ -101,9 +102,9 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
   std::unique_ptr<ExodusModel> model(new ExodusModel(options));
   std::unique_ptr<Mesh> mesh(Mesh::Factory(options));
 
-  model->initializeParallel();
-  mesh->read(options);
-  mesh->setupGlobalDof(3, model, options);
+  model->read();
+  mesh->read();
+  mesh->setupGlobalDof(model, options);
 
   std::vector<std::unique_ptr<Element>> test_elements;
   auto elements = problem->initializeElements(mesh, model, options);
@@ -151,9 +152,9 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
           mesh, options, time, problem, fields);
     }
 
-    std::cout << "TIME:      " << time << std::endl;
+
+    std::cout << "TIME:      " << time << "\r"; std::cout.flush();
     max_error = element_error.maxCoeff() > max_error ? element_error.maxCoeff() : max_error;
-    std::cout << "ERROR: " << max_error << std::endl;
     if (time > cycle_time) break;
 
   }

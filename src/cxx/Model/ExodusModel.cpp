@@ -19,7 +19,7 @@ ExodusModel::~ExodusModel() {
   if (mNodalKdTree) { kd_free(mNodalKdTree); }
 }
 
-void ExodusModel::initializeParallel() {
+void ExodusModel::read() {
 
   /* Read the model from rank 0. */
   int root = 0;
