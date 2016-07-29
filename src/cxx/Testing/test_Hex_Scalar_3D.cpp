@@ -129,8 +129,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
 
   }
 
-  PetscReal cycle_time = 19.90862997205606; PetscReal max_error = 0;
-  cycle_time = 1.0;
+  PetscReal cycle_time = 1.0; PetscReal max_error = 0;
   RealVec element_error(test_elements.size()); PetscScalar time = 0;
   while (true) {
 

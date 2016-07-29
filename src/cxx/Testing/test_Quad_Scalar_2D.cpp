@@ -94,7 +94,6 @@ TEST_CASE("Test point source receiver for scalar equation "
       "--ricker-amplitude", "100,100",
       "--ricker-time-delay", "1.0,1.5",
       "--ricker-center-freq", "0.5,0.5",
-      "--save-movie", "--movie-file-name", "new_movie.h5",
       NULL };
 
   char **argv = const_cast<char **> (arg);
@@ -190,8 +189,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
 
   }
 
-  PetscReal cycle_time = 24.39; PetscReal max_error = 0;
-//  cycle_time = 0.05;
+  PetscReal cycle_time = 1.0; PetscReal max_error = 0;
   RealVec element_error(test_elements.size()); PetscScalar time = 0;
   while (true) {
 
