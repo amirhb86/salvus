@@ -41,6 +41,7 @@ class Options {
   std::vector<PetscReal> mRecLocY;
   std::vector<PetscReal> mRecLocZ;
   std::vector<std::string> mRecNames;
+  std::vector<std::string> mMovieFields;
 
  public:
 
@@ -74,5 +75,6 @@ class Options {
   std::vector<PetscReal> SrcRickerTimeDelay() const { return mSrcRickerTimeDelay; }
 
   std::vector<std::string> RecNames() const { return mRecNames; }
+  std::vector<std::string> MovieFields() const { return mMovieFields; }
 
 };

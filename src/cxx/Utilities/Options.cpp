@@ -77,6 +77,14 @@ void Options::setOptions() {
         throw std::runtime_error("Movie requested, but no output file specified."
                                      " Set --movie-file-name. Exiting.");
     }
+    PetscOptionsGetString(NULL, NULL, "--movie-field", char_buffer, PETSC_MAX_PATH_LEN, &parameter_set);
+    if (parameter_set) {
+      mMovieFields.emplace_back(char_buffer);
+    } else {
+      if (! testing)
+        throw std::runtime_error("Movie requested, but no fields were specified."
+                                     " Set --movie-field. Exiting.");
+    }
     PetscOptionsGetInt(NULL, NULL, "--save-frame-every", &mSaveFrameEvery, &parameter_set);
     if (!parameter_set) { mSaveFrameEvery = 1; }
   }

@@ -51,7 +51,8 @@ int main(int argc, char *argv[]) {
       std::tie(fields, time) = problem->takeTimeStep(
           std::move(fields), time, options);
 
-      problem->saveSolution(time, {"u"}, fields, mesh->DistributedMesh());
+      problem->saveSolution(
+          time, options->MovieFields(), fields, mesh->DistributedMesh());
 
       if (!PetscGlobalRank) { std::cout << "TIME: " << time << '\r'; std::cout.flush(); }
 
