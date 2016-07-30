@@ -155,37 +155,155 @@ void Hexahedra<ConcreteHex>::setEdgeToValue(
     const PetscInt edg, const PetscReal val, Eigen::Ref<RealVec> f) {
 
   /* Get proper dofs in the tensor basis. */
-  PetscInt istart, istride, jstart, jstride;
-  if      (edg == 0) {
-    istart = 0;  jstart = 0;
-    istride = 1; jstride = 1; }
-  else if (edg == 1) {
-    istart = 0;  jstart = mNumIntPnt - mNumIntPtsR * mNumIntPtsS;
-    istride = 1; jstride = 1; }
-  else if (edg == 2) {
-    istart = 0; jstart = 0;
-    jstride = 1; istride = mNumIntPtsS;
-  }
-  else if (edg == 3) {
-    jstart = mNumIntPtsR * mNumIntPtsS - mNumIntPtsS; istart = 0;
-    jstride = 1; istride = mNumIntPtsR;
-  }
-  else if (edg == 4) {
-    jstart = mNumIntPtsR - 1; istart = 0;
-    jstride = mNumIntPtsS;    istride = mNumIntPtsR;
-  }
-  else if (edg == 5) {
-    jstart = 0; istart = 0;
-    jstride = mNumIntPtsS; istride = mNumIntPtsR;
+  PetscInt s_sta, s_str, r_sta, r_str;
+  switch (edg) {
+    case 0: /* bottom */
+      s_sta = 0;
+      r_sta = 0;
+      s_str = 1;
+      r_str = 1;
+      break;
+    case 1: /* top */
+      s_sta = 0;
+      r_sta = mNumIntPnt - mNumIntPtsR * mNumIntPtsS;
+      s_str = 1;
+      r_str = 1;
+      break;
+    case 2: /* left */
+      s_sta = 0;
+      r_sta = 0;
+      r_str = 1;
+      s_str = mNumIntPtsS;
+      break;
+    case 3: /* right */
+      r_sta = mNumIntPtsR * mNumIntPtsS - mNumIntPtsS;
+      s_sta = 0;
+      r_str = 1;
+      s_str = mNumIntPtsR;
+      break;
+    case 4: /* back */
+      r_sta = mNumIntPtsR - 1;
+      s_sta = 0;
+      r_str = mNumIntPtsS;
+      s_str = mNumIntPtsR;
+      break;
+    case 5: /* front */
+      r_sta = 0;
+      s_sta = 0;
+      r_str = mNumIntPtsS;
+      s_str = mNumIntPtsR;
+      break;
   }
 
-  for (PetscInt i = istart, icnt = 0; icnt < mNumIntPtsR; i += istride, icnt++) {
-    for (PetscInt j = jstart, jcnt = 0; jcnt < mNumIntPtsS; j += jstride, jcnt++) {
-      f(j + i * mNumIntPtsS) = val;
+  /* Set the proper dofs. */
+  for (PetscInt s = s_sta, icnt = 0; icnt < mNumIntPtsR; s += s_str, icnt++) {
+    for (PetscInt r = r_sta, jcnt = 0; jcnt < mNumIntPtsS; r += r_str, jcnt++) {
+      f(r + s * mNumIntPtsS) = val;
     }
   }
 
 }
+
+template <typename ConcreteHex>
+RealVec Hexahedra<ConcreteHex>::applyTestAndIntegrateEdge(const Eigen::Ref<const RealVec> &f,
+                                                          const PetscInt edg) {
+
+  PetscInt s_sta, r_sta, s_str, r_str;
+  RealVec3 q0, q1, q2, q3;
+
+  /* Get vertices defining edge. */
+  switch (edg) {
+    case 0: /* bottom */
+      q0 = mVtxCrd.row(0); q1 = mVtxCrd.row(1);
+      q2 = mVtxCrd.row(2); q3 = mVtxCrd.row(3);
+      s_sta = 0;
+      r_sta = 0;
+      s_str = 1;
+      r_str = 1;
+      break;
+    case 1: /* top */
+      q0 = mVtxCrd.row(4); q1 = mVtxCrd.row(5);
+      q2 = mVtxCrd.row(6); q3 = mVtxCrd.row(7);
+      s_sta = 0;
+      r_sta = mNumIntPnt - mNumIntPtsR * mNumIntPtsS;
+      s_str = 1;
+      r_str = 1;
+      break;
+    case 2: /* left */
+      q0 = mVtxCrd.row(0); q1 = mVtxCrd.row(4);
+      q2 = mVtxCrd.row(7); q3 = mVtxCrd.row(1);
+      s_sta = 0;
+      r_sta = 0;
+      r_str = 1;
+      s_str = mNumIntPtsS;
+      break;
+    case 3: /* right */
+      q0 = mVtxCrd.row(3); q1 = mVtxCrd.row(2);
+      q2 = mVtxCrd.row(6); q3 = mVtxCrd.row(5);
+      r_sta = mNumIntPtsR * mNumIntPtsS - mNumIntPtsS;
+      s_sta = 0;
+      r_str = 1;
+      s_str = mNumIntPtsR;
+      break;
+    case 4: /* back */
+      q0 = mVtxCrd.row(1); q1 = mVtxCrd.row(7);
+      q2 = mVtxCrd.row(6); q3 = mVtxCrd.row(2);
+      r_sta = mNumIntPtsR - 1;
+      s_sta = 0;
+      r_str = mNumIntPtsS;
+      s_str = mNumIntPtsR;
+      break;
+    case 5: /* front */
+      q0 = mVtxCrd.row(0); q1 = mVtxCrd.row(3);
+      q2 = mVtxCrd.row(5); q3 = mVtxCrd.row(4);
+      r_sta = 0;
+      s_sta = 0;
+      r_str = mNumIntPtsS;
+      s_str = mNumIntPtsR;
+      break;
+  }
+
+  /* Vectors defining face plane. */
+  RealVec3 v0 = q1 - q0;
+  RealVec3 v1 = q3 - q0;
+
+  /* Face normal. */
+  RealVec3 n = v0.cross(v1).normalized();
+
+  /* Compute orthogonal 2D coordinates. */
+  RealVec3 e0 = v0.normalized();
+  RealVec3 e1 = n.cross(v0).normalized();
+
+  /* Compute coordinates in 2D planar coordinates. */
+  QuadVtx eVtx;
+  eVtx(0, 0) = e0.dot(q0 - q0);
+  eVtx(1, 0) = e0.dot(q1 - q0);
+  eVtx(2, 0) = e0.dot(q2 - q0);
+  eVtx(3, 0) = e0.dot(q3 - q0);
+  eVtx(0, 1) = e1.dot(q0 - q0);
+  eVtx(1, 1) = e1.dot(q1 - q0);
+  eVtx(2, 1) = e1.dot(q2 - q0);
+  eVtx(3, 1) = e1.dot(q3 - q0);
+
+  mParWork.setZero();
+  for (PetscInt s_ind = s_sta, s_cnt = 0; s_cnt < mNumIntPtsR; s_ind += s_str, s_cnt++) {
+    for (PetscInt r_ind = r_sta, r_cnt = 0; r_cnt < mNumIntPtsS; r_ind += r_str, r_cnt++) {
+
+      PetscReal detJac;
+      PetscReal r = mIntCrdR(r_cnt);
+      PetscReal s = mIntCrdS(s_cnt);
+      PetscInt ind = r_ind + s_ind * mNumIntPtsS;
+
+      ConcreteHex::faceJacobianAtPoint(r, s, eVtx, detJac);
+      mParWork(ind) = f(ind) * detJac * mIntWgtR(r_cnt) * mIntWgtS(s_cnt);
+
+    }
+  }
+
+  return mParWork;
+
+}
+
 
 template <typename ConcreteHex>
 void Hexahedra<ConcreteHex>::attachMaterialProperties(
@@ -276,14 +394,14 @@ RealVec Hexahedra<ConcreteHex>::interpolateLagrangePolynomials(const PetscReal r
 
   PetscInt n_points = (order + 1) * (order + 1) * (order + 1);
   RealVec gll_coeffs(n_points);
-  if (order == 3) {
+  if (order == 1) {
+    interpolate_order1_hex(r, s, t, gll_coeffs.data());
+  } else if (order == 2) {
+    interpolate_order2_hex(r, s, t, gll_coeffs.data());
+  } else if (order == 3) {
     interpolate_order3_hex(r, s, t, gll_coeffs.data());
   }
-  else {
-    std::cerr << "ERROR: Order not implemented yet\n";
-    exit(1);
-  }
-  
+
   return gll_coeffs;
   
 }
@@ -307,20 +425,6 @@ RealMat  Hexahedra<ConcreteHex>::setupGradientOperator(const PetscInt order) {
       interpolate_eps_derivative_order2_square(r, s, test.data());
     } else if (order == 3) {
       interpolate_eps_derivative_order3_square(r, s, test.data());
-    } else if (order == 4) {
-      interpolate_eps_derivative_order4_square(r, s, test.data());
-    } else if (order == 5) {
-      interpolate_eps_derivative_order5_square(r, s, test.data());
-    } else if (order == 6) {
-      interpolate_eps_derivative_order6_square(r, s, test.data());
-    } else if (order == 7) {
-      interpolate_eps_derivative_order7_square(r, s, test.data());
-    } else if (order == 8) {
-      interpolate_eps_derivative_order8_square(r, s, test.data());
-    } else if (order == 9) {
-      interpolate_eps_derivative_order9_square(r, s, test.data());
-    } else if (order == 10) {
-      interpolate_eps_derivative_order10_square(r, s, test.data());
     }
     grad.row(i) = test.col(0);
   }
@@ -372,27 +476,6 @@ RealMat  Hexahedra<ConcreteHex>::computeGradient(const Ref<const RealVec> &field
     }
   }
 
-  PetscScalar x0 = 5e4, y0 = 5e4, z0 = 5e4, L = 1e5;
-  RealVec pts_x, pts_y, pts_z;
-  std::tie(pts_x, pts_y, pts_z) = buildNodalPoints();
-  RealVec un_x = (M_PI / L) *
-      (M_PI / L * (pts_x.array() - (x0 + L / 2))).cos() *
-      (M_PI / L * (pts_y.array() - (y0 + L / 2))).sin() *
-      (M_PI / L * (pts_z.array() - (z0 + L / 2))).sin();
-  RealVec un_y =(M_PI / L) *
-      (M_PI / L * (pts_x.array() - (x0 + L / 2))).sin() *
-      (M_PI / L * (pts_y.array() - (y0 + L / 2))).cos() *
-      (M_PI / L * (pts_z.array() - (z0 + L / 2))).sin();
-  RealVec un_z =(M_PI / L) *
-      (M_PI / L * (pts_x.array() - (x0 + L / 2))).sin() *
-      (M_PI / L * (pts_y.array() - (y0 + L / 2))).sin() *
-      (M_PI / L * (pts_z.array() - (z0 + L / 2))).cos();
-
-  RealMat test(mNumIntPnt, 3);
-  test.col(0) = un_x;
-  test.col(1) = un_y;
-  test.col(2) = un_z;
-
   return mGradWork;
 
 }
@@ -420,7 +503,6 @@ RealVec Hexahedra<ConcreteHex>::ParAtIntPts(const std::string &par) {
 
   return mParWork;
 }
-
 
 template <typename ConcreteHex>
 RealVec Hexahedra<ConcreteHex>::applyTestAndIntegrate(const Ref<const RealVec> &f) {
@@ -469,7 +551,7 @@ RealVec Hexahedra<ConcreteHex>::applyGradTestAndIntegrate(const Ref<const RealMa
         ConcreteHex::inverseJacobianAtPoint(r, s, t, mVtxCrd, mDetJac(index), invJac);
         fi << f(index,0),f(index,1),f(index,2);
         fi = invJac.transpose()*fi;
-//        fi = invJac*fi;
+
         fxyz(index,0) = fi[0];
         fxyz(index,1) = fi[1];
         fxyz(index,2) = fi[2];

@@ -297,6 +297,18 @@ RealVec HexP1::interpolateAtPoint(PetscReal r, PetscReal s, PetscReal t) {
   return interpolator;
 }
 
+void HexP1::faceJacobianAtPoint(const PetscReal r, const PetscReal s, const Eigen::Ref<const QuadVtx> &vtx,
+                                PetscReal &detJac) {
+
+  RealMat2x2 jac;
+  Eigen::Matrix<PetscReal,2,4> mult;
+  jac = (mult << dn0dr(r), dn1dr(r), dn2dr(r), dn3dr(r),
+         dn0ds(s), dn1ds(s), dn2ds(s), dn3ds(s)).finished() * vtx;
+  detJac = jac.determinant();
+
+}
+
+
 std::tuple<RealVec,RealVec,RealVec> HexP1::buildNodalPoints(
     const Eigen::Ref<const RealVec> &intCrdR, const Eigen::Ref<const RealVec> &intCrdS,
     const Eigen::Ref<const RealVec> &intCrdT, const Eigen::Ref<const HexVtx>& vtx) {

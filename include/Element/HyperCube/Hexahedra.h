@@ -53,6 +53,7 @@ private:
 
   const static PetscInt mNumDim = 3;
   const static PetscInt mNumVtx = 8;
+  const static PetscInt mMaxOrder = 3;
 
   // Workspace.  
   RealVec mParWork;
@@ -169,6 +170,15 @@ private:
   RealVec applyTestAndIntegrate(const Eigen::Ref<const RealVec>& f);
 
   /**
+   * Multiply a field by the test functions on a certain edge, and integrate.
+   * @param [in] field Working field, defined at all GLL points.
+   * @param [in] edg Edge number to integrate.
+   * @returns Coefficients at all gll points (i.e. zeroes in the interior).
+   */
+  RealVec applyTestAndIntegrateEdge(const Eigen::Ref<const RealVec> &f,
+                                    const PetscInt edg);
+
+  /**
    * Multiply a field by the gradient of the test functions and integrate.
    * @param [in] f Field to calculate on.
    */
@@ -263,6 +273,7 @@ private:
   inline PetscInt NumDofVtx() const { return mNumDofVtx; }
   inline IntVec ClsMap() const { return IntVec(mNumIntPnt); }
   inline RealMat VtxCrd() const { return mVtxCrd; }
+  inline static PetscInt MaxOrder() { return mMaxOrder; }
   std::vector<std::shared_ptr<Source>> Sources() { return mSrc; }
 
   // Delegates.

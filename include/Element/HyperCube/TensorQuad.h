@@ -252,6 +252,7 @@ private:
   inline void SetNumNew(const PetscInt num) { mElmNum = num; }
   inline void SetVtxCrd(const Eigen::Ref<const QuadVtx> &v) { mVtxCrd = v; }
   inline void SetCplEdg(const std::vector<PetscInt> &v) { mEdgMap = v; }
+  inline void SetVtxPar(const Eigen::Ref<const RealVec4> &v, const std::string &par) { mPar[par] = v; }
 
   // Getters.
   inline bool BndElm()        const { return mBndElm; }

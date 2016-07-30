@@ -99,16 +99,33 @@ def tensorized_basis_3D(order):
     generator_t = generating_polynomial_lagrange(order, 't', t_gll)
 
     # Get tensorized basis.
-    basis = TensorProduct(generator_r, generator_s, generator_t)
+    basis = TensorProduct(generator_t, generator_s, generator_r)
     gll_coordinates, gll_weights = gauss_lobatto_legendre_quadruature_points_weights(order + 1)
+
     basis = basis.subs([(v, c) for v, c in zip(r_gll, gll_coordinates)])
     basis = basis.subs([(v, c) for v, c in zip(s_gll, gll_coordinates)])
     basis = basis.subs([(v, c) for v, c in zip(t_gll, gll_coordinates)])
+
+    # Get gradient of basis functions.
+    basis_gradient_r = sym.Matrix([sym.diff(i, r) for i in basis])
+    basis_gradient_s = sym.Matrix([sym.diff(i, s) for i in basis])
+    basis_gradient_t = sym.Matrix([sym.diff(i, t) for i in basis])
+
     routines = []
     autocode = CCodeGen()
     routines.append(autocode.routine(
         'interpolate_order{}_hex'.format(order), basis,
-        argument_sequence=None,global_vars=None))
+        argument_sequence=None))
+
+    routines.append(autocode.routine(
+        'interpolate_r_derivative_order{}_hex'.format(order), basis_gradient_r,
+        argument_sequence=None))
+    routines.append(autocode.routine(
+        'interpolate_s_derivative_order{}_hex'.format(order), basis_gradient_s,
+        argument_sequence=None))
+    routines.append(autocode.routine(
+        'interpolate_t_derivative_order{}_hex'.format(order), basis_gradient_t,
+        argument_sequence=None))
 
     autocode.write(routines, 'order{}_hex'.format(order), to_files=True)
     
