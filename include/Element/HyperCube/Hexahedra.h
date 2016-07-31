@@ -103,8 +103,8 @@ private:
   std::map<std::string,RealVec> mPar;
 
   // Sources and receivers.
-  std::vector<std::shared_ptr<Source>> mSrc;
-  std::vector<std::shared_ptr<Receiver>> mRec;
+  std::vector<std::unique_ptr<Source>> mSrc;
+  std::vector<std::unique_ptr<Receiver>> mRec;
 
   // precomputed values for stiffness routine
   RealVec mDetJac;
@@ -274,7 +274,9 @@ private:
   inline IntVec ClsMap() const { return IntVec(mNumIntPnt); }
   inline RealMat VtxCrd() const { return mVtxCrd; }
   inline static PetscInt MaxOrder() { return mMaxOrder; }
-  std::vector<std::shared_ptr<Source>> Sources() { return mSrc; }
+  inline void SetVtxPar(const Eigen::Ref<const RealVec> &v, const std::string &par) { mPar[par] = v; }
+  const inline std::vector<std::unique_ptr<Source>> &Sources() const { return mSrc; }
+  const inline std::vector<std::unique_ptr<Receiver>> &Receivers() const { return mRec; }
 
   // Delegates.
   std::tuple<RealVec, RealVec, RealVec> buildNodalPoints() {

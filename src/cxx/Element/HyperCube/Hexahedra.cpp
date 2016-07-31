@@ -73,20 +73,6 @@ RealVec Hexahedra<ConcreteHex>::GllPointsForOrder(const PetscInt order) {
     gll_coordinates_order2_square(gll_points.data());
   } else if (order == 3) {
     gll_coordinates_order3_square(gll_points.data());
-  } else if (order == 4) {
-    gll_coordinates_order4_square(gll_points.data());
-  } else if (order == 5) {
-    gll_coordinates_order5_square(gll_points.data());
-  } else if (order == 6) {
-    gll_coordinates_order6_square(gll_points.data());
-  } else if (order == 7) {
-    gll_coordinates_order7_square(gll_points.data());
-  } else if (order == 8) {
-    gll_coordinates_order8_square(gll_points.data());
-  } else if (order == 9) {
-    gll_coordinates_order9_square(gll_points.data());
-  } else if (order == 10) {
-    gll_coordinates_order10_square(gll_points.data());
   }
   return gll_points;
 }
@@ -100,20 +86,6 @@ RealVec Hexahedra<ConcreteHex>::GllIntegrationWeights(const PetscInt order) {
     gll_weights_order2_square(integration_weights.data());
   } else if (order == 3) {
     gll_weights_order3_square(integration_weights.data());
-  } else if (order == 4) {
-    gll_weights_order4_square(integration_weights.data());
-  } else if (order == 5) {
-    gll_weights_order5_square(integration_weights.data());
-  } else if (order == 6) {
-    gll_weights_order6_square(integration_weights.data());
-  } else if (order == 7) {
-    gll_weights_order7_square(integration_weights.data());
-  } else if (order == 8) {
-    gll_weights_order8_square(integration_weights.data());
-  } else if (order == 9) {
-    gll_weights_order9_square(integration_weights.data());
-  } else if (order == 10) {
-    gll_weights_order10_square(integration_weights.data());
   }
   return integration_weights;
 }
@@ -602,33 +574,33 @@ RealVec Hexahedra<ConcreteHex>::applyGradTestAndIntegrate(const Ref<const RealMa
 
 }
 
-template <typename ConcreteHex>
-void Hexahedra<ConcreteHex>::precomputeConstants() {
-
-  PetscInt num_pts = mNumIntPtsR*mNumIntPtsS*mNumIntPtsT;
-  mDetJac.resize(num_pts);
-  mInvJac.resize(num_pts);
-  RealMat3x3 invJac;
-  // Loop over all GLL points.
-  for (PetscInt t_ind = 0; t_ind < mNumIntPtsT; t_ind++) {
-    for (PetscInt s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
-      for (PetscInt r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
-
-        // gll index.
-        PetscInt index = r_ind + s_ind * mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS;
-
-        // (r,s,t) coordinates for this point.
-        PetscReal r = mIntCrdR(r_ind);
-        PetscReal s = mIntCrdS(s_ind);
-        PetscReal t = mIntCrdT(t_ind);
-
-        // Optimized gradient for tensorized GLL basis.
-        ConcreteHex::inverseJacobianAtPoint(r, s, t, mVtxCrd, mDetJac(index), invJac);
-        mInvJac[index] = invJac;
-      }
-    }
-  }
-}
+//template <typename ConcreteHex>
+//void Hexahedra<ConcreteHex>::precomputeConstants() {
+//
+//  PetscInt num_pts = mNumIntPtsR*mNumIntPtsS*mNumIntPtsT;
+//  mDetJac.resize(num_pts);
+//  mInvJac.resize(num_pts);
+//  RealMat3x3 invJac;
+//  // Loop over all GLL points.
+//  for (PetscInt t_ind = 0; t_ind < mNumIntPtsT; t_ind++) {
+//    for (PetscInt s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
+//      for (PetscInt r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
+//
+//        // gll index.
+//        PetscInt index = r_ind + s_ind * mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS;
+//
+//        // (r,s,t) coordinates for this point.
+//        PetscReal r = mIntCrdR(r_ind);
+//        PetscReal s = mIntCrdS(s_ind);
+//        PetscReal t = mIntCrdT(t_ind);
+//
+//        // Optimized gradient for tensorized GLL basis.
+//        ConcreteHex::inverseJacobianAtPoint(r, s, t, mVtxCrd, mDetJac(index), invJac);
+//        mInvJac[index] = invJac;
+//      }
+//    }
+//  }
+//}
 
 // Instantiate base case.
 template class Hexahedra<HexP1>;

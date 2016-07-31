@@ -188,5 +188,90 @@ TEST_CASE("Test tensor hex", "[tensor_hex]") {
     RealVec coefficients = test_hex.getDeltaFunctionCoefficients(pnt);
     REQUIRE(test_hex.applyTestAndIntegrate(coefficients).sum() == Approx(1.0));
 
+    /* Test that faces are set properly. */
+    for (int edge: {0, 1, 2, 3, 4, 5}) {
+      RealVec test_face = RealVec::Zero(test_hex.NumIntPnt());
+      test_hex.setEdgeToValue(edge, 1.0, test_face);
+      REQUIRE(test_hex.applyTestAndIntegrateEdge(test_face, edge).sum() == Approx(4.0));
+    }
+
+    /* TODO: MAKE THIS TEST TIGHTER. */
+    /* Test that the parameters interpolate. */
+    RealVec par(8);
+    par.setConstant(1.0);
+    test_hex.SetVtxPar(par, "test");
+    REQUIRE(test_hex.ParAtIntPts("test").sum() == Approx(test_hex.NumIntPnt()));
+
+
   }
+
+  // Mock sources and receivers.
+  std::string e_file = "small_hex_mesh_to_test_sources.e";
+  PetscOptionsSetValue(NULL, "--mesh-file", e_file.c_str());
+  PetscOptionsSetValue(NULL, "--model-file", e_file.c_str());
+  PetscOptionsSetValue(NULL, "--number-of-sources", "2");
+  PetscOptionsSetValue(NULL, "--source-type", "ricker");
+  PetscOptionsSetValue(NULL, "--source-location-x", "50000,50000");
+  PetscOptionsSetValue(NULL, "--source-location-y", "50000,90000");
+  PetscOptionsSetValue(NULL, "--source-location-z", "50000,90000");
+  PetscOptionsSetValue(NULL, "--ricker-amplitude", "1,1,1");
+  PetscOptionsSetValue(NULL, "--ricker-time-delay", "1,1,1");
+  PetscOptionsSetValue(NULL, "--ricker-center-freq", "1,1,1");
+  PetscOptionsSetValue(NULL, "--number-of-receivers", "2");
+  PetscOptionsSetValue(NULL, "--receiver-names", "rec1,rec2");
+  PetscOptionsSetValue(NULL, "--receiver-location-x", "50000,50000");
+  PetscOptionsSetValue(NULL, "--receiver-location-y", "50000,90000");
+  PetscOptionsSetValue(NULL, "--receiver-location-z", "50000,90000");
+
+  /* TODO: Fix this. */
+  options->SetDimension(3);
+  options->setOptions();
+
+  /* Set up a simple mesh. */
+  std::unique_ptr<Problem>      problem(Problem::Factory(options));
+  std::unique_ptr<ExodusModel>  model(new ExodusModel(options));
+  std::unique_ptr<Mesh>         mesh(new Mesh(options));
+
+  mesh->read();
+  model->read();
+  mesh->setupGlobalDof(model, options);
+
+  /* Known vertex coordinates. */
+  std::vector<PetscInt> locations {1, 0, 0, 0, 0, 0, 1, 0};
+  std::vector<HexVtx> true_vtx(8);
+  true_vtx[0] <<
+    0, 0, 0, 0, 0, 50000, 0, 50000, 50000, 0, 50000, 0, 50000, 0, 0, 50000,
+    50000, 0, 50000, 50000, 50000, 50000, 0, 50000;
+  true_vtx[1] << 50000, 0, 0, 50000, 0, 50000, 50000, 50000, 50000, 50000,
+      50000, 0, 100000, 0, 0, 100000, 50000, 0, 100000, 50000, 50000,
+      100000, 0, 50000;
+  true_vtx[2] << 0, 50000, 0, 0, 50000, 50000, 0, 100000, 50000, 0, 100000,
+      0, 50000, 50000, 0, 50000, 100000, 0, 50000, 100000, 50000, 50000,
+      50000, 50000;
+  true_vtx[3] << 50000, 50000, 0, 50000, 50000, 50000, 50000, 100000,
+      50000, 50000, 100000, 0, 100000, 50000, 0, 100000, 100000, 0,
+      100000, 100000, 50000, 100000, 50000, 50000;
+  true_vtx[4] << 0, 0, 50000, 0, 0, 100000, 0, 50000, 100000, 0, 50000, 50000,
+      50000, 0, 50000, 50000, 50000, 50000, 50000, 50000, 100000, 50000, 0,
+      100000;
+  true_vtx[5] << 50000, 0, 50000, 50000, 0, 100000, 50000, 50000, 100000,
+      50000, 50000, 50000, 100000, 0, 50000, 100000, 50000, 50000, 100000,
+      50000, 100000, 100000, 0, 100000;
+  true_vtx[6] << 0, 50000, 50000, 0, 50000, 100000, 0, 100000, 100000, 0,
+      100000, 50000, 50000, 50000, 50000, 50000, 100000, 50000, 50000,
+      100000, 100000, 50000, 50000, 100000;
+  true_vtx[7] << 50000, 50000, 50000, 50000, 50000, 100000, 50000, 100000,
+      100000, 50000, 100000, 50000, 100000, 50000, 50000, 100000, 100000,
+      50000, 100000, 100000, 100000, 100000, 50000, 100000;
+
+  /* Get raw elements and cast to test. */
+  std::vector<Hexahedra<HexP1>*> p1_test;
+  auto elements = problem->initializeElements(mesh, model, options);
+  for (auto &e: elements) { p1_test.push_back(dynamic_cast<Hexahedra<HexP1>*> (e.get())); }
+  for (PetscInt i = 0; i < true_vtx.size(); i++) {
+    REQUIRE(p1_test[i]->VtxCrd().isApprox(true_vtx[i]));
+    REQUIRE(p1_test[i]->Sources().size() == locations[i]);
+    REQUIRE(p1_test[i]->Receivers().size() == locations[i]);
+  }
+
 }

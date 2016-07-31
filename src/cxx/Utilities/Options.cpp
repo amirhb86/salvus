@@ -169,7 +169,9 @@ void Options::setOptions() {
     if (n_par != mNumRec) { throw std::runtime_error(err + "--receiver-location-x"); }
     PetscOptionsGetScalarArray(NULL, NULL, "--receiver-location-y", mRecLocY.data(), &n_par, NULL);
     if (n_par != mNumRec) { throw std::runtime_error(err + "--receiver-location-y"); }
-    PetscOptionsGetScalarArray(NULL, NULL, "--receiver-location-z", mRecLocZ.data(), &n_par, NULL);
-    if (n_par != mNumRec && mNumDim == 3) { throw std::runtime_error(err + "--receiver-location-z"); }
+    if (mNumDim == 3) {
+      PetscOptionsGetScalarArray(NULL, NULL, "--receiver-location-z", mRecLocZ.data(), &n_par, NULL);
+      if (n_par != mNumRec) { throw std::runtime_error(err + "--receiver-location-z"); }
+    }
   }
 }
