@@ -12,16 +12,10 @@ std::vector<std::unique_ptr<Source>> Source::Factory(std::unique_ptr<Options> co
 
   std::vector<std::unique_ptr<Source>> sources;
   for (PetscInt i = 0; i < options->NumberSources(); i++) {
-    try {
-      if (options->SourceType() == "ricker") {
-        sources.push_back(std::unique_ptr<Ricker>(new Ricker(options)));
-      } else {
-        throw std::runtime_error("Runtime error: Source type " + options->SourceType() + " not supported.");
-      }
-
-    } catch (std::exception &e) {
-      LOG() << e.what();
-      MPI_Abort(PETSC_COMM_WORLD, -1);
+    if (options->SourceType() == "ricker") {
+      sources.push_back(std::unique_ptr<Ricker>(new Ricker(options)));
+    } else {
+      throw std::runtime_error("Runtime error: Source type " + options->SourceType() + " not supported.");
     }
   }
 
@@ -38,8 +32,6 @@ Source::Source(std::unique_ptr<Options> const &options) {
   SetLocY(options->SrcLocY()[Num()]);
   if (options->SrcLocZ().size()) {
     SetLocZ(options->SrcLocZ()[Num()]);
-  } else {
-    SetLocZ(0.0);
   }
 
 }

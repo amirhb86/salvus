@@ -77,6 +77,8 @@ class Options {
   std::vector<std::string> RecNames() const { return mRecNames; }
   std::vector<std::string> MovieFields() const { return mMovieFields; }
 
+  /* Setters (mainly for testing). */
   void SetDimension(const PetscInt dim) { mNumDim = dim; }
+  void SetSourceType(const std::string type) { mSourceType = type; }
 
 };

@@ -102,12 +102,13 @@ void Options::setOptions() {
 
   if (mNumSrc > 0) {
 
-    mSrcLocX.resize(mNumSrc); mSrcLocY.resize(mNumSrc); mSrcLocZ.resize(mNumSrc);
+    mSrcLocX.resize(mNumSrc); mSrcLocY.resize(mNumSrc);
 
     PetscOptionsGetString(NULL, NULL, "--source-type", char_buffer, PETSC_MAX_PATH_LEN, &parameter_set);
     if (parameter_set) {
       mSourceType = std::string(char_buffer);
     } else {
+      if (! testing)
       throw std::runtime_error("Sources were requested, but source type was not specified. "
                                    "Possibilities are: --source-type [ ricker ].");
     }
@@ -118,6 +119,7 @@ void Options::setOptions() {
     PetscOptionsGetScalarArray(NULL, NULL, "--source-location-y", mSrcLocY.data(), &n_par, NULL);
     if (n_par != mNumSrc) { throw std::runtime_error(err + "y locations"); }
     if (mNumDim == 3) {
+      mSrcLocZ.resize(mNumSrc);
       PetscOptionsGetScalarArray(NULL, NULL, "--source-location-z", mSrcLocZ.data(), &n_par, NULL);
       if (n_par != mNumSrc) { throw std::runtime_error(err + "z locations"); }
     }
@@ -134,6 +136,7 @@ void Options::setOptions() {
       PetscOptionsGetScalarArray(NULL, NULL, "--ricker-center-freq", mSrcRickerCenterFreq.data(), &n_par, NULL);
       if (n_par != mNumSrc) { throw std::runtime_error(err + "--ricker-center-freq"); }
     } else {
+      if (! testing)
       throw std::runtime_error("Source type " + mSourceType + " not recognized.");
     }
   }
@@ -150,7 +153,7 @@ void Options::setOptions() {
 
   if (mNumRec > 0) {
 
-    mRecLocX.resize(mNumRec); mRecLocY.resize(mNumRec); mRecLocZ.resize(mNumRec);
+    mRecLocX.resize(mNumRec); mRecLocY.resize(mNumRec);
 
     PetscOptionsGetString(NULL, NULL, "--receiver-file-name", char_buffer, PETSC_MAX_PATH_LEN, &parameter_set);
     if (parameter_set) {
@@ -170,6 +173,7 @@ void Options::setOptions() {
     PetscOptionsGetScalarArray(NULL, NULL, "--receiver-location-y", mRecLocY.data(), &n_par, NULL);
     if (n_par != mNumRec) { throw std::runtime_error(err + "--receiver-location-y"); }
     if (mNumDim == 3) {
+      mRecLocZ.resize(mNumRec);
       PetscOptionsGetScalarArray(NULL, NULL, "--receiver-location-z", mRecLocZ.data(), &n_par, NULL);
       if (n_par != mNumRec) { throw std::runtime_error(err + "--receiver-location-z"); }
     }
