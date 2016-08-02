@@ -20,3 +20,7 @@
 #include <Problem/Problem.h>
 #include <Model/ExodusModel.h>
 
+#include <Source/Source.h>
+#include <Receiver/Receiver.h>
+#include <Receiver/ReceiverHdf5.h>
+

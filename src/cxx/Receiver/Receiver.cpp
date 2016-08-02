@@ -4,25 +4,21 @@
 #include <Receiver/Receiver.h>
 #include <Receiver/ReceiverHdf5.h>
 #include <stdexcept>
+#include <Utilities/Utilities.h>
 #include <Utilities/Logging.h>
 
 // Initialize counter to zero.
-long Receiver::num = 0;
+PetscInt Receiver::mNumRecs = 0;
 
 std::vector<std::unique_ptr<Receiver>> Receiver::Factory(std::unique_ptr<Options> const &options) {
 
   std::vector<std::unique_ptr<Receiver>> receivers;
   for (int i = 0; i < options->NumberReceivers(); i++) {
-    try {
-      if (options->ReceiverType() == "hdf5") {
-        receivers.push_back(std::unique_ptr<ReceiverHdf5>(new ReceiverHdf5(options)));
-      } else {
-        throw std::runtime_error("Runtime error: Receiver type " + options->ReceiverType() + " not supported.");
-      }
-
-    } catch (std::exception &e) {
-      LOG() << e.what();
-      MPI_Abort(MPI_COMM_WORLD, -1);
+    if (utilities::stringHasExtension(options->ReceiverFileName(), ".h5")) {
+      receivers.push_back(std::unique_ptr<ReceiverHdf5>(new ReceiverHdf5(options)));
+    } else {
+      throw std::runtime_error("Runtime error: Filetype of receiver file cannot be deduced from extension."
+                                   " Use [ .h5 ]");
     }
   }
   return receivers;
@@ -30,23 +26,14 @@ std::vector<std::unique_ptr<Receiver>> Receiver::Factory(std::unique_ptr<Options
 
 Receiver::Receiver(std::unique_ptr<Options> const &options) {
 
-  // Check sanity of receiver coordinates.
-  if (options->Dimension() == 2) {
-    assert(options->RecLocZ().size() == 0);
-  } else if (options->Dimension() == 3) {
-    assert(options->RecLocZ().size() == options->RecLocY().size());
-  }
-
-
   // Get receiver number and increment.
-  mNum = Receiver::num;
-  Receiver::num++;
+  SetNum(mNumRecs++);
 
   // Set physical location.
-  mPysLocX1 = options->RecLocX()[mNum];
-  mPysLocX2 = options->RecLocY()[mNum];
+  mLocX = options->RecLocX()[mNum];
+  mLocY = options->RecLocY()[mNum];
   if (options->RecLocZ().size()) {
-    mPysLocX3 = options->RecLocZ()[mNum];
+    mLocZ = options->RecLocZ()[mNum];
   }
 
   // Set name.
@@ -56,12 +43,8 @@ Receiver::Receiver(std::unique_ptr<Options> const &options) {
 
 
 
-Receiver::~Receiver() {
+Receiver::~Receiver() { --mNumRecs; }
 
-  // Reset receiver count.
-  Receiver::num = 0;
-
-}
 void Receiver::record(const double val, const std::string &field) {
 
   // If entry does not exist, create it.

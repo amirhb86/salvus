@@ -296,9 +296,9 @@ template <typename ConcreteHex>
 bool Hexahedra<ConcreteHex>::attachReceiver(std::unique_ptr<Receiver> &receiver,
                                             const bool finalize) {
   if (!receiver) { return false; }
-  PetscReal x1 = receiver->PysLocX1();
-  PetscReal x2 = receiver->PysLocX2();
-  PetscReal x3 = receiver->PysLocX3();
+  PetscReal x1 = receiver->LocX();
+  PetscReal x2 = receiver->LocY();
+  PetscReal x3 = receiver->LocZ();
   if (ConcreteHex::checkHull(x1, x2, x3, mVtxCrd)) {
     if (!finalize) { return true; }
     RealVec3 ref_loc = ConcreteHex::inverseCoordinateTransform(x1, x2, x3, mVtxCrd);

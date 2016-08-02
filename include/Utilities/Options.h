@@ -11,6 +11,7 @@
 
 class Options {
 
+  PetscBool mTesting;
   PetscBool mSaveMovie;
 
   PetscInt mNumDim;
@@ -80,5 +81,6 @@ class Options {
   /* Setters (mainly for testing). */
   void SetDimension(const PetscInt dim) { mNumDim = dim; }
   void SetSourceType(const std::string type) { mSourceType = type; }
+  void SetReceiverFileName(const std::string type) { mReceiverFileName = type; }
 
 };
