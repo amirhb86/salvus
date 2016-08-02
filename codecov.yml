@@ -25,7 +25,7 @@ coverage:
         macro: no
 
   ignore:
-    src/cxx/Testing/*
+    - src/cxx/Testing/*
 
 comment:
   layout: "header, diff, changes, suggestions"
