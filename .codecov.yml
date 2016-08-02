@@ -1,0 +1,32 @@
+coverage:
+  precision: 2
+  round: down
+  range: "60...100"
+
+  status:
+    project:
+      default:
+        target: auto
+        if_no_uploads: error
+
+    patch:
+      default:
+        if_no_uploads: error
+
+    changes: true
+
+  # From steve @ codecov. Ignores the partial coverage on range-based for.
+  parsers:
+    gcov:
+      branch_detection:
+        method: no
+        loop: no
+        conditional: no
+        macro: no
+
+  ignore:
+    src/cxx/Testing/*
+
+comment:
+  layout: "header, diff, changes, suggestions"
+  behavior: default
