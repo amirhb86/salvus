@@ -422,27 +422,6 @@ RealMat  Hexahedra<ConcreteHex>::computeGradient(const Ref<const RealVec> &field
     }
   }
 
-  PetscScalar x0 = 5e4, y0 = 5e4, z0 = 5e4, L = 1e5;
-  RealVec pts_x, pts_y, pts_z;
-  std::tie(pts_x, pts_y, pts_z) = buildNodalPoints();
-  RealVec un_x = (M_PI / L) *
-      (M_PI / L * (pts_x.array() - (x0 + L / 2))).cos() *
-      (M_PI / L * (pts_y.array() - (y0 + L / 2))).sin() *
-      (M_PI / L * (pts_z.array() - (z0 + L / 2))).sin();
-  RealVec un_y =(M_PI / L) *
-      (M_PI / L * (pts_x.array() - (x0 + L / 2))).sin() *
-      (M_PI / L * (pts_y.array() - (y0 + L / 2))).cos() *
-      (M_PI / L * (pts_z.array() - (z0 + L / 2))).sin();
-  RealVec un_z =(M_PI / L) *
-      (M_PI / L * (pts_x.array() - (x0 + L / 2))).sin() *
-      (M_PI / L * (pts_y.array() - (y0 + L / 2))).sin() *
-      (M_PI / L * (pts_z.array() - (z0 + L / 2))).cos();
-
-  RealMat test(mNumIntPnt, 3);
-  test.col(0) = un_x;
-  test.col(1) = un_y;
-  test.col(2) = un_z;
-
   return mGradWork;
 
 }
