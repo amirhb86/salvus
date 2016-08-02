@@ -3,6 +3,7 @@
 // stl.
 #include <vector>
 #include <assert.h>
+#include <memory>
 
 // 3rd party.
 #include <mpi.h>
@@ -20,68 +21,96 @@ class Utilities;
 
 class ExodusModel {
 
-  int mExodusId;
-  int mNumberDimension;
-  int mNumberVertices;
-  int mNumberElements;
-  int mNumberElementBlocks;
-  int mNumberNodeSets;
-  int mNumberSideSets;
-  int mNumberNodalVariables;
-  int mNumberElementVertex;
-
-  std::vector<int> mElementBlockIds;
-  std::vector<int> mVerticesPerElementPerBlock;
-  
-    // New variables for pymesher.
-    int mNumberElementalVariables;
-    std::vector<std::string> mElementalVariableNames;
-    std::vector<double> mElementalVariables;
-    kdtree *mElementalKdTree;
-    std::vector<int> mElementalKdTreeData;
-
+  /* Title stored in file. */
   char mExodusTitle[MAX_LINE_LENGTH + 1];
-
-  float mExodusVersion;
-
-  kdtree *mNodalKdTree;
-
   std::string mExodusFileName;
 
-  std::vector<int> mElementConnectivity;
-  std::vector<int> mNodalKdTreeData;
-  std::vector<double> mNodalX;
-  std::vector<double> mNodalY;
-  std::vector<double> mNodalZ;
-  std::vector<double> mNodalVariables;
+  /* Integer descriptions. */
+  PetscInt mExodusId;
+  PetscInt mNumberNodeSets;
+  PetscInt mNumberSideSets;
+  PetscInt mNumberVertices;
+  PetscInt mNumberElements;
+  PetscInt mNumberDimension;
+  PetscInt mNumberElementBlocks;
+  PetscInt mNumberNodalVariables;
+  PetscInt mNumberElementalVariables;
 
+  /* Version number. */
+  float mExodusVersion;
+
+  /* Functionality for multiple blocks. */
+  std::vector<PetscInt> mElementBlockIds;
+  std::vector<PetscInt> mElementConnectivity;
+  std::vector<PetscInt> mVerticesPerElementPerBlock;
+
+  /* kDtree based on either element centres, or vertices. */
+  kdtree *mNodalKdTree;
+  kdtree *mElementalKdTree;
+  std::vector<PetscInt> mNodalKdTreeData;
+  std::vector<PetscInt> mElementalKdTreeData;
+
+  /* Vector to hold variables on each element. */
+  std::vector<std::string> mElementalVariableNames;
+  std::vector<PetscReal> mElementalVariables;
+
+  /* Vector to hold variables defined only at nodes. */
+  std::vector<PetscReal> mNodalVariables;
   std::vector<std::string> mNodalVariableNames;
+
+  /* Nodal locations. */
+  std::vector<PetscReal> mNodalX;
+  std::vector<PetscReal> mNodalY;
+  std::vector<PetscReal> mNodalZ;
+
+  /* Side sets define edge boundary conditions. */
   std::vector<std::string> mSideSetNames;
 
-  void getInitialization();
+  /** Read (dimension specific) coordinate values. */
   void readCoordinates();
-  void readNodalVariables();
-  void readElementalVariables();
-  void createNodalKdTree();
-  void createElementalKdTree();
+  /** Read mesh connectivity. */
   void readConnectivity();
-  void exodusError(const int retval, std::string func_name);
+  /** Get parameters from Exodus file. */
+  void getInitialization();
+  /** Create kDTree based on element vertices. */
+  void createNodalKdTree();
+  /** Read variables defined at nodal locations. */
+  void readNodalVariables();
+  /** Create kDtree based on element centers. */
+  void createElementalKdTree();
+  /** Read variables defined elementwise (i.e. VP_0, VP_1, ... ,VP_n). */
+  void readElementalVariables();
+  /** Query the sidesets from the exodus file. Save the names present into the mSideSetNames vector. */
+  void readSideSets();
 
   /**
-   * Query the sidesets from the exodus file. Save the names present into the mSideSetNames vector.
+   * Throw an error and specify which function has errored.
+   * @param [in] retval Value thrown by exodus library function.
+   * @param [in] func_name Name of function called.
    */
-  void readSideSets();
+  void exodusError(const int retval, std::string func_name);
 
 
  public:
 
-  ExodusModel(Options options);
-  ~ExodusModel() {
-    int rank;
-    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-    if (!rank) { ex_close(mExodusId); }
-  }
-  void initializeParallel();
+  /** Constructor (sets filename). */
+  ExodusModel(std::unique_ptr<Options> const &options);
+
+  /** Destructor (closes exodus file). */
+  ~ExodusModel();
+
+  /**
+   * Reads in mesh on rank 0, and populates all necessary model quantities (parameters, etc.).
+   * Broadcasts the necessary parameters to all processors.
+   */
+  void read();
+
+  /**
+   * Returns the closest parameter to a point (i.e. element node).
+   * @param [in] point Point which to search for.
+   * @param [in] parameter_name Name of material parameter.
+   * @return The value of the closest material parameter defined at a point.
+   */
   PetscReal getMaterialParameterAtPoint(const std::vector<double> point,
                                         const std::string parameter_name);
 
@@ -102,8 +131,6 @@ class ExodusModel {
    * I.e. will return "ACOUSTIC" for acoustic, "ELASTIC" for elastic.
    */
   std::string getElementType(const Eigen::VectorXd &elem_center);
-
-  int NumberElementVertices() const { return mNumberElementVertex; }
 
 };
 

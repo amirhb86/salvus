@@ -72,10 +72,10 @@ VectorXi Triangle<ConcreteShape>::ClosureMapping(const int order, const int dime
 }
 
 template <typename ConcreteShape>
-Triangle<ConcreteShape>::Triangle(Options options) {
+Triangle<ConcreteShape>::Triangle(std::unique_ptr<Options> const &options) {
 
   // Basic properties.
-  mPlyOrd = options.PolynomialOrder();
+  mPlyOrd = options->PolynomialOrder();
   if(mPlyOrd == 3) {
     mNumIntPnt = 12;
     mNumDofEdg = 2;
@@ -92,10 +92,10 @@ Triangle<ConcreteShape>::Triangle(Options options) {
         
   // Integration points and weights
   std::tie(mIntegrationCoordinates_r,mIntegrationCoordinates_s) =
-    Triangle<ConcreteShape>::QuadraturePoints(options.PolynomialOrder());
-  mIntegrationWeights = Triangle<ConcreteShape>::QuadratureIntegrationWeight(options.PolynomialOrder());
+    Triangle<ConcreteShape>::QuadraturePoints(options->PolynomialOrder());
+  mIntegrationWeights = Triangle<ConcreteShape>::QuadratureIntegrationWeight(options->PolynomialOrder());
         
-  mClsMap = Triangle<ConcreteShape>::ClosureMapping(options.PolynomialOrder(), mNumDim);
+  mClsMap = Triangle<ConcreteShape>::ClosureMapping(options->PolynomialOrder(), mNumDim);
   setupGradientOperator();
 
   mDetJac.setZero(mNumIntPnt);
@@ -106,7 +106,7 @@ Triangle<ConcreteShape>::Triangle(Options options) {
 }
 
 template <typename ConcreteShape>
-void Triangle<ConcreteShape>::attachVertexCoordinates(Mesh *mesh) {
+void Triangle<ConcreteShape>::attachVertexCoordinates(std::unique_ptr<Mesh> const &mesh) {
 
   Vec coordinates_local;
   PetscInt coordinate_buffer_size;
@@ -162,7 +162,7 @@ double Triangle<ConcreteShape>::estimatedElementRadius() {
 
 
 template <typename ConcreteShape>
-void Triangle<ConcreteShape>::attachMaterialProperties(const ExodusModel *model, std::string parameter_name) {
+void Triangle<ConcreteShape>::attachMaterialProperties(std::unique_ptr<ExodusModel> const &model, std::string parameter_name) {
 
   Vector3d material_at_vertices;
 
@@ -173,19 +173,20 @@ void Triangle<ConcreteShape>::attachMaterialProperties(const ExodusModel *model,
 }
 
 template <typename ConcreteShape>
-void Triangle<ConcreteShape>::attachSource(std::vector<std::shared_ptr<Source>> sources) {
+bool Triangle<ConcreteShape>::attachSource(std::unique_ptr<Source> &source, const bool finalize) {
 
-  for (auto &source: sources) {
-    if (ConcreteShape::checkHull(source->PhysicalLocationX(), source->PhysicalLocationZ(), mVtxCrd)) {
-      Vector2d reference_location = ConcreteShape::inverseCoordinateTransform(source->PhysicalLocationX(),
-                                                                                     source->PhysicalLocationZ(),
-                                                                                     mVtxCrd);
-      source->setReferenceLocationR(reference_location(0));
-      source->setReferenceLocationS(reference_location(1));
-      mSrc.push_back(source);
-    }
+  if(!source) { return false; }
+  if (ConcreteShape::checkHull(source->LocX(), source->LocZ(), mVtxCrd)) {
+    if (!finalize) { return true; }
+    Vector2d reference_location = ConcreteShape::inverseCoordinateTransform(source->LocX(),
+                                                                            source->LocZ(),
+                                                                            mVtxCrd);
+    source->SetLocR(reference_location(0));
+    source->SetLocS(reference_location(1));
+    mSrc.push_back(std::move(source));
+    return true;
   }
-
+  return false;
 }
 
 template <typename ConcreteShape>
@@ -259,7 +260,7 @@ double Triangle<ConcreteShape>::integrateField(const VectorXd &field) {
 }
 
 template <typename ConcreteShape>
-void Triangle<ConcreteShape>::attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers) {
+bool Triangle<ConcreteShape>::attachReceiver(std::unique_ptr<Receiver> &receiver, const bool finalize) {
   printf("TODO: attachedReciever\n");
   exit(1);
 }
@@ -274,7 +275,7 @@ VectorXd Triangle<ConcreteShape>::applyTestAndIntegrate(const Ref<const VectorXd
 }
 
 template <typename ConcreteShape>
-void Triangle<ConcreteShape>::setBoundaryConditions(Mesh *mesh) {
+void Triangle<ConcreteShape>::setBoundaryConditions(std::unique_ptr<Mesh> const &mesh) {
   mBndElm = false;
   for (auto &keys: mesh ->BoundaryElementFaces()) {
     auto boundary_name = keys.first;
@@ -316,22 +317,23 @@ VectorXd Triangle<ConcreteShape>::ParAtIntPts(const std::string &par) {
 }
 
 
-template <typename ConcreteShape>
-void Triangle<ConcreteShape>::applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname) {
-
-  if (! mBndElm) return;
-
-  double value = 0;
-  auto dirchlet_boundary_names = options.DirichletBoundaries();
-  for (auto &bndry: dirchlet_boundary_names) {
-    auto faceids = mBnd[bndry];
-    for (auto &faceid: faceids) {
-      auto field = mesh->getFieldOnFace(fieldname, faceid);
-      field = 0 * field.array() + value;
-      mesh->setFieldFromFace(fieldname, faceid, field);
-    }
-  }
-}
+//template <typename ConcreteShape>
+//void Triangle<ConcreteShape>::applyDirichletBoundaries(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options,
+//                                                       const std::string &fieldname) {
+//
+//  if (! mBndElm) return;
+//
+//  double value = 0;
+//  auto dirchlet_boundary_names = options->DirichletBoundaries();
+//  for (auto &bndry: dirchlet_boundary_names) {
+//    auto faceids = mBnd[bndry];
+//    for (auto &faceid: faceids) {
+//      auto field = mesh->getFieldOnFace(fieldname, faceid);
+//      field = 0 * field.array() + value;
+//      mesh->setFieldFromFace(fieldname, faceid, field);
+//    }
+//  }
+//}
 
 // Instantiate combinatorical cases.
 template class Triangle<TriP1>;

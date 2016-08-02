@@ -1,48 +1,71 @@
-// stl.
-#include <iostream>
 #include <vector>
 #include <memory>
+#include <iostream>
 
-// 3rd party.
-#include <mpi.h>
 #include <petsc.h>
-#include <Element/Element.h>
-
-#include <Mesh/Mesh.h>
-#include <Source/Source.h>
-#include <Problem/Problem.h>
-#include <Utilities/Options.h>
-#include <Model/ExodusModel.h>
-#include <Utilities/Logging.h>
+#include <salvus.h>
 
 INIT_LOGGING_STATE();
 
-static constexpr char help[] = "Welcome to Salvus.";
-
 int main(int argc, char *argv[]) {
 
-  PetscInitialize(&argc, &argv, NULL, help);
+  try {
 
-  // Get command line options.
-  Options options;
-  options.setOptions();
+    /* Initialize PETSc, MPI, and command line args. */
+    PetscInitialize(&argc, &argv, NULL, NULL);
 
-  // Get mesh.
-  Mesh *mesh = Mesh::factory(options);
-  mesh->read(options);
+    /* Parse command line options. */
+    std::unique_ptr<Options> options(new Options);
+    options->setOptions();
 
-  // Get model.
-  ExodusModel *model = new ExodusModel(options);
-  model->initializeParallel();
+    /* Use options to allocate simulation components. */
+    std::unique_ptr<Mesh> mesh(Mesh::Factory(options));
+    std::unique_ptr<Problem> problem(Problem::Factory(options));
+    std::unique_ptr<ExodusModel> model(new ExodusModel(options));
 
-  // Get sources.
-  std::vector<std::shared_ptr<Source>> sources = Source::factory(options);
+    /* Initialize relevant components and perform parallel decomposition. */
+    mesh->read();
+    model->read();
 
-  // Use above elements to define the problem.
-  Problem *problem = Problem::factory(options.ProblemType());
+    /* Attach physics and quadrature rules. */
+    mesh->setupGlobalDof(model, options);
 
-  problem->initialize(mesh, model, options);
-  problem->solve(options);
+    /* Setup all dynamic fields. */
+    auto elements = problem->initializeElements(mesh, model, options);
+    auto fields = problem->initializeGlobalDofs(elements, mesh);
+
+    /* Compute solution in time. */
+    /* TODO: Make this something like problem->solve()? */
+    PetscReal time = 0;
+    while (time < options->Duration()) {
+
+      /* Sum up all forces. */
+      std::tie(elements, fields) = problem->assembleIntoGlobalDof(
+          std::move(elements), std::move(fields), time,
+          mesh->DistributedMesh(), mesh->MeshSection(), options);
+
+      /* Apply inverse mass matrix. */
+      fields = problem->applyInverseMassMatrix(std::move(fields));
+
+      /* Advance time. */
+      std::tie(fields, time) = problem->takeTimeStep(
+          std::move(fields), time, options);
+
+      problem->saveSolution(
+          time, options->MovieFields(), fields, mesh->DistributedMesh());
+
+      if (!PetscGlobalRank) { std::cout << "TIME: " << time << '\r'; std::cout.flush(); }
+
+    }
+  }
+
+  /* TODO: Better MPI error handling. */
+  catch (std::runtime_error &e) {
+    LOG() << e.what();
+    PetscFinalize();
+    exit(1);
+  }
 
   PetscFinalize();
+
 }

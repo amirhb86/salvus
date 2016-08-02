@@ -1,64 +1,44 @@
-#include <petscsys.h>
+#include <mpi.h>
+#include <petsc.h>
 #include <Utilities/Utilities.h>
 
-void utilities::print_from_root_mpi(const std::string msg) {
-  int rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-  if (rank == 0) {
-    std::cout << msg << std::endl;
-  }
+/* Template specifications for different MPI datatypes. */
+namespace utilities {
+  template<>
+  MPI_Datatype mpitype<double>() { return MPI_DOUBLE; }
+
+  template<>
+  MPI_Datatype mpitype<float>() { return MPI_FLOAT; }
+
+  template<>
+  MPI_Datatype mpitype<PetscInt>() { return MPIU_INT; }
 }
 
-utilities::PrintFromRoot::PrintFromRoot() { }
-
-utilities::PrintFromRoot::~PrintFromRoot() {
-  int rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-  if (rank == 0) {
-    std::cout << os.str() << std::endl;
-  }
-}
-
-int utilities::broadcastInt(int send_buffer) {
-  int root = 0;
+template <typename T>
+T utilities::broadcastNumberFromRank(T send_buffer, int rank) {
   int num_ints = 1;
-  MPI_Bcast(&send_buffer, num_ints, MPI_INT, root, PETSC_COMM_WORLD);
+  MPI_Bcast(&send_buffer, num_ints, mpitype<T>(), rank, PETSC_COMM_WORLD);
   return send_buffer;
 }
 
-std::vector<double> utilities::broadcastStdVecFromRoot(std::vector<double> &send_buffer) {
+template <typename T>
+std::vector<T> utilities::broadcastNumberVecFromRank(std::vector<T> &send_buffer, int rank) {
 
-  int root = 0;
   int int_size = 1;
-  std::vector<double> receive_buffer;
+  std::vector<T> receive_buffer;
 
   long length;
-  int rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-  if (!rank) { length = send_buffer.size(); }
-  MPI_Bcast(&length, int_size, MPI_LONG, root, PETSC_COMM_WORLD);
+  int myrank; MPI_Comm_rank(PETSC_COMM_WORLD, &myrank);
+  if (myrank == rank) { length = send_buffer.size(); }
+  MPI_Bcast(&length, int_size, MPI_LONG, rank, PETSC_COMM_WORLD);
 
   receive_buffer.resize(length);
-  if (!rank) { receive_buffer = send_buffer; }
-  MPI_Bcast(receive_buffer.data(), length, MPI_DOUBLE, root, PETSC_COMM_WORLD);
+  if (myrank == rank) { receive_buffer = send_buffer; }
+  MPI_Bcast(receive_buffer.data(), length, mpitype<T>(), rank, PETSC_COMM_WORLD);
   return receive_buffer;
 
 }
 
-std::vector<int> utilities::broadcastStdVecFromRoot(std::vector<int> &send_buffer) {
-
-  int root = 0;
-  int int_size = 1;
-  std::vector<int> receive_buffer;
-
-  long length;
-  int rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-  if (!rank) { length = send_buffer.size(); }
-  MPI_Bcast(&length, int_size, MPI_LONG, root, PETSC_COMM_WORLD);
-
-  receive_buffer.resize(length);
-  if (!rank) { receive_buffer = send_buffer; }
-  MPI_Bcast(receive_buffer.data(), length, MPI_INT, root, PETSC_COMM_WORLD);
-  return receive_buffer;
-
-}
 
 std::vector<std::string> utilities::broadcastStringVecFromRank(std::vector<std::string> &send_buffer,
                                                                int root) {
@@ -113,7 +93,18 @@ std::string utilities::broadcastStringFromRank(std::string &buf, int rank) {
   delete [] receive_c_buffer;
   return ret_string;
 
-
 }
+bool ::utilities::stringHasExtension(const std::string &str, const std::string &ext) {
+  return str.size() >= ext.size() &&
+      str.compare(str.size() - ext.size(), ext.size(), ext) == 0;
+}
+
+template PetscInt utilities::broadcastNumberFromRank(PetscInt send_buffer, int rank);
+template float utilities::broadcastNumberFromRank(float send_buffer, int rank);
+template double utilities::broadcastNumberFromRank(double send_buffer, int rank);
+
+template std::vector<PetscInt> utilities::broadcastNumberVecFromRank(std::vector<PetscInt> &send_buffer, int rank);
+template std::vector<float> utilities::broadcastNumberVecFromRank(std::vector<float> &send_buffer, int rank);
+template std::vector<double> utilities::broadcastNumberVecFromRank(std::vector<double> &send_buffer, int rank);
 
 

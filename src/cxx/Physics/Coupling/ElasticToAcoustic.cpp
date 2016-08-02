@@ -6,7 +6,7 @@
 using namespace Eigen;
 
 template <typename BasePhysics>
-ElasticToAcoustic2D<BasePhysics>::ElasticToAcoustic2D(Options options): BasePhysics(options) { }
+ElasticToAcoustic2D<BasePhysics>::ElasticToAcoustic2D(std::unique_ptr<Options> const &options): BasePhysics(options) { }
 
 template <typename BasePhysics>
 std::vector<std::string> ElasticToAcoustic2D<BasePhysics>::PullElementalFields() const {
@@ -14,7 +14,7 @@ std::vector<std::string> ElasticToAcoustic2D<BasePhysics>::PullElementalFields()
 }
 
 template <typename BasePhysics>
-void ElasticToAcoustic2D<BasePhysics>::setBoundaryConditions(Mesh *mesh) {
+void ElasticToAcoustic2D<BasePhysics>::setBoundaryConditions(std::unique_ptr<Mesh> const &mesh) {
   for (auto e: mesh->CouplingFields(BasePhysics::ElmNum())) {
     mEdg.push_back(std::get<0>(e));
     mNbr.push_back(mesh->GetNeighbouringElement(mEdg.back(), BasePhysics::ElmNum()));
@@ -40,7 +40,7 @@ MatrixXd ElasticToAcoustic2D<BasePhysics>::computeSurfaceIntegral(const Ref<cons
 
 }
 
-#include <Physics/Acoustic2D.h>
-#include <Element/HyperCube/Quad.h>
+#include <Physics/Scalar.h>
+#include <Element/HyperCube/TensorQuad.h>
 #include <Element/HyperCube/QuadP1.h>
-template class ElasticToAcoustic2D<Acoustic2D<Quad<QuadP1>>>;
+template class ElasticToAcoustic2D<Scalar<TensorQuad<QuadP1>>>;

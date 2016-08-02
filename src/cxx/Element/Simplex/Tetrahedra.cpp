@@ -225,6 +225,7 @@ VectorXi internalTetMapping(int element, DM &distributed_mesh) {
   for(int i=5;i<11;i++) {
     edges[i-5] = std::make_tuple(points[2*i],points[2*i+1]);
   }
+  DMPlexRestoreTransitiveClosure(distributed_mesh, element, PETSC_TRUE, &numPoints, &points);
 
   int dof_counter = 0;
   // 0-9 are internal points
@@ -433,10 +434,10 @@ VectorXi Tetrahedra<ConcreteShape>::ClosureMapping(const int order, const int di
 }
 
 template <typename ConcreteShape>
-Tetrahedra<ConcreteShape>::Tetrahedra(Options options) {
+Tetrahedra<ConcreteShape>::Tetrahedra(std::unique_ptr<Options> const &options) {
 
   // Basic properties.
-  mPlyOrd = options.PolynomialOrder();
+  mPlyOrd = options->PolynomialOrder();
   if(mPlyOrd == 3) {
     // total number of nodes
     mNumIntPnt = 50;
@@ -453,8 +454,8 @@ Tetrahedra<ConcreteShape>::Tetrahedra(Options options) {
   
   // Integration points and weights
   std::tie(mIntegrationCoordinates_r,mIntegrationCoordinates_s,mIntegrationCoordinates_t) =
-    Tetrahedra<ConcreteShape>::QuadraturePoints(options.PolynomialOrder());
-  mIntegrationWeights = Tetrahedra<ConcreteShape>::QuadratureIntegrationWeights(options.PolynomialOrder());
+    Tetrahedra<ConcreteShape>::QuadraturePoints(options->PolynomialOrder());
+  mIntegrationWeights = Tetrahedra<ConcreteShape>::QuadratureIntegrationWeights(options->PolynomialOrder());
           
   setupGradientOperator();
 
@@ -468,7 +469,7 @@ Tetrahedra<ConcreteShape>::Tetrahedra(Options options) {
 }
 
 template <typename ConcreteShape>
-void Tetrahedra<ConcreteShape>::attachVertexCoordinates(Mesh *mesh) {
+void Tetrahedra<ConcreteShape>::attachVertexCoordinates(std::unique_ptr<Mesh> const &mesh) {
 
   mClsMap = ClosureMapping(3, 3, mesh->DistributedMesh());
 
@@ -514,7 +515,7 @@ VectorXd Tetrahedra<ConcreteShape>::ParAtIntPts(const std::string &par) {
 }
 
 template <typename ConcreteShape>
-void Tetrahedra<ConcreteShape>::attachMaterialProperties(const ExodusModel *model, std::string parameter_name) {
+void Tetrahedra<ConcreteShape>::attachMaterialProperties(std::unique_ptr<ExodusModel> const &model, std::string parameter_name) {
 
   Vector4d material_at_vertices;
 
@@ -527,24 +528,25 @@ void Tetrahedra<ConcreteShape>::attachMaterialProperties(const ExodusModel *mode
 }
 
 template <typename ConcreteShape>
-void Tetrahedra<ConcreteShape>::attachSource(std::vector<std::shared_ptr<Source>> sources) {
+bool Tetrahedra<ConcreteShape>::attachSource(std::unique_ptr<Source> &source, const bool finalize) {
 
-  for (auto &source: sources) {
-    if (ConcreteShape::checkHull(source->PhysicalLocationX(),
-                                 source->PhysicalLocationY(),
-                                 source->PhysicalLocationZ(),
-                                 mVtxCrd)) {
-      Vector3d reference_location = ConcreteShape::inverseCoordinateTransform(source->PhysicalLocationX(),
-                                                                              source->PhysicalLocationY(),
-                                                                              source->PhysicalLocationZ(),
-                                                                              mVtxCrd);
-      source->setReferenceLocationR(reference_location(0));
-      source->setReferenceLocationS(reference_location(1));
-      source->setReferenceLocationT(reference_location(2));
-      mSrc.push_back(source);
-    }
+  if (!source) { return false; }
+  if (ConcreteShape::checkHull(source->LocX(),
+                               source->LocY(),
+                               source->LocZ(),
+                               mVtxCrd)) {
+    if (!finalize) { return true; }
+    Vector3d reference_location = ConcreteShape::inverseCoordinateTransform(source->LocX(),
+                                                                            source->LocY(),
+                                                                            source->LocZ(),
+                                                                            mVtxCrd);
+    source->SetLocR(reference_location(0));
+    source->SetLocS(reference_location(1));
+    source->SetLocT(reference_location(2));
+    mSrc.push_back(std::move(source));
+    return true;
   }
-
+  return false;
 }
 
 template <typename ConcreteShape>
@@ -767,7 +769,7 @@ void Tetrahedra<ConcreteShape>::setupGradientOperator() {
 }
 
 template <typename ConcreteShape>
-void Tetrahedra<ConcreteShape>::attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers) {
+bool Tetrahedra<ConcreteShape>::attachReceiver(std::unique_ptr<Receiver> &receiver, const bool finalize) {
   printf("TODO: attachedReciever\n");
   exit(1);
 }
@@ -811,7 +813,7 @@ VectorXd Tetrahedra<ConcreteShape>::applyTestAndIntegrate(const Ref<const Vector
 }
 
 template <typename ConcreteShape>
-void Tetrahedra<ConcreteShape>::setBoundaryConditions(Mesh *mesh) {
+void Tetrahedra<ConcreteShape>::setBoundaryConditions(std::unique_ptr<Mesh> const &mesh) {
   mBndElm = false;
   for (auto &keys: mesh ->BoundaryElementFaces()) {
     auto boundary_name = keys.first;
@@ -824,22 +826,23 @@ void Tetrahedra<ConcreteShape>::setBoundaryConditions(Mesh *mesh) {
 }
 
 
-template <typename ConcreteShape>
-void Tetrahedra<ConcreteShape>::applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname) {
-
-  if (! mBndElm) return;
-
-  double value = 0;
-  auto dirchlet_boundary_names = options.DirichletBoundaries();
-  for (auto &bndry: dirchlet_boundary_names) {
-    auto faceids = mBnd[bndry];
-    for (auto &faceid: faceids) {
-      auto field = mesh->getFieldOnFace(fieldname, faceid);
-      field = 0 * field.array() + value;
-      mesh->setFieldFromFace(fieldname, faceid, field);
-    }
-  }
-}
+//template <typename ConcreteShape>
+//void Tetrahedra<ConcreteShape>::applyDirichletBoundaries(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options,
+//                                                         const std::string &fieldname) {
+//
+//  if (! mBndElm) return;
+//
+//  double value = 0;
+//  auto dirchlet_boundary_names = options->DirichletBoundaries();
+//  for (auto &bndry: dirchlet_boundary_names) {
+//    auto faceids = mBnd[bndry];
+//    for (auto &faceid: faceids) {
+//      auto field = mesh->getFieldOnFace(fieldname, faceid);
+//      field = 0 * field.array() + value;
+//      mesh->setFieldFromFace(fieldname, faceid, field);
+//    }
+//  }
+//}
 
 
 

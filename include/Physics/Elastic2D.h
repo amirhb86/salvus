@@ -34,15 +34,15 @@ class Elastic2D: public Shape {
  public:
 
   /**** Initializers ****/
-  Elastic2D<Shape>(Options options);
+  Elastic2D<Shape>(std::unique_ptr<Options> const &options);
   std::vector<std::string> PullElementalFields() const;
   std::vector<std::string> PushElementalFields() const;
 
   /**** Setup functions ****/
   void prepareStiffness() {};
-  void assembleElementMassMatrix(Mesh *mesh);
-  void attachMaterialPropertiesNew(const ExodusModel *model);
-  double CFL_estimate() {}
+  Eigen::MatrixXd assembleElementMassMatrix();
+  void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model);
+  double CFL_estimate() { return 1; }
   
   /**** Time loop functions ****/
   Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &u);
@@ -52,10 +52,7 @@ class Elastic2D: public Shape {
   void recordField(const Eigen::MatrixXd &u) {};
 
   /**** Test helpers ****/
-  void setupEigenfunctionTest(Mesh *mesh, Options options);
-  double checkEigenfunctionTest(Mesh *mesh, Options options,
-                                const Eigen::Ref<const Eigen::MatrixXd>& u,
-                                double time);
+  const static std::string Name() { return "Elastic2D_" + Shape::Name(); }
 
 };
 

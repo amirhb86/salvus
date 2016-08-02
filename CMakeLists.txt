@@ -18,6 +18,10 @@ if (NOT CMAKE_BUILD_TYPE)
 endif (NOT CMAKE_BUILD_TYPE)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -std=c++11")
+set(CMAKE_CXX_FLAGS_COVERAGE "-fprofile-arcs -ftest-coverage -O0 -g -std=c++11")
+MARK_AS_ADVANCED(
+        CMAE_CXX_FLAGS_COVERAGE )
 
 find_package(MPI REQUIRED)
 
@@ -35,15 +39,9 @@ include_directories(
         include/)
 
 set(SALVUS_SOURCES
-        src/cxx/Problem/Problem.cpp
-        src/cxx/Problem/FieldIo.cpp
-        src/cxx/Problem/NewmarkGeneral.cpp
         src/cxx/Mesh/Mesh.cpp
-        src/cxx/Mesh/ElasticNewmark2D.cpp
-        src/cxx/Mesh/ScalarNewmark2D.cpp
-        src/cxx/Mesh/ScalarLeapFrog4th.cpp
-        src/cxx/Mesh/ElasticAcousticNewmark2D.cpp
-        src/cxx/Mesh/ElasticAcousticNewmark3D.cpp
+        src/cxx/Problem/Problem.cpp
+        src/cxx/Problem/Order2Newmark.cpp
         src/cxx/Element/Simplex/Triangle.cpp
         src/cxx/Element/Simplex/Triangle/TriP1.cpp
         src/cxx/Element/Simplex/Tetrahedra.cpp
@@ -54,23 +52,17 @@ set(SALVUS_SOURCES
         src/cxx/Source/Source.cpp
         src/cxx/Receiver/Receiver.cpp
         src/cxx/Receiver/ReceiverHdf5.cpp
-        src/cxx/Element/HyperCube/Quad.cpp
+        src/cxx/Element/HyperCube/TensorQuad.cpp
         src/cxx/Element/HyperCube/Quad/QuadP1.cpp
         src/cxx/Element/HyperCube/Hexahedra.cpp
         src/cxx/Element/HyperCube/Hex/HexP1.cpp
-        src/cxx/Physics/Element/Acoustic2D.cpp
-        src/cxx/Physics/Element/AcousticTet.cpp
-        src/cxx/Physics/Element/Acoustic3D.cpp
-        src/cxx/Physics/Element/AcousticHex3D.cpp
-        src/cxx/Physics/Element/AcousticHex3D_LF.cpp
-        src/cxx/Physics/Element/Acoustic3D_V.cpp
-        src/cxx/Physics/Element/AcousticTri.cpp
+        src/cxx/Physics/Element/Scalar.cpp
+        src/cxx/Physics/Element/Elastic2D.cpp
         src/cxx/Physics/Element/Elastic3D.cpp
+        src/cxx/Physics/Boundary/HomogeneousDirichlet.cpp
         src/cxx/Utilities/kdtree.c
-        src/cxx/Utilities/PETScExtensions.c
         src/cxx/Utilities/Logging.cpp
         src/cxx/Element/Element.cpp
-        src/cxx/Physics/Element/Elastic2D.cpp
         src/cxx/Element/HyperCube/Hexahedra.cpp
         src/cxx/Physics/Coupling/AcousticToElastic2D.cpp
         src/cxx/Physics/Coupling/ElasticToAcoustic.cpp
@@ -89,17 +81,16 @@ add_executable(salvus
 
 add_executable(salvus_test
         src/cxx/Testing/test_main.cpp
-        src/cxx/Testing/test_hexahedra.cpp
-        src/cxx/Testing/test_tetrahedra.cpp
-        src/cxx/Testing/test_exactsolution.cpp
-        src/cxx/Testing/test_receiver.cpp
-        src/cxx/Testing/test_multi_field.cpp
-        src/cxx/Testing/test_strides.cpp
         src/cxx/Testing/test_QuadP1.cpp
-        src/cxx/Testing/test_quadbase.cpp
-        src/cxx/Testing/test_quad.cpp
-        src/cxx/Testing/test_element.cpp
-        src/cxx/Testing/test_2d_fluid_solid_couple.cpp)
+        src/cxx/Testing/test_TensorQuad.cpp
+        src/cxx/Testing/test_2d_fluid_solid_couple.cpp
+        src/cxx/Testing/test_source.cpp
+        src/cxx/Testing/test_HexP1.cpp
+        src/cxx/Testing/test_Hex_Scalar_3D.cpp
+        src/cxx/Testing/test_Quad_Scalar_2D.cpp
+        src/cxx/Testing/test_TensorHex.cpp
+        src/cxx/Testing/test_receiver.cpp
+        src/cxx/Testing/test_Element.cpp)
 
 # run `make` (or `make -j5`) to build `salvus` executable
 target_link_libraries(salvus salvusCommon ${MPI_LIBRARIES} petsc exodus netcdf hdf5)

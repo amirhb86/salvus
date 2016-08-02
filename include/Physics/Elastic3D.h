@@ -31,15 +31,13 @@ class Elastic3D: public Shape {
  public:
 
   /**** Initializers ****/
-  Elastic3D<Shape>(Options options);
+  Elastic3D<Shape>(std::unique_ptr<Options> const &options);
   std::vector<std::string> PullElementalFields() const;
   std::vector<std::string> PushElementalFields() const;
 
   /**** Setup functions ****/
-  void prepareStiffness();
-  void assembleElementMassMatrix(Mesh *mesh);
-  void attachMaterialPropertiesNew(const ExodusModel *model);
-  double CFL_estimate();
+  Eigen::MatrixXd assembleElementMassMatrix();
+  void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model);
 
   /**** Time loop functions ****/
   Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &u);
@@ -48,12 +46,8 @@ class Elastic3D: public Shape {
   Eigen::Array<double,Eigen::Dynamic,6> computeStress(const Eigen::Ref<const Eigen::ArrayXd>& strain);
   void recordField(const Eigen::MatrixXd &u) {};
 
-  /**** Test helpers ****/
-  void setupEigenfunctionTest(Mesh *mesh, Options options) {};
-  double checkEigenfunctionTest(Mesh *mesh, Options options,
-                                const Eigen::Ref<const Eigen::MatrixXd>& u,
-                                double time) {return 0;};
 
+  const static std::string Name() { return "Elastic3D_" + Shape::Name(); }
 };
 
 

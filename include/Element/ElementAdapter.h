@@ -36,18 +36,12 @@ class ElementAdapter: public Element, public T {
    * Here we (must) implicitly call the templated Base-class constructor. Since the current
    * class is really still just an interface - adapter, there is nothing to initialize here.
    */
-  ElementAdapter(Options options): T(options) {};
+  ElementAdapter(std::unique_ptr<Options> const &options): T(options) { };
 
   /** @name Management.
    * These methods are mainly responsible for memory management, i.e. the creation and desctruction
    * of individual elements.
    */
-  ///@{
-  /** Returns a copy of an initialized element. */
-  virtual std::shared_ptr<Element> clone() const {
-    return std::shared_ptr<Element> (new ElementAdapter(*this));
-  }
-  ///@}
 
   /** @name Element setup.
    * These methods are responsible for setting up each individual element for use within a time loop.
@@ -57,44 +51,32 @@ class ElementAdapter: public Element, public T {
   /** Construct the mass matrix on the element, and sum into global DOF.
    * @param [in/out] mesh Mesh instance. Global and local vectors modified.
    */
-  virtual void assembleElementMassMatrix(Mesh *mesh) {
-    T::assembleElementMassMatrix(mesh);
+  virtual Eigen::MatrixXd assembleElementMassMatrix() {
+     return T::assembleElementMassMatrix();
   }
   /** Attach material parameters to the element given some model.
    * @param [in] model Model instance.
    */
-  virtual void attachMaterialProperties(const ExodusModel *model) {
-    T::attachMaterialPropertiesNew(model);
+  virtual void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model) {
+    T::attachMaterialProperties(model);
   }
   /** Attach receivers to the element (if required).
    * @param [in/out] receivers Vector of all receivers in the model. Receiver reference coordinates are attached.
    */
-  virtual void attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers) {
-    T::attachReceiver(receivers);
+  virtual bool attachReceiver(std::unique_ptr<Receiver> &receiver, const bool finalize) {
+    return T::attachReceiver(receiver, finalize);
   }
   /** Attach sources to the element (if required).
    * @param [in] sources Vector of all sources in the model.
    */
-  virtual void attachSource(std::vector<std::shared_ptr<Source>> sources) {
-    T::attachSource(sources);
+  virtual bool attachSource(std::unique_ptr<Source> &source, const bool finalize) {
+    return T::attachSource(source, finalize);
   }
   /** Attach vertex coordinates to the element.
    * @param [in] distributed_mesh The parallel DM provided by PETSc.
    */
-  virtual void attachVertexCoordinates(Mesh *mesh) {
+  virtual void attachVertexCoordinates(std::unique_ptr<Mesh> const &mesh) {
     T::attachVertexCoordinates(mesh);
-  }
-  /** Return the estimated element radius scaled by element-local velocity.
-   * @return The CFL estimate
-   */
-  virtual double CFL_estimate() {
-    return T::CFL_estimate();
-  }  
-  /** Pre-compute the stiffness matrix operator. Currently this is required for the tetrahedral elements,
-   * but is a non-op for element types where the stiffness matrix is computed on the fly.
-   */
-  virtual void prepareStiffness() {
-    T::prepareStiffness();
   }
   ///@}
 
@@ -144,7 +126,7 @@ class ElementAdapter: public Element, public T {
    * elements.
    * @param [in/out] mesh Mesh instance. Local/global boundary values are modified.
    */
-  virtual void setBoundaryConditions(Mesh *mesh) {
+  virtual void setBoundaryConditions(std::unique_ptr<Mesh> const &mesh) {
     T::setBoundaryConditions(mesh);
   }
   /** Triggers a record on all receivers which belong to a certain element.
@@ -153,43 +135,6 @@ class ElementAdapter: public Element, public T {
   virtual void recordField(const Eigen::Ref<const Eigen::MatrixXd>& field) {
     T::recordField(field);
   }
-  /* TODO: Check if the following function is in the right place. */
-  /** Apply dirichlet boundary condtions on all edges flagged as requiring such conditions.
-   * @param [in] mesh The mesh instance.
-   * @param [in] options The options class.
-   * @param [in] fieldname The field which to apply the boundary condition to.
-   */
-  virtual void applyDirichletBoundaries(Mesh *mesh, Options options, const std::string &fieldname) {
-    return T::applyDirichletBoundaries(mesh, options, fieldname);
-  }
-  ///@}  
-  
-  /** @name Tests.
-   * These functions should be contain routines to assist in integration testing. For example,
-   * unit testing of individual functions is not appropriate here (this is left to individual test plugins),
-   * but the testing of entire forward/adjoint runs through simple models is appropriate.
-   */
-  ///@{
-  /**
-   * Sets up the initial condition required for a given test.
-   * @param [in] mesh The mesh instance.
-   * @param [in] options The options class.
-   */
-  virtual void setupTest(Mesh *mesh, Options options) {
-    T::setupEigenfunctionTest(mesh, options);
-  }
-  /**
-   * Given a dynamic field (i.e. displacement), this functions checks the difference between the said field and
-   * some analytical reference solution.
-   * @param [in] mesh The mesh instance.
-   * @param [in] options The options class.
-   * @param [in] u The numerical solution to checi.
-   * @param [in] time The simulation time.
-   */
-  virtual double checkTest(Mesh *mesh, Options options, const Eigen::Ref<const Eigen::MatrixXd>& u, double time) {
-    return T::checkEigenfunctionTest(mesh, options, u, time);
-  }
-  ///@}
 
   /** @name Setters/Getters.
    * The time loop occasionally needs access to some instance variables stored in the derived classes. These functions
@@ -219,5 +164,7 @@ class ElementAdapter: public Element, public T {
   inline Eigen::MatrixXd VtxCrd() const { return T::VtxCrd(); }
   /** What is the closure map on this element. */
   virtual inline Eigen::VectorXi ClsMap() const { return T::ClsMap(); }
+  /** What type of element am I? */
+  inline std::string Name() const  { return T::Name(); }
   ///@}
 };

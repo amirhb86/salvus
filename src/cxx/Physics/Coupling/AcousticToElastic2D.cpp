@@ -6,7 +6,7 @@
 using namespace Eigen;
 
 template <typename BasePhysics>
-AcousticToElastic2D<BasePhysics>::AcousticToElastic2D(Options options): BasePhysics(options) {
+AcousticToElastic2D<BasePhysics>::AcousticToElastic2D(std::unique_ptr<Options> const &options): BasePhysics(options) {
 }
 
 template <typename BasePhysics>
@@ -15,17 +15,22 @@ std::vector<std::string> AcousticToElastic2D<BasePhysics>::PullElementalFields()
 }
 
 template <typename BasePhysics>
-void AcousticToElastic2D<BasePhysics>::setBoundaryConditions(Mesh *mesh) {
-  for (auto e: mesh->CouplingFields(BasePhysics::ElmNum())) {
-    mEdg.push_back(std::get<0>(e));
-    mNbr.push_back(mesh->GetNeighbouringElement(mEdg.back(), BasePhysics::ElmNum()));
+void AcousticToElastic2D<BasePhysics>::setBoundaryConditions(std::unique_ptr<Mesh> const &mesh) {
+  auto edge_to_physics = mesh->CouplingFields(BasePhysics::ElmNum());
+  for (auto tup: edge_to_physics) {
+    for (auto other_field: std::get<1>(tup)) {
+      if (other_field == "fluid") { mEdg.push_back(std::get<0>(tup)); }
+    }
+  }
+  for (auto e: mEdg) {
+    mNbr.push_back(mesh->GetNeighbouringElement(e, BasePhysics::ElmNum()));
     mNbrCtr.push_back(mesh->getElementCoordinateClosure(mNbr.back()).colwise().mean());
   }
   BasePhysics::setBoundaryConditions(mesh);
 }
 
 template <typename BasePhysics>
-void AcousticToElastic2D<BasePhysics>::attachMaterialPropertiesNew(const ExodusModel *model) {
+void AcousticToElastic2D<BasePhysics>::attachMaterialProperties(std::unique_ptr<ExodusModel> const &model) {
 
   for (auto ctr: mNbrCtr) {
     double rho_0 = 0;
@@ -36,7 +41,7 @@ void AcousticToElastic2D<BasePhysics>::attachMaterialPropertiesNew(const ExodusM
   }
 
   // call parent.
-  BasePhysics::attachMaterialPropertiesNew(model);
+  BasePhysics::attachMaterialProperties(model);
 
 }
 
@@ -55,6 +60,6 @@ Eigen::MatrixXd AcousticToElastic2D<BasePhysics>::computeSurfaceIntegral(const E
 }
 
 #include <Physics/Elastic2D.h>
-#include <Element/HyperCube/Quad.h>
+#include <Element/HyperCube/TensorQuad.h>
 #include <Element/HyperCube/QuadP1.h>
-template class AcousticToElastic2D<Elastic2D<Quad<QuadP1>>>;
+template class AcousticToElastic2D<Elastic2D<TensorQuad<QuadP1>>>;

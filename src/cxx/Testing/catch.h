@@ -3001,7 +3001,7 @@ namespace Catch {
 
                 virtual bool match( ExpressionType const& str ) const {
                     return  (str != nil || m_substr == nil ) &&
-                            [str rangeOfString:m_substr].location != NSNotFound;
+                            [str rangeOfString:m_substr]->location != NSNotFound;
                 }
 
                 virtual std::string toString() const {
@@ -3014,7 +3014,7 @@ namespace Catch {
 
                 virtual bool match( ExpressionType const& str ) const {
                     return  (str != nil || m_substr == nil ) &&
-                            [str rangeOfString:m_substr].location == 0;
+                            [str rangeOfString:m_substr]->location == 0;
                 }
 
                 virtual std::string toString() const {
@@ -3026,7 +3026,7 @@ namespace Catch {
 
                 virtual bool match( ExpressionType const& str ) const {
                     return  (str != nil || m_substr == nil ) &&
-                            [str rangeOfString:m_substr].location == [str length] - [m_substr length];
+                            [str rangeOfString:m_substr]->location == [str length] - [m_substr length];
                 }
 
                 virtual std::string toString() const {

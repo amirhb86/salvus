@@ -3,12 +3,13 @@
 #include <Model/ExodusModel.h>
 #include <Physics/Elastic3D.h>
 #include <Source/Source.h>
+#include <Utilities/Types.h>
 #include <Utilities/Logging.h>
 
 using namespace Eigen;
 
 template <typename Element>
-Elastic3D<Element>::Elastic3D(Options options): Element(options) {
+Elastic3D<Element>::Elastic3D(std::unique_ptr<Options> const &options): Element(options) {
 
   int num_stress_cmp = 6;
   int num_strain_cmp = 9;
@@ -29,7 +30,7 @@ Elastic3D<Element>::Elastic3D(Options options): Element(options) {
 }
 
 template <typename Element>
-void Elastic3D<Element>::attachMaterialPropertiesNew(const ExodusModel *model) {
+void Elastic3D<Element>::attachMaterialProperties(std::unique_ptr<ExodusModel> const &model) {
 
   Element::attachMaterialProperties(model, "RHO");
   Element::attachMaterialProperties(model, "VPV");
@@ -59,10 +60,9 @@ template <typename Element>
 std::vector<std::string> Elastic3D<Element>::PushElementalFields() const { return {"ax", "ay", "az"}; }
 
 template <typename Element>
-void Elastic3D<Element>::assembleElementMassMatrix(Mesh *mesh) {
+MatrixXd Elastic3D<Element>::assembleElementMassMatrix() {
 
-  VectorXd mass_matrix = Element::applyTestAndIntegrate(Element::ParAtIntPts("RHO"));
-  mesh->addFieldFromElement("m", Element::ElmNum(), Element::ClsMap(), mass_matrix);
+  return Element::applyTestAndIntegrate(Element::ParAtIntPts("RHO"));
 
 }
 
@@ -103,11 +103,6 @@ MatrixXd Elastic3D<Element>::computeStiffnessTerm(const Eigen::MatrixXd &u) {
 }
 
 template <typename Element>
-void Elastic3D<Element>::prepareStiffness() {
-  Element::precomputeConstants();
-}
-
-template <typename Element>
 Array<double,Dynamic,6> Elastic3D<Element>::computeStress(const Eigen::Ref<const Eigen::ArrayXd> &strain) {
 
   Matrix<double,Dynamic,6> stress(Element::NumIntPnt(),6);
@@ -131,16 +126,10 @@ template <typename Element>
 MatrixXd Elastic3D<Element>::computeSourceTerm(const double time) {
   MatrixXd s = MatrixXd::Zero(Element::NumIntPnt(), Element::NumDim());
   for (auto &source : Element::Sources()) {
-    s.col(0) += (source->fire(time) * Element::getDeltaFunctionCoefficients(
-        source->ReferenceLocationR(), source->ReferenceLocationS(), source->ReferenceLocationT()));
+    RealVec3 pnt(source->LocR(), source->LocS(), source->LocT());
+    s.col(0) += (source->fire(time) * Element::getDeltaFunctionCoefficients(pnt));
   }
   return s;
-}
-
-template <typename Element>
-double Elastic3D<Element>::CFL_estimate() {
-  double vpMax = Element::ParAtIntPts("VPV").maxCoeff();
-  return Element::CFL_constant() * Element::estimatedElementRadius() / vpMax;
 }
 
 #include <Element/HyperCube/Hexahedra.h>

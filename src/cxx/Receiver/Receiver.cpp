@@ -4,63 +4,47 @@
 #include <Receiver/Receiver.h>
 #include <Receiver/ReceiverHdf5.h>
 #include <stdexcept>
+#include <Utilities/Utilities.h>
+#include <Utilities/Logging.h>
 
 // Initialize counter to zero.
-long Receiver::num = 0;
+PetscInt Receiver::mNumRecs = 0;
 
-std::vector<std::shared_ptr<Receiver>> Receiver::factory(Options options) {
+std::vector<std::unique_ptr<Receiver>> Receiver::Factory(std::unique_ptr<Options> const &options) {
 
-  std::vector<std::shared_ptr<Receiver>> receivers;
-  for (int i = 0; i < options.NumberReceivers(); i++) {
-    try {
-      if (options.ReceiverType() == "hdf5") {
-        receivers.push_back(std::shared_ptr<ReceiverHdf5>(new ReceiverHdf5(options)));
-      } else {
-        throw std::runtime_error("Runtime error: Receiver type " + options.ReceiverType() + " not supported.");
-      }
-
-    } catch (std::exception &e) {
-      std::cout << e.what() << std::endl;
-      MPI_Abort(MPI_COMM_WORLD, -1);
+  std::vector<std::unique_ptr<Receiver>> receivers;
+  for (int i = 0; i < options->NumberReceivers(); i++) {
+    if (utilities::stringHasExtension(options->ReceiverFileName(), ".h5")) {
+      receivers.push_back(std::unique_ptr<ReceiverHdf5>(new ReceiverHdf5(options)));
+    } else {
+      throw std::runtime_error("Runtime error: Filetype of receiver file cannot be deduced from extension."
+                                   " Use [ .h5 ]");
     }
   }
   return receivers;
 }
 
-Receiver::Receiver(Options options) {
-
-  // Check sanity of receiver coordinates.
-  if (options.Dimension() == 2) {
-    assert(options.RecLocX3().size() == 0);
-  } else if (options.Dimension() == 3) {
-    assert(options.RecLocX3().size() == options.RecLocX2().size());
-  }
-
+Receiver::Receiver(std::unique_ptr<Options> const &options) {
 
   // Get receiver number and increment.
-  mNum = Receiver::num;
-  Receiver::num++;
+  SetNum(mNumRecs++);
 
   // Set physical location.
-  mPysLocX1 = options.RecLocX1()[mNum];
-  mPysLocX2 = options.RecLocX2()[mNum];
-  if (options.RecLocX3().size()) {
-    mPysLocX3 = options.RecLocX3()[mNum];
+  mLocX = options->RecLocX()[mNum];
+  mLocY = options->RecLocY()[mNum];
+  if (options->RecLocZ().size()) {
+    mLocZ = options->RecLocZ()[mNum];
   }
 
   // Set name.
-  mName = options.RecNames()[mNum];
+  mName = options->RecNames()[mNum];
 
 }
 
 
 
-Receiver::~Receiver() {
+Receiver::~Receiver() { --mNumRecs; }
 
-  // Reset receiver count.
-  Receiver::num = 0;
-
-}
 void Receiver::record(const double val, const std::string &field) {
 
   // If entry does not exist, create it.

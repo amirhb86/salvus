@@ -7,6 +7,7 @@
 // 3rd party.
 #include <petsc.h>
 #include <Eigen/Dense>
+#include <Utilities/Types.h>
 
 // forward decl.
 class Mesh;
@@ -50,194 +51,169 @@ class Hexahedra: public ConcreteHex {
 
 private:
 
-  const static int mNumDim = 3;
-  const static int mNumVtx = 8;
+  const static PetscInt mNumDim = 3;
+  const static PetscInt mNumVtx = 8;
+  const static PetscInt mMaxOrder = 3;
 
   // Workspace.  
-  Eigen::VectorXd mParWork;
-  Eigen::VectorXd mStiffWork;
-  Eigen::MatrixXd mGradWork;
+  RealVec mParWork;
+  RealVec mStiffWork;
+  RealMat mGradWork;
 
   // On Boundary.
   bool mBndElm;
-  std::map<std::string,std::vector<int>> mBnd;
+  std::map<std::string,std::vector<PetscInt>> mBnd;
 
   // Instance variables.
   PetscInt mElmNum;
-  int mPlyOrd;
-  int mNumIntPnt;
-  int mNumDofVtx;
-  int mNumDofEdg;
-  int mNumDofFac;
-  int mNumDofVol;
-  int mNumIntPtsR;
-  int mNumIntPtsS;
-  int mNumIntPtsT;
+  PetscInt mPlyOrd;
+  PetscInt mNumIntPnt;
+  PetscInt mNumDofVtx;
+  PetscInt mNumDofEdg;
+  PetscInt mNumDofFac;
+  PetscInt mNumDofVol;
+  PetscInt mNumIntPtsR;
+  PetscInt mNumIntPtsS;
+  PetscInt mNumIntPtsT;
 
   // Vertex coordinates.
-  Eigen::Matrix<double,mNumVtx,mNumDim> mVtxCrd;
+  HexVtx mVtxCrd;
 
   // Element center.
   Eigen::Vector3d mElmCtr;
 
   // Closure mapping.
-  Eigen::VectorXi mClsMap;
+  IntVec mClsMap;
 
   // Quadrature parameters.
-  Eigen::VectorXd mIntCrdR;
-  Eigen::VectorXd mIntCrdS;
-  Eigen::VectorXd mIntCrdT;
-  Eigen::VectorXd mIntWgtR;
-  Eigen::VectorXd mIntWgtS;
-  Eigen::VectorXd mIntWgtT;
+  RealVec mIntCrdR;
+  RealVec mIntCrdS;
+  RealVec mIntCrdT;
+  RealVec mIntWgtR;
+  RealVec mIntWgtS;
+  RealVec mIntWgtT;
 
   // Matrix holding gradient information.
-  static Eigen::MatrixXd mGrd;
-  static Eigen::MatrixXd mGrdT;
-  static Eigen::MatrixXd mGrdWgt;
-  static Eigen::MatrixXd mGrdWgtT;
+  RealMat mGrd;
+  RealMat mGrdT;
+  RealMat mGrdWgt;
+  RealMat mGrdWgtT;
   
   // Material parameters.
-  std::map<std::string,Eigen::Matrix<double,8,1>> mPar;
+  std::map<std::string,RealVec> mPar;
 
   // Sources and receivers.
-  std::vector<std::shared_ptr<Source>> mSrc;
-  std::vector<std::shared_ptr<Receiver>> mRec;
+  std::vector<std::unique_ptr<Source>> mSrc;
+  std::vector<std::unique_ptr<Receiver>> mRec;
 
   // precomputed values for stiffness routine
-  Eigen::VectorXd mDetJac;
-  std::vector<Eigen::Matrix3d> mInvJac;
+  RealVec mDetJac;
+  std::vector<RealMat3x3> mInvJac;
   
  public:
 
-  Hexahedra<ConcreteHex>(Options options);
+  Hexahedra<ConcreteHex>(std::unique_ptr<Options> const &options);
 
   /**
    * Returns the quadrature locations for a given polynomial order.
    * @param [in] order The polynmomial order.
    * @returns Vector of GLL points.
    */
-  static Eigen::VectorXd GllPoints(const int order);
+  static RealVec GllPointsForOrder(const PetscInt order);
 
   /**
    * Returns the quadrature intergration weights for a polynomial order.
    * @param [in] order The polynomial order.
    * @returns Vector of quadrature weights.
    */
-  static Eigen::VectorXd GllIntegrationWeights(const int order);
+  static RealVec GllIntegrationWeights(const PetscInt order);
 
   /**
    * Returns the mapping from the PETSc to Salvus closure.
    * @param [in] order The polynomial order.
    * @returns Vector containing the closure mapping (field(closure(i)) = petscField(i))
    */
-  static Eigen::VectorXi ClosureMapping(const int order, int elem_num,
+  static IntVec ClosureMapping(const PetscInt order, PetscInt elem_num,
                                         DM &distributed_mesh);
 
   /**
    * Setup the auto-generated gradient operator, and stores the result in mGrd.
    * @param [in] order The polynomial order.
    */
-  static Eigen::MatrixXd setupGradientOperator(const int order);
+  static RealMat setupGradientOperator(const PetscInt order);
 
   /**
    * 
    */
-  static Eigen::VectorXd interpolateLagrangePolynomials(const double r,
-                                                        const double s,
-                                                        const double t,
-                                                        const int order);
-  
-  /**
-   * Returns an optimized stride along the r direction.
-   * @param [in] f Function defined at GLL points.
-   * @param [in] s_ind Index of GLL points along s-axis.
-   * @param [in] numPtsS Number of integration points along the s-axis.
-   * @param [in] numPtsR Number of integration points along the r-axis.
-   */
-  static Eigen::VectorXd rVectorStride(const Eigen::Ref<const Eigen::VectorXd>& f,
-                                       const int s_ind, const int t_ind,
-                                       const int numPtsR, const int numPtsS,
-                                       const int numPtsT);
-  /**
-   * Returns an optimized stride along the s direction.
-   * @param [in] f Function defined at GLL points.
-   * @param [in] s_ind Index of GLL points along s-axis.
-   * @param [in] numPtsS Number of integration points along the s-axis.
-   * @param [in] numPtsR Number of integration points along the r-axis.
-   *
-   */
-  static Eigen::VectorXd sVectorStride(const Eigen::Ref<const Eigen::VectorXd>& f,
-                                       const int r_ind, const int t_ind,
-                                       const int numPtsR, const int numPtsS,
-                                       const int numPtsT);
-
-  /**
-   * Returns an optimized stride along the s direction.
-   * @param [in] f Function defined at GLL points.
-   * @param [in] s_ind Index of GLL points along s-axis.
-   * @param [in] numPtsS Number of integration points along the s-axis.
-   * @param [in] numPtsR Number of integration points along the r-axis.
-   *
-   */
-  static Eigen::VectorXd tVectorStride(const Eigen::Ref<const Eigen::VectorXd>& f,
-                                       const int r_ind, const int s_ind,
-                                       const int numPtsR, const int numPtsS,
-                                       const int numPtsT);
+  static RealVec interpolateLagrangePolynomials(const PetscReal r,
+                                                        const PetscReal s,
+                                                        const PetscReal t,
+                                                        const PetscInt order);
 
   /**
    * Compute the gradient of a field at all GLL points.
    * @param [in] field Field to take the gradient of.
    */
-  Eigen::MatrixXd computeGradient(const Eigen::Ref<const Eigen::VectorXd>& field);
+  RealMat computeGradient(const Eigen::Ref<const RealVec>& field);
 
   /**
    * Interpolate a parameter from vertex to GLL point.
    * @param [in] par Parameter to interpolate (i.e. VP, VS).
    */
-  Eigen::VectorXd ParAtIntPts(const std::string& par);
+  RealVec ParAtIntPts(const std::string& par);
 
 
   /**
    * Multiply a field by the test functions and integrate.
    * @param [in] f Field to calculate on.
    */
-  Eigen::VectorXd applyTestAndIntegrate(const Eigen::Ref<const Eigen::VectorXd>& f);
+  RealVec applyTestAndIntegrate(const Eigen::Ref<const RealVec>& f);
+
+  /**
+   * Multiply a field by the test functions on a certain edge, and integrate.
+   * @param [in] field Working field, defined at all GLL points.
+   * @param [in] edg Edge number to integrate.
+   * @returns Coefficients at all gll points (i.e. zeroes in the interior).
+   */
+  RealVec applyTestAndIntegrateEdge(const Eigen::Ref<const RealVec> &f,
+                                    const PetscInt edg);
 
   /**
    * Multiply a field by the gradient of the test functions and integrate.
    * @param [in] f Field to calculate on.
    */
-  Eigen::VectorXd applyGradTestAndIntegrate(const Eigen::Ref<const Eigen::MatrixXd>& f);
+  RealVec applyGradTestAndIntegrate(const Eigen::Ref<const Eigen::MatrixXd>& f);
 
   /**
    * precompute constants needed for stiffness routine
    */
   void precomputeConstants();
+
+  void setEdgeToValue(const PetscInt edg, const PetscReal val, Eigen::Ref<RealVec> f);
   
   
   /**
    * Test the full stiffness routine for acoustic
    */
-  Eigen::VectorXd computeStiffnessFull(const Eigen::Ref<const Eigen::VectorXd> &field, Eigen::VectorXd &mVp);
+  RealVec computeStiffnessFull(const Eigen::Ref<const RealVec> &field, RealVec &mVp);
   
   /**
    * Figure out and set boundaries.
    * @param [in] mesh The mesh instance.
    */
-  void setBoundaryConditions(Mesh *mesh);
+  void setBoundaryConditions(std::unique_ptr<Mesh> const &mesh) {};
 
   /**
    * Integrate a field over the element, returning a scalar.
    * @param [in] field The field to integrate.
    */
-  double integrateField(const Eigen::Ref<const Eigen::VectorXd>& field);
+  PetscReal integrateField(const Eigen::Ref<const RealVec>& field);
 
   /**
    * Attach the (4) vertex coordinates to the element.
    * @param [in] distributed_mesh The PETSc DM.
    */
-  void attachVertexCoordinates(Mesh *mesh);
+  void attachVertexCoordinates(std::unique_ptr<Mesh> const &mesh);
 
   /**
    * Attach some abstract source instance to the element.
@@ -245,7 +221,7 @@ private:
    * save a pointer to the source.
    * @param [in] sources A vector of source objects.
    */
-  void attachSource(std::vector<std::shared_ptr<Source>> sources);
+  bool attachSource(std::unique_ptr<Source> &source, const bool finalize);
 
   /**
    * Attach some abstract receiver instance to the element.
@@ -253,7 +229,7 @@ private:
    * save a pointer to the receiver.
    * @param [in] sources A vector of receiver objects.
    */
-  void attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers);
+  bool attachReceiver(std::unique_ptr<Receiver> &receiver, const bool finalize);
 
   /**
    * If an element is detected to be on a boundary, apply the Dirichlet condition to the
@@ -262,55 +238,51 @@ private:
    * @param [in] options The options class.
    * @param [in] fieldname The field to which the boundary must be applied.
    */
-  void applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname);
+  void applyDirichletBoundaries(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options, const std::string &fieldname);
 
   /**
    *
    */
-  Eigen::VectorXd getDeltaFunctionCoefficients(const double r, const double s, const double t);
+  RealVec getDeltaFunctionCoefficients(const Eigen::Ref<RealVec>& pnt);
 
   /**
    * Given a model, save the material parameters at the element vertices.
    * @param [in] model The model containing the material parameters.
    * @param [in] parameter The parameter to save.
    */
-  void attachMaterialProperties(const ExodusModel *model, std::string parameter);
+  void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model, std::string parameter);
 
-  /** Return the estimated CFL constant for the current order
-   * @return The CFL estimate
-   */
-  double CFL_constant();
-  
-  /** Return the estimated element radius
-   */
-  virtual double estimatedElementRadius();
-  
   /**
    * Given some field at the GLL points, interpolate the field to some general point.
    * @param [in] pnt Position in reference coordinates.
    */
-  Eigen::MatrixXd interpolateFieldAtPoint(const Eigen::VectorXd &pnt) { return Eigen::MatrixXd(1, 1); }
+  RealMat interpolateFieldAtPoint(const RealVec &pnt) { return Eigen::MatrixXd(1, 1); }
 
   // Setters.
   inline void SetNumNew(const PetscInt num) { mElmNum = num; }
-  inline void SetVtxCrd(const Eigen::Ref<const Eigen::Matrix<double,8,3>> &v) { mVtxCrd = v; }
+  inline void SetVtxCrd(const Eigen::Ref<const HexVtx> &v) { mVtxCrd = v; }
 
   // Getters.
   inline bool BndElm() const { return mBndElm; }
-  inline int NumDim() const { return mNumDim; }
+  inline PetscInt NumDim() const { return mNumDim; }
   inline PetscInt ElmNum() const { return mElmNum; }
-  inline int NumIntPnt() const { return mNumIntPnt; }
-  inline int NumDofVol() const { return mNumDofVol; }
-  inline int NumDofFac() const { return mNumDofFac; }
-  inline int NumDofEdg() const { return mNumDofEdg; }
-  inline int NumDofVtx() const { return mNumDofVtx; }
-  inline Eigen::MatrixXi ClsMap() const { return mClsMap; }
-  inline Eigen::MatrixXd VtxCrd() const { return mVtxCrd; }
-  std::vector<std::shared_ptr<Source>> Sources() { return mSrc; }
+  inline PetscInt NumIntPnt() const { return mNumIntPnt; }
+  inline PetscInt NumDofVol() const { return mNumDofVol; }
+  inline PetscInt NumDofFac() const { return mNumDofFac; }
+  inline PetscInt NumDofEdg() const { return mNumDofEdg; }
+  inline PetscInt NumDofVtx() const { return mNumDofVtx; }
+  inline IntVec ClsMap() const { return IntVec(mNumIntPnt); }
+  inline RealMat VtxCrd() const { return mVtxCrd; }
+  inline static PetscInt MaxOrder() { return mMaxOrder; }
+  inline void SetVtxPar(const Eigen::Ref<const RealVec> &v, const std::string &par) { mPar[par] = v; }
+  const inline std::vector<std::unique_ptr<Source>> &Sources() const { return mSrc; }
+  const inline std::vector<std::unique_ptr<Receiver>> &Receivers() const { return mRec; }
 
   // Delegates.
-  std::tuple<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd> buildNodalPoints() {
+  std::tuple<RealVec, RealVec, RealVec> buildNodalPoints() {
     return ConcreteHex::buildNodalPoints(mIntCrdR, mIntCrdS, mIntCrdT, mVtxCrd);
   };
-  
+
+  const static std::string Name() { return "TensorHex_" + ConcreteHex::Name(); }
+
 };

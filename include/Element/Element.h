@@ -16,6 +16,9 @@ class Options;
 class Receiver;
 class ExodusModel;
 
+#include <Source/Source.h>
+#include <Receiver/Receiver.h>
+
 class Element {
   /** \class Element
     *
@@ -36,14 +39,13 @@ class Element {
    * of individual elements.
    */
   ///@{
-  /** Returns a copy of an initialized element. */
-  virtual std::shared_ptr<Element> clone() const = 0;
   /** Cleans up any heap-allocated memoroy. */
   virtual ~Element() {};
   /** Returns a concrete elment type based on command line options */
-  static std::shared_ptr<Element> Factory(const std::vector<std::string>& physics_base,
-                                          const std::vector<std::string>& physics_couple,
-                                          Options options);
+  static std::unique_ptr<Element> Factory(const std::string &shape,
+                                          const std::vector<std::string> &physics_base,
+                                          const std::vector<std::string> &physics_couple,
+                                          std::unique_ptr<Options> const &options);
   ///@}
 
   /** @name Element setup.
@@ -54,31 +56,23 @@ class Element {
   /** Construct the mass matrix on the element, and sum into global DOF.
    * @param [in/out] mesh Mesh instance. Global and local vectors modified.
    */
-  virtual void assembleElementMassMatrix(Mesh *mesh) = 0;
+  virtual Eigen::MatrixXd assembleElementMassMatrix() = 0;
   /** Attach material parameters to the element given some model.
    * @param [in] model Model instance.
    */
-  virtual void attachMaterialProperties(const ExodusModel *model) = 0;
+  virtual void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model) = 0;
   /** Attach receivers to the element (if required).
    * @param [in/out] receivers Vector of all receivers in the model. Receiver reference coordinates are attached.
    */
-  virtual void attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers) = 0;
+  virtual bool attachReceiver(std::unique_ptr<Receiver> &receiver, const bool finalize) = 0;
   /** Attach sources to the element (if required).
    * @param [in] sources Vector of all sources in the model.
    */
-  virtual void attachSource(std::vector<std::shared_ptr<Source>> sources) = 0;
+  virtual bool attachSource(std::unique_ptr<Source> &source, const bool finalize) = 0;
   /** Attach vertex coordinates to the element.
    * @param [in] distributed_mesh The parallel DM provided by PETSc.
    */
-  virtual void attachVertexCoordinates(Mesh *mesh) = 0;
-  /** Pre-compute the stiffness matrix operator. Currently this is required for the tetrahedral elements,
-   * but is a non-op for element types where the stiffness matrix is computed on the fly.
-   */
-  /** Return the estimated element radius scaled by element-local velocity.
-   * @return The CFL estimate
-   */
-  virtual double CFL_estimate() = 0;
-  virtual void prepareStiffness() = 0;
+  virtual void attachVertexCoordinates(std::unique_ptr<Mesh> const &mesh) = 0;
   ///@}
 
   /** @name Time loop (pure functions).
@@ -115,45 +109,11 @@ class Element {
    * elements.
    * @param [in/out] mesh Mesh instance. Local/global boundary values are modified.
    */
-  virtual void setBoundaryConditions(Mesh *mesh) = 0;
+  virtual void setBoundaryConditions(std::unique_ptr<Mesh> const &mesh) = 0;
   /** Triggers a record on all receivers which belong to a certain element.
    * @param [in] field The field to record.
    */
   virtual void recordField(const Eigen::Ref<const Eigen::MatrixXd>& field) = 0;
-  /* TODO: Check if the following function is in the right place. */
-  /** Apply dirichlet boundary condtions on all edges flagged as requiring such conditions.
-   * @param [in] mesh The mesh instance.
-   * @param [in] options The options class.
-   * @param [in] fieldname The field which to apply the boundary condition to.
-   */
-  virtual void applyDirichletBoundaries(Mesh *mesh,
-                                        Options options,
-                                        const std::string &fieldname) = 0;
-  ///@}
-
-  /** @name Tests.
-   * These functions should be contain routines to assist in integration testing. For example,
-   * unit testing of individual functions is not appropriate here (this is left to individual test plugins),
-   * but the testing of entire forward/adjoint runs through simple models is appropriate.
-   */
-  ///@{
-  /**
-   * Sets up the initial condition required for a given test.
-   * @param [in] mesh The mesh instance.
-   * @param [in] options The options class.
-   */
-  virtual void setupTest(Mesh *mesh, Options options) = 0;
-  /**
-   * Given a dynamic field (i.e. displacement), this functions checks the difference between the said field and
-   * some analytical reference solution.
-   * @param [in] mesh The mesh instance.
-   * @param [in] options The options class.
-   * @param [in] u The numerical solution to checi.
-   * @param [in] time The simulation time.
-   */
-  virtual double checkTest(Mesh *mesh, Options options,
-                           const Eigen::Ref<const Eigen::MatrixXd>& u,
-                           double time) = 0;
   ///@}
 
   /** @name Setters/Getters.
@@ -184,6 +144,8 @@ class Element {
   virtual inline Eigen::VectorXi ClsMap() const = 0;
   /** Vertex coordinates of this element. */
   virtual inline Eigen::MatrixXd VtxCrd() const = 0;
+  /** What type of element am I? */
+  virtual inline std::string Name() const = 0;
   ///@}
 
 };

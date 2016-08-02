@@ -24,11 +24,13 @@ class AcousticToElastic2D: public BasePhysics {
  public:
 
   /**** Initializers ****/
-  AcousticToElastic2D<BasePhysics>(Options options);
-  void setBoundaryConditions(Mesh *mesh);
+  AcousticToElastic2D<BasePhysics>(std::unique_ptr<Options> const &options);
+  void setBoundaryConditions(std::unique_ptr<Mesh> const &mesh);
 
-  void attachMaterialPropertiesNew(const ExodusModel *model);
+  void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model);
   std::vector<std::string> PullElementalFields() const;
   Eigen::MatrixXd computeSurfaceIntegral(const Eigen::Ref<const Eigen::MatrixXd>& u);
+
+  const static std::string Name() { return "FluidToSolid2D_" + BasePhysics::Name(); }
 
 };

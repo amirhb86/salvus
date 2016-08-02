@@ -2,6 +2,7 @@
 
 // stl.
 #include <set>
+#include <memory>
 #include <map>
 #include <iosfwd>
 #include <string>
@@ -17,6 +18,8 @@
 class Options;
 class ExodusModel;
 
+using std::unique_ptr;
+
 /**
  * Struct holding the vectors representing the global DOFs.
  * The global PETSc vector is defined across processors,
@@ -24,14 +27,18 @@ class ExodusModel;
  * current processor.
  */
 struct vec_struct {
-  std::string name;
-  /** < Field name (i.e. displacement_x) */
-  Vec glb;
-  /** < Global PETSc vector */
-  Vec loc;            /** < Local PETSc vector */
+  std::string name; /** < Field name (i.e. displacement_x) */
+  Vec glb;          /** < Global PETSc vector */
+  Vec loc;          /** < Local PETSc vector */
+  ~vec_struct() {   /** < Clean memory. */
+    if (glb) { VecDestroy(&glb); }
+    if (loc) { VecDestroy(&loc); }
+  }
 };
 
 class Mesh {
+
+  std::set<PetscInt> mBndPts;
 
   /** Keeps track of all the fields defined in the mesh. **/
   std::set<std::string> mMeshFields;
@@ -40,36 +47,32 @@ class Mesh {
   std::vector<std::set<std::string>> mElmFields;
 
   /** Keeps track of any (possible) coupling fields on each element. **/
-  std::map<PetscInt,std::set<std::string>> mCouplingFields;
+  std::map<PetscInt,std::set<std::string>> mPointFields;
 
-  /** Keeps (sparse) track of any specific couplings. **/
-  std::map<PetscInt,std::vector<std::tuple<PetscInt,std::vector<std::string>>>> mCpl;
-
-  int mNumberElementsLocal;
-  /** < Num of elements on this processor. */
-  int mNumberDimensions;
-  /** < Num of dimensions of the mesh. */
-  int mNumberSideSets;
-  /** < Num of flagged boundaries. */
-
-  std::string mExodusFileName;
   /** < Exodus file from which this mesh (skeleton) was defined. */
+  std::string mExodusFileName;
 
-  DM mDistributedMesh;
   /** < PETSc distributed mesh defining parallel element layout. */
-  PetscSection mMeshSection;      /** < Mesh section describing location of the integration points. In the future we
-                                        * may have many of these per mesh. */
-  int int_tstep;
+  DM mDistributedMesh;
 
+  /** < Mesh section describing location of the integration points. */
+  PetscSection mMeshSection;
+
+  PetscInt mNumberElementsLocal; /** < Num of elements on this processor. */
+  PetscInt mNumDim;    /** < Num of dimensions of the mesh. */
+  PetscInt mNumberSideSets;      /** < Num of flagged boundaries. */
+  PetscInt int_tstep;            /** < Timestep number. */
 
  protected:
 
-  std::vector<std::string> mGlobalFields;
   /** < List of field names on global dof ("u","v",etc) */
-  std::map<std::string, vec_struct> mFields;
+  std::vector<std::string> mGlobalFields;
+
   /** < Dictionary holding the fields on the global dof. */
-  PetscViewer mViewer;
+  std::map<std::string, unique_ptr<vec_struct>> mFields;
+
   /** < Holds information used to dump field values to disk. */
+  PetscViewer mViewer;
 
   /** The CFL constant for the time-stepping scheme (Newmark 2nd-order sets 1.0)*/
   double mCFL = 1.0;
@@ -90,13 +93,15 @@ class Mesh {
 
  public:
 
+  Mesh(const std::unique_ptr<Options> &options);
+
   /**
    * Factory which returns a `Mesh` based on user defined options.
    * The `Mesh` is really a collection of the global dofs, and the fields defined on these dofs will depend on both
    * the physics of the system under consideration, and the method of time-stepping chosen.
    * @return Some derived mesh class.
    */
-  static Mesh *factory(Options options);
+  static std::unique_ptr<Mesh> Factory(const std::unique_ptr<Options> &options);
 
   /**
    * Given an existing vector of continuous fields, append a new set of fields based on a
@@ -108,7 +113,12 @@ class Mesh {
   static std::vector<std::string> appendPhysicalFields(const std::vector<std::string>& fields,
                                                        const std::string& physics);
 
-  virtual ~Mesh() { DMDestroy(&mDistributedMesh); }
+  virtual ~Mesh() {
+    /* Destroy all PETSc objects. */
+    for (auto &f: mFields) { f.second->~vec_struct(); }
+    if (mMeshSection) { PetscSectionDestroy(&mMeshSection); }
+    if (mDistributedMesh) { DMDestroy(&mDistributedMesh); }
+  }
 
   /**
    * Reads an exodus mesh from a file defined in options.
@@ -116,14 +126,9 @@ class Mesh {
    * read, and parallelized across processors (via a call to Chaco).
    * @param [in] options The master options struct. TODO: Move the gobbling of options to the constructor.
    */
-  void read(Options options);
+  void read();
 
-  /**
-   * Alternate version of read, which creates a mesh given a matrix of verts and cells.
-   */
-  void read(int dim, int numCells, int numVerts, int numVertsPerElem,
-            Eigen::MatrixXi cells, Eigen::MatrixXd coords);
-  
+
   /**
    * Sets up the dofs across elements and processor boundaries.
    * Specifically, this function defines a `DMPlex section` spread across all elements. It is this section that
@@ -136,155 +141,14 @@ class Mesh {
    * @param [in] number_dof_volume Num of dofs per 3-d mesh component (volume). Something something for the
    * standard GLL basis.
    */
-  PetscErrorCode setupGlobalDof(int number_dof_vertex,
-                                int number_dof_edge,
-                                int number_dof_face,
-                                int number_dof_volume,
-                                int number_dimensions,
-                                ExodusModel *model);
+  void setupGlobalDof(unique_ptr<ExodusModel> const &model, unique_ptr<Options> const &options);
 
   /**
-   * Registers both the global (across parallel partition) and local (on a single parallel partition) vectors for a
-   * given name. Vector information is stored in an `std::map` under mFields, with `name` as the key.
-   * @param name Name of field to register.
+   * Determines which type of mesh we are working with (tri/tet/quad/hex). For now, only supports
+   * single element types.
+   * @return Element type ("tri","tet","quad","hex").
    */
-  void registerFieldVectors(const std::string &name);
-
-  /**
-   * Begins (and ends) the gloabl -> local MPI sends for a given field name. By the time this function returns, you
-   * can be confident that the MPI sends have been completed (i.e. it is blocking), and will be available to each
-   * element.
-   * @param name Name of field to checkout.
-   */
-  void checkOutField(const std::string &name);
-
-  /**
-   * Does the local -> global MPI sends for a given field name. The
-   * send is performed with an sum, i.e.  the value of field on
-   * coincident GLL points are properly summed together.
-   * @param name Name of field to assemble on global dofs.
-   */
-  void assembleLocalFieldToGlobal(const std::string &name);
-
-  /**
-   * Begins the local -> global MPI sends for a given field name. The
-   * send is performed with an sum, i.e.  the value of field on
-   * coincident GLL points are properly summed together. Note that
-   * this function is non-blocking!! This MUST be paired with an
-   * equivalent call to `assembleLocalFieldToGlobalEnd`.
-   * @param name Name of field to assemble on global dofs.
-   */
-  void assembleLocalFieldToGlobalBegin(const std::string &name);
-
-  /**
-   * Makes a processor local array "global". As a "set", does not incurr any communication.
-   * @param name Name of field to assemble on global dofs.
-   */
-  void setLocalFieldToGlobal(const std::string &name);
-
-  /**
-   * Finishes the local -> global MPI sends for a given field name. The
-   * send is performed with an sum, i.e.  the value of field on
-   * coincident GLL points are properly summed together. This MUST be paired with an
-   * equivalent call to `assembleLocalFieldToGlobalBegin`.
-   * @param name Name of field to assemble on global dofs.
-   */
-  void assembleLocalFieldToGlobalEnd(const std::string &name);
-
-  /**
-   * Begins the local -> global MPI sends for a given field name. The send is performed with an implied sum, i.e.
-   * the value of field on coincident GLL points are properly summed together. Note that this function is
-   * non-blocking!! This MUST be paired with an equivalent call to checkInFieldEnd.
-   * @param name Name of field to checkin.
-   */
-  void checkInFieldBegin(const std::string &name);
-
-  /**
-   * Ends the local -> global MPI send for a given field name. This function should come after an equivalent
-   * checkInFieldBegin. This method is blocking, so you can be confident that when it returns the desired field has
-   * been scattered and summed into the global (parallel) degrees of freedom.
-   * @param name Name of field to checkin.
-   */
-  void checkInFieldEnd(const std::string &name);
-
-  /**
-   * Returns an ordered vector of a field (i.e. x-displacement) on a
-   * PETSc point (e.g., element,face,vertex,etc), via a call to
-   * `DMPlexVecGetClosure`.
-   * @param [in] point The PETSc point
-   * @param [in] name Name of field.
-   * @ return The field on the point
-   */
-  Eigen::VectorXd getFieldOnPoint(int point,std::string name);
-
-  
-  /**
-   * Returns an ordered vector of a field (i.e. x-displacement) on an element, via a call to DMPlexVecGetClosure.
-   * Note that a vector containing the closure mapping must also be passed in -- this should change in the future.
-   * @param [in] name Name of field.
-   * @param [in] element_number Element number (on the local processor) for which the field is requested.
-   * @param [in] closure A vector of size mNumIntPnt, which specifies the mapping from the Plex element
-   * closure to the desired gll point ordering.
-   * @ return The ordered field on an element.
-   */
-  Eigen::VectorXd getFieldOnElement(const std::string &name, const int &element_number,
-                                    const Eigen::VectorXi &closure);
-
-  /**
-   * Returns an ordered vector of a field (i.e. x-displacement) on a face, via a call to
-   * DMPlexVecGetClosure.  Note that a vector containing the closure mapping (for the face) must
-   * also be passed in -- this should change in the future.
-   * @param [in] name Name of field.
-   * @param [in] element_number Element number (on the local processor) for which the field is requested.
-   * @ return The ordered field on an element.
-   */
-  Eigen::VectorXd getFieldOnFace(const std::string &name, const int &face_number);
-
-  /**
-   * Sets a field from a face into the degrees of freedom owned by the local processor, via a call to
-   * DMPlexVecSetClosure. Shared DOF should be identical, and are thus set from an arbitrary element.
-   * @param [in] field_name Name of field.
-   * @param [in] face_number Face number (on the local processor) for which the field is requested.
-   * @param [in] closure A vector of size mNumIntPnt, which specifies the mapping from the Plex face
-   * closure to the desired gll point ordering.
-   * @param [in] field The element-ordered field (i.e. x-displacement) to insert into the mesh.
-   */
-  void setFieldFromFace(const std::string &name, const int face_number, const Eigen::VectorXd &field);
-
-  /**
-   * Adds a field from a face into the degrees of freedom owned by the local processor, via a call to
-   * DMPlexVecSetClosure. Shared DOF are "assembled" (added), and are thus a sum from each arbitrary element.
-   * @param [in] field_name Name of field.
-   * @param [in] face_number Face number (on the local processor) for which the field is requested.
-   * @param [in] closure A vector of size mNumIntPnt, which specifies the mapping from the Plex face
-   * closure to the desired gll point ordering.
-   * @param [in] field The element-ordered field (i.e. x-displacement) to insert into the mesh.
-   */
-  void addFieldFromFace(const std::string &name, const int face_number, const Eigen::VectorXd &field);
-
-  /**
-   * Sets a field from an element into the degrees of freedom owned by the local processor, via a call to
-   * DMPlexVecSetClosure. Shared DOF should be identical, and are thus set from an arbitrary element.
-   * @param [in] field_name Name of field.
-   * @param [in] element_number Element number (on the local processor) for which the field is requested.
-   * @param [in] closure A vector of size mNumIntPnt, which specifies the mapping from the Plex element
-   * closure to the desired gll point ordering.
-   * @param [in] field The element-ordered field (i.e. x-displacement) to sum into the mesh.
-   */
-  void setFieldFromElement(const std::string &name, const int element_number,
-                           const Eigen::VectorXi &closure, const Eigen::VectorXd &field);
-
-  /**
-   * Sums a field from an element into the degrees of freedom owned by the local processor, via a call to
-   * DMPlexVecSetClosure. Shared DOF are summed (i.e., assembled).
-   * @param [in] field_name Name of field.
-   * @param [in] element_number Element number (on the local processor) for which the field is requested.
-   * @param [in] closure A vector of size mNumIntPnt, which specifies the mapping from the Plex element
-   * closure to the desired gll point ordering.
-   * @param [in] field The element-ordered field (i.e. x-displacement) to sum into the mesh.
-   */
-  void addFieldFromElement(const std::string &name, const int element_number,
-                           const Eigen::VectorXi &closure, const Eigen::VectorXd &field);
+  std::string baseElementType();
 
   /**
    * Number of elements owned by the current processors.
@@ -319,27 +183,13 @@ class Mesh {
    * Read and setup boundaries (exodus side sets). Gets list of faces from Petsc and builds
    * corresponding list of elements, which lay on each boundary.
    */
-  int setupBoundaries(Options options);
+  int setupBoundaries(std::unique_ptr<Options> const &options);
 
   /**
    * Reads boundaries (exodus side sets) from mesh file and builds appropriate boundary name to
    * petsc id mapping.
    */
-  int readBoundaryNames(Options options);
-
-  /**
-   * Virtual function which implements the time stepping.
-   * This will change based on physics, time stepping routine, and dimension.
-   */
-  virtual void advanceField(double dt) = 0;
-
-  /**
-   * Virtual function to apply the inverse of a mass matrix.
-   * This is usually called at the beginning of a time loop. Again, it will depend on the specific physics and
-   * time scheme used. When this function is complete, the global fields should be ready to take a time-step (at
-   * least that's the case for explicit schemes).
-   */
-  virtual void applyInverseMassMatrix() = 0;
+  int readBoundaryNames(std::unique_ptr<Options> const &options);
 
   /**
    * Return list of all the fields required on the global degrees of freedom.
@@ -362,15 +212,17 @@ class Mesh {
   int numFieldPerPhysics(std::string physics);
 
   inline std::vector<std::string> ElementFields(const PetscInt num) {
-    return std::vector<std::string> (mElmFields[num].begin(), mElmFields[num].end());
+    return std::vector<std::string> (mPointFields[num].begin(), mPointFields[num].end());
   }
 
   inline DM &DistributedMesh() { return mDistributedMesh; }
   inline PetscSection &MeshSection() { return mMeshSection; }
   virtual std::map<PetscInt, std::string> &BoundaryIds() { return mBoundaryIds; }
 
+  inline std::set<PetscInt> BoundaryPoints() { return mBndPts; }
+
   inline int NumberSideSets() { return mNumberSideSets; }
-  inline int NumberDimensions() { return mNumberDimensions; }
+  inline int NumberDimensions() { return mNumDim; }
 
   inline std::map<std::string, std::map<int, std::vector<int>>>
   BoundaryElementFaces() { return mBoundaryElementFaces; }

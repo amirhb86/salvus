@@ -6,13 +6,13 @@
 hid_t ReceiverHdf5::mFileId;
 std::vector<std::string> ReceiverHdf5::mWriteRegisteredFields;
 
-ReceiverHdf5::ReceiverHdf5(Options options) : Receiver(options) {
+ReceiverHdf5::ReceiverHdf5(std::unique_ptr<Options> const &options) : Receiver(options) {
 
   // Only create one hdf5 file for all receivers.
-  if (Num() == 0) {
+  if ((Num() == 0) && (options->ReceiverFileName().size())) {
 
     // Create file and set access.
-    std::string fname = options.ReceiverFileName();
+    std::string fname = options->ReceiverFileName();
     hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
     H5Pset_fapl_mpio(plist_id, PETSC_COMM_WORLD, MPI_INFO_NULL);
     mFileId = H5Fcreate(fname.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
@@ -23,7 +23,7 @@ ReceiverHdf5::ReceiverHdf5(Options options) : Receiver(options) {
 }
 
 ReceiverHdf5::~ReceiverHdf5() {
-  if (Num() == 0) {
+  if ((Num() == 0) && mFileId) {
     H5Fclose(mFileId);
   }
 }
@@ -36,6 +36,7 @@ void ReceiverHdf5::write() {
   MPI_Allreduce(&loc_size, &n_samples, 1, MPI_UNSIGNED_LONG_LONG,
                 MPI_SUM, MPI_COMM_WORLD);
 
+  /* TODO: POSSIBLE BUG! Will only write fields named on receiver zero. */
   if (Num() == 0) {
     int name_rank = 0;
     std::vector<std::string> name;
@@ -70,9 +71,13 @@ void ReceiverHdf5::write() {
     hid_t plist_id = H5Pcreate(H5P_DATASET_XFER);
     H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
 
-    // Write.
-    H5Dwrite(dset_id, H5T_NATIVE_FLOAT, memspace, filespace, plist_id, store.begin()->second.data());
-
+    // Write if field is present on this processor. Else write zeros. */
+    if (store.find(field) != store.end()) {
+      H5Dwrite(dset_id, H5T_NATIVE_FLOAT, memspace, filespace, plist_id, store[field].data());
+    } else {
+      Eigen::VectorXf zeros = Eigen::VectorXf::Zero(store.begin()->second.size());
+      H5Dwrite(dset_id, H5T_NATIVE_FLOAT, memspace, filespace, plist_id, zeros.data());
+    }
     H5Dclose(dset_id);
     H5Sclose(filespace);
     H5Sclose(memspace);

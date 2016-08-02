@@ -11,122 +11,76 @@
 
 class Options {
 
-  // Integer options.
-  PetscInt mDimension;
-  PetscInt mNumberSources;
-  PetscInt mPolynomialOrder;
-
-  // Double options.
-  // Simulation duration
-  double mDuration;
-  // Time step.
-  double mTimeStep;
-
-  // String options.
-  std::string mMeshType;
-  std::string mExodusMeshFile;
-  std::string mElementShape;
-  std::string mPhysicsSystem;
-  std::string mExodusModelFile;
-  std::string mSourceType;
-  std::string mProblemType;
-  std::string mTimeStepType;
-
-  std::vector<std::string> mDirichletBoundaryNames;
-  std::vector<std::string> mRecNames;
-
-  // Determines the output name of the movie.
-  std::string mOutputMovieFile;
-  // Save movie?, and how often.
+  PetscBool mTesting;
   PetscBool mSaveMovie;
+
+  PetscInt mNumDim;
+  PetscInt mNumSrc;
+  PetscInt mPolynomialOrder;
   PetscInt mSaveFrameEvery;
 
-  // Diagnostic information
-  PetscBool mDisplayDiagnostics;
-  PetscInt mDisplayDiagnosticsEvery;
-  
-  // Run initial condition test with exact solution
-  PetscBool mTestIC;
-  // exact solution parameters
-  PetscReal mCenter_x;
-  PetscReal mCenter_y;
-  PetscReal mCenter_z;
-  PetscReal mSquareSide_L;
+  PetscReal mDuration;
+  PetscReal mTimeStep;
+
+  std::string mMeshFile;
+  std::string mModelFile;
+  std::string mSourceType;
+  std::string mMovieFile;
 
   // Sources.
-  // TODO: Move to simple HDF5 file.
-  std::vector<double> mSourceLocationX;
-  std::vector<double> mSourceLocationY;
-  std::vector<double> mSourceLocationZ;
-  std::vector<double> mSourceRickerAmplitude;
-  std::vector<double> mSourceRickerCenterFreq;
-  std::vector<double> mSourceRickerTimeDelay;
+  std::vector<PetscReal> mSrcLocX;
+  std::vector<PetscReal> mSrcLocY;
+  std::vector<PetscReal> mSrcLocZ;
+  std::vector<PetscReal> mSrcRickerAmplitude;
+  std::vector<PetscReal> mSrcRickerCenterFreq;
+  std::vector<PetscReal> mSrcRickerTimeDelay;
 
   // Receivers.
-  // TODO: Move to simple HDF5 file.
   PetscInt mNumRec;
   std::string mReceiverFileName;
-  std::vector<double> mRecLocX1;
-  std::vector<double> mRecLocX2;
-  std::vector<double> mRecLocX3;
+  std::vector<PetscReal> mRecLocX;
+  std::vector<PetscReal> mRecLocY;
+  std::vector<PetscReal> mRecLocZ;
+  std::vector<std::string> mRecNames;
+  std::vector<std::string> mMovieFields;
 
  public:
 
-  PetscErrorCode setOptions();
+  void setOptions();
 
-  // Bool getters
-  inline PetscBool SaveMovie() { return mSaveMovie; }
-  inline PetscBool TestIC() { return mTestIC; }
-  inline PetscBool DisplayDiagnostics() { return mDisplayDiagnostics; }
-  
-  // Integer getters
-  inline PetscInt Dimension() { return mDimension; }
-  inline PetscInt PolynomialOrder() { return mPolynomialOrder; }
-  inline PetscInt NumberSources() {  return mNumberSources; }
-  inline PetscInt NumberReceivers() { return mNumRec; }
-  inline PetscInt SaveFrameEvery() { return mSaveFrameEvery; }
-  inline PetscInt DisplayDiagnosticsEvery() { return mDisplayDiagnosticsEvery; }
-  
-  
-  // Double getters
-  inline double Duration() { return mDuration; }
-  inline double TimeStep() { return mTimeStep; }
-  inline PetscReal IC_Center_x() { return mCenter_x; }
-  inline PetscReal IC_Center_y() { return mCenter_y; }
-  inline PetscReal IC_Center_z() { return mCenter_z; }
-  inline PetscReal IC_SquareSide_L() { return mSquareSide_L; }
+  PetscBool SaveMovie() const { return mSaveMovie; }
 
-  // String getters
-  inline std::string PhysicsSystem() { return mPhysicsSystem; }
-  inline std::string ExodusMeshFile() { return mExodusMeshFile; }
-  inline std::string MeshType() { return mMeshType; }
-  inline std::string ElementShape() { return mElementShape; }
-  inline std::string ExodusModelFile() { return mExodusModelFile; }
-  inline std::string SourceType() { return mSourceType; }
-  inline std::string OutputMovieFile() { return mOutputMovieFile; }
-  inline std::string ProblemType() { return mProblemType; }
-  inline std::string ReceiverType() { return "hdf5"; } // TODO: GENERAL
-  inline std::string ReceiverFileName() { return mReceiverFileName; }
+  PetscInt Dimension() const { return mNumDim; }
+  PetscInt PolynomialOrder() const { return mPolynomialOrder; }
+  PetscInt NumberSources() {  return mNumSrc; }
+  PetscInt NumberReceivers() const { return mNumRec; }
 
-  inline std::vector<std::string> DirichletBoundaries() { return mDirichletBoundaryNames; }
-  inline std::vector<std::string> RecNames() { return mRecNames; }
+  PetscReal Duration() const { return mDuration; }
+  PetscReal TimeStep() const { return mTimeStep; }
 
-  // Vector getters
-  inline std::vector<double> RecLocX1() { return mRecLocX1; }
-  inline std::vector<double> RecLocX2() { return mRecLocX2; }
-  inline std::vector<double> RecLocX3() { return mRecLocX3; }
-  inline std::vector<double> SourceLocationX() { return mSourceLocationX; }
-  inline std::vector<double> SourceLocationY() { return mSourceLocationY; }
-  inline std::vector<double> SourceLocationZ() { return mSourceLocationZ; }
-  inline std::vector<double> SourceRickerAmplitude() { return mSourceRickerAmplitude; }
-  inline std::vector<double> SourceRickerCenterFreq() { return mSourceRickerCenterFreq; }
-  inline std::vector<double> SourceRickerTimeDelay() { return mSourceRickerTimeDelay; }
+  std::string MeshFile() const { return mMeshFile; }
+  std::string ReceiverType() const { return "hdf5"; }
+  std::string ModelFile() const { return mModelFile; }
+  std::string MovieFile() const { return mMovieFile; }
+  std::string SourceType() const { return mSourceType; }
+  std::string ReceiverFileName() const { return mReceiverFileName; }
 
-  // for setting timestep automatically.
-  void SetTimeStep(double timestep);
-  
-  // Setters for testing.
-  inline void __SetPolynomialOrder(int ord) { mPolynomialOrder = ord; }
-  inline void __SetSourceType(std::string type) { mSourceType = type; }
+  std::vector<PetscReal> RecLocX() const { return mRecLocX; }
+  std::vector<PetscReal> RecLocY() const { return mRecLocY; }
+  std::vector<PetscReal> RecLocZ() const { return mRecLocZ; }
+  std::vector<PetscReal> SrcLocX() const { return mSrcLocX; }
+  std::vector<PetscReal> SrcLocY() const { return mSrcLocY; }
+  std::vector<PetscReal> SrcLocZ() const { return mSrcLocZ; }
+  std::vector<PetscReal> SrcRickerAmplitude() const { return mSrcRickerAmplitude; }
+  std::vector<PetscReal> SrcRickerCenterFreq() const { return mSrcRickerCenterFreq; }
+  std::vector<PetscReal> SrcRickerTimeDelay() const { return mSrcRickerTimeDelay; }
+
+  std::vector<std::string> RecNames() const { return mRecNames; }
+  std::vector<std::string> MovieFields() const { return mMovieFields; }
+
+  /* Setters (mainly for testing). */
+  void SetDimension(const PetscInt dim) { mNumDim = dim; }
+  void SetSourceType(const std::string type) { mSourceType = type; }
+  void SetReceiverFileName(const std::string type) { mReceiverFileName = type; }
 
 };

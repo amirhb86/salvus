@@ -152,7 +152,7 @@ class Tetrahedra: public ConcreteShape {
    * Sets quantities such as number of dofs, among other things, from the options class.
    * @param [in] options Populated options class.
    */
-  Tetrahedra(Options options);
+  Tetrahedra(std::unique_ptr<Options> const &options);
 
   /**
    * Returns the gll locations for a given polynomial order.
@@ -225,7 +225,7 @@ class Tetrahedra: public ConcreteShape {
    * @param [in] model An exodus model object.
    * @param [in] parameter_name The name of the field to be added (i.e. velocity, c11).
    */
-  void attachMaterialProperties(const ExodusModel *model,
+  void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model,
                                 std::string parameter_name);
   
   /**
@@ -244,11 +244,11 @@ class Tetrahedra: public ConcreteShape {
 
   /**
    * Queries the passed DM for the vertex coordinates of the specific element. These coordinates are saved
-   * in mVertexCoordiantes.
+   * in mVertexCoordinates.
    * @param [in] distributed_mesh PETSc DM object.
    *
    */
-  void attachVertexCoordinates(Mesh *mesh);
+  void attachVertexCoordinates(std::unique_ptr<Mesh> const &mesh);
 
   /**
    * Attach source.
@@ -258,17 +258,17 @@ class Tetrahedra: public ConcreteShape {
    * References to any sources which lie within the element are saved in the mSrc vector.
    * @param [in] sources A vector of all the sources defined for a simulation run.
    */
-  void attachSource(std::vector<std::shared_ptr<Source>> sources);
+  bool attachSource(std::unique_ptr<Source> &source, const bool finalize);
 
   /**
    * Atttach receiver.
    * Given a vector of abstract receiver objects, this function will query each for its spatial location. After
    * performing a convex hull test, it will perform a quick inverse problem to determine the position of any
-   * sources within each element in reference coordiantes. These reference coordinates are then saved in the
+   * sources within each element in reference Coordinates. These reference coordinates are then saved in the
    * receiver object. References to any receivers which lie within the element are saved in the mRec vector.
    * @param [in] receivers A vector of all the receivers defined for a simulation run.
    */
-  void attachReceiver(std::vector<std::shared_ptr<Receiver>> &receivers);
+  bool attachReceiver(std::unique_ptr<Receiver> &receiver, const bool finalize);
 
   
   
@@ -280,7 +280,7 @@ class Tetrahedra: public ConcreteShape {
    * @param [in] options The options class.
    * @param [in] fieldname The field to which the boundary must be applied.
    */
-  void applyDirichletBoundaries(Mesh *mesh, Options &options, const std::string &fieldname);
+  void applyDirichletBoundaries(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options, const std::string &fieldname);
 
   /**
    *
@@ -308,7 +308,7 @@ class Tetrahedra: public ConcreteShape {
    * Figure out and set boundaries.
    * @param [in] mesh The mesh instance.
    */
-  void setBoundaryConditions(Mesh *mesh);
+  void setBoundaryConditions(std::unique_ptr<Mesh> const &mesh);
 
   double CFL_constant();
   

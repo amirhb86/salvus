@@ -26,17 +26,26 @@ before_install:
 install:
   - sh conf/install-deps.sh
   - mkdir build; cd build
-  - CC=gcc-4.8 CXX=g++-4.8 FC=gfortran-4.8 cmake ../ -DPETSC_DIR=/home/travis/petsc -DEIGEN_INCLUDE=/home/travis/eigen -DCMAKE_BUILD_TYPE=Release
-  - make VERBOSE=1
-  - make salvus_test VERBOSE=1
+  - CC=gcc-4.8 CXX=g++-4.8 FC=gfortran-4.8 cmake ../ -DPETSC_DIR=/home/travis/petsc -DEIGEN_INCLUDE=/home/travis/eigen -DCMAKE_BUILD_TYPE=Coverage
+  - make -j2 VERBOSE=1
+  - make -j2 salvus_test VERBOSE=1
 
   # Install salvus_data as well.
   - cd; cd build
   - git clone https://github.com/SalvusHub/salvus_data.git
 
 script:
-  - cd salvus_data/unit_test_meshes
+  - cd salvus_data/new_unit_tests
   - sh ./run_travis.sh
+  - cd /home/travis/build/SalvusHub/salvus/build
+
+after_success:
+  # Get the codecov script.
+  - curl -s https://codecov.io/bash > cc.sh
+  # Change the executable to one appropriate for our compiler.
+  - sed -i 's/gcov_exe="gcov"/gcov_exe="gcov-4.8"/g' cc.sh
+  # Run the codecov script.
+  - bash cc.sh
 
 cache:
   directories:
