@@ -36,10 +36,8 @@ class Elastic3D: public Shape {
   std::vector<std::string> PushElementalFields() const;
 
   /**** Setup functions ****/
-  void prepareStiffness();
   Eigen::MatrixXd assembleElementMassMatrix();
   void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model);
-  double CFL_estimate();
 
   /**** Time loop functions ****/
   Eigen::MatrixXd computeStiffnessTerm(const Eigen::MatrixXd &u);
@@ -48,12 +46,8 @@ class Elastic3D: public Shape {
   Eigen::Array<double,Eigen::Dynamic,6> computeStress(const Eigen::Ref<const Eigen::ArrayXd>& strain);
   void recordField(const Eigen::MatrixXd &u) {};
 
-  /**** Test helpers ****/
-  void setupEigenfunctionTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options) {};
-  double checkEigenfunctionTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options,
-                                const Eigen::Ref<const Eigen::MatrixXd>& u,
-                                double time) {return 0;};
 
+  const static std::string Name() { return "Elastic3D_" + Shape::Name(); }
 };
 
 

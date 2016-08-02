@@ -52,10 +52,7 @@ class Elastic2D: public Shape {
   void recordField(const Eigen::MatrixXd &u) {};
 
   /**** Test helpers ****/
-  void setupEigenfunctionTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options);
-  double checkEigenfunctionTest(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options,
-                                const Eigen::Ref<const Eigen::MatrixXd>& u,
-                                double time);
+  const static std::string Name() { return "Elastic2D_" + Shape::Name(); }
 
 };
 

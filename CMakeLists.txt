@@ -89,7 +89,8 @@ add_executable(salvus_test
         src/cxx/Testing/test_Hex_Scalar_3D.cpp
         src/cxx/Testing/test_Quad_Scalar_2D.cpp
         src/cxx/Testing/test_TensorHex.cpp
-        src/cxx/Testing/test_receiver.cpp)
+        src/cxx/Testing/test_receiver.cpp
+        src/cxx/Testing/test_Element.cpp)
 
 # run `make` (or `make -j5`) to build `salvus` executable
 target_link_libraries(salvus salvusCommon ${MPI_LIBRARIES} petsc exodus netcdf hdf5)

@@ -108,7 +108,7 @@ class QuadP1 {
   };
 
   /// Class name
-  const static std::string name() { return "QUADP1"; }
+  const static std::string Name() { return "QuadP1"; }
 
 };
 

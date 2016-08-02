@@ -49,7 +49,9 @@ class HexP1 {
                    const Eigen::Ref<const RealVec>& intCrdS,
                    const Eigen::Ref<const RealVec>& intCrdT,
                    const Eigen::Ref<const HexVtx>& vtx);
-  
+
+  const static std::string Name() { return "HexP1"; }
+
 };
 
 

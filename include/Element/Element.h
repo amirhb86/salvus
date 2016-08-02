@@ -144,6 +144,8 @@ class Element {
   virtual inline Eigen::VectorXi ClsMap() const = 0;
   /** Vertex coordinates of this element. */
   virtual inline Eigen::MatrixXd VtxCrd() const = 0;
+  /** What type of element am I? */
+  virtual inline std::string Name() const = 0;
   ///@}
 
 };

@@ -283,6 +283,11 @@ private:
    */
   void setBoundaryConditions(std::unique_ptr<Mesh> const &mesh) {};
 
+  /**
+   * Class name.
+   */
+  const static std::string Name() { return "TensorQuad_" + ConcreteShape::Name(); }
+
 };
 
 

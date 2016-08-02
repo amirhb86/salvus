@@ -66,7 +66,7 @@ TEST_CASE("Test receiver functionality", "[receiver]") {
       receivers[0].reset();
       REQUIRE(Receiver::NumReceivers() == 0);
 
-      /* Ensure write was correct. */
+      /* Ensure write was correct (HDF5). */
       Eigen::VectorXf data(10);
       std::string fname = "test_receiver.h5";
       hid_t fileid = H5Fopen(fname.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);

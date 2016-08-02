@@ -282,5 +282,7 @@ private:
   std::tuple<RealVec, RealVec, RealVec> buildNodalPoints() {
     return ConcreteHex::buildNodalPoints(mIntCrdR, mIntCrdS, mIntCrdT, mVtxCrd);
   };
-  
+
+  const static std::string Name() { return "TensorHex_" + ConcreteHex::Name(); }
+
 };

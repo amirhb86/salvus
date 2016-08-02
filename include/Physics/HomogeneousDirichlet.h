@@ -21,6 +21,8 @@ class HomogeneousDirichlet: public Base {
 
   RealMat computeStiffnessTerm(const Eigen::Ref<const RealMat>& u);
 
+  const static std::string Name() { return "HomogeneousDirichlet_" + Base::Name(); }
+
 };
 
 

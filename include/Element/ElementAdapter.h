@@ -164,5 +164,7 @@ class ElementAdapter: public Element, public T {
   inline Eigen::MatrixXd VtxCrd() const { return T::VtxCrd(); }
   /** What is the closure map on this element. */
   virtual inline Eigen::VectorXi ClsMap() const { return T::ClsMap(); }
+  /** What type of element am I? */
+  inline std::string Name() const  { return T::Name(); }
   ///@}
 };

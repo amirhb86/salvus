@@ -30,4 +30,6 @@ class ElasticToAcoustic2D: public BasePhysics {
   std::vector<std::string> PullElementalFields() const;
   Eigen::MatrixXd computeSurfaceIntegral(const Eigen::Ref<const Eigen::MatrixXd>& u);
 
+  const static std::string Name() { return "SolidToFluid2D_" + BasePhysics::Name(); }
+
 };

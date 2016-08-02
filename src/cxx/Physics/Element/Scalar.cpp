@@ -38,14 +38,6 @@ RealMat Scalar<Element>::assembleElementMassMatrix() {
 }
 
 template <typename Element>
-double Scalar<Element>::CFL_estimate() {
-//  double vpMax = Element::ParAtIntPts("VP").maxCoeff();
-//  return Element::CFL_constant() * Element::estimatedElementRadius() / vpMax;
-  return 1.0;
-}
-
-
-template <typename Element>
 RealMat Scalar<Element>::computeStress(const Ref<const RealMat> &strain) {
 
   // Interpolate the (square) of the velocity at each integration point.
