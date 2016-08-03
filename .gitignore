@@ -1,7 +1,7 @@
 # cmake
 CMakeCache.txt
 CMakeFiles/
-Makefile
+./Makefile
 cmake_install.cmake
 
 # binary
@@ -46,4 +46,8 @@ Release*
 *egg-info*
 
 # Doxygen
-doc/
+doc/_build
+doc/_api
+doc/html
+doc/latex
+doc/xml
