@@ -20,7 +20,10 @@ template <typename ConcreteHex>
 Hexahedra<ConcreteHex>::Hexahedra(std::unique_ptr<Options> const &options) {
 
   /* Ensure we've set parameters correctly. */
-  assert(options->PolynomialOrder() > 0);
+  if (options->PolynomialOrder() <= 0 || options->PolynomialOrder() > mMaxOrder) {
+    throw std::runtime_error("Polynomial order " + std::to_string(options->PolynomialOrder()) +
+        " not supported for hex. Enter a value between 1 and " + std::to_string(mMaxOrder));
+  }
 
   // Basic properties.
   mPlyOrd = options->PolynomialOrder();
@@ -66,6 +69,7 @@ Hexahedra<ConcreteHex>::Hexahedra(std::unique_ptr<Options> const &options) {
 
 template <typename ConcreteHex>
 RealVec Hexahedra<ConcreteHex>::GllPointsForOrder(const PetscInt order) {
+  if (order > mMaxOrder) { throw std::runtime_error("Polynomial order not supported"); }
   RealVec gll_points(order + 1);
   if (order == 1) {
     gll_coordinates_order1_square(gll_points.data());
@@ -79,6 +83,7 @@ RealVec Hexahedra<ConcreteHex>::GllPointsForOrder(const PetscInt order) {
 
 template <typename ConcreteHex>
 RealVec Hexahedra<ConcreteHex>::GllIntegrationWeights(const PetscInt order) {
+  if (order > mMaxOrder) { throw std::runtime_error("Polynomial order not supported"); }
   RealVec integration_weights(order + 1);
   if (order == 1) {
     gll_weights_order1_square(integration_weights.data());
@@ -364,6 +369,7 @@ RealVec Hexahedra<ConcreteHex>::interpolateLagrangePolynomials(const PetscReal r
 
 {
 
+  if (order > mMaxOrder) { throw std::runtime_error("Polynomial order not supported"); }
   PetscInt n_points = (order + 1) * (order + 1) * (order + 1);
   RealVec gll_coeffs(n_points);
   if (order == 1) {
@@ -381,6 +387,7 @@ RealVec Hexahedra<ConcreteHex>::interpolateLagrangePolynomials(const PetscReal r
 template <typename ConcreteHex>
 RealMat  Hexahedra<ConcreteHex>::setupGradientOperator(const PetscInt order) {
 
+  if (order > mMaxOrder) { throw std::runtime_error("Polynomial order not supported"); }
   auto rn = GllPointsForOrder(order);
   PetscInt num_pts_r = rn.size();
   PetscInt num_pts_s = rn.size();

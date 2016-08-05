@@ -275,4 +275,17 @@ TEST_CASE("Test tensor hex", "[tensor_hex]") {
     REQUIRE(p1_test[i]->Receivers().size() == locations[i]);
   }
 
+  /* Require that proper errors are thrown. */
+  PetscOptionsSetValue(NULL, "--polynomial-order", "4");
+  options->setOptions();
+  REQUIRE_THROWS_AS(new Hexahedra<HexP1>(options), std::runtime_error);
+  REQUIRE_THROWS_AS(Hexahedra<HexP1>::GllPointsForOrder(
+      Hexahedra<HexP1>::MaxOrder()+1), std::runtime_error);
+  REQUIRE_THROWS_AS(Hexahedra<HexP1>::GllIntegrationWeights(
+      Hexahedra<HexP1>::MaxOrder()+1), std::runtime_error);
+  REQUIRE_THROWS_AS(Hexahedra<HexP1>::setupGradientOperator(
+      Hexahedra<HexP1>::MaxOrder()+1), std::runtime_error);
+  REQUIRE_THROWS_AS(Hexahedra<HexP1>::interpolateLagrangePolynomials(
+      0, 0, 0, Hexahedra<HexP1>::MaxOrder()+1), std::runtime_error);
+
 }
