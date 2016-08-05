@@ -59,6 +59,16 @@ TEST_CASE("Unit test model", "[model]") {
                         std::runtime_error);
     }
 
+    SECTION("Check side sets") {
+
+      std::vector<std::string> true_side_sets { "x0", "x1", "y0", "y1" };
+      for (auto i: {0, 1, 2, 3}) {
+        REQUIRE(model->SideSetName(i) == true_side_sets[i]);
+      }
+      REQUIRE_THROWS_AS(model->SideSetName(4), std::runtime_error);
+
+    }
+
   }
 
   SECTION("Test hexes") {
@@ -102,6 +112,16 @@ TEST_CASE("Unit test model", "[model]") {
       /* Only elemental variables defined for this mesh. */
       REQUIRE_THROWS_AS(model->getNodalParameterAtNode({0.0, 0.0, 0.0}, "fail"),
                         std::runtime_error);
+    }
+
+    SECTION("Check side sets") {
+
+      std::vector<std::string> true_side_sets{"x0", "x1", "y0", "y1", "z0", "z1"};
+      for (auto i: {0, 1, 2, 3, 4, 5}) {
+        REQUIRE(model->SideSetName(i) == true_side_sets[i]);
+      }
+      REQUIRE_THROWS_AS(model->SideSetName(6), std::runtime_error);
+
     }
 
   }

@@ -407,4 +407,15 @@ void ExodusModel::readSideSets() {
   for (int i = 0; i < mNumberSideSets; i++) { free (nm[i]); }
 
 }
+std::string ExodusModel::SideSetName(const PetscInt side_set_num) {
+
+  if (side_set_num >= mNumberSideSets) {
+    throw std::runtime_error(
+        "Side set " + std::to_string(side_set_num) + " is not in Exodus file. "
+            "Defined side sets range from 0 to " + std::to_string(mNumberSideSets));
+  }
+
+  return mSideSetNames[side_set_num];
+
+}
 
