@@ -308,10 +308,3 @@ RealVec Problem::getFieldOnElement(const std::string &name,
   return field;
 
 }
-
-
-
-
-
-
-
