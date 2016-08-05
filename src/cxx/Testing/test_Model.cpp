@@ -65,6 +65,7 @@ TEST_CASE("Unit test model", "[model]") {
       for (auto i: {0, 1, 2, 3}) {
         REQUIRE(model->SideSetName(i) == true_side_sets[i]);
       }
+      REQUIRE_THROWS_AS(model->SideSetName(4), std::runtime_error);
 
     }
 
@@ -119,6 +120,7 @@ TEST_CASE("Unit test model", "[model]") {
       for (auto i: {0, 1, 2, 3, 4, 5}) {
         REQUIRE(model->SideSetName(i) == true_side_sets[i]);
       }
+      REQUIRE_THROWS_AS(model->SideSetName(6), std::runtime_error);
 
     }
 
