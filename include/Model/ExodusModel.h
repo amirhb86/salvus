@@ -132,5 +132,13 @@ class ExodusModel {
    */
   std::string getElementType(const Eigen::VectorXd &elem_center);
 
+  /**
+   * Returns the a string specifying the side set name (x0, x1, ...).
+   * @param side_set_num Exodus side set identifier [0, nSideSet].
+   * @return Side set name.
+   */
+  std::string SideSetName(const PetscInt side_set_num);
+
+
 };
 
