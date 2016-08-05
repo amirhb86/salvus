@@ -4,6 +4,31 @@
 #include <Utilities/Options.h>
 
 
+std::vector<std::string> Order2Newmark::physicsToFields(const std::set<std::string> &physics) {
+
+  std::vector<std::string> fields;
+  for (auto &phys: physics) {
+    if (phys == "fluid") {
+      fields.insert(std::end(fields),
+        { "u", "v", "a", "a_" });
+    } else if (phys == "2delastic") {
+      fields.insert(std::end(fields),
+        {"ux", "vx", "ax", "ax_",
+         "uy", "vy", "ay", "ay_" });
+    }  else if (phys == "3delastic") {
+      fields.insert(std::end(fields),
+       {"ux", "vx", "ax", "ax_",
+        "uy", "vy", "ay", "ay_",
+        "uz", "vz", "az", "az_" });
+    } else {
+      throw std::runtime_error("Physics not supported by Order2Newmark. "
+                                   "Choose [ fluid, 2delastic, 3delastic ]");
+    }
+  }
+
+  return fields;
+}
+
 FieldDict Order2Newmark::initializeGlobalDofs(ElemVec const &elements,
                                               std::unique_ptr<Mesh> &mesh) {
 
@@ -27,13 +52,13 @@ FieldDict Order2Newmark::initializeGlobalDofs(ElemVec const &elements,
   VecReciprocal(fields["mi"]->mLoc); VecReciprocal(fields["mi"]->mGlb);
 
   /* Initialize global field vectors. */
-  if (!mesh->GlobalFields().empty()) {
-    for (auto &f: mesh->GlobalFields()) {
+  if (!mesh->AllFields().empty()) {
+    for (auto &f: physicsToFields(mesh->AllFields())) {
     fields.insert(std::pair<std::string,std::unique_ptr<field>>
                       (f, std::unique_ptr<field> (new field(f, mesh->DistributedMesh()))));
     }
   } else {
-    LOG() << "No global fields defined!"; MPI_Abort(PETSC_COMM_WORLD, -1);
+    throw std::runtime_error("No global fields defined for newmark time stepper");
   }
 
   return fields;

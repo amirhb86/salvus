@@ -21,10 +21,11 @@
 #include <Utilities/Logging.h>
 #include <Physics/HomogeneousDirichlet.h>
 
-enum elem_code { eQuad, eHex };
+enum elem_code { eQuad, eHex, eTypeError };
 elem_code etype(const std::string &etype) {
   if (etype == "quad") return eQuad;
   if (etype == "hex")  return eHex;
+  return eTypeError;
 }
 
 enum phys_code {
@@ -236,7 +237,7 @@ std::unique_ptr<Element> Element::Factory(const std::string &shape,
                                    "Coupling physics: " + couple);
       }
 
-    default:
+    case eTypeError:
       break;
 
   }
