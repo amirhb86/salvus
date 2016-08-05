@@ -16,7 +16,10 @@ template<typename ConcreteShape>
 TensorQuad<ConcreteShape>::TensorQuad(std::unique_ptr<Options> const &options) {
 
   /* Ensure we've set parameters correctly. */
-  assert(options->PolynomialOrder() > 0);
+  if (options->PolynomialOrder() <= 0 || options->PolynomialOrder() > mMaxOrder) {
+    throw std::runtime_error("Polynomial order " + std::to_string(options->PolynomialOrder()) +
+    " not supported for quad. Enter a value between 1 and " + std::to_string(mMaxOrder));
+  }
 
 
   mPlyOrd = options->PolynomialOrder();
