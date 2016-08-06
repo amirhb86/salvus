@@ -109,22 +109,75 @@ void Mesh::setupGlobalDof(unique_ptr<ExodusModel> const &model, unique_ptr<Optio
   }
   PetscInt *num_dof; PetscMalloc1(num_fields * (mNumDim + 1), &num_dof);
 
+  for (PetscInt f = 0; f < num_fields; f++) {
+    /* For each element point... (vertex, edge, face, volume) */
+    for (PetscInt d = 0; d < (mNumDim + 1); d++) {
+      /* Number of dofs per this element point. */
+      num_dof[f * (mNumDim + 1) + d] = PetscPowInt(poly_order - 1, d) * num_comps[f];
+    }
+  }
+
+  /* Allocate the section. */
+  DMPlexCreateSection(mDistributedMesh, mNumDim, num_fields, num_comps, num_dof,
+                      num_bc, NULL, NULL, NULL, NULL, &mMeshSection);
+  PetscFree(num_dof);
+
   /* For each field... */
   for (PetscInt f = 0; f < num_fields; f++) {
+
+    /* No symmetries needed for order < 3, because no cell, facet, edge,
+     * or vertex has more than one node. */
+    if (options->PolynomialOrder() < 3) continue;
+
+    /* TODO: Understand. */
+    DMLabel depthLabel; PetscSectionSym sym;
+    DMGetLabel(mDistributedMesh, "depth", &depthLabel);
+    PetscSectionSymCreateLabel(PetscObjectComm((PetscObject)mMeshSection),
+                               depthLabel, &sym);
 
     /* For each element point... (vertex, edge, face, volume) */
     for (PetscInt d = 0; d < (mNumDim + 1); d++) {
 
-      /* Number of dofs per this element point. */
-      num_dof[f * (mNumDim + 1) + d] = PetscPowInt(poly_order - 1, d) * num_comps[f];
+      /* Edge. */
+      if (d == 1) {
+
+        PetscInt numDof = options->PolynomialOrder() - 1; /* Num dof edge. */
+        PetscInt numCmp = num_comps[f];                   /* Num cmp this field. */
+        PetscInt minOrnt = -2;                            /* Min possible orientation. */
+        PetscInt maxOrnt = +2;                            /* Max possible orientation. */
+        PetscInt **perms;
+
+        PetscCalloc1(maxOrnt - minOrnt, &perms);
+        for (PetscInt o = minOrnt; o < maxOrnt; o++) {
+
+          PetscInt *perm;
+          if (o == -1 || !o) { /* identity */
+            perms[o - minOrnt] = NULL;
+          } else {
+            PetscMalloc1(numDof * numCmp, &perm);
+            for (PetscInt i = numDof - 1, k = 0; i >= 0; i--) {
+              for (PetscInt j = 0; j < numCmp; j++, k++) {
+                perm[k] = i * numCmp + j;
+              }
+              perms[o - minOrnt] = perm;
+            }
+          }
+        }
+
+        /* TODO: Understand. */
+        PetscSectionSymLabelSetStratum(sym, d, numDof * numCmp, minOrnt, maxOrnt,
+                                       PETSC_OWN_POINTER, (const PetscInt **) perms, NULL);
+
+      }
+    }
+
+    PetscSectionSetFieldSym(mMeshSection, f, sym);
+    PetscSectionSymDestroy(&sym);
 
     }
-  }
+//  }
 
-  /* Generate the section which will define the global dofs. */
-  DMPlexCreateSection(mDistributedMesh, mNumDim, num_fields, num_comps, num_dof,
-                      num_bc, NULL, NULL, NULL, NULL, &mMeshSection);
-  PetscFree(num_dof); PetscFree(num_comps);
+//  PetscFree(num_dof); PetscFree(num_comps);
 
   /* Attach some meta-information to the section. */
   {
