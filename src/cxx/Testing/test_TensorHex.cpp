@@ -235,7 +235,9 @@ TEST_CASE("Test tensor hex", "[tensor_hex]") {
 
   mesh->read();
   model->read();
-  mesh->setupGlobalDof(model, options);
+  mesh->setupTopology(model, options);
+  auto elements = problem->initializeElements(mesh, model, options);
+  mesh->setupGlobalDof(elements[0], options);
 
   /* Known vertex coordinates. */
   std::vector<PetscInt> locations {1, 0, 0, 0, 0, 0, 1, 0};
@@ -267,7 +269,6 @@ TEST_CASE("Test tensor hex", "[tensor_hex]") {
 
   /* Get raw elements and cast to test. */
   std::vector<Hexahedra<HexP1>*> p1_test;
-  auto elements = problem->initializeElements(mesh, model, options);
   for (auto &e: elements) { p1_test.push_back(dynamic_cast<Hexahedra<HexP1>*> (e.get())); }
   for (PetscInt i = 0; i < true_vtx.size(); i++) {
     REQUIRE(p1_test[i]->VtxCrd().isApprox(true_vtx[i]));

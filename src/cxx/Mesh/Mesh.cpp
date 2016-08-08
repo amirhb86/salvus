@@ -21,6 +21,7 @@ Mesh::Mesh(const std::unique_ptr<Options> &options) {
   mExodusFileName = options->MeshFile();
   mDistributedMesh = NULL;
   mMeshSection = NULL;
+  mNumDim = 0;
 }
 
 std::unique_ptr<Mesh> Mesh::Factory(const std::unique_ptr<Options> &options) {
@@ -61,7 +62,11 @@ void Mesh::read() {
 
 }
 
-void Mesh::setupGlobalDof(unique_ptr<ExodusModel> const &model, unique_ptr<Options> const &options) {
+void Mesh::setupTopology(const unique_ptr<ExodusModel> &model,
+                         const unique_ptr<Options> &options) {
+
+  /* Ensure mesh was read. */
+  if (!mNumDim) { throw std::runtime_error("Mesh appears to have zero dimensions. Have you called read()?"); }
 
   /* Find all the mesh boundaries. */
   DMLabel label; DMGetLabel(mDistributedMesh, "Face Sets", &label);
@@ -98,6 +103,17 @@ void Mesh::setupGlobalDof(unique_ptr<ExodusModel> const &model, unique_ptr<Optio
 
   }
 
+}
+
+void Mesh::setupGlobalDof( unique_ptr<Element> const &element,
+                          unique_ptr<Options> const &options) {
+
+  /* Mesh topology must be set up first. */
+  if (!mMeshFields.size()) {
+    throw std::runtime_error("Before setting up the degrees of freedom, you must attach the topology by "
+                                 "calling setupTopology.");
+  }
+
   /* Use the information extracted above to inform the global DOF layout. */
   PetscInt num_bc = 0;
   PetscInt poly_order = options->PolynomialOrder();
@@ -115,8 +131,37 @@ void Mesh::setupGlobalDof(unique_ptr<ExodusModel> const &model, unique_ptr<Optio
     /* For each element point... (vertex, edge, face, volume) */
     for (PetscInt d = 0; d < (mNumDim + 1); d++) {
 
-      /* Number of dofs per this element point. */
-      num_dof[f * (mNumDim + 1) + d] = PetscPowInt(poly_order - 1, d) * num_comps[f];
+      PetscInt index = f * (mNumDim + 1) + d;
+      switch (d) {
+
+        /* 0-dimensional points (vertices). */
+        case(0):
+
+          num_dof[index] = element->NumDofVtx() * num_comps[f];
+          break;
+
+        /* 1-dimensional points (edges). */
+        case(1):
+
+          num_dof[index] = element->NumDofEdg() * num_comps[f];
+          break;
+
+        /* 2-dimensional points (faces). */
+        case(2):
+
+          num_dof[index] = element->NumDofFac() * num_comps[f];
+          break;
+
+        /* 3-dimensional points (cells). */
+        case(3):
+
+          num_dof[index] = element->NumDofVol() * num_comps[f];
+          break;
+
+        default:
+          throw std::runtime_error("Unrecognized dimension! Dim: " + std::to_string(d));
+
+      }
 
     }
   }
@@ -134,7 +179,12 @@ void Mesh::setupGlobalDof(unique_ptr<ExodusModel> const &model, unique_ptr<Optio
 
   /* Attach the section to our DM, and set the spectral ordering. */
   DMSetDefaultSection(mDistributedMesh, mMeshSection);
-  DMPlexCreateSpectralClosurePermutation(mDistributedMesh, NULL);
+
+  /* Only create a spectral basis if it makes sense. */
+  if ((this->baseElementType() == "quad") ||
+      (this->baseElementType() == "hex")) {
+    DMPlexCreateSpectralClosurePermutation(mDistributedMesh, NULL);
+  }
 
 }
 

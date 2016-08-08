@@ -118,15 +118,15 @@ TEST_CASE("Test source functionality", "[source]") {
 
       unique_ptr<Mesh> mesh(new Mesh(options));
       mesh->read();
-      mesh->setupGlobalDof(model, options);
+      mesh->setupTopology(model, options);
+      auto problem = Problem::Factory(options);
+      auto elements = problem->initializeElements(mesh, model, options);
+      mesh->setupGlobalDof(elements[0], options);
 
       /* True values. */
       std::vector<PetscInt> locations {1, 0, 0, 0, 0, 0, 1, 0};
       vector<PetscReal> ricker_amp{10, 20};
       vector<PetscReal> ricker_time{0.1, 0.01};
-
-      auto problem = Problem::Factory(options);
-      auto elements = problem->initializeElements(mesh, model, options);
 
       SECTION("quad") {
         for (auto &e: elements) {
@@ -159,14 +159,14 @@ TEST_CASE("Test source functionality", "[source]") {
 
       unique_ptr<Mesh> mesh(new Mesh(options));
       mesh->read();
-      mesh->setupGlobalDof(model, options);
+      mesh->setupTopology(model, options);
+      auto problem = Problem::Factory(options);
+      auto elements = problem->initializeElements(mesh, model, options);
+      mesh->setupGlobalDof(elements[0], options);
 
       /* True values. */
       vector<PetscReal> ricker_amp{10, 20};
       vector<PetscReal> ricker_time{0.1, 0.01};
-
-      auto problem = Problem::Factory(options);
-      auto elements = problem->initializeElements(mesh, model, options);
 
       SECTION("quad") {
         for (auto &e: elements) {

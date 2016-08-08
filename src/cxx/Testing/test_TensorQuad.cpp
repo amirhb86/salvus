@@ -97,7 +97,9 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
 
   mesh->read();
   model->read();
-  mesh->setupGlobalDof(model, options);
+  mesh->setupTopology(model, options);
+  auto elements = problem->initializeElements(mesh, model, options);
+  mesh->setupGlobalDof(elements[0], options);
 
   /* Loop over all polynomial orders. */
   for (PetscInt i = 1; i < TensorQuad<QuadP1>::MaxOrder() + 1; i++) {
@@ -234,7 +236,7 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
   // True source locations.
   vector<PetscInt> locations {1, 0, 1, 0};
 
-  auto elements = problem->initializeElements(mesh, model, options);
+  elements = problem->initializeElements(mesh, model, options);
   std::vector<TensorQuad<QuadP1>*> p1_test;
   for (auto &e: elements) { p1_test.push_back(dynamic_cast<TensorQuad<QuadP1>*> (e.get())); }
   for (PetscInt i = 0; i < true_vtx.size(); i++) {
