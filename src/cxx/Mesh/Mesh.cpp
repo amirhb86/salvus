@@ -21,6 +21,7 @@ Mesh::Mesh(const std::unique_ptr<Options> &options) {
   mExodusFileName = options->MeshFile();
   mDistributedMesh = NULL;
   mMeshSection = NULL;
+  mNumDim = 0;
 }
 
 std::unique_ptr<Mesh> Mesh::Factory(const std::unique_ptr<Options> &options) {
@@ -63,6 +64,9 @@ void Mesh::read() {
 
 void Mesh::setupTopology(const unique_ptr<ExodusModel> &model,
                          const unique_ptr<Options> &options) {
+
+  /* Ensure mesh was read. */
+  if (!mNumDim) { throw std::runtime_error("Mesh appears to have zero dimensions. Have you called read()?"); }
 
   /* Find all the mesh boundaries. */
   DMLabel label; DMGetLabel(mDistributedMesh, "Face Sets", &label);
@@ -127,8 +131,37 @@ void Mesh::setupGlobalDof( unique_ptr<Element> const &element,
     /* For each element point... (vertex, edge, face, volume) */
     for (PetscInt d = 0; d < (mNumDim + 1); d++) {
 
-      /* Number of dofs per this element point. */
-      num_dof[f * (mNumDim + 1) + d] = PetscPowInt(poly_order - 1, d) * num_comps[f];
+      PetscInt index = f * (mNumDim + 1) + d;
+      switch (d) {
+
+        /* 0-dimensional points (vertices). */
+        case(0):
+
+          num_dof[index] = element->NumDofVtx() * num_comps[f];
+          break;
+
+        /* 1-dimensional points (edges). */
+        case(1):
+
+          num_dof[index] = element->NumDofEdg() * num_comps[f];
+          break;
+
+        /* 2-dimensional points (faces). */
+        case(2):
+
+          num_dof[index] = element->NumDofFac() * num_comps[f];
+          break;
+
+        /* 3-dimensional points (cells). */
+        case(3):
+
+          num_dof[index] = element->NumDofVol() * num_comps[f];
+          break;
+
+        default:
+          throw std::runtime_error("Unrecognized dimension! Dim: " + std::to_string(d));
+
+      }
 
     }
   }

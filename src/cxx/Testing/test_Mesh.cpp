@@ -19,10 +19,37 @@ TEST_CASE("Unit test mesh", "[mesh]") {
 
   SECTION("Fail with non-existant mesh file.") {
     /* Start with the wrong mesh name. */
-    std::unique_ptr<Options> options(new Options);
+    std::unique_ptr<Options> options(new Options());
     options->setOptions();
     auto mesh = Mesh::Factory(options);
     REQUIRE_THROWS_AS(mesh->read(), std::runtime_error);
+  }
+
+  SECTION("Fail when we forget to call read()") {
+
+    std::unique_ptr<Options> options(new Options());
+    options->setOptions();
+    std::unique_ptr<ExodusModel> model(new ExodusModel(options));
+    auto mesh = Mesh::Factory(options);
+
+    REQUIRE_THROWS_AS(mesh->setupTopology(model, options), std::runtime_error);
+
+  }
+
+  SECTION("Fail when we try to setup global dofs before we set up topology") {
+
+    PetscOptionsSetValue(NULL, "--mesh-file", "quad_eigenfunction.e");
+    PetscOptionsSetValue(NULL, "--model-file", "quad_eigenfunction.e");
+    std::unique_ptr<Options> options(new Options);
+    options->setOptions();
+
+    auto mesh = Mesh::Factory(options);
+    mesh->read();
+
+    REQUIRE_THROWS_AS(mesh->setupGlobalDof(Element::Factory("quad", {"fluid"}, {}, options),
+                                           options), std::runtime_error);
+
+
   }
 
   SECTION("Correctly initialize DM (2D quad).") {
