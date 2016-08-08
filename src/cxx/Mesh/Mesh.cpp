@@ -179,7 +179,12 @@ void Mesh::setupGlobalDof( unique_ptr<Element> const &element,
 
   /* Attach the section to our DM, and set the spectral ordering. */
   DMSetDefaultSection(mDistributedMesh, mMeshSection);
-  DMPlexCreateSpectralClosurePermutation(mDistributedMesh, NULL);
+
+  /* Only create a spectral basis if it makes sense. */
+  if ((this->baseElementType() == "quad") ||
+      (this->baseElementType() == "hex")) {
+    DMPlexCreateSpectralClosurePermutation(mDistributedMesh, NULL);
+  }
 
 }
 
