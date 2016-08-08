@@ -60,6 +60,8 @@ TEST_CASE("Test to make sure proper elements are returned.", "[element]") {
   REQUIRE_THROWS_AS(Element::Factory("hex", {"3delastic", "fluid", "boundary"}, {}, options)->Name(),
                     std::runtime_error);
 
+  REQUIRE_THROWS_AS(Element::Factory("quad", {"fluid"}, {"cat", "dog", "korbinian"}, options)->Name(),
+                    std::runtime_error);
   REQUIRE_THROWS_AS(Element::Factory("quad", {"2delastic"}, {"cat", "dog", "korbinian"}, options)->Name(),
                     std::runtime_error);
   REQUIRE_THROWS_AS(Element::Factory("hex", {"3delastic"}, {"fluid", "boundary", "dog"}, options)->Name(),

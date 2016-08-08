@@ -1,9 +1,9 @@
 #include <Model/ExodusModel.h>
 #include <Utilities/Options.h>
 #include <Utilities/Utilities.h>
-#include <stdexcept>
-#include <string>
 #include <Utilities/Logging.h>
+#include <Utilities/Types.h>
+#include <algorithm>
 
 ExodusModel::ExodusModel(std::unique_ptr<Options> const &options) {
   mNodalKdTree = NULL;
@@ -30,6 +30,7 @@ void ExodusModel::read() {
     readConnectivity();
     readCoordinates();
     readElementalVariables();
+    readNodalVariables();
     readSideSets();
   }
 
@@ -55,38 +56,37 @@ void ExodusModel::read() {
     mNodalZ = utilities::broadcastNumberVecFromRank(mNodalZ, root);
   }
 
-  /* Create KdTree on each processor. */
+  /* Element tree labels elements by centroid. Nodal tree labels elements by vertex. */
   createElementalKdTree();
+  createNodalKdTree();
 
 }
 
 void ExodusModel::exodusError(const int retval, std::string func_name) {
 
-  if (retval) {
+  if (retval < 0) {
     throw std::runtime_error(
         "Error in exodus function: " + func_name + " with retval " + std::to_string((long long) retval));
+  } else if (retval > 0) {
+    throw salvus_warning(
+        "Warning from exodus function: " + func_name);
   }
 
 }
 
 void ExodusModel::readCoordinates() {
 
-  try {
-    mNodalX.resize(mNumberVertices);
-    mNodalY.resize(mNumberVertices);
-    if (mNumberDimension > 2) { mNodalZ.resize(mNumberVertices); }
-    if (mNumberDimension == 2) {
-      exodusError(ex_get_coord(
-          mExodusId, mNodalX.data(), mNodalY.data(), NULL),
-                  "ex_get_coord");
-    } else {
-      exodusError(ex_get_coord(
-          mExodusId, mNodalX.data(), mNodalY.data(), mNodalZ.data()),
-                  "ex_get_coord");
-    }
-  } catch (std::exception &e) {
-    LOG() << e.what();
-    MPI_Abort(PETSC_COMM_WORLD, -1);
+  mNodalX.resize(mNumberVertices);
+  mNodalY.resize(mNumberVertices);
+  if (mNumberDimension == 3) { mNodalZ.resize(mNumberVertices); }
+  if (mNumberDimension == 2) {
+    exodusError(ex_get_coord(
+        mExodusId, mNodalX.data(), mNodalY.data(), NULL),
+                "ex_get_coord");
+  } else {
+    exodusError(ex_get_coord(
+        mExodusId, mNodalX.data(), mNodalY.data(), mNodalZ.data()),
+                "ex_get_coord");
   }
 
 }
@@ -95,35 +95,29 @@ void ExodusModel::getInitialization() {
 
   int io_ws = 0;
   int comp_ws = 8;
-  try {
-    mExodusId = ex_open(mExodusFileName.c_str(), EX_READ, &comp_ws, &io_ws, &mExodusVersion);
-    if (mExodusId < 0) { throw std::runtime_error("Error opening exodus model file."); }
+  mExodusId = ex_open(mExodusFileName.c_str(), EX_READ, &comp_ws, &io_ws, &mExodusVersion);
+  if (mExodusId < 0) { throw std::runtime_error("Error opening exodus model file."); }
 
-    exodusError(ex_get_init(
-        mExodusId, mExodusTitle, &mNumberDimension, &mNumberVertices, &mNumberElements,
-        &mNumberElementBlocks, &mNumberNodeSets, &mNumberSideSets),
-                "ex_get_init");
-    mElementBlockIds.resize(mNumberElementBlocks);
-    mVerticesPerElementPerBlock.resize(mNumberElementBlocks);
-    exodusError(ex_get_elem_blk_ids(mExodusId, mElementBlockIds.data()),
-                "ex_get_elem_blk_ids");
-    for (int i = 0; i < mNumberElementBlocks; i++) {
-      char elem_type[256];
-      int num_elem_this_blk;
-      int num_nodes_per_elem;
-      int num_attr;
-      exodusError(ex_get_elem_block(mExodusId,
-                                    mElementBlockIds[i],
-                                    elem_type, &num_elem_this_blk,
-                                    &num_nodes_per_elem,
-                                    &num_attr
-      ), "ex_get_elem_block");
-      mVerticesPerElementPerBlock[i] = num_nodes_per_elem;
-    }
-
-  } catch (std::exception &e) {
-    LOG() << e.what();
-    MPI_Abort(PETSC_COMM_WORLD, -1);
+  exodusError(ex_get_init(
+      mExodusId, mExodusTitle, &mNumberDimension, &mNumberVertices, &mNumberElements,
+      &mNumberElementBlocks, &mNumberNodeSets, &mNumberSideSets),
+              "ex_get_init");
+  mElementBlockIds.resize(mNumberElementBlocks);
+  mVerticesPerElementPerBlock.resize(mNumberElementBlocks);
+  exodusError(ex_get_elem_blk_ids(mExodusId, mElementBlockIds.data()),
+              "ex_get_elem_blk_ids");
+  for (int i = 0; i < mNumberElementBlocks; i++) {
+    char elem_type[256];
+    int num_elem_this_blk;
+    int num_nodes_per_elem;
+    int num_attr;
+    exodusError(ex_get_elem_block(mExodusId,
+                                  mElementBlockIds[i],
+                                  elem_type, &num_elem_this_blk,
+                                  &num_nodes_per_elem,
+                                  &num_attr
+    ), "ex_get_elem_block");
+    mVerticesPerElementPerBlock[i] = num_nodes_per_elem;
   }
 
 }
@@ -212,27 +206,70 @@ void ExodusModel::readNodalVariables() {
               "ex_get_var_param");
   char *nm[mNumberNodalVariables];
   for (auto i = 0; i < mNumberNodalVariables; i++) { nm[i] = (char *) calloc((MAX_STR_LENGTH + 1), sizeof(char)); }
-  exodusError(ex_get_var_names(
-      mExodusId, "N", mNumberNodalVariables, nm),
-              "ex_get_var_names");
-  for (auto i = 0; i < mNumberNodalVariables; i++) { mNodalVariableNames.push_back(std::string(nm[i])); }
 
-  // Get variable values.
-  int time_step = 1;
-  std::vector<double> buffer(mNumberVertices);
-  for (auto i = 0; i < mNumberNodalVariables; i++) {
-    exodusError(ex_get_nodal_var(
-        mExodusId, time_step, (i + 1), mNumberVertices, buffer.data()),
-                "ex_get_nodal_var");
-    mNodalVariables.insert(mNodalVariables.end(), buffer.begin(), buffer.end());
+  try {
+    exodusError(ex_get_variable_names(
+        mExodusId, EX_NODAL, mNumberNodalVariables, nm),
+                "ex_get_var_names");
+    for (auto i = 0; i < mNumberNodalVariables; i++) { mNodalVariableNames.push_back(std::string(nm[i])); }
+
+    // Get variable values.
+    int time_step = 1;
+    std::vector<double> buffer(mNumberVertices);
+    for (auto i = 0; i < mNumberNodalVariables; i++) {
+      exodusError(ex_get_nodal_var(
+          mExodusId, time_step, (i + 1), mNumberVertices, buffer.data()),
+                  "ex_get_nodal_var");
+      mNodalVariables.insert(mNodalVariables.end(), buffer.begin(), buffer.end());
+    }
+  } catch (salvus_warning &e) {
+    LOG() << "Reading nodal variables in file " + mExodusFileName + " raised a warning. \n"
+        "This usually is not a problem, and just means the nodal variables were not defined in "
+        "the file. If you don't specifically require nodal variables, you can ignore this.\n";
   }
+
+  for (int i = 0; i < mNumberNodalVariables; i++) { free(nm[i]); }
+
 }
 
-PetscReal ExodusModel::getMaterialParameterAtPoint(const std::vector<double> point,
-                                                   const std::string parameter_name) {
+void ExodusModel::readElementalVariables() {
 
-  // Ensure dimensions are consistent.
-  assert(point.size() == mNumberDimension);
+  // Get variable names.
+  exodusError(ex_get_var_param(
+      mExodusId, "e", &mNumberElementalVariables), "ex_get_var_param");
+  char *nm[mNumberElementalVariables];
+  for (auto i = 0; i < mNumberElementalVariables; i++) {
+    nm[i] = (char *) calloc((MAX_STR_LENGTH + 1), sizeof(char));
+  }
+  try {
+    exodusError(ex_get_variable_names(mExodusId, EX_ELEM_BLOCK, mNumberElementalVariables, nm),
+                "ex_get_variable_names");
+    for (auto i = 0; i < mNumberElementalVariables; i++) { mElementalVariableNames.push_back(std::string(nm[i])); }
+
+    std::vector<double> buffer(mNumberElements);
+    for (auto i = 0; i < mNumberElementalVariables; i++) {
+      exodusError(ex_get_var(mExodusId, 1, EX_ELEM_BLOCK, (i + 1), 1, mNumberElements, buffer.data()),
+                  "ex_get_var " + mElementalVariableNames[i]);
+      mElementalVariables.insert(mElementalVariables.end(), buffer.begin(), buffer.end());
+    }
+  } catch (salvus_warning &e) {
+    LOG() << "Reading elemental variables in file " + mExodusFileName + " raised a warning. \n"
+        "This usually is not a problem, and just means the elemental variables were not defined in "
+        "the file. If you don't specifically require elemental variables, you can ignore this.\n";
+  }
+
+  for (int i = 0; i < mNumberElementalVariables; i++) { free (nm[i]); }
+
+}
+
+PetscReal ExodusModel::getNodalParameterAtNode(const std::vector<PetscReal> point,
+                                               const std::string parameter_name) {
+
+  if (!mNodalVariables.size()) {
+    throw std::runtime_error(
+        "You've tried to query a nodal parameter, but none are defined. "
+            "Perhaps you meant to try an elemental parameter?" );
+  }
 
   // Get spatial index.
   kdres *set = kd_nearest(mNodalKdTree, point.data());
@@ -259,33 +296,52 @@ void ExodusModel::readConnectivity() {
 
 }
 
-/* TODO: I am ashamed of this function. I'll change it once we standardize our paramters -mike. */
-double ExodusModel::getElementalMaterialParameterAtVertex(const Eigen::VectorXd &elem_center,
-                                                          std::string parameter_name,
-                                                          const int vertex_num) const {
+PetscScalar ExodusModel::getElementalMaterialParameterAtVertex(const Eigen::VectorXd &elem_center,
+                                                               std::string parameter_name,
+                                                               const PetscInt vertex_num) const {
   assert(elem_center.size() == mNumberDimension);
+
+  if (!mElementalVariables.size()) {
+    throw std::runtime_error(
+        "You've tried to query a elemental parameter, but none are defined. "
+            "Perhaps you meant to try a nodal parameter?" );
+  }
 
   // Get elemental spatial index.
   auto *set = kd_nearest(mElementalKdTree, elem_center.data());
   auto spatial_index = *(int *) kd_res_item_data(set);
   kd_res_free(set);
 
-  // Get parameter index.
-  bool found = false;
-  int parameter_index;
-  while (!found) {
-    int i = 0;
-    std::string full_name = parameter_name + "_" + std::to_string((long long) vertex_num);
-    for (auto &name: mElementalVariableNames) {
-      if (name == full_name) {
-        parameter_index = i;
-        found = true;
-      }
-      i++;
-    }
-    if (!found && parameter_name == "VP") { parameter_name = "VPV"; }
-    else if (!found && parameter_name == "VPV") { parameter_name = "VP"; }
 
+  /* We can change the requested parameter name in some cases. Still should eventuall change. */
+  try {
+    if ((std::find(mElementalVariableNames.begin(), mElementalVariableNames.end(), parameter_name + "_0") ==
+        mElementalVariableNames.end())) {
+      if ((parameter_name == "VP") && (std::find(
+          mElementalVariableNames.begin(), mElementalVariableNames.end(), "VPV_0")
+          != mElementalVariableNames.end())) {
+        parameter_name = "VPV";
+        throw salvus_warning("Isotropic VP requested, but can only find anisotropic VP. Using VPV!");
+      } else if ((parameter_name == "VPV") && (std::find(
+          mElementalVariableNames.begin(), mElementalVariableNames.end(), "VP_0")
+          != mElementalVariableNames.end())) {
+        parameter_name = "VP";
+        throw salvus_warning("Anisotropic VPV requested, but can only find isotropic VP. Using VP!");
+      } else {
+        throw std::runtime_error("Requested parameter " + parameter_name + " which is not in the "
+            "model file " + mExodusFileName);
+      }
+    }
+  } catch (salvus_warning &e) {
+    LOG() << e.what();
+  }
+
+  /* By the time we get here, we know that the parameter exists. */
+  PetscInt parameter_index = 0; PetscInt i = 0;
+  std::string full_name = parameter_name + "_" + std::to_string(vertex_num);
+  for (auto &name: mElementalVariableNames) {
+    if (name == full_name) { parameter_index = i; }
+    i++;
   }
 
   return mElementalVariables[parameter_index * mNumberElements + spatial_index];
@@ -300,59 +356,46 @@ std::string ExodusModel::getElementType(const Eigen::VectorXd &elem_center) {
   auto spatial_index = *(int *) kd_res_item_data(set);
   kd_res_free(set);
 
-  int i = 0;
-  int parameter_index = -1;
-  auto full_name = "fluid";
-  for (auto &name : mElementalVariableNames) {
-    if (name == full_name) { parameter_index = i; }
-    i++;
+  auto iterator = std::find(
+      mElementalVariableNames.begin(),
+      mElementalVariableNames.end(),
+      "fluid");
+  if (iterator == mElementalVariableNames.end()) {
+    throw std::runtime_error("Fluid flag not found in mesh. Salvus currently requires a flag "
+                                 "specifiying whether a given element is a fluid.");
   }
 
-  if (parameter_index == -1) {
-    throw std::runtime_error("ERROR: `fluid` field not found in mesh!");
+  /* Cast the float to an int :( */
+  PetscInt index = iterator - mElementalVariableNames.begin();
+  PetscInt type = mElementalVariables[index * mNumberElements + spatial_index];
+
+  /* Decides what type the element is. Right now can only be elastic or fluid. */
+  switch (type) {
+
+    case 0: /* Elastic */
+
+      switch (mNumberDimension) {
+
+        case 2:
+          return "2delastic";
+
+        case 3:
+          return "3delastic";
+
+        default:
+          throw std::runtime_error("Error on mesh dimension.");
+
+      }
+
+    case 1: /* Fluid */
+
+      return "fluid";
+
+    default:
+      throw std::runtime_error("Unknown element physics. Currently we support "
+                                   "[ fluid, elastic2d, elastic3d ]");
+
   }
-
-  auto type = mElementalVariables[parameter_index * mNumberElements + spatial_index];
-  if (type == 1) {
-    return "fluid";
-  } else if (mNumberDimension == 2) {
-    return "2delastic";
-  } else if (mNumberDimension == 3) {
-    return "3delastic";
-  }
-}
-
-
-void ExodusModel::readElementalVariables() {
-
-  // Get variable names.
-  try {
-    exodusError(ex_get_var_param(
-        mExodusId, "e", &mNumberElementalVariables), "ex_get_var_param");
-    char *nm[mNumberElementalVariables];
-    for (auto i = 0; i < mNumberElementalVariables; i++) {
-      nm[i] = (char *) calloc((MAX_STR_LENGTH + 1), sizeof(char));
-    }
-    exodusError(ex_get_variable_names(mExodusId, EX_ELEM_BLOCK, mNumberElementalVariables, nm),
-                "ex_get_variable_names");
-    for (auto i = 0; i < mNumberElementalVariables; i++) { mElementalVariableNames.push_back(std::string(nm[i])); }
-
-    int time_step = 1;
-    std::vector<double> buffer(mNumberElements);
-    for (auto i = 0; i < mNumberElementalVariables; i++) {
-      exodusError(ex_get_var(mExodusId, 1, EX_ELEM_BLOCK, (i + 1), 1, mNumberElements, buffer.data()),
-                  "ex_get_var " + mElementalVariableNames[i]);
-      mElementalVariables.insert(mElementalVariables.end(), buffer.begin(), buffer.end());
-    }
-
-    for (int i = 0; i < mNumberElementalVariables; i++) { free (nm[i]); }
-
-  } catch (std::runtime_error &e) {
-    std::cout << e.what() << std::endl;
-    MPI_Abort(PETSC_COMM_WORLD, -1);
-  }
-
-
 }
 
 void ExodusModel::readSideSets() {
@@ -362,6 +405,17 @@ void ExodusModel::readSideSets() {
   exodusError(ex_get_names(mExodusId, EX_SIDE_SET, nm), "ex_get_names");
   for (int i = 0; i < mNumberSideSets; i++) { mSideSetNames.push_back(std::string(nm[i])); }
   for (int i = 0; i < mNumberSideSets; i++) { free (nm[i]); }
+
+}
+std::string ExodusModel::SideSetName(const PetscInt side_set_num) {
+
+  if (side_set_num >= mNumberSideSets) {
+    throw std::runtime_error(
+        "Side set " + std::to_string(side_set_num) + " is not in Exodus file. "
+            "Defined side sets range from 0 to " + std::to_string(mNumberSideSets));
+  }
+
+  return mSideSetNames[side_set_num];
 
 }
 

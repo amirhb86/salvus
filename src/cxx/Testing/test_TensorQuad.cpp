@@ -250,4 +250,20 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
     REQUIRE(p1_test[0]->getEdgeNormal(edg_elm_zero[i]).isApprox(normals[i]));
   }
 
+  /* Require that proper errors are thrown. */
+  PetscOptionsSetValue(NULL, "--polynomial-order", "11");
+  options->setOptions();
+  REQUIRE_THROWS_AS(new TensorQuad<QuadP1>(options), std::runtime_error);
+  REQUIRE_THROWS_AS(TensorQuad<QuadP1>::GllPointsForOrder(
+      TensorQuad<QuadP1>::MaxOrder()+1), std::runtime_error);
+  REQUIRE_THROWS_AS(TensorQuad<QuadP1>::GllIntegrationWeightsForOrder(
+      TensorQuad<QuadP1>::MaxOrder()+1), std::runtime_error);
+  REQUIRE_THROWS_AS(TensorQuad<QuadP1>::setupGradientOperator(
+      TensorQuad<QuadP1>::MaxOrder()+1), std::runtime_error);
+  REQUIRE_THROWS_AS(TensorQuad<QuadP1>::interpolateLagrangePolynomials(
+      0, 0, TensorQuad<QuadP1>::MaxOrder()+1), std::runtime_error);
+  REQUIRE_THROWS_AS(TensorQuad<QuadP1>::ClosureMappingForOrder(
+      TensorQuad<QuadP1>::MaxOrder()+1), std::runtime_error);
+
+
 }

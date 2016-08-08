@@ -17,17 +17,10 @@ extern "C" {
 
 using std::unique_ptr;
 
-void exodusError(const int retval, std::string func_name) {
-
-  if (retval) {
-    throw std::runtime_error("Error in exodus function: " + func_name);
-  }
-
-}
-
 Mesh::Mesh(const std::unique_ptr<Options> &options) {
   mExodusFileName = options->MeshFile();
   mDistributedMesh = NULL;
+  mMeshSection = NULL;
 }
 
 std::unique_ptr<Mesh> Mesh::Factory(const std::unique_ptr<Options> &options) {
@@ -44,8 +37,7 @@ void Mesh::read() {
   if (rank == 0) {
     std::ifstream f(mExodusFileName.c_str());
     if (!f.good()) {
-      LOG() << "ERROR: Mesh " << mExodusFileName << " does not exist!";
-      MPI_Abort(PETSC_COMM_WORLD, -1);
+      throw std::runtime_error("Mesh file not found! You requested '" + mExodusFileName + "'.");
     }
   }
   MPI_Barrier(PETSC_COMM_WORLD);
@@ -54,21 +46,20 @@ void Mesh::read() {
   DM dm = NULL;
   PetscBool interpolate_edges = PETSC_TRUE;
 
-  // Read exodus file.
+  /* Read exodus file. */
   DMPlexCreateExodusFromFile(PETSC_COMM_WORLD, mExodusFileName.c_str(), interpolate_edges, &dm);
 
-  // May be a race condition on distribute.
-  MPI_Barrier(PETSC_COMM_WORLD);
+  /* Distribute mesh. */
   DMPlexDistribute(dm, 0, NULL, &mDistributedMesh);
 
-  // We don't need the serial mesh anymore.
+  /* We don't need the serial mesh anymore if we're in parallel. */
   if (mDistributedMesh) { DMDestroy(&dm); }
-    // mDistributedMesh == NULL when only 1 proc is used.
   else { mDistributedMesh = dm; }
 
   DMGetDimension(mDistributedMesh, &mNumDim);
   // Get number of elements (duh.)
   DMPlexGetDepthStratum(mDistributedMesh, mNumDim, NULL, &mNumberElementsLocal);
+
 }
 
 void Mesh::setupGlobalDof(unique_ptr<ExodusModel> const &model, unique_ptr<Options> const &options) {
@@ -151,31 +142,17 @@ void Mesh::setupGlobalDof(unique_ptr<ExodusModel> const &model, unique_ptr<Optio
   /* Set the spectral ordering for quad and hex element meshes. */
   DMPlexCreateSpectralClosurePermutation(mDistributedMesh, NULL);
 
-  /* Map the physics type to global field names. */
-  for (auto &p: mMeshFields) {
-    for (auto &f: appendPhysicalFields({}, p)) {
-      mGlobalFields.push_back(f);
-    }
-  }
-
 }
 
 std::vector<PetscInt> Mesh::EdgeNumbers(const PetscInt elm) {
 
   std::vector<PetscInt> edges;
-  PetscInt num_pts, e_start, e_end, *points = NULL, dep_edge = 1;
-  DMPlexGetTransitiveClosure(mDistributedMesh, elm, PETSC_TRUE, &num_pts, &points);
-  // get range of values which define edges.
-  DMPlexGetDepthStratum(mDistributedMesh, dep_edge, &e_start, &e_end);
-  for (PetscInt i = 0; i < num_pts; i++) {
-    PetscInt pnt = points[2*i];
-    // if edge is in closure, push it back.
-    if (pnt >= e_start && pnt < e_end) {
-      edges.push_back(pnt);
-    }
-  }
-  DMPlexRestoreTransitiveClosure(mDistributedMesh, elm, PETSC_TRUE, &num_pts, &points);
+  /* Step up one level in the graph (reduce dim). */
+  PetscInt csize; DMPlexGetConeSize(mDistributedMesh, elm, &csize);
+  const PetscInt *cone; DMPlexGetCone(mDistributedMesh, elm, &cone);
+  for (PetscInt i = 0; i < csize; i++) { edges.push_back(cone[i]); }
   return edges;
+
 }
 
 PetscInt Mesh::GetNeighbouringElement(const PetscInt interface, const PetscInt this_elm) const {
@@ -186,7 +163,9 @@ PetscInt Mesh::GetNeighbouringElement(const PetscInt interface, const PetscInt t
   for (PetscInt i = 0; i < ssize; i++) {
     if (supp[i] != this_elm) { neighbour = supp[i]; }
   }
-  assert(neighbour != -1);
+  if (neighbour == -1) { throw std::runtime_error(
+        "Element " + std::to_string(this_elm) + " has no neighbour on face "
+                   + std::to_string(interface)); }
   return neighbour;
 
 }
@@ -255,40 +234,17 @@ Eigen::MatrixXd Mesh::getElementCoordinateClosure(PetscInt elem_num) {
 
 }
 
-std::vector<std::string> Mesh::appendPhysicalFields(const std::vector<std::string>& fields,
-                                                    const std::string& physics) {
-
-  /* TODO: Move this to problem. */
-  std::vector<std::string> new_fields;
-  if (physics == "fluid") {
-    new_fields = {"u", "v", "a", "a_"};
-  } else if (physics == "2delastic") {
-    new_fields = {"ux", "uy"};
-  } else if (physics == "3delastic") {
-    new_fields = {"ux", "uy", "uz"};
-  } else {
-    ERROR() << "ERROR IN FIELD TYPE " + physics;
-  }
-
-  for (auto &f: fields) { new_fields.push_back(f); }
-  return new_fields;
-
-}
-
-int Mesh::numFieldPerPhysics(std::string physics) {
-  int num;
-  try {
+PetscInt Mesh::numFieldPerPhysics(std::string physics) {
+  PetscInt num;
     if (physics == "fluid") { num = 1; }
     else if (physics == "2delastic") { num = 2; }
     else if (physics == "3delastic") { num = 3; }
     else {
       throw std::runtime_error("Derived type " + physics + " is not known.");
     }
-  } catch (std::exception &e) {
-    ERROR() << e.what();
-  }
   return num;
 }
+
 std::string Mesh::baseElementType() {
   std::string type;
   RealMat vtx = getElementCoordinateClosure(0);

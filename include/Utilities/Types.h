@@ -42,5 +42,15 @@ typedef Eigen::Matrix<PetscInt, Eigen::Dynamic, 1> IntVec;
 typedef std::vector<std::unique_ptr<Element>> ElemVec;
 typedef std::map<std::string, std::unique_ptr<field>> FieldDict;
 
+/// Custom exceptions.
+class salvus_warning: public std::exception {
+  std::string mMsg;
+ public:
+  salvus_warning(const std::string &msg) {
+    mMsg = msg;
+  }
+  virtual const char* what() const throw() { return mMsg.c_str(); }
+};
+
 /// Strongly typed Element types
 enum class ElementType {QUADP1, TRIP1, HEXP1, TETP1};

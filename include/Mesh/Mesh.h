@@ -20,22 +20,6 @@ class ExodusModel;
 
 using std::unique_ptr;
 
-/**
- * Struct holding the vectors representing the global DOFs.
- * The global PETSc vector is defined across processors,
- * and knows which of its entries are on processor boundaries. The local PETSc vector exists only on the
- * current processor.
- */
-struct vec_struct {
-  std::string name; /** < Field name (i.e. displacement_x) */
-  Vec glb;          /** < Global PETSc vector */
-  Vec loc;          /** < Local PETSc vector */
-  ~vec_struct() {   /** < Clean memory. */
-    if (glb) { VecDestroy(&glb); }
-    if (loc) { VecDestroy(&loc); }
-  }
-};
-
 class Mesh {
 
   std::set<PetscInt> mBndPts;
@@ -67,9 +51,6 @@ class Mesh {
 
   /** < List of field names on global dof ("u","v",etc) */
   std::vector<std::string> mGlobalFields;
-
-  /** < Dictionary holding the fields on the global dof. */
-  std::map<std::string, unique_ptr<vec_struct>> mFields;
 
   /** < Holds information used to dump field values to disk. */
   PetscViewer mViewer;
@@ -103,19 +84,7 @@ class Mesh {
    */
   static std::unique_ptr<Mesh> Factory(const std::unique_ptr<Options> &options);
 
-  /**
-   * Given an existing vector of continuous fields, append a new set of fields based on a
-   * type of physics.
-   * @param [in] fields A pre-existing vector containing field names.
-   * @param [in] physics A string defining the physics you would like to add.
-   * @return An extended vector containing new field names.
-   */
-  static std::vector<std::string> appendPhysicalFields(const std::vector<std::string>& fields,
-                                                       const std::string& physics);
-
   virtual ~Mesh() {
-    /* Destroy all PETSc objects. */
-    for (auto &f: mFields) { f.second->~vec_struct(); }
     if (mMeshSection) { PetscSectionDestroy(&mMeshSection); }
     if (mDistributedMesh) { DMDestroy(&mDistributedMesh); }
   }
@@ -191,17 +160,6 @@ class Mesh {
    */
   int readBoundaryNames(std::unique_ptr<Options> const &options);
 
-  /**
-   * Return list of all the fields required on the global degrees of freedom.
-   */
-  std::vector<std::string> GlobalFields() const { return mGlobalFields; }
-
-  /**
-   * Add field to list of global degrees of freedom. Has to be done
-   * before mesh initializes fields to global DOF. (via registerFieldVectors)
-   */
-  void AddToGlobalFields(std::string fieldname) { mGlobalFields.push_back(fieldname); }
-
   PetscInt GetNeighbouringElement(const PetscInt interface, const PetscInt this_elm) const;
 
   /**
@@ -209,7 +167,7 @@ class Mesh {
    */
   Eigen::MatrixXd getElementCoordinateClosure(PetscInt elem_num);
 
-  int numFieldPerPhysics(std::string physics);
+  static PetscInt numFieldPerPhysics(std::string physics);
 
   inline std::vector<std::string> ElementFields(const PetscInt num) {
     return std::vector<std::string> (mPointFields[num].begin(), mPointFields[num].end());
@@ -217,7 +175,8 @@ class Mesh {
 
   inline DM &DistributedMesh() { return mDistributedMesh; }
   inline PetscSection &MeshSection() { return mMeshSection; }
-  virtual std::map<PetscInt, std::string> &BoundaryIds() { return mBoundaryIds; }
+
+  std::map<PetscInt, std::string> &BoundaryIds() { return mBoundaryIds; }
 
   inline std::set<PetscInt> BoundaryPoints() { return mBndPts; }
 

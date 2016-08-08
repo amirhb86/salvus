@@ -111,8 +111,8 @@ class ExodusModel {
    * @param [in] parameter_name Name of material parameter.
    * @return The value of the closest material parameter defined at a point.
    */
-  PetscReal getMaterialParameterAtPoint(const std::vector<double> point,
-                                        const std::string parameter_name);
+  PetscReal getNodalParameterAtNode(const std::vector<PetscReal> point,
+                                    const std::string parameter_name);
 
   /**
    * Returns a parameter at a specific vertex, following the ordering in the reference element. For example,
@@ -122,15 +122,23 @@ class ExodusModel {
    * @param [in] vertex_num The vertex for which the parameter is desired.
    * @return The value of the material parameter at the specified vertex.
    */
-  double getElementalMaterialParameterAtVertex(const Eigen::VectorXd &elem_center,
-                                               std::string parameter_name,
-                                               const int vertex_num) const;
+  PetscScalar getElementalMaterialParameterAtVertex(const Eigen::VectorXd &elem_center,
+                                                    std::string parameter_name,
+                                                    const PetscInt vertex_num) const;
 
   /**
    * Returns a string specifying which type of material the element is.
    * I.e. will return "ACOUSTIC" for acoustic, "ELASTIC" for elastic.
    */
   std::string getElementType(const Eigen::VectorXd &elem_center);
+
+  /**
+   * Returns the a string specifying the side set name (x0, x1, ...).
+   * @param side_set_num Exodus side set identifier [0, nSideSet].
+   * @return Side set name.
+   */
+  std::string SideSetName(const PetscInt side_set_num);
+
 
 };
 
