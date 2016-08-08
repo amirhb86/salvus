@@ -7,13 +7,13 @@
  ******************************************************************************/
 
 
-#ifndef PROJECT__ORDER3_HEX__H
-#define PROJECT__ORDER3_HEX__H
+#ifndef PROJECT__ORDER1_HEX__H
+#define PROJECT__ORDER1_HEX__H
 
-void interpolate_order3_hex(double r, double s, double t, double *out_8216235190021024939);
-void interpolate_r_derivative_order3_hex(double r, double s, double t, double *out_5216069425318171019);
-void interpolate_s_derivative_order3_hex(double r, double s, double t, double *out_1643667870387349053);
-void interpolate_t_derivative_order3_hex(double r, double s, double t, double *out_1614254179988961949);
+void interpolate_order1_hex(double r, double s, double t, double *out_1550826091074812107);
+void interpolate_r_derivative_order1_hex(double s, double t, double *out_5498613790433297615);
+void interpolate_s_derivative_order1_hex(double r, double t, double *out_7425548709962864327);
+void interpolate_t_derivative_order1_hex(double r, double s, double *out_4165328884638393555);
 
 #endif
 

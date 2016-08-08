@@ -18,6 +18,7 @@ TensorQuad<ConcreteShape>::TensorQuad(std::unique_ptr<Options> const &options) {
   /* Ensure we've set parameters correctly. */
   assert(options->PolynomialOrder() > 0);
 
+
   mPlyOrd = options->PolynomialOrder();
   mNumDofVtx = 1;
   mNumDofEdg = mPlyOrd - 1;
@@ -277,8 +278,8 @@ template<typename ConcreteShape>
 bool TensorQuad<ConcreteShape>::attachReceiver(std::unique_ptr<Receiver> &receiver,
                                                const bool finalize) {
   if (!receiver) { return false; }
-  double x1 = receiver->PysLocX1();
-  double x2 = receiver->PysLocX2();
+  double x1 = receiver->LocX();
+  double x2 = receiver->LocY();
   if (ConcreteShape::checkHull(x1, x2, mVtxCrd)) {
     if (!finalize) { return true; }
     RealVec2 ref_loc = ConcreteShape::inverseCoordinateTransform(x1, x2, mVtxCrd);
@@ -293,8 +294,8 @@ bool TensorQuad<ConcreteShape>::attachReceiver(std::unique_ptr<Receiver> &receiv
 template<typename ConcreteShape>
 bool TensorQuad<ConcreteShape>::attachSource(std::unique_ptr<Source> &source, const bool finalize) {
   if (!source) { return false; }
-  double x1 = source->LocX();
-  double x2 = source->LocZ();
+  PetscReal x1 = source->LocX();
+  PetscReal x2 = source->LocY();
   if (ConcreteShape::checkHull(x1, x2, mVtxCrd)) {
     if (!finalize) { return true; }
     RealVec2 ref_loc = ConcreteShape::inverseCoordinateTransform(x1, x2, mVtxCrd);

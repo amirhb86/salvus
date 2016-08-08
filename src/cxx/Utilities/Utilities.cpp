@@ -94,6 +94,10 @@ std::string utilities::broadcastStringFromRank(std::string &buf, int rank) {
   return ret_string;
 
 }
+bool ::utilities::stringHasExtension(const std::string &str, const std::string &ext) {
+  return str.size() >= ext.size() &&
+      str.compare(str.size() - ext.size(), ext.size(), ext) == 0;
+}
 
 template PetscInt utilities::broadcastNumberFromRank(PetscInt send_buffer, int rank);
 template float utilities::broadcastNumberFromRank(float send_buffer, int rank);

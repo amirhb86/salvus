@@ -103,11 +103,6 @@ MatrixXd Elastic3D<Element>::computeStiffnessTerm(const Eigen::MatrixXd &u) {
 }
 
 template <typename Element>
-void Elastic3D<Element>::prepareStiffness() {
-  Element::precomputeConstants();
-}
-
-template <typename Element>
 Array<double,Dynamic,6> Elastic3D<Element>::computeStress(const Eigen::Ref<const Eigen::ArrayXd> &strain) {
 
   Matrix<double,Dynamic,6> stress(Element::NumIntPnt(),6);
@@ -135,12 +130,6 @@ MatrixXd Elastic3D<Element>::computeSourceTerm(const double time) {
     s.col(0) += (source->fire(time) * Element::getDeltaFunctionCoefficients(pnt));
   }
   return s;
-}
-
-template <typename Element>
-double Elastic3D<Element>::CFL_estimate() {
-  double vpMax = Element::ParAtIntPts("VPV").maxCoeff();
-  return Element::CFL_constant() * Element::estimatedElementRadius() / vpMax;
 }
 
 #include <Element/HyperCube/Hexahedra.h>

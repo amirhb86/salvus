@@ -3,6 +3,7 @@
 #include <Source/Source.h>
 #include <Model/ExodusModel.h>
 #include <Utilities/Options.h>
+#include <Utilities/Logging.h>
 #include <Element/Simplex/TetP1.h>
 #include <Element/Simplex/Tetrahedra.h>
 
@@ -48,7 +49,18 @@ Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> Tetrahedra<Concrete
 template <typename ConcreteShape>
 Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> Tetrahedra<ConcreteShape>::mGradientPhi_dt_t;
 
-std::vector<int> getVertsFromPoint(int point, int numVerts, DM &distributed_mesh);
+// Gets vertex ids from PETSc element closure
+std::vector<int> getVertsFromPoint(int point, int numVerts, DM &distributed_mesh) {
+  int* points = NULL;
+  int numPoints;  
+  DMPlexGetTransitiveClosure(distributed_mesh,point,PETSC_TRUE,&numPoints,&points);
+  std::vector<int> verts(numVerts);
+  // vertices are the last `numVerts` entries in points
+  for(int i=numPoints-numVerts;i<numPoints;i++) {
+    verts[i-(numPoints-numVerts)] = points[2*i];
+  }
+  return verts;
+}
 
 template <typename ConcreteShape>
 std::tuple<VectorXd,VectorXd,VectorXd> Tetrahedra<ConcreteShape>::QuadraturePoints(const int order) {
@@ -405,7 +417,7 @@ VectorXi internalTetMapping(int element, DM &distributed_mesh) {
 
 template <typename ConcreteShape>
 VectorXi Tetrahedra<ConcreteShape>::ClosureMapping(const int order, const int dimension,
-                                           DM &distributed_mesh) {
+                                                   DM &distributed_mesh) {
 
   VectorXi new_mapping;
   if(order == 3) {
@@ -426,8 +438,7 @@ VectorXi Tetrahedra<ConcreteShape>::ClosureMapping(const int order, const int di
     // return linear_mapping;
 
   } else {
-    std::cerr << "ERROR: Order NOT implemented!\n";
-    MPI::COMM_WORLD.Abort(-1);
+    ERROR() << "Order " << order << " tetrahedra closure mapping not implemented!";
   }
   return new_mapping;
     
@@ -564,7 +575,7 @@ MatrixXd Tetrahedra<ConcreteShape>::computeGradient(const Ref<const VectorXd>& f
       refGrad(2) += mGradientPhi_dt(j,i) * field(j);
     }
     
-    phyGrad = (mInvJac) * refGrad;    
+    phyGrad = (mInvJac) * refGrad;
     mGradWork(i,0) = phyGrad(0);
     mGradWork(i,1) = phyGrad(1);
     mGradWork(i,2) = phyGrad(2);

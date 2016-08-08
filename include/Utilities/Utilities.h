@@ -16,6 +16,14 @@
 namespace utilities {
 
   /**
+   * Small function to return whenter or not a string has a certain suffix.
+   * @param str String to check (i.e. filename).
+   * @param ext Wanted extension.
+   * @return True if extension exists, false if not.
+   */
+  bool stringHasExtension(const std::string &str, const std::string &ext);
+
+  /**
    * Small function to return an MPI datatype based on a template datatype.
    */
   template <typename T>

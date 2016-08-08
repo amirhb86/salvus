@@ -238,7 +238,10 @@ private:
   void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model, std::string parameter);
 
   /**
-   *
+   * Sets an edge to a particular scalar value (useful for Dirichlet boundaries)
+   * @param [in] edg Edge id 0-3
+   * @param [in] val Value to set
+   * @param [out] f Field to set to `val`
    */
   void setEdgeToValue(const PetscInt edg, const PetscScalar val, Eigen::Ref<RealVec> f);
 
@@ -246,12 +249,13 @@ private:
    * Given some field at the GLL points, interpolate the field to some general point.
    * @param [in] pnt Position in reference coordinates.
    */
-  RealMat interpolateFieldAtPoint(const Eigen::VectorXd &pnt) { return Eigen::MatrixXd(1, 1); }
+  RealMat interpolateFieldAtPoint(const RealVec2 &pnt) { return Eigen::MatrixXd(1, 1); }
 
   // Setters.
   inline void SetNumNew(const PetscInt num) { mElmNum = num; }
-  inline void SetVtxCrd(const Eigen::Ref<const Eigen::Matrix<double,4,2>> &v) { mVtxCrd = v; }
+  inline void SetVtxCrd(const Eigen::Ref<const QuadVtx> &v) { mVtxCrd = v; }
   inline void SetCplEdg(const std::vector<PetscInt> &v) { mEdgMap = v; }
+  inline void SetVtxPar(const Eigen::Ref<const RealVec4> &v, const std::string &par) { mPar[par] = v; }
 
   // Getters.
   inline bool BndElm()        const { return mBndElm; }
@@ -276,7 +280,6 @@ private:
   };
 
 
-  // TODO: DO WE STILL NEED THESE?
   /**
    * Figure out and set boundaries.
    * @param [in] mesh The mesh instance.
@@ -284,31 +287,9 @@ private:
   void setBoundaryConditions(std::unique_ptr<Mesh> const &mesh) {};
 
   /**
-   * Integrate a field over the element, returning a scalar.
-   * @param [in] field The field to integrate.
+   * Class name.
    */
-  double integrateField(const Eigen::Ref<const Eigen::VectorXd>& field) {};
-
-  virtual double CFL_constant() { return 1; };
-
-  /** Return the estimated element radius
-   * @return The CFL estimate
-   */
-  // TODO: MODIFY
-  double estimatedElementRadius() { return 1; };
-
-  /**
-   * If an element is detected to be on a boundary, apply the Dirichlet condition to the
-   * dofs on that boundary.
-   * @param [in] mesh The mesh instance.
-   * @param [in] options The options class.
-   * @param [in] fieldname The field to which the boundary must be applied.
-   */
-  void applyDirichletBoundaries(std::unique_ptr<Mesh> const &mesh,
-                                std::unique_ptr<Options> const &options,
-                                const std::string &fieldname) {};
-
-
+  const static std::string Name() { return "TensorQuad_" + ConcreteShape::Name(); }
 
 };
 

@@ -1,6 +1,7 @@
 #include <Mesh/Mesh.h>
 #include <Problem/Order2Newmark.h>
 #include <Utilities/Logging.h>
+#include <Utilities/Options.h>
 
 
 FieldDict Order2Newmark::initializeGlobalDofs(ElemVec const &elements,
@@ -60,9 +61,8 @@ std::tuple<FieldDict, PetscScalar> Order2Newmark::takeTimeStep(
     FieldDict fields, PetscScalar time, std::unique_ptr<Options> const &options) {
 
   /* Constants from Newmark scheme. */
-  PetscReal dt = 1e-2;
-  PetscReal acl_factor = (1.0/2.0) * dt;
-  PetscReal dsp_factor = (1.0/2.0) * (dt * dt);
+  PetscReal acl_factor = (1.0/2.0) * mDt;
+  PetscReal dsp_factor = (1.0/2.0) * (mDt * mDt);
 
   /* List of vectors to multiply. */
   const std::vector<std::string> recognized_acl_ {"ax_", "ay_", "ax_", "a_"};
@@ -75,13 +75,16 @@ std::tuple<FieldDict, PetscScalar> Order2Newmark::takeTimeStep(
     if (fields.count(recognized_acl[i])) {
       VecAXPBYPCZ(fields[recognized_vel[i]]->mGlb, acl_factor, acl_factor, 1.0,
                   fields[recognized_acl[i]]->mGlb, fields[recognized_acl_[i]]->mGlb);
-      VecAXPBYPCZ(fields[recognized_dsp[i]]->mGlb, dt, dsp_factor, 1.0,
+      VecAXPBYPCZ(fields[recognized_dsp[i]]->mGlb, mDt, dsp_factor, 1.0,
                   fields[recognized_vel[i]]->mGlb, fields[recognized_acl[i]]->mGlb);
       VecCopy(fields[recognized_acl[i]]->mGlb, fields[recognized_acl_[i]]->mGlb);
     } else { continue; }
   }
 
-  time += dt;
+  time += mDt;
   return std::tuple<FieldDict, PetscScalar> (std::move(fields), time);
 
+}
+Order2Newmark::Order2Newmark(const std::unique_ptr<Options> &options) : Problem(options) {
+  mDt = options->TimeStep();
 }

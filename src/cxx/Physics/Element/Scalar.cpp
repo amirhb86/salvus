@@ -38,14 +38,6 @@ RealMat Scalar<Element>::assembleElementMassMatrix() {
 }
 
 template <typename Element>
-double Scalar<Element>::CFL_estimate() {
-//  double vpMax = Element::ParAtIntPts("VP").maxCoeff();
-//  return Element::CFL_constant() * Element::estimatedElementRadius() / vpMax;
-  return 1.0;
-}
-
-
-template <typename Element>
 RealMat Scalar<Element>::computeStress(const Ref<const RealMat> &strain) {
 
   // Interpolate the (square) of the velocity at each integration point.
@@ -88,17 +80,22 @@ MatrixXd Scalar<Element>::computeSourceTerm(const double time) {
   for (auto &source : Element::Sources()) {
     RealVec pnt;
     if (Element::NumDim() == 2) { pnt.resize(2); pnt << source->LocR(), source->LocS(); }
-    if (Element::NumDim() == 3) { pnt.resize(3); pnt << source->LocR(), source->LocS(), source->LocT
-          (); }
-      mSource += (source->fire(time) * Element::getDeltaFunctionCoefficients(pnt));
+    if (Element::NumDim() == 3) { pnt.resize(3); pnt << source->LocR(), source->LocS(), source->LocT(); }
+    mSource += (source->fire(time) * Element::getDeltaFunctionCoefficients(pnt));
   }
   return Element::applyTestAndIntegrate(mSource);
 }
 
 #include <Element/HyperCube/TensorQuad.h>
 #include <Element/HyperCube/Hexahedra.h>
+#include <Element/Simplex/Triangle.h>
+#include <Element/Simplex/Tetrahedra.h>
 #include <Element/HyperCube/HexP1.h>
 #include <Element/HyperCube/QuadP1.h>
+#include <Element/Simplex/TriP1.h>
+#include <Element/Simplex/TetP1.h>
+
 template class Scalar<TensorQuad<QuadP1>>;
 template class Scalar<Hexahedra<HexP1>>;
-
+template class Scalar<Triangle<TriP1>>;
+template class Scalar<Tetrahedra<TetP1>>;

@@ -83,7 +83,7 @@ class QuadP1 {
     RealMat2x2 jac;
     Eigen::Matrix<PetscReal,2,4> mult;
     jac = (mult << dn0dr(r), dn1dr(r), dn2dr(r), dn3dr(r),
-        dn0ds(s), dn1ds(s), dn2ds(s), dn3ds(s)).finished() * vtx;
+           dn0ds(s), dn1ds(s), dn2ds(s), dn3ds(s)).finished() * vtx;
     detJac = jac.determinant();
     invJac = jac.inverse();
 
@@ -108,11 +108,10 @@ class QuadP1 {
   };
 
   /// Class name
-  const static std::string name() { return "QUADP1"; }
+  const static std::string Name() { return "QuadP1"; }
   
   /// Class type
   const static ElementType type() { return ElementType::QUADP1; }
-
 };
 
 

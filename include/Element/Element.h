@@ -42,8 +42,9 @@ class Element {
   /** Cleans up any heap-allocated memoroy. */
   virtual ~Element() {};
   /** Returns a concrete elment type based on command line options */
-  static std::unique_ptr<Element> Factory(const std::vector<std::string>& physics_base,
-                                          const std::vector<std::string>& physics_couple,
+  static std::unique_ptr<Element> Factory(const std::string &shape,
+                                          const std::vector<std::string> &physics_base,
+                                          const std::vector<std::string> &physics_couple,
                                           std::unique_ptr<Options> const &options);
   ///@}
 
@@ -72,14 +73,6 @@ class Element {
    * @param [in] distributed_mesh The parallel DM provided by PETSc.
    */
   virtual void attachVertexCoordinates(std::unique_ptr<Mesh> const &mesh) = 0;
-  /** Pre-compute the stiffness matrix operator. Currently this is required for the tetrahedral elements,
-   * but is a non-op for element types where the stiffness matrix is computed on the fly.
-   */
-  /** Return the estimated element radius scaled by element-local velocity.
-   * @return The CFL estimate
-   */
-  virtual double CFL_estimate() = 0;
-  virtual void prepareStiffness() = 0;
   ///@}
 
   /** @name Time loop (pure functions).
@@ -151,6 +144,8 @@ class Element {
   virtual inline Eigen::VectorXi ClsMap() const = 0;
   /** Vertex coordinates of this element. */
   virtual inline Eigen::MatrixXd VtxCrd() const = 0;
+  /** What type of element am I? */
+  virtual inline std::string Name() const = 0;
   ///@}
 
 };

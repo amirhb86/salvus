@@ -60,8 +60,11 @@ class TetP1 {
       const Eigen::Ref<const Eigen::Matrix<double,mNumVtx,mNumDim>>& vtx);
 
 
-  /// Class name
+  /// Class type
   const static ElementType type() { return ElementType::TETP1; }
+
+  /// Class name
+  const static std::string Name() { return "TetP1"; }
   
 };
 

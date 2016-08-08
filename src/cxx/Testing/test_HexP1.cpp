@@ -81,9 +81,9 @@ TEST_CASE("test functions in HexP1", "[hexP1]") {
         0.654654, 0.654654, 0.654654, 0.654654, 0.654654, 0.654654, 0.654654, 0.654654, 1,
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1;
 
-    RealVec crd_r = Hexahedra<HexP1>::GllPointsForOrder(4);
-    RealVec crd_s = Hexahedra<HexP1>::GllPointsForOrder(4);
-    RealVec crd_t = Hexahedra<HexP1>::GllPointsForOrder(4);
+    RealVec crd_r(5); crd_r << -1, -0.654654, 0, 0.654654, 1;
+    RealVec crd_s(5); crd_s << -1, -0.654654, 0, 0.654654, 1;
+    RealVec crd_t(5); crd_t << -1, -0.654654, 0, 0.654654, 1;
 
     HexVtx vtx;
     vtx <<

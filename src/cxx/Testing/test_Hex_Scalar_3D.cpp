@@ -87,10 +87,10 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
   const char *arg[] = {
       "salvus_test",
       "--testing", "true",
-      "--element_shape", "hex",
-      "--exodus_file_name", e_file.c_str(),
-      "--exodus_model_file_name", e_file.c_str(),
-      "--polynomial_order", "2", "--saveMovie", NULL};
+      "--mesh-file", e_file.c_str(),
+      "--model-file", e_file.c_str(),
+      "--time-step", "1e-2",
+      "--polynomial-order", "2", NULL};
   char **argv = const_cast<char **> (arg);
   int argc = sizeof(arg) / sizeof(const char *) - 1;
   PetscOptionsInsert(NULL, &argc, &argv, NULL);
@@ -102,9 +102,9 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
   std::unique_ptr<ExodusModel> model(new ExodusModel(options));
   std::unique_ptr<Mesh> mesh(Mesh::Factory(options));
 
-  model->initializeParallel();
-  mesh->read(options);
-  mesh->setupGlobalDof(3, model, options);
+  model->read();
+  mesh->read();
+  mesh->setupGlobalDof(model, options);
 
   std::vector<std::unique_ptr<Element>> test_elements;
   auto elements = problem->initializeElements(mesh, model, options);
@@ -129,15 +129,16 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
 
   }
 
-  PetscReal cycle_time = 19.90862997205606; PetscReal max_error = 0;
-  cycle_time = 1.0;
+  PetscReal cycle_time = 1.0; PetscReal max_error = 0;
   RealVec element_error(test_elements.size()); PetscScalar time = 0;
   while (true) {
 
-    std::tie(test_elements, fields) = problem->assembleIntoGlobalDof(
-        std::move(test_elements), std::move(fields),
-        mesh->DistributedMesh(), mesh->MeshSection(),
-        options);
+    std::tie(test_elements, fields) = problem->assembleIntoGlobalDof(std::move(test_elements),
+                                                                     std::move(fields),
+                                                                     0,
+                                                                     mesh->DistributedMesh(),
+                                                                     mesh->MeshSection(),
+                                                                     options);
 
     fields = problem->applyInverseMassMatrix(std::move(fields));
     std::tie(fields, time) = problem->takeTimeStep
@@ -150,11 +151,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
           mesh, options, time, problem, fields);
     }
 
-//    problem->saveSolution(time, {"u"}, fields, mesh->DistributedMesh());
-
-    std::cout << "TIME:      " << time << std::endl;
     max_error = element_error.maxCoeff() > max_error ? element_error.maxCoeff() : max_error;
-    std::cout << "ERROR: " << max_error << std::endl;
     if (time > cycle_time) break;
 
   }

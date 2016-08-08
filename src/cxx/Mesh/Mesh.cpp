@@ -25,17 +25,19 @@ void exodusError(const int retval, std::string func_name) {
 
 }
 
-Mesh::Mesh(const std::unique_ptr<Options> &options) { mDistributedMesh = NULL; }
+Mesh::Mesh(const std::unique_ptr<Options> &options) {
+  mExodusFileName = options->MeshFile();
+  mDistributedMesh = NULL;
+}
 
 std::unique_ptr<Mesh> Mesh::Factory(const std::unique_ptr<Options> &options) {
   return std::unique_ptr<Mesh> (new Mesh(options));
 }
 
-void Mesh::read(std::unique_ptr<Options> const &options) {
+void Mesh::read() {
 
   // Class variables.
   mDistributedMesh = NULL;
-  mExodusFileName = options->ExodusMeshFile();
 
   // check if file exists
   PetscInt rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
@@ -65,11 +67,11 @@ void Mesh::read(std::unique_ptr<Options> const &options) {
   else { mDistributedMesh = dm; }
 
   DMGetDimension(mDistributedMesh, &mNumDim);
+  // Get number of elements (duh.)
   DMPlexGetDepthStratum(mDistributedMesh, mNumDim, NULL, &mNumberElementsLocal);
 }
 
-PetscErrorCode Mesh::setupGlobalDof(PetscInt num_dim, unique_ptr<ExodusModel> const &model,
-                                    unique_ptr<Options> const &options) {
+void Mesh::setupGlobalDof(unique_ptr<ExodusModel> const &model, unique_ptr<Options> const &options) {
 
   /* Find all the mesh boundaries. */
   DMLabel label; DMGetLabel(mDistributedMesh, "Face Sets", &label);
@@ -93,9 +95,11 @@ PetscErrorCode Mesh::setupGlobalDof(PetscInt num_dim, unique_ptr<ExodusModel> co
 
     /* Add the type of element i to all mesh points connected via the Hasse graph. */
     PetscInt num_pts; const PetscInt *pts = NULL;
-    DMPlexGetCone(mDistributedMesh, i, &pts); DMPlexGetConeSize(mDistributedMesh, i, &num_pts);
+    DMPlexGetCone(mDistributedMesh, i, &pts); DMPlexGetConeSize(mDistributedMesh, i, &num_pts);    
     for (PetscInt j = 0; j < num_pts; j++) {
+      // add element type to point
       mPointFields[pts[j]].insert(type);
+      // if this point `pts[j]` is on a boundary (`mBndPts`), add "boundary" to type of the point
       if (mBndPts.find(pts[j]) != mBndPts.end()) {
         mPointFields[pts[j]].insert("boundary");
       }
@@ -113,10 +117,10 @@ PetscErrorCode Mesh::setupGlobalDof(PetscInt num_dim, unique_ptr<ExodusModel> co
   PetscInt *num_comps; PetscMalloc1(num_fields, &num_comps);
   {
     PetscInt i = 0;
-    for (auto &f: mMeshFields) { num_comps[i++] = numFieldPerPhysics(f); }
+    for (auto &f: mMeshFields) { num_comps[i] = numFieldPerPhysics(f); i++; }
   }
   PetscInt *num_dof; PetscMalloc1(num_fields * (mNumDim + 1), &num_dof);
-
+  printf("num_fields * (mNumDim + 1) = %d * (%d + 1)\n",num_fields,mNumDim);
   /* For each field... */
   for (PetscInt f = 0; f < num_fields; f++) {
 
@@ -125,10 +129,12 @@ PetscErrorCode Mesh::setupGlobalDof(PetscInt num_dim, unique_ptr<ExodusModel> co
 
       /* Number of dofs per this element point. */
       num_dof[f * (mNumDim + 1) + d] = PetscPowInt(poly_order - 1, d) * num_comps[f];
-
+      printf("num_dof[%d]=%d\n",f * (mNumDim + 1) + d,PetscPowInt(poly_order - 1, d) * num_comps[f]);
     }
   }
 
+  
+  
   /* Generate the section which will define the global dofs. */
   DMPlexCreateSection(mDistributedMesh, mNumDim, num_fields, num_comps, num_dof,
                       num_bc, NULL, NULL, NULL, NULL, &mMeshSection);
@@ -140,8 +146,9 @@ PetscErrorCode Mesh::setupGlobalDof(PetscInt num_dim, unique_ptr<ExodusModel> co
     for (auto &f: mMeshFields) { PetscSectionSetFieldName(mMeshSection, i++, f.c_str()); }
   }
 
-  /* Attach the section to our DM, and set the spectral ordering. */
+  /* Attach the section to our DM */
   DMSetDefaultSection(mDistributedMesh, mMeshSection);
+  /* Set the spectral ordering for quad and hex element meshes. */
   DMPlexCreateSpectralClosurePermutation(mDistributedMesh, NULL);
 
   /* Map the physics type to global field names. */
@@ -260,8 +267,7 @@ std::vector<std::string> Mesh::appendPhysicalFields(const std::vector<std::strin
   } else if (physics == "3delastic") {
     new_fields = {"ux", "uy", "uz"};
   } else {
-    LOG() << "ERROR IN FIELD TYPE " + physics;
-    MPI_Abort(PETSC_COMM_WORLD, -1);
+    ERROR() << "ERROR IN FIELD TYPE " + physics;
   }
 
   for (auto &f: fields) { new_fields.push_back(f); }
@@ -279,9 +285,24 @@ int Mesh::numFieldPerPhysics(std::string physics) {
       throw std::runtime_error("Derived type " + physics + " is not known.");
     }
   } catch (std::exception &e) {
-    LOG() << e.what();
-    MPI_Abort(PETSC_COMM_WORLD, -1);
+    ERROR() << e.what();
   }
   return num;
+}
+std::string Mesh::baseElementType() {
+  std::string type;
+  RealMat vtx = getElementCoordinateClosure(0);
+  if (vtx.rows() == 3) {
+    type = "tri";
+  } else if (vtx.rows() == 4 && mNumDim == 2) {
+    type = "quad";
+  } else if (vtx.rows() == 4 && mNumDim == 3) {
+    type = "tet";
+  } else if (vtx.rows() == 8 && mNumDim == 3) {
+    type = "hex";
+  } else {
+    ERROR() << "Element type not detected: vtx.rows()=" << vtx.rows() << " and dim = " << mNumDim;
+  }
+  return type;
 }
 

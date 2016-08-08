@@ -285,7 +285,7 @@ class Tetrahedra: public ConcreteShape {
   /**
    *
    */
-  Eigen::VectorXd getDeltaFunctionCoefficients(double r, double s, double t) { std::cerr << "ERROR: Not implemented"; exit(1); }
+  Eigen::VectorXd getDeltaFunctionCoefficients(const Eigen::Ref<RealVec>& pnt) { std::cerr << "ERROR: Not implemented"; exit(1); }
 
   Eigen::VectorXd computeStiffnessFull(const Eigen::Ref<const Eigen::VectorXd>&  field,
                                        const Eigen::Ref<const Eigen::VectorXd>& vp2);

@@ -1,183 +1,181 @@
+#include <salvus.h>
 #include <petsc.h>
-#include <petscoptions.h>
-#include <Utilities/Options.h>
-#include <Utilities/Utilities.h>
-#include <Utilities/Logging.h>
 
-PetscErrorCode Options::setOptions() {
+void Options::setOptions() {
 
-  // TODO!! DIMENSION ONLY 2 FOR NOW!!
-  mDimension = 2;
+  /* Error helpers. */
+  std::string epre = "Critical option ";
+  std::string epst = " not set. Exiting.";
 
-  PetscInt int_buffer;
-  PetscBool parameter_set;
-  double real_buffer;
+  /* To hold options. */
+  PetscInt  int_buffer;
+  PetscBool parameter_set, testing;
+  PetscReal real_buffer;
+  char      char_buffer[PETSC_MAX_PATH_LEN];
 
-  // Set this so that options don't fail if we're unit testing.
-  PetscBool testing;
+
+  /* Set this so that options don't fail if we're unit testing. */
   PetscOptionsGetBool(NULL, NULL, "--testing", &testing, &parameter_set);
-  if (! parameter_set) { testing = PETSC_FALSE; }
-
-  PetscOptionsGetReal(NULL, NULL, "--duration", &real_buffer, &parameter_set);
-  if (parameter_set) { mDuration = real_buffer; }
-  else {
-    if (! testing)
-    { SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER, "Duration must be given via --duration"); }
-  }
-
-  PetscOptionsGetReal(NULL, NULL, "--time_step", &real_buffer, &parameter_set);
-  if (parameter_set) { mTimeStep = real_buffer; }
-  else {
-    // time step will be set automatically
-    mTimeStep = -1;
-  }
-
-  // String options.O
-  char char_buffer[PETSC_MAX_PATH_LEN];
-
-  PetscOptionsGetString(NULL, NULL, "--exodus_file_name", char_buffer, PETSC_MAX_PATH_LEN,
-                        &parameter_set);
-  if (parameter_set) { mExodusMeshFile = std::string(char_buffer); }
-
-  PetscOptionsGetString(NULL, NULL, "--exodus_model_file_name", char_buffer, PETSC_MAX_PATH_LEN,
-                        &parameter_set);
-  if (parameter_set) { mExodusModelFile = std::string(char_buffer); }
-
-  PetscOptionsGetString(NULL, NULL, "--output_movie_file_name", char_buffer, PETSC_MAX_PATH_LEN,
-                        &parameter_set);
-  if (parameter_set) { mOutputMovieFile = std::string(char_buffer); }
-
-  PetscOptionsGetString(NULL, NULL, "--mesh_type", char_buffer, PETSC_MAX_PATH_LEN,
-                        &parameter_set);
-  if (parameter_set) { mMeshType = std::string(char_buffer); }
-
-  PetscOptionsGetString(NULL, NULL, "--element_shape", char_buffer, PETSC_MAX_PATH_LEN,
-                        &parameter_set);
-  if (parameter_set) { mElementShape = std::string(char_buffer); }
-
-  PetscOptionsGetString(NULL, NULL, "--physics_system", char_buffer, PETSC_MAX_PATH_LEN,
-                        &parameter_set);
-  if (parameter_set) { mPhysicsSystem = std::string(char_buffer); }
-
-  PetscOptionsGetInt(NULL, NULL, "--polynomial_order", &int_buffer, &parameter_set);
-  if (parameter_set) { mPolynomialOrder = int_buffer; }
-
-  // Sources.
-  PetscOptionsGetInt(NULL, NULL, "--number_of_sources", &int_buffer, &parameter_set);
-  if (parameter_set) { mNumberSources = int_buffer; } else { mNumberSources = 0; }
-
-  if (mNumberSources > 0) {
-    mSourceLocationX.resize(mNumberSources);
-    mSourceLocationY.resize(mNumberSources);
-    mSourceLocationZ.resize(mNumberSources);
-    mSourceRickerTimeDelay.resize(mNumberSources);
-    mSourceRickerAmplitude.resize(mNumberSources);
-    mSourceRickerCenterFreq.resize(mNumberSources);
-
-    PetscOptionsGetString(NULL, NULL, "--source_type", char_buffer, PETSC_MAX_PATH_LEN,
-                          &parameter_set);
-    if (parameter_set) { mSourceType = std::string(char_buffer); }
-
-    PetscOptionsGetScalarArray(NULL, NULL, "--source_location_x", mSourceLocationX.data(), &mNumberSources, NULL);
-    PetscOptionsGetScalarArray(NULL, NULL, "--source_location_y", mSourceLocationY.data(), &mNumberSources, NULL);
-    PetscOptionsGetScalarArray(NULL, NULL, "--source_location_z", mSourceLocationZ.data(), &mNumberSources, NULL);
-    PetscOptionsGetScalarArray(NULL, NULL, "--ricker_amplitude", mSourceRickerAmplitude.data(), &mNumberSources, NULL);
-    PetscOptionsGetScalarArray(NULL, NULL, "--ricker_time_delay", mSourceRickerTimeDelay.data(), &mNumberSources, NULL);
-    PetscOptionsGetScalarArray(NULL, NULL, "--ricker_center_freq", mSourceRickerCenterFreq.data(), &mNumberSources, NULL);
-  }
-
-  // Receivers.
-  PetscOptionsGetInt(NULL, NULL, "--number_of_receivers", &int_buffer, &parameter_set);
-  if (parameter_set) { mNumRec = int_buffer; } else { mNumRec = 0; }
-  if (mNumRec > 0) {
-    PetscOptionsGetString(NULL, NULL, "--receiver_file_name", char_buffer, PETSC_MAX_PATH_LEN,
-                          &parameter_set);
-    if (parameter_set) { mReceiverFileName = std::string(char_buffer); }
-    mRecLocX1.resize(mNumRec);
-    mRecLocX2.resize(mNumRec);
-    if (mDimension == 3) {
-      mRecLocX3.resize(mNumRec);
-    }
-
-    int num_max_recs = 1000;
-    char *maxrecs[num_max_recs];
-    PetscOptionsGetStringArray(NULL, NULL, "--receiver_names", maxrecs, &num_max_recs, NULL);
-    PetscOptionsGetScalarArray(NULL, NULL, "--receiver_location_x1", mRecLocX1.data(), &mNumRec, NULL);
-    PetscOptionsGetScalarArray(NULL, NULL, "--receiver_location_x2", mRecLocX2.data(), &mNumRec, NULL);
-    if (mDimension == 3) {
-      PetscOptionsGetScalarArray(NULL, NULL, "--receiver_location_x3", mRecLocX3.data(), &mNumRec, NULL);
-    }
-
-    for (int i = 0; i < num_max_recs; i++) { mRecNames.push_back(maxrecs[i]); }
-  }
-
-  int num_dirichlet_boundaries = 256;
-  char *dirichlet_boundaries[256];
-  PetscOptionsGetStringArray(NULL, NULL,
-                             "--dirichlet-boundaries",
-                             dirichlet_boundaries,
-                             &num_dirichlet_boundaries,
-                             &parameter_set);
   if (parameter_set) {
-    printf("Using following for dirichlet boundaries:");
-    for (int i = 0; i < num_dirichlet_boundaries; i++) {
-      printf("%s,", dirichlet_boundaries[i]);
-      mDirichletBoundaryNames.push_back(dirichlet_boundaries[i]);
-    }
-    printf("\n");
+    testing = PETSC_TRUE;
+  } else {
+    testing = PETSC_FALSE;
+  }
+
+  /********************************************************************************
+                               Required options.
+  ********************************************************************************/
+  PetscOptionsGetReal(NULL, NULL, "--duration", &real_buffer, &parameter_set);
+  if (parameter_set) {
+    mDuration = real_buffer;
   }
   else {
-    // default
-    mDirichletBoundaryNames.push_back("dirichlet");
+    if (! testing) throw std::runtime_error(epre + "--duration" + epst);
+  }
+  PetscOptionsGetReal(NULL, NULL, "--time-step", &real_buffer, &parameter_set);
+  if (parameter_set) {
+    mTimeStep = real_buffer;
+  } else {
+    if (! testing) throw std::runtime_error(epre + "--time-step" + epst);
+  }
+  PetscOptionsGetString(NULL, NULL, "--mesh-file", char_buffer, PETSC_MAX_PATH_LEN, &parameter_set);
+  if (parameter_set) {
+    mMeshFile = std::string(char_buffer);
+  } else {
+    if (! testing) throw std::runtime_error(epre + "--mesh-file" + epst);
+  }
+  PetscOptionsGetString(NULL, NULL, "--model-file", char_buffer, PETSC_MAX_PATH_LEN, &parameter_set);
+  if (parameter_set) {
+    mModelFile = std::string(char_buffer);
+  } else {
+    if (! testing) throw std::runtime_error(epre + "--model-file" + epst);
+  }
+  PetscOptionsGetInt(NULL, NULL, "--polynomial-order", &int_buffer, &parameter_set);
+  if (parameter_set) {
+    mPolynomialOrder = int_buffer;
+  } else {
+    if (! testing) throw std::runtime_error(epre + "--polynomial-order" + epst);
   }
 
-  // parameters for movies (to save or not, and how often)
-  PetscOptionsGetBool(NULL, NULL, "--saveMovie", &mSaveMovie, &parameter_set);
-  if (!parameter_set) { mSaveMovie = PETSC_FALSE; }
-  PetscOptionsGetInt(NULL, NULL, "--saveFrameEvery", &mSaveFrameEvery, &parameter_set);
-  if (!parameter_set) { mSaveFrameEvery = 1; }
 
-  // parameters for movies (to save or not, and how often)
-  PetscOptionsGetBool(NULL, NULL, "--displayDiagnostics", &mDisplayDiagnostics, &parameter_set);
-  if (!parameter_set) { mDisplayDiagnostics = PETSC_TRUE; }
-  PetscOptionsGetInt(NULL, NULL, "--displayDiagnosticsEvery", &mDisplayDiagnosticsEvery, &parameter_set);
-  if (!parameter_set) { mDisplayDiagnosticsEvery = 10; }
-  
-  // for testing ICs against exact solution
-  PetscOptionsGetBool(NULL, NULL, "--testIC", &mTestIC, &parameter_set);
-  if (!parameter_set) { mTestIC = PETSC_FALSE; }
-  if (mTestIC) {
-    // these will issue unused parameter warning if testIC is false
-    PetscOptionsGetReal(NULL, NULL, "--IC-center-x", &real_buffer, &parameter_set);
-    if (parameter_set) { mCenter_x = real_buffer; }
-    PetscOptionsGetReal(NULL, NULL, "--IC-center-y", &real_buffer, &parameter_set);
-    if (parameter_set) { mCenter_y = real_buffer; }
-    PetscOptionsGetReal(NULL, NULL, "--IC-center-z", &real_buffer, &parameter_set);
-    if (parameter_set) { mCenter_z = real_buffer; }
-    PetscOptionsGetReal(NULL, NULL, "--IC-square-side-L", &real_buffer, &parameter_set);
-    if (parameter_set) { mSquareSide_L = real_buffer; }
+  /********************************************************************************
+                                       Movies.
+  ********************************************************************************/
+  PetscOptionsGetBool(NULL, NULL, "--save-movie", &mSaveMovie, &parameter_set);
+  if (parameter_set) {
+    mSaveMovie = PETSC_TRUE;
+  } else {
+    mSaveMovie = PETSC_FALSE;
   }
 
-  // MAKE THESE COMMAND LINE OPTIONS EVENTUALLY.
-  mTimeStepType = "newmark";
-
-  if (mMeshType == "newmark" || mMeshType == "2d_couple" || mMeshType == "3d_couple") {
-    if (mTestIC) mProblemType = "newmark_testing";
-    else mProblemType = "newmark_general";
+  if (mSaveMovie) {
+    PetscOptionsGetString(NULL, NULL, "--movie-file-name", char_buffer, PETSC_MAX_PATH_LEN, &parameter_set);
+    if (parameter_set) {
+      mMovieFile = std::string(char_buffer);
+    } else {
+      if (! testing)
+        throw std::runtime_error("Movie requested, but no output file specified."
+                                     " Set --movie-file-name. Exiting.");
+    }
+    PetscOptionsGetString(NULL, NULL, "--movie-field", char_buffer, PETSC_MAX_PATH_LEN, &parameter_set);
+    if (parameter_set) {
+      mMovieFields.emplace_back(char_buffer);
+    } else {
+      if (! testing)
+        throw std::runtime_error("Movie requested, but no fields were specified."
+                                     " Set --movie-field. Exiting.");
+    }
+    PetscOptionsGetInt(NULL, NULL, "--save-frame-every", &mSaveFrameEvery, &parameter_set);
+    if (!parameter_set) { mSaveFrameEvery = 1; }
   }
 
-  if (mMeshType == "2d_couple") { mDimension = 2; }
-  else if (mMeshType == "3d_couple") { mDimension = 3; }
+  /* TODO: Add options so that sources can be parsed from a file. */
+  /********************************************************************************
+                                    Sources.
+  ********************************************************************************/
+  PetscOptionsGetInt(NULL, NULL, "--number-of-sources", &int_buffer, &parameter_set);
+  if (parameter_set) {
+    mNumSrc = int_buffer;
+  } else {
+    mNumSrc = 0;
+  }
 
-  // No error
-  return 0;
-}
+  if (mNumSrc > 0) {
 
-void Options::SetTimeStep(double timestep) {
-  
-    double global_timestep;
-    MPI_Allreduce(&timestep,&global_timestep,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
-    DEBUG() << "Local timestep " << timestep << " vs. global timestep " << global_timestep;
-    mTimeStep = global_timestep;
-    
+    mSrcLocX.resize(mNumSrc); mSrcLocY.resize(mNumSrc);
+
+    PetscOptionsGetString(NULL, NULL, "--source-type", char_buffer, PETSC_MAX_PATH_LEN, &parameter_set);
+    if (parameter_set) {
+      mSourceType = std::string(char_buffer);
+    } else {
+      if (! testing)
+      throw std::runtime_error("Sources were requested, but source type was not specified. "
+                                   "Possibilities are: --source-type [ ricker ].");
+    }
+
+    PetscInt n_par = mNumSrc; std::string err = "Incorrect number of source parameters: ";
+    PetscOptionsGetScalarArray(NULL, NULL, "--source-location-x", mSrcLocX.data(), &n_par, NULL);
+    if (n_par != mNumSrc) { throw std::runtime_error(err + "x locations"); }
+    PetscOptionsGetScalarArray(NULL, NULL, "--source-location-y", mSrcLocY.data(), &n_par, NULL);
+    if (n_par != mNumSrc) { throw std::runtime_error(err + "y locations"); }
+    if (mNumDim == 3) {
+      mSrcLocZ.resize(mNumSrc);
+      PetscOptionsGetScalarArray(NULL, NULL, "--source-location-z", mSrcLocZ.data(), &n_par, NULL);
+      if (n_par != mNumSrc) { throw std::runtime_error(err + "z locations"); }
+    }
+
+    if (mSourceType == "ricker") {
+      n_par = mNumSrc;
+      mSrcRickerTimeDelay.resize(mNumSrc);
+      mSrcRickerAmplitude.resize(mNumSrc);
+      mSrcRickerCenterFreq.resize(mNumSrc);
+      PetscOptionsGetScalarArray(NULL, NULL, "--ricker-amplitude", mSrcRickerAmplitude.data(), &n_par, NULL);
+      if (n_par != mNumSrc) { throw std::runtime_error(err + "--ricker-amplitude."); }
+      PetscOptionsGetScalarArray(NULL, NULL, "--ricker-time-delay", mSrcRickerTimeDelay.data(), &n_par, NULL);
+      if (n_par != mNumSrc) { throw std::runtime_error(err + "--ricker-time-delay"); }
+      PetscOptionsGetScalarArray(NULL, NULL, "--ricker-center-freq", mSrcRickerCenterFreq.data(), &n_par, NULL);
+      if (n_par != mNumSrc) { throw std::runtime_error(err + "--ricker-center-freq"); }
+    } else {
+      if (! testing)
+      throw std::runtime_error("Source type " + mSourceType + " not recognized.");
+    }
+  }
+
+  /********************************************************************************
+                                    Recievers.
+  ********************************************************************************/
+  PetscOptionsGetInt(NULL, NULL, "--number-of-receivers", &int_buffer, &parameter_set);
+  if (parameter_set) {
+    mNumRec = int_buffer;
+  } else {
+    mNumRec = 0;
+  }
+
+  if (mNumRec > 0) {
+
+    mRecLocX.resize(mNumRec); mRecLocY.resize(mNumRec);
+
+    PetscOptionsGetString(NULL, NULL, "--receiver-file-name", char_buffer, PETSC_MAX_PATH_LEN, &parameter_set);
+    if (parameter_set) {
+      mReceiverFileName = std::string(char_buffer);
+    } else {
+      if (! testing)
+        throw std::runtime_error("Receivers were requested, but no output file was specfied.");
+    }
+
+    char *names[PETSC_MAX_PATH_LEN];
+    PetscInt n_par = mNumRec; std::string err = "Incorrect number of reciever parameters: ";
+    PetscOptionsGetStringArray(NULL, NULL, "--receiver-names", names, &n_par, NULL);
+    for (PetscInt i = 0; i < n_par; i++) { mRecNames.push_back(names[i]); }
+    if (n_par != mNumRec) { throw std::runtime_error(err + "--receiver-names"); }
+    PetscOptionsGetScalarArray(NULL, NULL, "--receiver-location-x", mRecLocX.data(), &n_par, NULL);
+    if (n_par != mNumRec) { throw std::runtime_error(err + "--receiver-location-x"); }
+    PetscOptionsGetScalarArray(NULL, NULL, "--receiver-location-y", mRecLocY.data(), &n_par, NULL);
+    if (n_par != mNumRec) { throw std::runtime_error(err + "--receiver-location-y"); }
+    if (mNumDim == 3) {
+      mRecLocZ.resize(mNumRec);
+      PetscOptionsGetScalarArray(NULL, NULL, "--receiver-location-z", mRecLocZ.data(), &n_par, NULL);
+      if (n_par != mNumRec) { throw std::runtime_error(err + "--receiver-location-z"); }
+    }
+  }
 }

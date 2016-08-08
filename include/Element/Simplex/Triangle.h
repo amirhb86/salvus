@@ -6,6 +6,9 @@
 // 3rd party.
 #include <Eigen/Dense>
 
+// salvus
+#include <Utilities/Types.h>
+
 // forward decl.
 class Mesh;
 class Source;
@@ -65,7 +68,7 @@ class Triangle: public ConcreteShape {
   Eigen::VectorXi mClsMap;
 
   // Workspace.
-  Eigen::VectorXd mDetJac;
+  double mDetJac;
   Eigen::VectorXd mParWork;
   Eigen::VectorXd mStiffWork;
   Eigen::MatrixXd mGradWork;
@@ -102,6 +105,11 @@ class Triangle: public ConcreteShape {
   
   // precomputed element stiffness matrix (with velocities)
   Eigen::MatrixXd mElementStiffnessMatrix;
+
+  // precomputed jacobians
+  Eigen::Matrix2d mInvJac;
+  Eigen::Matrix2d mInvJacT;
+  Eigen::Matrix2d mInvJacT_x_invJac;
   
  public:
 
@@ -112,6 +120,9 @@ class Triangle: public ConcreteShape {
    */
   Triangle<ConcreteShape>(std::unique_ptr<Options> const &options);
 
+  /// All memory should be properly managed already.
+  ~Triangle<ConcreteShape>() {};
+  
   /**
    * Returns the gll locations for a given polynomial order.
    * @param [in] order The polynmomial order.
@@ -159,10 +170,22 @@ class Triangle: public ConcreteShape {
    ********************************************************/
 
   /**
+   * Compute the gradient of a field at all GLL points.
+   * @param [in] field Field to take the gradient of.
+   */
+  RealMat computeGradient(const Eigen::Ref<const RealVec>& field);
+
+  /**
+   * Multiply a field by the gradient of the test functions and integrate.
+   * @param [in] f Field to calculate on.
+   */
+  RealVec applyGradTestAndIntegrate(const Eigen::Ref<const RealMat>& f);
+  
+  /**
    * Interpolate a parameter from vertex to GLL point.
    * @param [in] par Parameter to interpolate (i.e. VP, VS).
    */
-  Eigen::VectorXd ParAtIntPts(const std::string& par);
+  RealVec ParAtIntPts(const std::string& par);
   
   /**
    * Attaches a material parameter to the vertices on the current element.
@@ -217,7 +240,15 @@ class Triangle: public ConcreteShape {
    */
   bool attachReceiver(std::unique_ptr<Receiver> &receiver, const bool finalize);
 
-  
+  /**
+   * Sets an edge to a particular scalar value (useful for Dirichlet boundaries)
+   * @param [in] edg Edge id 0-2
+   * @param [in] val Value to set
+   * @param [out] f Field to set to `val`
+   */
+  void setEdgeToValue(const PetscInt edg,
+                      const PetscScalar val,
+                      Eigen::Ref<RealVec> f);
   
   
   /**
@@ -238,7 +269,7 @@ class Triangle: public ConcreteShape {
   /**
    *
    */
-  Eigen::VectorXd getDeltaFunctionCoefficients(const double r, const double s);
+  Eigen::VectorXd getDeltaFunctionCoefficients(const Eigen::Ref<RealVec>& pnt);
 
   Eigen::MatrixXd buildStiffnessMatrix(Eigen::VectorXd velocity);
 

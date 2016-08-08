@@ -73,20 +73,6 @@ RealVec Hexahedra<ConcreteHex>::GllPointsForOrder(const PetscInt order) {
     gll_coordinates_order2_square(gll_points.data());
   } else if (order == 3) {
     gll_coordinates_order3_square(gll_points.data());
-  } else if (order == 4) {
-    gll_coordinates_order4_square(gll_points.data());
-  } else if (order == 5) {
-    gll_coordinates_order5_square(gll_points.data());
-  } else if (order == 6) {
-    gll_coordinates_order6_square(gll_points.data());
-  } else if (order == 7) {
-    gll_coordinates_order7_square(gll_points.data());
-  } else if (order == 8) {
-    gll_coordinates_order8_square(gll_points.data());
-  } else if (order == 9) {
-    gll_coordinates_order9_square(gll_points.data());
-  } else if (order == 10) {
-    gll_coordinates_order10_square(gll_points.data());
   }
   return gll_points;
 }
@@ -100,20 +86,6 @@ RealVec Hexahedra<ConcreteHex>::GllIntegrationWeights(const PetscInt order) {
     gll_weights_order2_square(integration_weights.data());
   } else if (order == 3) {
     gll_weights_order3_square(integration_weights.data());
-  } else if (order == 4) {
-    gll_weights_order4_square(integration_weights.data());
-  } else if (order == 5) {
-    gll_weights_order5_square(integration_weights.data());
-  } else if (order == 6) {
-    gll_weights_order6_square(integration_weights.data());
-  } else if (order == 7) {
-    gll_weights_order7_square(integration_weights.data());
-  } else if (order == 8) {
-    gll_weights_order8_square(integration_weights.data());
-  } else if (order == 9) {
-    gll_weights_order9_square(integration_weights.data());
-  } else if (order == 10) {
-    gll_weights_order10_square(integration_weights.data());
   }
   return integration_weights;
 }
@@ -151,91 +123,159 @@ void Hexahedra<ConcreteHex>::attachVertexCoordinates(std::unique_ptr<Mesh> const
 }
 
 template <typename ConcreteHex>
-PetscReal Hexahedra<ConcreteHex>::CFL_constant() {
-  if(mPlyOrd == 3) {
-    return 2.4; // determined by hand (about 10% conservative)
-  }
-  else {
-    std::cerr << "ERROR: Order CFL_constant not implemented yet\n";
-    exit(1);
-  }
-}
-
-template <typename ConcreteHex>
-PetscReal Hexahedra<ConcreteHex>::estimatedElementRadius() {
-
-  PetscReal detJ;
-  RealMat3x3 invJac;
-  RealMat3x3 Jac;
-  RealVec3 refGrad;
-  PetscInt num_pts = mNumIntPtsR*mNumIntPtsS*mNumIntPtsT;
-  RealVec h_pts(num_pts);
-  
-  // Loop over all GLL points.
-  for (PetscInt t_ind = 0; t_ind < mNumIntPtsT; t_ind++) {
-    for (PetscInt s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
-      for (PetscInt r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
-
-        // gll index.
-        PetscInt index = r_ind + s_ind * mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS;
-
-        // (r,s,t) coordinates for this point.
-        PetscReal r = mIntCrdR(r_ind);
-        PetscReal s = mIntCrdS(s_ind);
-        PetscReal t = mIntCrdT(t_ind);
-
-        // Optimized gradient for tensorized GLL basis.
-        ConcreteHex::inverseJacobianAtPoint(r, s, t, mVtxCrd, detJ, invJac);
-
-        // we can do this in 1 line with Eigen 3.2.7 and above (save for Ubuntu compatibility)
-        Jac = invJac.inverse();
-        RealVec3 eivals_abs = Jac.eigenvalues().cwiseAbs();
-
-        // get minimum h (smallest direction)
-        h_pts(index) = eivals_abs.minCoeff();
-      }
-    }
-  }
-  return h_pts.minCoeff();
-  
-}
-
-template <typename ConcreteHex>
 void Hexahedra<ConcreteHex>::setEdgeToValue(
     const PetscInt edg, const PetscReal val, Eigen::Ref<RealVec> f) {
 
   /* Get proper dofs in the tensor basis. */
-  PetscInt istart, istride, jstart, jstride;
-  if      (edg == 0) {
-    istart = 0;  jstart = 0;
-    istride = 1; jstride = 1; }
-  else if (edg == 1) {
-    istart = 0;  jstart = mNumIntPnt - mNumIntPtsR * mNumIntPtsS;
-    istride = 1; jstride = 1; }
-  else if (edg == 2) {
-    istart = 0; jstart = 0;
-    jstride = 1; istride = mNumIntPtsS;
-  }
-  else if (edg == 3) {
-    jstart = mNumIntPtsR * mNumIntPtsS - mNumIntPtsS; istart = 0;
-    jstride = 1; istride = mNumIntPtsR;
-  }
-  else if (edg == 4) {
-    jstart = mNumIntPtsR - 1; istart = 0;
-    jstride = mNumIntPtsS;    istride = mNumIntPtsR;
-  }
-  else if (edg == 5) {
-    jstart = 0; istart = 0;
-    jstride = mNumIntPtsS; istride = mNumIntPtsR;
+  PetscInt s_sta, s_str, r_sta, r_str;
+  switch (edg) {
+    case 0: /* bottom */
+      s_sta = 0;
+      r_sta = 0;
+      s_str = 1;
+      r_str = 1;
+      break;
+    case 1: /* top */
+      s_sta = 0;
+      r_sta = mNumIntPnt - mNumIntPtsR * mNumIntPtsS;
+      s_str = 1;
+      r_str = 1;
+      break;
+    case 2: /* left */
+      s_sta = 0;
+      r_sta = 0;
+      r_str = 1;
+      s_str = mNumIntPtsS;
+      break;
+    case 3: /* right */
+      r_sta = mNumIntPtsR * mNumIntPtsS - mNumIntPtsS;
+      s_sta = 0;
+      r_str = 1;
+      s_str = mNumIntPtsR;
+      break;
+    case 4: /* back */
+      r_sta = mNumIntPtsR - 1;
+      s_sta = 0;
+      r_str = mNumIntPtsS;
+      s_str = mNumIntPtsR;
+      break;
+    case 5: /* front */
+      r_sta = 0;
+      s_sta = 0;
+      r_str = mNumIntPtsS;
+      s_str = mNumIntPtsR;
+      break;
   }
 
-  for (PetscInt i = istart, icnt = 0; icnt < mNumIntPtsR; i += istride, icnt++) {
-    for (PetscInt j = jstart, jcnt = 0; jcnt < mNumIntPtsS; j += jstride, jcnt++) {
-      f(j + i * mNumIntPtsS) = val;
+  /* Set the proper dofs. */
+  for (PetscInt s = s_sta, icnt = 0; icnt < mNumIntPtsR; s += s_str, icnt++) {
+    for (PetscInt r = r_sta, jcnt = 0; jcnt < mNumIntPtsS; r += r_str, jcnt++) {
+      f(r + s * mNumIntPtsS) = val;
     }
   }
 
 }
+
+template <typename ConcreteHex>
+RealVec Hexahedra<ConcreteHex>::applyTestAndIntegrateEdge(const Eigen::Ref<const RealVec> &f,
+                                                          const PetscInt edg) {
+
+  PetscInt s_sta, r_sta, s_str, r_str;
+  RealVec3 q0, q1, q2, q3;
+
+  /* Get vertices defining edge. */
+  switch (edg) {
+    case 0: /* bottom */
+      q0 = mVtxCrd.row(0); q1 = mVtxCrd.row(1);
+      q2 = mVtxCrd.row(2); q3 = mVtxCrd.row(3);
+      s_sta = 0;
+      r_sta = 0;
+      s_str = 1;
+      r_str = 1;
+      break;
+    case 1: /* top */
+      q0 = mVtxCrd.row(4); q1 = mVtxCrd.row(5);
+      q2 = mVtxCrd.row(6); q3 = mVtxCrd.row(7);
+      s_sta = 0;
+      r_sta = mNumIntPnt - mNumIntPtsR * mNumIntPtsS;
+      s_str = 1;
+      r_str = 1;
+      break;
+    case 2: /* left */
+      q0 = mVtxCrd.row(0); q1 = mVtxCrd.row(4);
+      q2 = mVtxCrd.row(7); q3 = mVtxCrd.row(1);
+      s_sta = 0;
+      r_sta = 0;
+      r_str = 1;
+      s_str = mNumIntPtsS;
+      break;
+    case 3: /* right */
+      q0 = mVtxCrd.row(3); q1 = mVtxCrd.row(2);
+      q2 = mVtxCrd.row(6); q3 = mVtxCrd.row(5);
+      r_sta = mNumIntPtsR * mNumIntPtsS - mNumIntPtsS;
+      s_sta = 0;
+      r_str = 1;
+      s_str = mNumIntPtsR;
+      break;
+    case 4: /* back */
+      q0 = mVtxCrd.row(1); q1 = mVtxCrd.row(7);
+      q2 = mVtxCrd.row(6); q3 = mVtxCrd.row(2);
+      r_sta = mNumIntPtsR - 1;
+      s_sta = 0;
+      r_str = mNumIntPtsS;
+      s_str = mNumIntPtsR;
+      break;
+    case 5: /* front */
+      q0 = mVtxCrd.row(0); q1 = mVtxCrd.row(3);
+      q2 = mVtxCrd.row(5); q3 = mVtxCrd.row(4);
+      r_sta = 0;
+      s_sta = 0;
+      r_str = mNumIntPtsS;
+      s_str = mNumIntPtsR;
+      break;
+  }
+
+  /* Vectors defining face plane. */
+  RealVec3 v0 = q1 - q0;
+  RealVec3 v1 = q3 - q0;
+
+  /* Face normal. */
+  RealVec3 n = v0.cross(v1).normalized();
+
+  /* Compute orthogonal 2D coordinates. */
+  RealVec3 e0 = v0.normalized();
+  RealVec3 e1 = n.cross(v0).normalized();
+
+  /* Compute coordinates in 2D planar coordinates. */
+  QuadVtx eVtx;
+  eVtx(0, 0) = e0.dot(q0 - q0);
+  eVtx(1, 0) = e0.dot(q1 - q0);
+  eVtx(2, 0) = e0.dot(q2 - q0);
+  eVtx(3, 0) = e0.dot(q3 - q0);
+  eVtx(0, 1) = e1.dot(q0 - q0);
+  eVtx(1, 1) = e1.dot(q1 - q0);
+  eVtx(2, 1) = e1.dot(q2 - q0);
+  eVtx(3, 1) = e1.dot(q3 - q0);
+
+  mParWork.setZero();
+  for (PetscInt s_ind = s_sta, s_cnt = 0; s_cnt < mNumIntPtsR; s_ind += s_str, s_cnt++) {
+    for (PetscInt r_ind = r_sta, r_cnt = 0; r_cnt < mNumIntPtsS; r_ind += r_str, r_cnt++) {
+
+      PetscReal detJac;
+      PetscReal r = mIntCrdR(r_cnt);
+      PetscReal s = mIntCrdS(s_cnt);
+      PetscInt ind = r_ind + s_ind * mNumIntPtsS;
+
+      ConcreteHex::faceJacobianAtPoint(r, s, eVtx, detJac);
+      mParWork(ind) = f(ind) * detJac * mIntWgtR(r_cnt) * mIntWgtS(s_cnt);
+
+    }
+  }
+
+  return mParWork;
+
+}
+
 
 template <typename ConcreteHex>
 void Hexahedra<ConcreteHex>::attachMaterialProperties(
@@ -256,9 +296,9 @@ template <typename ConcreteHex>
 bool Hexahedra<ConcreteHex>::attachReceiver(std::unique_ptr<Receiver> &receiver,
                                             const bool finalize) {
   if (!receiver) { return false; }
-  PetscReal x1 = receiver->PysLocX1();
-  PetscReal x2 = receiver->PysLocX2();
-  PetscReal x3 = receiver->PysLocX3();
+  PetscReal x1 = receiver->LocX();
+  PetscReal x2 = receiver->LocY();
+  PetscReal x3 = receiver->LocZ();
   if (ConcreteHex::checkHull(x1, x2, x3, mVtxCrd)) {
     if (!finalize) { return true; }
     RealVec3 ref_loc = ConcreteHex::inverseCoordinateTransform(x1, x2, x3, mVtxCrd);
@@ -326,14 +366,14 @@ RealVec Hexahedra<ConcreteHex>::interpolateLagrangePolynomials(const PetscReal r
 
   PetscInt n_points = (order + 1) * (order + 1) * (order + 1);
   RealVec gll_coeffs(n_points);
-  if (order == 3) {
+  if (order == 1) {
+    interpolate_order1_hex(r, s, t, gll_coeffs.data());
+  } else if (order == 2) {
+    interpolate_order2_hex(r, s, t, gll_coeffs.data());
+  } else if (order == 3) {
     interpolate_order3_hex(r, s, t, gll_coeffs.data());
   }
-  else {
-    std::cerr << "ERROR: Order not implemented yet\n";
-    exit(1);
-  }
-  
+
   return gll_coeffs;
   
 }
@@ -357,20 +397,6 @@ RealMat  Hexahedra<ConcreteHex>::setupGradientOperator(const PetscInt order) {
       interpolate_eps_derivative_order2_square(r, s, test.data());
     } else if (order == 3) {
       interpolate_eps_derivative_order3_square(r, s, test.data());
-    } else if (order == 4) {
-      interpolate_eps_derivative_order4_square(r, s, test.data());
-    } else if (order == 5) {
-      interpolate_eps_derivative_order5_square(r, s, test.data());
-    } else if (order == 6) {
-      interpolate_eps_derivative_order6_square(r, s, test.data());
-    } else if (order == 7) {
-      interpolate_eps_derivative_order7_square(r, s, test.data());
-    } else if (order == 8) {
-      interpolate_eps_derivative_order8_square(r, s, test.data());
-    } else if (order == 9) {
-      interpolate_eps_derivative_order9_square(r, s, test.data());
-    } else if (order == 10) {
-      interpolate_eps_derivative_order10_square(r, s, test.data());
     }
     grad.row(i) = test.col(0);
   }
@@ -450,7 +476,6 @@ RealVec Hexahedra<ConcreteHex>::ParAtIntPts(const std::string &par) {
   return mParWork;
 }
 
-
 template <typename ConcreteHex>
 RealVec Hexahedra<ConcreteHex>::applyTestAndIntegrate(const Ref<const RealVec> &f) {
 
@@ -498,7 +523,7 @@ RealVec Hexahedra<ConcreteHex>::applyGradTestAndIntegrate(const Ref<const RealMa
         ConcreteHex::inverseJacobianAtPoint(r, s, t, mVtxCrd, mDetJac(index), invJac);
         fi << f(index,0),f(index,1),f(index,2);
         fi = invJac.transpose()*fi;
-//        fi = invJac*fi;
+
         fxyz(index,0) = fi[0];
         fxyz(index,1) = fi[1];
         fxyz(index,2) = fi[2];
@@ -549,33 +574,33 @@ RealVec Hexahedra<ConcreteHex>::applyGradTestAndIntegrate(const Ref<const RealMa
 
 }
 
-template <typename ConcreteHex>
-void Hexahedra<ConcreteHex>::precomputeConstants() {
-
-  PetscInt num_pts = mNumIntPtsR*mNumIntPtsS*mNumIntPtsT;
-  mDetJac.resize(num_pts);
-  mInvJac.resize(num_pts);
-  RealMat3x3 invJac;
-  // Loop over all GLL points.
-  for (PetscInt t_ind = 0; t_ind < mNumIntPtsT; t_ind++) {
-    for (PetscInt s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
-      for (PetscInt r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
-
-        // gll index.
-        PetscInt index = r_ind + s_ind * mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS;
-
-        // (r,s,t) coordinates for this point.
-        PetscReal r = mIntCrdR(r_ind);
-        PetscReal s = mIntCrdS(s_ind);
-        PetscReal t = mIntCrdT(t_ind);
-
-        // Optimized gradient for tensorized GLL basis.
-        ConcreteHex::inverseJacobianAtPoint(r, s, t, mVtxCrd, mDetJac(index), invJac);
-        mInvJac[index] = invJac;
-      }
-    }
-  }
-}
+//template <typename ConcreteHex>
+//void Hexahedra<ConcreteHex>::precomputeConstants() {
+//
+//  PetscInt num_pts = mNumIntPtsR*mNumIntPtsS*mNumIntPtsT;
+//  mDetJac.resize(num_pts);
+//  mInvJac.resize(num_pts);
+//  RealMat3x3 invJac;
+//  // Loop over all GLL points.
+//  for (PetscInt t_ind = 0; t_ind < mNumIntPtsT; t_ind++) {
+//    for (PetscInt s_ind = 0; s_ind < mNumIntPtsS; s_ind++) {
+//      for (PetscInt r_ind = 0; r_ind < mNumIntPtsR; r_ind++) {
+//
+//        // gll index.
+//        PetscInt index = r_ind + s_ind * mNumIntPtsR + t_ind * mNumIntPtsR * mNumIntPtsS;
+//
+//        // (r,s,t) coordinates for this point.
+//        PetscReal r = mIntCrdR(r_ind);
+//        PetscReal s = mIntCrdS(s_ind);
+//        PetscReal t = mIntCrdT(t_ind);
+//
+//        // Optimized gradient for tensorized GLL basis.
+//        ConcreteHex::inverseJacobianAtPoint(r, s, t, mVtxCrd, mDetJac(index), invJac);
+//        mInvJac[index] = invJac;
+//      }
+//    }
+//  }
+//}
 
 // Instantiate base case.
 template class Hexahedra<HexP1>;

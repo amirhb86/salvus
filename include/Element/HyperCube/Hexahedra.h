@@ -53,6 +53,7 @@ private:
 
   const static PetscInt mNumDim = 3;
   const static PetscInt mNumVtx = 8;
+  const static PetscInt mMaxOrder = 3;
 
   // Workspace.  
   RealVec mParWork;
@@ -102,8 +103,8 @@ private:
   std::map<std::string,RealVec> mPar;
 
   // Sources and receivers.
-  std::vector<std::shared_ptr<Source>> mSrc;
-  std::vector<std::shared_ptr<Receiver>> mRec;
+  std::vector<std::unique_ptr<Source>> mSrc;
+  std::vector<std::unique_ptr<Receiver>> mRec;
 
   // precomputed values for stiffness routine
   RealVec mDetJac;
@@ -167,6 +168,15 @@ private:
    * @param [in] f Field to calculate on.
    */
   RealVec applyTestAndIntegrate(const Eigen::Ref<const RealVec>& f);
+
+  /**
+   * Multiply a field by the test functions on a certain edge, and integrate.
+   * @param [in] field Working field, defined at all GLL points.
+   * @param [in] edg Edge number to integrate.
+   * @returns Coefficients at all gll points (i.e. zeroes in the interior).
+   */
+  RealVec applyTestAndIntegrateEdge(const Eigen::Ref<const RealVec> &f,
+                                    const PetscInt edg);
 
   /**
    * Multiply a field by the gradient of the test functions and integrate.
@@ -242,15 +252,6 @@ private:
    */
   void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model, std::string parameter);
 
-  /** Return the estimated CFL constant for the current order
-   * @return The CFL estimate
-   */
-  PetscReal CFL_constant();
-  
-  /** Return the estimated element radius
-   */
-  virtual PetscReal estimatedElementRadius();
-  
   /**
    * Given some field at the GLL points, interpolate the field to some general point.
    * @param [in] pnt Position in reference coordinates.
@@ -272,11 +273,16 @@ private:
   inline PetscInt NumDofVtx() const { return mNumDofVtx; }
   inline IntVec ClsMap() const { return IntVec(mNumIntPnt); }
   inline RealMat VtxCrd() const { return mVtxCrd; }
-  std::vector<std::shared_ptr<Source>> Sources() { return mSrc; }
+  inline static PetscInt MaxOrder() { return mMaxOrder; }
+  inline void SetVtxPar(const Eigen::Ref<const RealVec> &v, const std::string &par) { mPar[par] = v; }
+  const inline std::vector<std::unique_ptr<Source>> &Sources() const { return mSrc; }
+  const inline std::vector<std::unique_ptr<Receiver>> &Receivers() const { return mRec; }
 
   // Delegates.
   std::tuple<RealVec, RealVec, RealVec> buildNodalPoints() {
     return ConcreteHex::buildNodalPoints(mIntCrdR, mIntCrdS, mIntCrdT, mVtxCrd);
   };
-  
+
+  const static std::string Name() { return "TensorHex_" + ConcreteHex::Name(); }
+
 };

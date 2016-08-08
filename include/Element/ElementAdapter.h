@@ -78,18 +78,6 @@ class ElementAdapter: public Element, public T {
   virtual void attachVertexCoordinates(std::unique_ptr<Mesh> const &mesh) {
     T::attachVertexCoordinates(mesh);
   }
-  /** Return the estimated element radius scaled by element-local velocity.
-   * @return The CFL estimate
-   */
-  virtual double CFL_estimate() {
-    return T::CFL_estimate();
-  }  
-  /** Pre-compute the stiffness matrix operator. Currently this is required for the tetrahedral elements,
-   * but is a non-op for element types where the stiffness matrix is computed on the fly.
-   */
-  virtual void prepareStiffness() {
-    T::prepareStiffness();
-  }
   ///@}
 
   /** @name Time loop (pure functions).
@@ -176,5 +164,7 @@ class ElementAdapter: public Element, public T {
   inline Eigen::MatrixXd VtxCrd() const { return T::VtxCrd(); }
   /** What is the closure map on this element. */
   virtual inline Eigen::VectorXi ClsMap() const { return T::ClsMap(); }
+  /** What type of element am I? */
+  inline std::string Name() const  { return T::Name(); }
   ///@}
 };

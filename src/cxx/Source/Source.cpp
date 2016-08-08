@@ -12,16 +12,10 @@ std::vector<std::unique_ptr<Source>> Source::Factory(std::unique_ptr<Options> co
 
   std::vector<std::unique_ptr<Source>> sources;
   for (PetscInt i = 0; i < options->NumberSources(); i++) {
-    try {
-      if (options->SourceType() == "ricker") {
-        sources.push_back(std::unique_ptr<Ricker>(new Ricker(options)));
-      } else {
-        throw std::runtime_error("Runtime error: Source type " + options->SourceType() + " not supported.");
-      }
-
-    } catch (std::exception &e) {
-      LOG() << e.what();
-      MPI_Abort(PETSC_COMM_WORLD, -1);
+    if (options->SourceType() == "ricker") {
+      sources.push_back(std::unique_ptr<Ricker>(new Ricker(options)));
+    } else {
+      throw std::runtime_error("Runtime error: Source type " + options->SourceType() + " not supported.");
     }
   }
 
@@ -30,13 +24,15 @@ std::vector<std::unique_ptr<Source>> Source::Factory(std::unique_ptr<Options> co
 
 Source::Source(std::unique_ptr<Options> const &options) {
 
-  /* Incremenet global number, save this particular one. */
+  /* Increment global number, save this particular one. */
   SetNum(number++);
 
   /* Set locations. */
-  SetLocX(options->SourceLocationX()[Num()]);
-  SetLocY(options->SourceLocationY()[Num()]);
-  SetLocZ(options->SourceLocationZ()[Num()]);
+  SetLocX(options->SrcLocX()[Num()]);
+  SetLocY(options->SrcLocY()[Num()]);
+  if (options->SrcLocZ().size()) {
+    SetLocZ(options->SrcLocZ()[Num()]);
+  }
 
 }
 
@@ -44,9 +40,9 @@ Source::~Source() { --number; }
 
 Ricker::Ricker(std::unique_ptr<Options> const &options): Source(options) {
 
-  mTimeDelay = options->SourceRickerTimeDelay()[Num()];
-  mAmplitude = options->SourceRickerAmplitude()[Num()];
-  mCenterFreq = options->SourceRickerCenterFreq()[Num()];
+  mTimeDelay = options->SrcRickerTimeDelay()[Num()];
+  mAmplitude = options->SrcRickerAmplitude()[Num()];
+  mCenterFreq = options->SrcRickerCenterFreq()[Num()];
 
 }
 

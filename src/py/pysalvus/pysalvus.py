@@ -41,7 +41,7 @@ def hyperCube_generate_gll_basis(dimension, polynomial_order):
     if dimension == '2':
         code_generator.tensorized_basis_2D(int(polynomial_order))
     else:
-        raise NotImplementedError
+        code_generator.tensorized_basis_3D(int(polynomial_order))
 
 
 @cli.group()

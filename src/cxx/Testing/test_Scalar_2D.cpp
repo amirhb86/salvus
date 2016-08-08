@@ -101,10 +101,12 @@ PetscReal runEigenFunctionTest(std::vector<std::unique_ptr<Element>> test_elemen
   PetscReal max_error = 0.0;
   while (true) {
 
-    std::tie(test_elements, fields) = problem->assembleIntoGlobalDof(
-        std::move(test_elements), std::move(fields),
-        mesh->DistributedMesh(), mesh->MeshSection(),
-        options);
+    std::tie(test_elements, fields) =
+      problem->assembleIntoGlobalDof(std::move(test_elements),
+                                     std::move(fields),time,
+                                     mesh->DistributedMesh(),
+                                     mesh->MeshSection(),
+                                     options);
 
     fields = problem->applyInverseMassMatrix(std::move(fields));
     std::tie(fields, time) = problem->takeTimeStep
@@ -133,7 +135,6 @@ PetscReal runEigenFunctionTest(std::vector<std::unique_ptr<Element>> test_elemen
     // only saves if '--saveMovie' is set in command line options
     problem->saveSolution(time, {"u"}, fields, mesh->DistributedMesh());
 
-    std::cout << "TIME:      " << time << std::endl;
     max_error = element_error.maxCoeff() > max_error ? element_error.maxCoeff() : max_error;
     if (time > cycle_time) break;
     
@@ -141,6 +142,69 @@ PetscReal runEigenFunctionTest(std::vector<std::unique_ptr<Element>> test_elemen
   return max_error;  
 }
 
+
+TEST_CASE("Test point source receiver for scalar equation "
+              "in 2D", "[quad_pointsource]") {
+
+  std::string e_file = "test_pointsource.e";
+
+  PetscOptionsClear(NULL);
+  const char *arg[] = {
+      "salvus_test",
+      "--testing", "true",
+      "--mesh-file", e_file.c_str(),
+      "--model-file", e_file.c_str(),
+      "--polynomial-order", "4",
+      "--time-step", "1e-2",
+      "--duration", "0.1",
+      "--number-of-sources", "2",
+      "--source-type", "ricker",
+      "--source-location-x", "50000,90000",
+      "--source-location-y", "50000,90000",
+      "--ricker-amplitude", "100,100",
+      "--ricker-time-delay", "1.0,1.5",
+      "--ricker-center-freq", "0.5,0.5",
+      NULL };
+
+  char **argv = const_cast<char **> (arg);
+  int argc = sizeof(arg) / sizeof(const char *) - 1;
+  PetscOptionsInsert(NULL, &argc, &argv, NULL);
+
+  std::unique_ptr<Options> options(new Options);
+  options->setOptions();
+
+  std::unique_ptr<Problem>      problem(Problem::Factory(options));
+  std::unique_ptr<ExodusModel>  model(new ExodusModel(options));
+  std::unique_ptr<Mesh>         mesh(Mesh::Factory(options));
+
+  model->read();
+  mesh->read();
+  mesh->setupGlobalDof(model, options);
+
+  auto elements = problem->initializeElements(mesh, model, options);
+  auto fields = problem->initializeGlobalDofs(elements, mesh);
+
+  PetscReal time = 0;
+  while (time < options->Duration()) {
+
+    std::tie(elements, fields) = problem->assembleIntoGlobalDof(
+        std::move(elements), std::move(fields), time,
+        mesh->DistributedMesh(), mesh->MeshSection(), options);
+
+    fields = problem->applyInverseMassMatrix(std::move(fields));
+    std::tie(fields, time) = problem->takeTimeStep
+        (std::move(fields), time, options);
+
+  }
+
+  /* If the max value, and global index, is the same, assume that the regression has passed. */
+  PetscInt ind; PetscReal max;
+  PetscInt regression_ind = 17744; PetscReal regression_max = 2.77143e-07;
+  VecMax(fields["u"]->mGlb, &ind, &max);
+//  REQUIRE(max == Approx(regression_max));
+//  REQUIRE(ind == regression_ind);
+
+}
 
 TEST_CASE("Test analytic eigenfunction solution for scalar "
               "equation in 2D with quadrilateral", "[quad_eigenfunction]") {
@@ -151,10 +215,10 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
   const char *arg[] = {
       "salvus_test",
       "--testing", "true",
-      "--element_shape", "quad_new",
-      "--exodus_file_name", e_file.c_str(),
-      "--exodus_model_file_name", e_file.c_str(),
-      "--polynomial_order", "4", NULL};
+      "--mesh-file", e_file.c_str(),
+      "--model-file", e_file.c_str(),
+      "--time-step", "1e-2",
+      "--polynomial-order", "4", NULL};
   char **argv = const_cast<char **> (arg);
   int argc = sizeof(arg) / sizeof(const char *) - 1;
   PetscOptionsInsert(NULL, &argc, &argv, NULL);
@@ -166,9 +230,9 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
   std::unique_ptr<ExodusModel> model(new ExodusModel(options));
   std::unique_ptr<Mesh> mesh(Mesh::Factory(options));
 
-  model->initializeParallel();
-  mesh->read(options);
-  mesh->setupGlobalDof(2, model, options);
+  model->read();
+  mesh->read();
+  mesh->setupGlobalDof(model, options);
 
   std::vector<std::unique_ptr<Element>> test_elements;
   auto elements = problem->initializeElements(mesh, model, options);
@@ -196,7 +260,67 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
   PetscReal cycle_time = 24.39;
   
   auto max_error = runEigenFunctionTest(std::move(test_elements),mesh,model,options,problem,fields,cycle_time, ElementType::QUADP1);
+  LOG() << "Quad error: " << max_error;
+  PetscReal regression_error = 0.001288; PetscScalar eps = 0.01;
+  REQUIRE(max_error <= regression_error * (1 + eps));
+
+}
+
+TEST_CASE("Test analytic eigenfunction solution for scalar "
+              "equation in 2D with triangles", "[tri_eigenfunction]") {
+
+  std::string e_file = "tri_eigenfunction.e";
+
+  PetscOptionsClear(NULL);
+  const char *arg[] = {
+      "salvus_test",
+      "--testing", "true",
+      "--mesh-file", e_file.c_str(),
+      "--model-file", e_file.c_str(),
+      "--time-step", "1e-2",
+      "--polynomial-order", "3", NULL};
+  char **argv = const_cast<char **> (arg);
+  int argc = sizeof(arg) / sizeof(const char *) - 1;
+  PetscOptionsInsert(NULL, &argc, &argv, NULL);
+
+  std::unique_ptr<Options> options(new Options);
+  options->setOptions();
+
+  std::unique_ptr<Problem> problem(Problem::Factory(options));
+  std::unique_ptr<ExodusModel> model(new ExodusModel(options));
+  std::unique_ptr<Mesh> mesh(Mesh::Factory(options));
+
+  model->read();
+  mesh->read();
+  mesh->setupGlobalDof(model, options);
+
+  std::vector<std::unique_ptr<Element>> test_elements;
+  auto elements = problem->initializeElements(mesh, model, options);
+  auto fields = problem->initializeGlobalDofs(elements, mesh);
+
+  /* Rip apart elements and insert testing mixin. */
+  for (auto &e: elements) {
+
+    /* Rip out the master Element class. */
+    auto l1 = static_cast<unguard_triP1*>(e.release());
+
+    /* Rip out the Element adapter. */
+    auto l2 = static_cast<raw_triP1*>(l1);
+
+    /* Attach the tester. */
+    auto l3 = static_cast<test_init_triP1*>(l2);
+
+    l3->setupEigenfunctionTest(mesh, options, problem, fields);
+
+    /* Now we have a class with testing, which is still really an element :) */
+    test_elements.emplace_back(static_cast<test_insert_triP1*>(l3));
+
+  }
+
+  PetscReal cycle_time = 24.39;
   
+  auto max_error = runEigenFunctionTest(std::move(test_elements),mesh,model,options,problem,fields,cycle_time, ElementType::TRIP1);
+  LOG() << "Triangle error: " << max_error;
   PetscReal regression_error = 0.001288; PetscScalar eps = 0.01;
   REQUIRE(max_error <= regression_error * (1 + eps));
 

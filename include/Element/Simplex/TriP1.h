@@ -17,7 +17,10 @@ class TriP1 {
   
  public:
 
+  /// Empty constructor and destructor.
   TriP1() {};
+  ~TriP1() {};
+  
   static Eigen::Vector3d interpolateAtPoint(const double r, const double s);
 
   /**
@@ -58,6 +61,9 @@ class TriP1 {
       const Eigen::Ref<const Eigen::Matrix<double,mNumVtx,mNumDim>>& vtx);
 
   /// Class name
+  const static std::string Name() { return "TriP1"; }
+
+  /// Class type
   const static ElementType type() { return ElementType::TRIP1; }
   
 };

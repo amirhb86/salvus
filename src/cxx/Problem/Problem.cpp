@@ -47,8 +47,8 @@ ElemVec Problem::initializeElements(unique_ptr<Mesh> const &mesh,
   auto recs = Receiver::Factory(options);
 
   /* Keep local track of srcs/recs on this partition. */
-  std::vector<PetscInt> srcs_this_partition(srcs.size(), false);
-  std::vector<PetscInt> recs_this_partition(recs.size(), false);
+  std::vector<PetscInt> srcs_this_partition(srcs.size(), 0);
+  std::vector<PetscInt> recs_this_partition(recs.size(), 0);
 
   /* All of our (polymorphic) elements will lie here. */
   ElemVec elements;
@@ -58,7 +58,8 @@ ElemVec Problem::initializeElements(unique_ptr<Mesh> const &mesh,
   {
 
     /* Push back an appropriate element based on the mesh. */
-    elements.push_back(Element::Factory(mesh->ElementFields(i),
+    elements.push_back(Element::Factory(mesh->baseElementType(),
+                                        mesh->ElementFields(i),
                                         mesh->TotalCouplingFields(i),
                                         options));
 
@@ -76,12 +77,14 @@ ElemVec Problem::initializeElements(unique_ptr<Mesh> const &mesh,
 
     /* Test for any sources. */
     for (auto &src: srcs) {
+      if (srcs_this_partition[src->Num()]) continue; /* Already found. */
       srcs_this_partition[src->Num()] =
-          elements.back()->attachSource(src, trial_attach) ? rank : 0;
+          elements.back()->attachSource(src, trial_attach)   ? rank : 0;
     }
 
     /* Test for any receivers. */
     for (auto &rec: recs) {
+      if (recs_this_partition[rec->Num()]) continue; /* Already found. */
       recs_this_partition[rec->Num()] =
           elements.back()->attachReceiver(rec, trial_attach) ? rank : 0;
     }
@@ -107,27 +110,22 @@ ElemVec Problem::initializeElements(unique_ptr<Mesh> const &mesh,
   }
 
   /* Finally, go back and ensure that everything has been added as expected. */
-  try {
-    for (auto &src: srcs) {
-      /* Was there a source that should have been added by this processor that wasn't? */
-      if (src && srcs_this_partition[src->Num()] == rank) {
-        throw std::runtime_error("Error. One or more sources were not added properly.");
-      }
+  for (auto &src: srcs) {
+    /* Was there a source that should have been added by this processor that wasn't? */
+    if (src && srcs_this_partition[src->Num()] == rank) {
+      throw std::runtime_error("Error. One or more sources were not added properly.");
     }
-    for (auto &rec: recs) {
-      /* Was there a receiver that should have been added by this processor that wasn't? */
-      if (rec && recs_this_partition[rec->Num()] == rank) {
-        throw std::runtime_error("Error. One or more receivers was not added properly.");
-      }
+  }
+  for (auto &rec: recs) {
+    /* Was there a receiver that should have been added by this processor that wasn't? */
+    if (rec && recs_this_partition[rec->Num()] == rank) {
+      throw std::runtime_error("Error. One or more receivers was not added properly.");
     }
-  } catch (std::exception &e) {
-    LOG() << e.what();
-    MPI_Abort(PETSC_COMM_WORLD, -1);
   }
 
   /* If we want to save a solution, initialize this here. */
   if (options->SaveMovie()) {
-    PetscViewerHDF5Open(PETSC_COMM_WORLD, "test_quad.h5", FILE_MODE_WRITE, &mViewer);
+    PetscViewerHDF5Open(PETSC_COMM_WORLD, options->MovieFile().c_str(), FILE_MODE_WRITE, &mViewer);
     PetscViewerHDF5PushGroup(mViewer, "/");
     DMView(mesh->DistributedMesh(), mViewer);
   }
@@ -137,8 +135,8 @@ ElemVec Problem::initializeElements(unique_ptr<Mesh> const &mesh,
 
 }
 std::tuple<ElemVec, FieldDict> Problem::assembleIntoGlobalDof(
-    ElemVec elements, FieldDict fields, DM PETScDM, PetscSection PETScSection,
-    std::unique_ptr<Options> const &options) {
+    ElemVec elements, FieldDict fields, const PetscReal time,
+    DM PETScDM, PetscSection PETScSection, std::unique_ptr<Options> const &options) {
 
   /* Get some derived quantities. */
   PetscInt maxLocalFields = 0;
@@ -155,12 +153,12 @@ std::tuple<ElemVec, FieldDict> Problem::assembleIntoGlobalDof(
     }
   }
 
-  /* Matrices to hold pulled values on each element. */
-  RealMat a(numDofPerElm, maxLocalFields); /// acceleration.
+  /* Matrices to hold computed field values */
+  RealMat u(numDofPerElm, maxLocalFields); /// input field
+  RealMat k(numDofPerElm, maxLocalFields); /// stiffness applied to u.  
   RealMat s(numDofPerElm, maxLocalFields); /// surf/edg integral.
   RealMat f(numDofPerElm, maxLocalFields); /// forcing.
-  RealMat u(numDofPerElm, maxLocalFields); /// vol/face integral.
-  RealMat k(numDofPerElm, maxLocalFields); /// stiffness.
+  RealMat a(numDofPerElm, maxLocalFields); /// final acceleration.
 
   /* Get fields on local partitions. */
   for (auto &field: pullFields) { checkOutField(field, PETScDM, fields); }
@@ -189,15 +187,11 @@ std::tuple<ElemVec, FieldDict> Problem::assembleIntoGlobalDof(
     s.leftCols(NumPushFields) = elm->computeSurfaceIntegral(u.leftCols(NumPullFields));
 
     /* Compute forcing. */
-    PetscReal time = 0;
     f.leftCols(NumPushFields) = elm->computeSourceTerm(time);
 
     /* Compute acceleration. */
     a.leftCols(NumPushFields) = f.leftCols(NumPushFields).array() -
         k.leftCols(NumPushFields).array() + s.leftCols(NumPushFields).array();
-//    std::cout << a.leftCols(NumPushFields).maxCoeff() << ' ' << a.leftCols(NumPushFields).minCoeff()
-//        <<
-//            std::endl;
 
     /* Assemble fields into local partition. */
     for (PetscInt i = 0; i < NumPushFields; i++) {
@@ -217,8 +211,19 @@ std::tuple<ElemVec, FieldDict> Problem::assembleIntoGlobalDof(
 void Problem::saveSolution(const PetscReal time, const std::vector<std::string> &save_fields,
                            FieldDict &fields, DM PetscDM) {
 
+  /* Do nothing if we didn't set up a movie save. */
   if (!mViewer) return;
+
   for (auto &f: save_fields) {
+
+    /* Check to see if the field we want to save makes sense. */
+    if (fields.find(f) == fields.end()) {
+      std::string regs = "{ "; for (auto &fn: fields) { regs += fn.first + " "; } regs += "}.";
+      throw std::runtime_error("You are attempting to save field " + f + " which is not registered. "
+          "Registered fields are " + regs); return;
+    }
+
+    /* Else, save. */
     DMSetOutputSequenceNumber(PetscDM, mOutputFrame++, time);
     VecView(fields[f]->mGlb, mViewer);
   }
