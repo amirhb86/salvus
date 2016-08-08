@@ -40,7 +40,12 @@ TEST_CASE("Unit test mesh", "[mesh]") {
     /* Attach model and global dofs. */
     std::unique_ptr<ExodusModel> model(new ExodusModel(options));
     model->read();
-    mesh->setupGlobalDof(model, options);
+    mesh->setupTopology(model, options);
+
+    /* Generate dofs from elements. */
+    std::unique_ptr<Problem> problem(Problem::Factory(options));
+    auto elements = problem->initializeElements(mesh, model, options);
+    mesh->setupGlobalDof(elements[0], options);
     REQUIRE(mesh->MeshSection() != NULL);
 
     /* Ensure vertices are correct. */
@@ -106,7 +111,10 @@ TEST_CASE("Unit test mesh", "[mesh]") {
     /* Attach model and global dofs. */
     std::unique_ptr<ExodusModel> model(new ExodusModel(options));
     model->read();
-    mesh->setupGlobalDof(model, options);
+    mesh->setupTopology(model, options);
+    std::unique_ptr<Problem> problem(Problem::Factory(options));
+    auto elements = problem->initializeElements(mesh, model, options);
+    mesh->setupGlobalDof(elements[0], options);
     REQUIRE(mesh->MeshSection() != NULL);
 
     /* Ensure vertices are correct. */
@@ -182,7 +190,10 @@ TEST_CASE("Unit test mesh", "[mesh]") {
     mesh->read();
     std::unique_ptr<ExodusModel> model(new ExodusModel(options));
     model->read();
-    mesh->setupGlobalDof(model, options);
+    mesh->setupTopology(model, options);
+    std::unique_ptr<Problem> problem(Problem::Factory(options));
+    auto elements = problem->initializeElements(mesh, model, options);
+    mesh->setupGlobalDof(elements[0], options);
     std::set<std::string> all_fields_true = { "2delastic", "fluid" };
     REQUIRE(mesh->AllFields() == all_fields_true);
 

@@ -27,7 +27,8 @@ int main(int argc, char *argv[]) {
     mesh->read();
     model->read();
 
-    /* Attach physics and quadrature rules. */
+    /* Attach physics. Use this to inform the element generation. */
+    mesh->setupTopology(model, options);
     mesh->setupGlobalDof(model, options);
 
     /* Setup all dynamic fields. */

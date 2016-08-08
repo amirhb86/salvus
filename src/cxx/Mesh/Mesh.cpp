@@ -61,7 +61,8 @@ void Mesh::read() {
 
 }
 
-void Mesh::setupGlobalDof(unique_ptr<ExodusModel> const &model, unique_ptr<Options> const &options) {
+void Mesh::setupTopology(const unique_ptr<ExodusModel> &model,
+                         const unique_ptr<Options> &options) {
 
   /* Find all the mesh boundaries. */
   DMLabel label; DMGetLabel(mDistributedMesh, "Face Sets", &label);
@@ -96,6 +97,17 @@ void Mesh::setupGlobalDof(unique_ptr<ExodusModel> const &model, unique_ptr<Optio
     /* Finally, add the type type to the global fields. */
     mMeshFields.insert(type);
 
+  }
+
+}
+
+void Mesh::setupGlobalDof( unique_ptr<Element> const &element,
+                          unique_ptr<Options> const &options) {
+
+  /* Mesh topology must be set up first. */
+  if (!mMeshFields.size()) {
+    throw std::runtime_error("Before setting up the degrees of freedom, you must attach the topology by "
+                                 "calling setupTopology.");
   }
 
   /* Use the information extracted above to inform the global DOF layout. */
