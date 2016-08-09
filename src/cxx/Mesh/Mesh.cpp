@@ -193,10 +193,10 @@ void Mesh::setupGlobalDof(unique_ptr<Element> const &element,
   PetscFree(num_dof); PetscFree(num_comps);
 
   /* Attach some meta-information to the section. */
-  {
-    PetscInt i = 0;
-    for (auto &f: mMeshFields) { PetscSectionSetFieldName(mMeshSection, i++, f.c_str()); }
-  }
+//  {
+//    PetscInt i = 0;
+//    for (auto &f: mMeshFields) { PetscSectionSetFieldName(mMeshSection, i++, f.c_str()); }
+//  }
 
   /* Attach the section to our DM, and set the spectral ordering. */
   DMSetDefaultSection(mDistributedMesh, mMeshSection);
