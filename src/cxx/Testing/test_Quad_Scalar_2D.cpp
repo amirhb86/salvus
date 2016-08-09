@@ -157,7 +157,9 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
       "--mesh-file", e_file.c_str(),
       "--model-file", e_file.c_str(),
       "--time-step", "1e-2",
-      "--polynomial-order", "4", NULL};
+      "--polynomial-order", "4",
+      "--homogeneous-dirichlet", "x0,x1,y0,y1",
+      NULL};
   char **argv = const_cast<char **> (arg);
   int argc = sizeof(arg) / sizeof(const char *) - 1;
   PetscOptionsInsert(NULL, &argc, &argv, NULL);
@@ -198,6 +200,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
 
     l3->setupEigenfunctionTest(mesh, options, problem, fields);
 
+    /* TODO: How does this work?? Static cast magic? Where is the HomogeneousDirichlet? */
     /* Now we have a class with testing, which is still really an element :) */
     test_elements.emplace_back(static_cast<test_insert*>(l3));
 

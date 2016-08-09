@@ -56,6 +56,7 @@ TEST_CASE("Unit test mesh", "[mesh]") {
 
     PetscOptionsSetValue(NULL, "--mesh-file", "quad_eigenfunction.e");
     PetscOptionsSetValue(NULL, "--model-file", "quad_eigenfunction.e");
+    PetscOptionsSetValue(NULL, "--homogeneous-dirichlet", "x0");
     std::unique_ptr<Options> options(new Options);
     options->setOptions();
 
@@ -104,7 +105,9 @@ TEST_CASE("Unit test mesh", "[mesh]") {
     REQUIRE(mesh->ElementFields(0)[0] == "fluid");
 
     /* Ensure that, if we're on a boundary, we can detect that. */
-    REQUIRE(mesh->TotalCouplingFields(0)[0] == "boundary");
+    REQUIRE(mesh->TotalCouplingFields(0)[0] == "boundary_homo_dirichlet");
+    /* Only a boundary on the left edge, so element 1 should have free surface (no coupling). */
+    REQUIRE(mesh->TotalCouplingFields(1).empty());
 
     /* Ensure that if we're in the middle of a homogeneous section, there's no coupling. */
     REQUIRE(mesh->TotalCouplingFields(5).empty());
@@ -116,17 +119,22 @@ TEST_CASE("Unit test mesh", "[mesh]") {
     REQUIRE(mesh->NumberElementsLocal() == 16);
 
     /* Ensure that we get a correct listing of all the boundary points. */
-    std::set<PetscInt> all_boundaries_true {
-        41, 44, 45, 48, 51, 52, 56, 61, 65, 70, 73, 74, 76, 78, 79, 80 };
+    std::vector<std::tuple<PetscInt,PetscInt>> all_boundaries_true {
+        std::make_tuple(0, 44), std::make_tuple(0, 56), std::make_tuple(0, 65),
+        std::make_tuple(0, 74), std::make_tuple(1, 52), std::make_tuple(1, 61),
+        std::make_tuple(1, 70), std::make_tuple(1, 79), std::make_tuple(2, 41),
+        std::make_tuple(2, 45), std::make_tuple(2, 48), std::make_tuple(2, 51),
+        std::make_tuple(3, 73), std::make_tuple(3, 76), std::make_tuple(3, 78),
+        std::make_tuple(3, 80) };
+
     REQUIRE(mesh->BoundaryPoints() == all_boundaries_true);
-
-
 
   }
 
   SECTION("Correctly initialize DM (3D hex).") {
     PetscOptionsSetValue(NULL, "--mesh-file",  "small_hex_mesh_to_test_sources.e");
     PetscOptionsSetValue(NULL, "--model-file", "small_hex_mesh_to_test_sources.e");
+    PetscOptionsSetValue(NULL, "--homogeneous-dirichlet", "x0");
     std::unique_ptr<Options> options(new Options);
     options->setOptions();
 
@@ -185,8 +193,9 @@ TEST_CASE("Unit test mesh", "[mesh]") {
     REQUIRE(mesh->ElementFields(0)[0] == "fluid");
 
     /* Ensure that, if we're on a boundary, we can detect that. */
-    REQUIRE(mesh->TotalCouplingFields(0)[0] == "boundary");
-    REQUIRE(mesh->TotalCouplingFields(1)[0] == "boundary");
+    REQUIRE(mesh->TotalCouplingFields(0)[0] == "boundary_homo_dirichlet");
+    /* We've only set x0 to a boundary, so all other interfaces should be empty. */
+    REQUIRE(mesh->TotalCouplingFields(1).empty());
 
     /* TODO: See above TODO. */
     /* Ensure that if we're in the middle of a homogeneous section, there's no coupling. */
@@ -199,9 +208,16 @@ TEST_CASE("Unit test mesh", "[mesh]") {
     REQUIRE(mesh->NumberElementsLocal() == 8);
 
     /* Ensure that we get a correct listing of all the boundary points. */
-    std::set<PetscInt> all_boundaries_true {
-        35, 37, 40, 41, 42, 45, 46, 48, 50, 51, 52, 54, 55, 57, 59, 60,
-        61, 63, 64, 66, 67, 68, 69, 70 };
+    std::vector<std::tuple<PetscInt,PetscInt>> all_boundaries_true {
+        std::make_tuple(0, 35), std::make_tuple(0, 46), std::make_tuple(0, 55),
+        std::make_tuple(0, 64), std::make_tuple(1, 41), std::make_tuple(1, 51),
+        std::make_tuple(1, 60), std::make_tuple(1, 68), std::make_tuple(2, 40),
+        std::make_tuple(2, 45), std::make_tuple(2, 59), std::make_tuple(2, 63),
+        std::make_tuple(3, 50), std::make_tuple(3, 54), std::make_tuple(3, 67),
+        std::make_tuple(3, 70), std::make_tuple(4, 37), std::make_tuple(4, 42),
+        std::make_tuple(4, 48), std::make_tuple(4, 52), std::make_tuple(5, 57),
+        std::make_tuple(5, 61), std::make_tuple(5, 66), std::make_tuple(5, 69) };
+
     REQUIRE(mesh->BoundaryPoints() == all_boundaries_true);
 
   }
