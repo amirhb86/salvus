@@ -133,11 +133,16 @@ void Mesh::setupGlobalDof(unique_ptr<Element> const &element,
   /* Use the information extracted above to inform the global DOF layout. */
   PetscInt num_bc = 0;
   PetscInt poly_order = options->PolynomialOrder();
-  PetscInt num_fields = mMeshFields.size();
+  /* Note here we are treating each field component as a separate vector (for now).
+   * mMeshFields.size(); */
+  PetscInt num_fields = 1;
   PetscInt *num_comps; PetscMalloc1(num_fields, &num_comps);
   {
+    /* Note here that we are allocating each field component as a separate vector.
+     * This may change in the future.
+     * for (auto &f: mMeshFields) { num_comps[i++] = numFieldPerPhysics(f); } */
     PetscInt i = 0;
-    for (auto &f: mMeshFields) { num_comps[i++] = numFieldPerPhysics(f); }
+    for (auto &f: mMeshFields) { num_comps[i++] = 1; }
   }
   PetscInt *num_dof; PetscMalloc1(num_fields * (mNumDim + 1), &num_dof);
 
@@ -188,10 +193,10 @@ void Mesh::setupGlobalDof(unique_ptr<Element> const &element,
   PetscFree(num_dof); PetscFree(num_comps);
 
   /* Attach some meta-information to the section. */
-  {
-    PetscInt i = 0;
-    for (auto &f: mMeshFields) { PetscSectionSetFieldName(mMeshSection, i++, f.c_str()); }
-  }
+//  {
+//    PetscInt i = 0;
+//    for (auto &f: mMeshFields) { PetscSectionSetFieldName(mMeshSection, i++, f.c_str()); }
+//  }
 
   /* Attach the section to our DM, and set the spectral ordering. */
   DMSetDefaultSection(mDistributedMesh, mMeshSection);
