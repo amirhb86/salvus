@@ -113,12 +113,13 @@ MatrixXd Elastic2D<Element>::computeSurfaceIntegral(const Eigen::Ref<const Eigen
 
 template <typename Element>
 MatrixXd Elastic2D<Element>::computeSourceTerm(const double time) {
-  MatrixXd s = MatrixXd::Zero(Element::NumIntPnt(), Element::NumDim());
+  RealMat s = RealMat::Zero(Element::NumIntPnt(), Element::NumDim());
   for (auto &source : Element::Sources()) {
     RealVec2 pnt (source->LocR(), source->LocS());
     s.col(0) += (source->fire(time) * Element::getDeltaFunctionCoefficients(pnt));
   }
-  return Element::applyTestAndIntegrate(s.col(0));
+  s.col(0) = Element::applyTestAndIntegrate(s.col(0));
+  return s;
 }
 
 #include <Element/HyperCube/TensorQuad.h>
