@@ -83,7 +83,6 @@ add_executable(salvus_test
         src/cxx/Testing/test_main.cpp
         src/cxx/Testing/test_QuadP1.cpp
         src/cxx/Testing/test_TensorQuad.cpp
-        src/cxx/Testing/test_2d_fluid_solid_couple.cpp
         src/cxx/Testing/test_source.cpp
         src/cxx/Testing/test_HexP1.cpp
         src/cxx/Testing/test_Hex_Scalar_3D.cpp

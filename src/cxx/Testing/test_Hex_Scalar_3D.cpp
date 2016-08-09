@@ -30,7 +30,7 @@ class TestPlugin: public Element {
     std::tie(pts_x, pts_y, pts_z) = Element::buildNodalPoints();
     RealVec un =
         (M_PI / L * (pts_x.array() - (x0 + L / 2))).sin() *
-        (M_PI / L * (pts_y.array() - (y0 + L / 2))).sin() *
+        (M_PI/ L * (pts_y.array() - (y0 + L / 2))).sin() *
         (M_PI / L * (pts_z.array() - (z0 + L / 2))).sin();
     RealVec vn = RealVec::Zero(pts_x.size());
     RealVec an = RealVec::Zero(pts_x.size());
@@ -90,7 +90,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
       "--mesh-file", e_file.c_str(),
       "--model-file", e_file.c_str(),
       "--time-step", "1e-2",
-      "--polynomial-order", "2", NULL};
+      "--polynomial-order", "3", NULL};
   char **argv = const_cast<char **> (arg);
   int argc = sizeof(arg) / sizeof(const char *) - 1;
   PetscOptionsInsert(NULL, &argc, &argv, NULL);
@@ -104,10 +104,17 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
 
   model->read();
   mesh->read();
-  mesh->setupGlobalDof(model, options);
+
+  /* Setup topology from model and mesh. */
+  mesh->setupTopology(model, options);
+
+  /* Setup elements from model and topology. */
+  auto elements = problem->initializeElements(mesh, model, options);
+
+  /* Setup global degrees of freedom based on element 0. */
+  mesh->setupGlobalDof(elements[0], options);
 
   std::vector<std::unique_ptr<Element>> test_elements;
-  auto elements = problem->initializeElements(mesh, model, options);
   auto fields = problem->initializeGlobalDofs(elements, mesh);
 
   /* Rip apart elements and insert testing mixin. */

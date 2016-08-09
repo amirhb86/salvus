@@ -21,10 +21,39 @@ Mesh::Mesh(const std::unique_ptr<Options> &options) {
   mExodusFileName = options->MeshFile();
   mDistributedMesh = NULL;
   mMeshSection = NULL;
+  mNumDim = 0;
 }
 
 std::unique_ptr<Mesh> Mesh::Factory(const std::unique_ptr<Options> &options) {
   return std::unique_ptr<Mesh> (new Mesh(options));
+}
+
+void Mesh::read(int dim, int numCells, int numVerts, int numVertsPerElem,
+                Eigen::MatrixXi cells, Eigen::MatrixXd vertex_coords) {
+
+    // Class variables.
+    mDistributedMesh = NULL;
+    DM dm = NULL;
+    PetscBool interpolate_edges = PETSC_TRUE;
+    
+    printf("cells=[");
+    for(int i=0;i<numCells*numVertsPerElem;i++) {
+      printf("%d, ",cells.data()[i]);
+    }printf("]\n");
+    DMPlexCreateFromCellList(PETSC_COMM_WORLD, dim, numCells, numVerts, numVertsPerElem,
+                             interpolate_edges, cells.data(), dim, vertex_coords.data(),&dm);
+    
+    // May be a race condition on distribute.
+    MPI::COMM_WORLD.Barrier();
+    DMPlexDistribute(dm, 0, NULL, &mDistributedMesh);
+
+  // We don't need the serial mesh anymore.
+  if (mDistributedMesh) { DMDestroy(&dm); }
+    // mDistributedMesh == NULL when only 1 proc is used.
+  else { mDistributedMesh = dm; }
+
+  DMGetDimension(mDistributedMesh, &mNumDim);
+  DMPlexGetDepthStratum(mDistributedMesh, mNumDim, NULL, &mNumberElementsLocal);
 }
 
 void Mesh::read() {
@@ -62,7 +91,183 @@ void Mesh::read() {
 
 }
 
-void Mesh::setupGlobalDof(unique_ptr<ExodusModel> const &model, unique_ptr<Options> const &options) {
+PetscErrorCode SetSymmetries(DM dm, PetscSection s, int* user_Nc, int user_Nf, int user_k, int user_dim)
+{
+  PetscInt       f, o, i, j, k, c, d;
+  DMLabel        depthLabel;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  ierr = DMGetLabel(dm,"depth",&depthLabel);CHKERRQ(ierr);
+  for (f = 0; f < user_Nf; f++) {
+    PetscSectionSym sym;
+
+    if (user_k < 3) continue; /* No symmetries needed for order < 3, because no cell, facet, edge or vertex has more than one node */
+    ierr = PetscSectionSymCreateLabel(PetscObjectComm((PetscObject)s),depthLabel,&sym);CHKERRQ(ierr);
+
+    for (d = 0; d <= user_dim; d++) {
+      if (d == 1) {
+        PetscInt        numDof  = user_k - 1;
+        PetscInt        numComp = user_Nc[f];
+        PetscInt        minOrnt = -2;
+        PetscInt        maxOrnt = 2;
+        PetscInt        **perms;
+
+        ierr = PetscCalloc1(maxOrnt - minOrnt,&perms);CHKERRQ(ierr);
+        for (o = minOrnt; o < maxOrnt; o++) {
+          PetscInt *perm;
+
+          if (o == -1 || !o) { /* identity */
+            perms[o - minOrnt] = NULL;
+          } else {
+            ierr = PetscMalloc1(numDof * numComp, &perm);CHKERRQ(ierr);
+            for (i = numDof - 1, k = 0; i >= 0; i--) {
+              for (j = 0; j < numComp; j++, k++) perm[k] = i * numComp + j;
+            }
+            perms[o - minOrnt] = perm;
+          }
+        }
+        ierr = PetscSectionSymLabelSetStratum(sym,d,numDof*numComp,minOrnt,maxOrnt,PETSC_OWN_POINTER,(const PetscInt **) perms,NULL);CHKERRQ(ierr);
+      } else if (d == 2) {
+        PetscInt        perEdge = user_k - 1;
+        PetscInt        numDof  = perEdge * perEdge;
+        PetscInt        numComp = user_Nc[f];
+        PetscInt        minOrnt = -4;
+        PetscInt        maxOrnt = 4;
+        PetscInt        **perms;
+
+        ierr = PetscCalloc1(maxOrnt-minOrnt,&perms);CHKERRQ(ierr);
+        for (o = minOrnt; o < maxOrnt; o++) {
+          PetscInt *perm;
+
+          if (!o) continue; /* identity */
+          ierr = PetscMalloc1(numDof * numComp, &perm);CHKERRQ(ierr);
+          /* We want to perm[k] to list which *localArray* position the *sectionArray* position k should go to for the given orientation*/
+          switch (o) {
+          case 0:
+            break; /* identity */
+          case -4: /* flip along (-1,-1)--( 1, 1), which swaps edges 0 and 3 and edges 1 and 2.  This swaps the i and j variables */
+            perm[0] = 1;
+            perm[1] = 3;
+            perm[2] = 0;
+            perm[3] = 2;
+            /* perm[0] = 2; */
+            /* perm[1] = 3; */
+            /* perm[2] = 0; */
+            /* perm[3] = 1; */
+            /* break; */
+            for (i = 0, k = 0; i < perEdge; i++) {
+              for (j = 0; j < perEdge; j++, k++) {
+                for (c = 0; c < numComp; c++) {
+                  /* perm[k * numComp + c] = (perEdge * j + i) * numComp + c; // old */
+                  // swaps i&j and reverses i
+                  perm[k * numComp + c] = (perEdge * j + (perEdge - 1 - i) ) * numComp + c; // new
+                  // printf("i=%d,j=%d,c=%d,k=%d,perEdge=%d,numComp=%d\n",i,j,c,k,perEdge,numComp);
+                  // printf("o:-4,perm[%d]=%d\n",k * numComp + c,perm[k * numComp + c]);
+                }
+              }
+            }
+            break;
+          case -3: /* flip along (-1, 0)--( 1, 0), which swaps edges 0 and 2.  This reverses the i variable */
+            perm[0] = 3;
+            perm[1] = 2;
+            perm[2] = 1;
+            perm[3] = 0;
+            /* break; */
+            for (i = 0, k = 0; i < perEdge; i++) {
+              for (j = 0; j < perEdge; j++, k++) {
+                for (c = 0; c < numComp; c++) {
+                  /* perm[k * numComp + c] = (perEdge * (perEdge - 1 - i) + j) * numComp + c; */
+
+                  // reverses i & j
+                  perm[k * numComp + c] = (perEdge * (perEdge - 1 - i) + (perEdge - 1 - j)) * numComp + c;
+                  // printf("o:-3,perm[%d]=%d\n",k * numComp + c,perm[k * numComp + c]);
+                }
+              }
+            }
+            break;
+          case -2: /* flip along ( 1,-1)--(-1, 1), which swaps edges 0 and 1 and edges 2 and 3.  This swaps the i and j variables and reverse both */
+            perm[0] = 2;
+            perm[1] = 0;
+            perm[2] = 3;
+            perm[3] = 1;
+            /* break; */
+            for (i = 0, k = 0; i < perEdge; i++) {
+              for (j = 0; j < perEdge; j++, k++) {
+                for (c = 0; c < numComp; c++) {
+                  perm[k * numComp + c] = (perEdge * (perEdge - 1 - j) + (perEdge - 1 - i)) * numComp + c;
+                  // swaps i&j and reverses j
+                  perm[k * numComp + c] = (perEdge * (perEdge - 1 - j) + i) * numComp + c;
+                  // printf("o:-2,perm[%d]=%d\n",k * numComp + c,perm[k * numComp + c]);
+                }
+              }
+            }
+            break;
+          case -1: /* flip along ( 0,-1)--( 0, 1), which swaps edges 3 and 1.  This reverses the j variable */
+            perm[0] = 0;
+            perm[1] = 1;
+            perm[2] = 2;
+            perm[3] = 3;
+            /* break; */
+            for (i = 0, k = 0; i < perEdge; i++) {
+              for (j = 0; j < perEdge; j++, k++) {
+                for (c = 0; c < numComp; c++) {
+                  /* perm[k * numComp + c] = (perEdge * i + (perEdge - 1 - j)) * numComp + c; */
+                  // no swaps or reverses
+                  perm[k * numComp + c] = (perEdge * i + j) * numComp + c;
+                  // printf("o:-1,perm[%d]=%d\n",k * numComp + c,perm[k * numComp + c]);
+                }
+              }
+            }
+            break;
+          case  1: /* rotate section edge 1 to local edge 0.  This swaps the i and j variables and then reverses the j variable */
+            for (i = 0, k = 0; i < perEdge; i++) {
+              for (j = 0; j < perEdge; j++, k++) {
+                for (c = 0; c < numComp; c++) {
+                  perm[k * numComp + c] = (perEdge * (perEdge - 1 - j) + i) * numComp + c;
+                  // printf("o:1,perm[%d]=%d\n",k * numComp + c,perm[k * numComp + c]);
+                }
+              }
+            }
+            break;
+          case  2: /* rotate section edge 2 to local edge 0.  This reverse both i and j variables */
+            for (i = 0, k = 0; i < perEdge; i++) {
+              for (j = 0; j < perEdge; j++, k++) {
+                for (c = 0; c < numComp; c++) {
+                  perm[k * numComp + c] = (perEdge * (perEdge - 1 - i) + (perEdge - 1 - j)) * numComp + c;
+                }
+              }
+            }
+            break;
+          case  3: /* rotate section edge 3 to local edge 0.  This swaps the i and j variables and then reverses the i variable */
+            for (i = 0, k = 0; i < perEdge; i++) {
+              for (j = 0; j < perEdge; j++, k++) {
+                for (c = 0; c < numComp; c++) {
+                  perm[k * numComp + c] = (perEdge * j + (perEdge - 1 - i)) * numComp + c;
+                }
+              }
+            }
+            break;
+          default:
+            break;
+          }
+          perms[o - minOrnt] = perm;
+        }
+        ierr = PetscSectionSymLabelSetStratum(sym,d,numDof*numComp,minOrnt,maxOrnt,PETSC_OWN_POINTER,(const PetscInt **) perms,NULL);CHKERRQ(ierr);
+      }
+    }
+    ierr = PetscSectionSetFieldSym(s,f,sym);CHKERRQ(ierr);
+    ierr = PetscSectionSymDestroy(&sym);CHKERRQ(ierr);
+  }
+  ierr = PetscSectionViewFromOptions(s,NULL,"-section_with_sym_view");CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+void Mesh::setupTopology(const unique_ptr<ExodusModel> &model,
+                         const unique_ptr<Options> &options) {
+
+  /* Ensure mesh was read. */
+  if (!mNumDim) { throw std::runtime_error("Mesh appears to have zero dimensions. Have you called read()?"); }
 
   /* Find all the mesh boundaries. */
   DMLabel label; DMGetLabel(mDistributedMesh, "Face Sets", &label);
@@ -101,6 +306,17 @@ void Mesh::setupGlobalDof(unique_ptr<ExodusModel> const &model, unique_ptr<Optio
 
   }
 
+}
+
+void Mesh::setupGlobalDof( unique_ptr<Element> const &element,
+                          unique_ptr<Options> const &options) {
+
+  /* Mesh topology must be set up first. */
+  if (!mMeshFields.size()) {
+    throw std::runtime_error("Before setting up the degrees of freedom, you must attach the topology by "
+                                 "calling setupTopology.");
+  }
+
   /* Use the information extracted above to inform the global DOF layout. */
   PetscInt num_bc = 0;
   PetscInt poly_order = options->PolynomialOrder();
@@ -118,9 +334,38 @@ void Mesh::setupGlobalDof(unique_ptr<ExodusModel> const &model, unique_ptr<Optio
     /* For each element point... (vertex, edge, face, volume) */
     for (PetscInt d = 0; d < (mNumDim + 1); d++) {
 
-      /* Number of dofs per this element point. */
-      num_dof[f * (mNumDim + 1) + d] = PetscPowInt(poly_order - 1, d) * num_comps[f];
-      printf("num_dof[%d]=%d\n",f * (mNumDim + 1) + d,PetscPowInt(poly_order - 1, d) * num_comps[f]);
+      PetscInt index = f * (mNumDim + 1) + d;
+      switch (d) {
+
+        /* 0-dimensional points (vertices). */
+        case(0):
+
+          num_dof[index] = element->NumDofVtx() * num_comps[f];
+          break;
+
+        /* 1-dimensional points (edges). */
+        case(1):
+
+          num_dof[index] = element->NumDofEdg() * num_comps[f];
+          break;
+
+        /* 2-dimensional points (faces). */
+        case(2):
+
+          num_dof[index] = element->NumDofFac() * num_comps[f];
+          break;
+
+        /* 3-dimensional points (cells). */
+        case(3):
+
+          num_dof[index] = element->NumDofVol() * num_comps[f];
+          break;
+
+        default:
+          throw std::runtime_error("Unrecognized dimension! Dim: " + std::to_string(d));
+
+      }
+
     }
   }
 
@@ -129,8 +374,7 @@ void Mesh::setupGlobalDof(unique_ptr<ExodusModel> const &model, unique_ptr<Optio
   /* Generate the section which will define the global dofs. */
   DMPlexCreateSection(mDistributedMesh, mNumDim, num_fields, num_comps, num_dof,
                       num_bc, NULL, NULL, NULL, NULL, &mMeshSection);
-  PetscFree(num_dof); PetscFree(num_comps);
-
+  
   /* Attach some meta-information to the section. */
   {
     PetscInt i = 0;
@@ -139,9 +383,15 @@ void Mesh::setupGlobalDof(unique_ptr<ExodusModel> const &model, unique_ptr<Optio
 
   /* Attach the section to our DM */
   DMSetDefaultSection(mDistributedMesh, mMeshSection);
-  /* Set the spectral ordering for quad and hex element meshes. */
-  DMPlexCreateSpectralClosurePermutation(mDistributedMesh, NULL);
 
+  /* Only create a spectral basis if it makes sense. */
+  if ((this->baseElementType() == "quad") ||
+      (this->baseElementType() == "hex")) {
+    SetSymmetries(mDistributedMesh, mMeshSection, num_comps, num_fields, poly_order, mNumDim);
+    DMPlexCreateSpectralClosurePermutation(mDistributedMesh, NULL);
+  }
+  PetscFree(num_dof); 
+  PetscFree(num_comps);
 }
 
 std::vector<PetscInt> Mesh::EdgeNumbers(const PetscInt elm) {

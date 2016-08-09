@@ -9,6 +9,7 @@
 #include <mpi.h>
 #include <petsc.h>
 #include <Eigen/Dense>
+#include <Utilities/Types.h>
 
 extern "C" {
 #include "Utilities/kdtree.h"
@@ -111,7 +112,7 @@ class ExodusModel {
    * @param [in] parameter_name Name of material parameter.
    * @return The value of the closest material parameter defined at a point.
    */
-  PetscReal getNodalParameterAtNode(const std::vector<PetscReal> point,
+  PetscReal getNodalParameterAtNode(const Eigen::Ref<const RealVec>& point,
                                     const std::string parameter_name);
 
   /**
@@ -122,7 +123,7 @@ class ExodusModel {
    * @param [in] vertex_num The vertex for which the parameter is desired.
    * @return The value of the material parameter at the specified vertex.
    */
-  PetscScalar getElementalMaterialParameterAtVertex(const Eigen::VectorXd &elem_center,
+  PetscScalar getElementalMaterialParameterAtVertex(const Eigen::Ref<const RealVec>& elem_center,
                                                     std::string parameter_name,
                                                     const PetscInt vertex_num) const;
 

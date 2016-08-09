@@ -153,8 +153,6 @@ private:
   static RealVec interpolateLagrangePolynomials(const PetscReal r, const PetscReal s,
                                                 const PetscInt order);
 
-  static IntVec  ClosureMappingForOrder(const PetscInt order);
-
   /**
    * Compute the gradient of a field at all GLL points.
    * @param [in] field Field to take the gradient of.

@@ -4,6 +4,12 @@
 #include <Element/HyperCube/HexP1.h>
 #include <stdexcept>
 
+TEST_CASE("test closure mapping","[hex/closure]") {
+
+  
+  
+}
+
 TEST_CASE("test functions in HexP1", "[hexP1]") {
 
   const static PetscInt num_dim = 3;

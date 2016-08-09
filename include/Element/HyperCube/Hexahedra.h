@@ -271,7 +271,7 @@ private:
   inline PetscInt NumDofFac() const { return mNumDofFac; }
   inline PetscInt NumDofEdg() const { return mNumDofEdg; }
   inline PetscInt NumDofVtx() const { return mNumDofVtx; }
-  inline IntVec ClsMap() const { return IntVec(mNumIntPnt); }
+  inline IntVec ClsMap() const { return mClsMap; }
   inline int PlyOrd()      const { return mPlyOrd; }
   inline RealMat VtxCrd() const { return mVtxCrd; }
   inline static PetscInt MaxOrder() { return mMaxOrder; }

@@ -262,13 +262,20 @@ void ExodusModel::readElementalVariables() {
 
 }
 
-PetscReal ExodusModel::getNodalParameterAtNode(const std::vector<PetscReal> point,
+PetscReal ExodusModel::getNodalParameterAtNode(const Eigen::Ref<const RealVec>& point,
                                                const std::string parameter_name) {
 
   if (!mNodalVariables.size()) {
     throw std::runtime_error(
         "You've tried to query a nodal parameter, but none are defined. "
             "Perhaps you meant to try an elemental parameter?" );
+  }
+
+  if (std::find(mNodalVariableNames.begin(), mNodalVariableNames.end(), parameter_name) ==
+      mNodalVariableNames.end()) {
+    throw std::runtime_error(
+        "Parameter " + parameter_name + " does not exist as a nodal parameter in "
+            "file " + mExodusFileName);
   }
 
   // Get spatial index.
@@ -296,7 +303,7 @@ void ExodusModel::readConnectivity() {
 
 }
 
-PetscScalar ExodusModel::getElementalMaterialParameterAtVertex(const Eigen::VectorXd &elem_center,
+PetscScalar ExodusModel::getElementalMaterialParameterAtVertex(const Eigen::Ref<const RealVec> &elem_center,
                                                                std::string parameter_name,
                                                                const PetscInt vertex_num) const {
   assert(elem_center.size() == mNumberDimension);
@@ -328,8 +335,8 @@ PetscScalar ExodusModel::getElementalMaterialParameterAtVertex(const Eigen::Vect
         parameter_name = "VP";
         throw salvus_warning("Anisotropic VPV requested, but can only find isotropic VP. Using VP!");
       } else {
-        throw std::runtime_error("Requested parameter " + parameter_name + " which is not in the "
-            "model file " + mExodusFileName);
+        throw std::runtime_error("Requested parameter " + parameter_name + " which is not stored as an "
+            "elemental variable in file " + mExodusFileName);
       }
     }
   } catch (salvus_warning &e) {

@@ -27,11 +27,15 @@ int main(int argc, char *argv[]) {
     mesh->read();
     model->read();
 
-    /* Attach physics and quadrature rules. */
-    mesh->setupGlobalDof(model, options);
+    /* Attach physics. Use this to inform the element generation. */
+    mesh->setupTopology(model, options);
 
-    /* Setup all dynamic fields. */
+    /* Use mesh topology to generate our master list of elements. */
     auto elements = problem->initializeElements(mesh, model, options);
+
+    /* Use elements to inform the global DOF layout. */
+    mesh->setupGlobalDof(elements[0], options);
+
     auto fields = problem->initializeGlobalDofs(elements, mesh);
 
     /* Compute solution in time. */
