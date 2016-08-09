@@ -174,34 +174,6 @@ RealVec TensorQuad<ConcreteShape>::interpolateLagrangePolynomials(const PetscRea
 }
 
 template<typename ConcreteShape>
-IntVec TensorQuad<ConcreteShape>::ClosureMappingForOrder(const PetscInt order) {
-  if (order > mMaxOrder) { throw std::runtime_error("Polynomial order not supported"); }
-  IntVec closure_mapping((order + 1) * (order + 1));
-  if (order == 1) {
-    closure_mapping_order1_square(closure_mapping.data());
-  } else if (order == 2) {
-    closure_mapping_order2_square(closure_mapping.data());
-  } else if (order == 3) {
-    closure_mapping_order3_square(closure_mapping.data());
-  } else if (order == 4) {
-    closure_mapping_order4_square(closure_mapping.data());
-  } else if (order == 5) {
-    closure_mapping_order5_square(closure_mapping.data());
-  } else if (order == 6) {
-    closure_mapping_order6_square(closure_mapping.data());
-  } else if (order == 7) {
-    closure_mapping_order7_square(closure_mapping.data());
-  } else if (order == 8) {
-    closure_mapping_order8_square(closure_mapping.data());
-  } else if (order == 9) {
-    closure_mapping_order9_square(closure_mapping.data());
-  } else if (order == 10) {
-    closure_mapping_order10_square(closure_mapping.data());
-  }
-  return closure_mapping;
-}
-
-template<typename ConcreteShape>
 RealMat TensorQuad<ConcreteShape>::computeGradient(const Ref<const RealVec> &field) {
 
   RealVec2 refGrad;

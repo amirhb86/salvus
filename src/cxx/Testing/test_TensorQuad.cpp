@@ -264,8 +264,5 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
       TensorQuad<QuadP1>::MaxOrder()+1), std::runtime_error);
   REQUIRE_THROWS_AS(TensorQuad<QuadP1>::interpolateLagrangePolynomials(
       0, 0, TensorQuad<QuadP1>::MaxOrder()+1), std::runtime_error);
-  REQUIRE_THROWS_AS(TensorQuad<QuadP1>::ClosureMappingForOrder(
-      TensorQuad<QuadP1>::MaxOrder()+1), std::runtime_error);
-
 
 }
