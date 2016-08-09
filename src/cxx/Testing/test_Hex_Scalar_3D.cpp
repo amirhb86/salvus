@@ -34,6 +34,12 @@ class TestPlugin: public Element {
         (M_PI / L * (pts_z.array() - (z0 + L / 2))).sin();
     RealVec vn = RealVec::Zero(pts_x.size());
     RealVec an = RealVec::Zero(pts_x.size());
+
+    /* BREAKING */
+//    un = pts_z;
+//    std::cout << "PUT IN:\n\n";
+//    std::cout << un << std::endl;
+
     problem->insertElementalFieldIntoMesh("u", Element::ElmNum(), Element::ClsMap(), un,
                                           mesh->DistributedMesh(), mesh->MeshSection(),
                                           fields);
@@ -81,6 +87,7 @@ typedef Scalar<Hexahedra<HexP1>> raw;
 TEST_CASE("Test analytic eigenfunction solution for scalar "
               "equation in 3d", "[hex_eigenfunction]") {
 
+//  std::string e_file = "small_hex_mesh_to_test_sources.e";
   std::string e_file = "hex_eigenfunction.e";
 
   PetscOptionsClear(NULL);

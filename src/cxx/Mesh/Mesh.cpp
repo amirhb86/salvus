@@ -125,6 +125,7 @@ void Mesh::setupGlobalDof( unique_ptr<Element> const &element,
   }
   PetscInt *num_dof; PetscMalloc1(num_fields * (mNumDim + 1), &num_dof);
 
+  /* This now just allocated the necessary memory per element. */
   for (PetscInt f = 0; f < num_fields; f++) {
     /* For each element point... (vertex, edge, face, volume) */
     for (PetscInt d = 0; d < (mNumDim + 1); d++) {
@@ -167,7 +168,6 @@ void Mesh::setupGlobalDof( unique_ptr<Element> const &element,
   /* Allocate the section. */
   DMPlexCreateSection(mDistributedMesh, mNumDim, num_fields, num_comps, num_dof,
                       num_bc, NULL, NULL, NULL, NULL, &mMeshSection);
-  PetscFree(num_dof);
 
   /* For each field... */
   for (PetscInt f = 0; f < num_fields; f++) {
@@ -215,16 +215,105 @@ void Mesh::setupGlobalDof( unique_ptr<Element> const &element,
         PetscSectionSymLabelSetStratum(sym, d, numDof * numCmp, minOrnt, maxOrnt,
                                        PETSC_OWN_POINTER, (const PetscInt **) perms, NULL);
 
+      } else if (d == 2) {
+
+        PetscInt o, i, j, k, c;
+        PetscInt perEdge = options->PolynomialOrder() - 1; /* Num dof edge. */
+        PetscInt numDof = perEdge * perEdge;                /* Num dof face. */
+        PetscInt numComp = num_comps[f];                   /* Num cmp this field. */
+        PetscInt minOrnt = -4;                            /* Min possible orientation. */
+        PetscInt maxOrnt = +4;                            /* Max possible orientation. */
+        PetscInt **perms;
+
+        PetscCalloc1(maxOrnt-minOrnt,&perms);
+        for (o = minOrnt; o < maxOrnt; o++) {
+          PetscInt *perm;
+
+          if (!o) continue; /* identity */
+          PetscMalloc1(numDof * numComp, &perm);
+          /* We want to perm[k] to list which *localArray* position the *sectionArray* position k should go to for the given orientation*/
+          switch (o) {
+            case 0:
+              break; /* identity */
+            case -4: /* flip along (-1,-1)--( 1, 1), which swaps edges 0 and 3 and edges 1 and 2.  This swaps the i and j variables */
+              for (i = 0, k = 0; i < perEdge; i++) {
+                for (j = 0; j < perEdge; j++, k++) {
+                  for (c = 0; c < numComp; c++) {
+                    perm[k * numComp + c] = (perEdge * j + i) * numComp + c;
+                  }
+                }
+              }
+              break;
+            case -3: /* flip along (-1, 0)--( 1, 0), which swaps edges 0 and 2.  This reverses the i variable */
+              for (i = 0, k = 0; i < perEdge; i++) {
+                for (j = 0; j < perEdge; j++, k++) {
+                  for (c = 0; c < numComp; c++) {
+                    perm[k * numComp + c] = (perEdge * (perEdge - 1 - i) + j) * numComp + c;
+                  }
+                }
+              }
+              break;
+            case -2: /* flip along ( 1,-1)--(-1, 1), which swaps edges 0 and 1 and edges 2 and 3.  This swaps the i and j variables and reverse both */
+              for (i = 0, k = 0; i < perEdge; i++) {
+                for (j = 0; j < perEdge; j++, k++) {
+                  for (c = 0; c < numComp; c++) {
+                    perm[k * numComp + c] = (perEdge * (perEdge - 1 - j) + (perEdge - 1 - i)) * numComp + c;
+                  }
+                }
+              }
+              break;
+            case -1: /* flip along ( 0,-1)--( 0, 1), which swaps edges 3 and 1.  This reverses the j variable */
+              for (i = 0, k = 0; i < perEdge; i++) {
+                for (j = 0; j < perEdge; j++, k++) {
+                  for (c = 0; c < numComp; c++) {
+                    perm[k * numComp + c] = (perEdge * i + (perEdge - 1 - j)) * numComp + c;
+                  }
+                }
+              }
+              break;
+            case  1: /* rotate section edge 1 to local edge 0.  This swaps the i and j variables and then reverses the j variable */
+              for (i = 0, k = 0; i < perEdge; i++) {
+                for (j = 0; j < perEdge; j++, k++) {
+                  for (c = 0; c < numComp; c++) {
+                    perm[k * numComp + c] = (perEdge * (perEdge - 1 - j) + i) * numComp + c;
+                  }
+                }
+              }
+              break;
+            case  2: /* rotate section edge 2 to local edge 0.  This reverse both i and j variables */
+              for (i = 0, k = 0; i < perEdge; i++) {
+                for (j = 0; j < perEdge; j++, k++) {
+                  for (c = 0; c < numComp; c++) {
+                    perm[k * numComp + c] = (perEdge * (perEdge - 1 - i) + (perEdge - 1 - j)) * numComp + c;
+                  }
+                }
+              }
+              break;
+            case  3: /* rotate section edge 3 to local edge 0.  This swaps the i and j variables and then reverses the i variable */
+              for (i = 0, k = 0; i < perEdge; i++) {
+                for (j = 0; j < perEdge; j++, k++) {
+                  for (c = 0; c < numComp; c++) {
+                    perm[k * numComp + c] = (perEdge * j + (perEdge - 1 - i)) * numComp + c;
+                  }
+                }
+              }
+              break;
+            default:
+              break;
+          }
+          perms[o - minOrnt] = perm;
+        }
+
+        PetscSectionSymLabelSetStratum(sym, d, numDof * numComp, minOrnt, maxOrnt,
+                                       PETSC_OWN_POINTER,(const PetscInt **) perms, NULL);
+
       }
     }
-
     PetscSectionSetFieldSym(mMeshSection, f, sym);
     PetscSectionSymDestroy(&sym);
-
     }
-//  }
 
-//  PetscFree(num_dof); PetscFree(num_comps);
+  PetscFree(num_dof); PetscFree(num_comps);
 
   /* Attach some meta-information to the section. */
   {

@@ -458,6 +458,13 @@ RealMat  Hexahedra<ConcreteHex>::computeGradient(const Ref<const RealVec> &field
     }
   }
 
+//  std::cout << "JACOBIAN\n\n";
+//  std::cout << invJac << std::endl;
+//  std::cout << "FIELD\n\n";
+//  std::cout << field << std::endl;
+//  std::cout << "DERIVATIVE\n\n";
+//  std::cout << mGradWork << std::endl;
+
   return mGradWork;
 
 }
