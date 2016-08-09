@@ -52,6 +52,9 @@ Hexahedra<ConcreteHex>::Hexahedra(std::unique_ptr<Options> const &options) {
   mGrd = setupGradientOperator(mPlyOrd);
   mGrdT = mGrd.transpose();
 
+  /* Identity closure for tensor basis. */
+  mClsMap = IntVec::LinSpaced(mNumIntPnt, 0, mNumIntPnt - 1);
+
   mGrdWgt.resize(mNumIntPtsR,mNumIntPtsR);
   for(PetscInt i=0;i<mNumIntPtsR;i++) {
     for(PetscInt j=0;j<mNumIntPtsR;j++) {

@@ -56,6 +56,13 @@ void Options::setOptions() {
   } else {
     if (! testing) throw std::runtime_error(epre + "--polynomial-order" + epst);
   }
+  /* TODO: Get this from the problem itself. */
+  PetscOptionsGetInt(NULL, NULL, "--dimension", &int_buffer, &parameter_set);
+  if (parameter_set) {
+    mNumDim = int_buffer;
+  } else {
+    if (! testing) throw std::runtime_error(epre + "--dimension" + epst);
+  }
 
 
   /********************************************************************************

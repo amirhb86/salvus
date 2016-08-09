@@ -271,7 +271,7 @@ private:
   inline PetscInt NumDofFac() const { return mNumDofFac; }
   inline PetscInt NumDofEdg() const { return mNumDofEdg; }
   inline PetscInt NumDofVtx() const { return mNumDofVtx; }
-  inline IntVec ClsMap() const { return IntVec(mNumIntPnt); }
+  inline IntVec ClsMap() const { return mClsMap; }
   inline RealMat VtxCrd() const { return mVtxCrd; }
   inline static PetscInt MaxOrder() { return mMaxOrder; }
   inline void SetVtxPar(const Eigen::Ref<const RealVec> &v, const std::string &par) { mPar[par] = v; }

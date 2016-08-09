@@ -13,6 +13,7 @@
 // 3rd party.
 #include <petsc.h>
 #include <Eigen/Dense>
+#include <Element/Element.h>
 
 // forward decl.
 class Options;
@@ -97,6 +98,15 @@ class Mesh {
    */
   void read();
 
+  /**
+   * Generate coupling and boundary layers.
+   * This function walks through the graph specified by DMPLEX, and uses the information provided in model to
+   * generate coupling interfaces and boundary layers.
+   * @param model A pointer to the Exodus model.
+   * @param options The global options object.
+   */
+  void setupTopology(unique_ptr<ExodusModel> const &model,
+                     unique_ptr<Options> const &options);
 
   /**
    * Sets up the dofs across elements and processor boundaries.
@@ -110,7 +120,8 @@ class Mesh {
    * @param [in] number_dof_volume Num of dofs per 3-d mesh component (volume). Something something for the
    * standard GLL basis.
    */
-  void setupGlobalDof(unique_ptr<ExodusModel> const &model, unique_ptr<Options> const &options);
+  void setupGlobalDof( std::unique_ptr<Element> const &element,
+                      unique_ptr<Options> const &options);
 
   /**
    * Determines which type of mesh we are working with (tri/tet/quad/hex). For now, only supports

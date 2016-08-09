@@ -55,7 +55,7 @@ TEST_CASE("Unit test model", "[model]") {
 
     SECTION("Fail because no nodal variables are defined.") {
       /* Only elemental variables defined for this mesh. */
-      REQUIRE_THROWS_AS(model->getNodalParameterAtNode({0.0, 0.0}, "fail"),
+      REQUIRE_THROWS_AS(model->getNodalParameterAtNode(test_center, "fail"),
                         std::runtime_error);
     }
 
@@ -110,7 +110,7 @@ TEST_CASE("Unit test model", "[model]") {
 
     SECTION("Fail because no nodal variables are defined.") {
       /* Only elemental variables defined for this mesh. */
-      REQUIRE_THROWS_AS(model->getNodalParameterAtNode({0.0, 0.0, 0.0}, "fail"),
+      REQUIRE_THROWS_AS(model->getNodalParameterAtNode(test_center, "fail"),
                         std::runtime_error);
     }
 
@@ -121,6 +121,73 @@ TEST_CASE("Unit test model", "[model]") {
         REQUIRE(model->SideSetName(i) == true_side_sets[i]);
       }
       REQUIRE_THROWS_AS(model->SideSetName(6), std::runtime_error);
+
+    }
+
+  }
+
+  SECTION("Test nodal pars") {
+
+    PetscOptionsSetValue(NULL, "--model-file", "nodal_hex.e");
+    std::unique_ptr<Options> options(new Options);
+    options->setOptions();
+
+    std::unique_ptr<ExodusModel> model(new ExodusModel(options));
+    model->read();
+
+    SECTION("Correct values") {
+
+      /* Test coordinates to get first element center. */
+      RealVec3 test_center;
+
+      /* Node VP values were written as node numbers themselves. */
+      test_center << 0.0, 0.0, 0.0;
+      REQUIRE(model->getNodalParameterAtNode(test_center, "VP") == Approx(0));
+
+      test_center << 0.0, 0.0, 0.5;
+      REQUIRE(model->getNodalParameterAtNode(test_center, "VP") == Approx(1));
+
+      test_center << 0.0, 0.5, 0.5;
+      REQUIRE(model->getNodalParameterAtNode(test_center, "VP") == Approx(4));
+
+      test_center << 0.0, 0.5, 0.0;
+      REQUIRE(model->getNodalParameterAtNode(test_center, "VP") == Approx(3));
+
+      test_center << 0.5, 0.0, 0.0;
+      REQUIRE(model->getNodalParameterAtNode(test_center, "VP") == Approx(9));
+
+      test_center << 0.5, 0.0, 0.5;
+      REQUIRE(model->getNodalParameterAtNode(test_center, "VP") == Approx(10));
+
+      test_center << 0.5, 0.5, 0.5;
+      REQUIRE(model->getNodalParameterAtNode(test_center, "VP") == Approx(13));
+
+      test_center << 0.5, 0.5, 0.0;
+      REQUIRE(model->getNodalParameterAtNode(test_center, "VP") == Approx(12));
+
+      /* Only VP should have correct values. */
+      test_center << 0.0, 0.0, 0.5;
+      REQUIRE(model->getNodalParameterAtNode(test_center, "RHO") == Approx(0));
+
+    }
+
+    SECTION("Throw if trying to get nodal param that doens't exist") {
+
+      RealVec3 test_center;
+      test_center << 0.0, 0.0, 0.0;
+
+      REQUIRE_THROWS_AS(model->getNodalParameterAtNode(
+          test_center, "VPP"), std::runtime_error);
+
+    }
+
+    SECTION("Throw if trying to get elemental params") {
+
+      RealVec3 test_center;
+      test_center << 0.0, 0.0, 0.0;
+
+      REQUIRE_THROWS_AS(model->getElementalMaterialParameterAtVertex(
+          test_center, "VP", 0), std::runtime_error);
 
     }
 

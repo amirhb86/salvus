@@ -109,9 +109,16 @@ TEST_CASE("Test point source receiver for scalar equation "
 
   model->read();
   mesh->read();
-  mesh->setupGlobalDof(model, options);
 
+  /* Setup topology from model and mesh. */
+  mesh->setupTopology(model, options);
+
+  /* Setup elements from model and topology. */
   auto elements = problem->initializeElements(mesh, model, options);
+
+  /* Setup global degrees of freedom based on element 0. */
+  mesh->setupGlobalDof(elements[0], options);
+
   auto fields = problem->initializeGlobalDofs(elements, mesh);
 
   PetscReal time = 0;
@@ -164,10 +171,17 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
 
   model->read();
   mesh->read();
-  mesh->setupGlobalDof(model, options);
+
+  /* Setup topology from model and mesh. */
+  mesh->setupTopology(model, options);
+
+  /* Setup elements from model and topology. */
+  auto elements = problem->initializeElements(mesh, model, options);
+
+  /* Setup global degrees of freedom based on element 0. */
+  mesh->setupGlobalDof(elements[0], options);
 
   std::vector<std::unique_ptr<Element>> test_elements;
-  auto elements = problem->initializeElements(mesh, model, options);
   auto fields = problem->initializeGlobalDofs(elements, mesh);
 
   /* Rip apart elements and insert testing mixin. */
