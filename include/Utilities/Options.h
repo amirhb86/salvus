@@ -44,6 +44,9 @@ class Options {
   std::vector<std::string> mRecNames;
   std::vector<std::string> mMovieFields;
 
+  // Boundaries.
+  std::vector<std::string> mHomogeneousDirichletBoundaries;
+
  public:
 
   void setOptions();
@@ -77,6 +80,8 @@ class Options {
 
   std::vector<std::string> RecNames() const { return mRecNames; }
   std::vector<std::string> MovieFields() const { return mMovieFields; }
+
+  std::vector<std::string> HomogeneousDirichlet() const { return mHomogeneousDirichletBoundaries; }
 
   /* Setters (mainly for testing). */
   void SetDimension(const PetscInt dim) { mNumDim = dim; }

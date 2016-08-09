@@ -70,14 +70,18 @@ void Mesh::setupTopology(const unique_ptr<ExodusModel> &model,
 
   /* Find all the mesh boundaries. */
   DMLabel label; DMGetLabel(mDistributedMesh, "Face Sets", &label);
-  PetscInt size; DMLabelGetNumValues(label, &size);
+  PetscInt boundary_size; DMLabelGetNumValues(label, &boundary_size);
   IS idIS; DMLabelGetValueIS(label, &idIS);
   const PetscInt *ids; ISGetIndices(idIS, &ids);
-  for (PetscInt i = 0; i < size; i++) {
+  for (PetscInt i = 0; i < boundary_size; i++) {
     PetscInt numFaces; DMLabelGetStratumSize(label, ids[i], &numFaces);
     IS pointIs; DMLabelGetStratumIS(label, ids[i], &pointIs);
     const PetscInt *faces; ISGetIndices(pointIs, &faces);
-    for (PetscInt j = 0; j < numFaces; j++) { mBndPts.insert(faces[j]); }
+    /* Tuple describing boundary set i for face j. */
+    for (PetscInt j = 0; j < numFaces; j++)
+    {
+      mBndPts.push_back(std::tie(i, faces[j]));
+    }
   }
 
   /* Walk through the mesh and extract element types. */
@@ -91,21 +95,33 @@ void Mesh::setupTopology(const unique_ptr<ExodusModel> &model,
     /* Add the type of element i to all mesh points connected via the Hasse graph. */
     PetscInt num_pts; const PetscInt *pts = NULL;
     DMPlexGetCone(mDistributedMesh, i, &pts); DMPlexGetConeSize(mDistributedMesh, i, &num_pts);
+    /* for all d-1 mesh points attached to this element... */
     for (PetscInt j = 0; j < num_pts; j++) {
+      /* insert this element type... */
       mPointFields[pts[j]].insert(type);
-      if (mBndPts.find(pts[j]) != mBndPts.end()) {
-        mPointFields[pts[j]].insert("boundary");
+      /* for all mesh boundaries... */
+      for (PetscInt k = 0; k < boundary_size; k++) {
+        /* if this particular mesh point is on boundary set k... */
+        if (std::find(mBndPts.begin(), mBndPts.end(), std::tie(k,pts[j]))
+            != mBndPts.end()) {
+          /* if boundary set k is labeled as homogeneous dirichlet... */
+          auto hd = options->HomogeneousDirichlet();
+          if (std::find(hd.begin(), hd.end(), model->SideSetName(k)) != hd.end()) {
+            mPointFields[pts[j]].insert("boundary_homo_dirichlet");
+          }
+          /* default to free surface... insert nothing. */
+        }
       }
     }
 
-    /* Finally, add the type type to the global fields. */
+    /* Finally, add the type to the global fields. */
     mMeshFields.insert(type);
 
   }
 
 }
 
-void Mesh::setupGlobalDof( unique_ptr<Element> const &element,
+void Mesh::setupGlobalDof(unique_ptr<Element> const &element,
                           unique_ptr<Options> const &options) {
 
   /* Mesh topology must be set up first. */

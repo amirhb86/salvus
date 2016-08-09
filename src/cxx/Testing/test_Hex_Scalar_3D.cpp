@@ -90,7 +90,9 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
       "--mesh-file", e_file.c_str(),
       "--model-file", e_file.c_str(),
       "--time-step", "1e-2",
-      "--polynomial-order", "2", NULL};
+      "--polynomial-order", "2",
+      "--homogeneous-dirichlet", "x0,x1,y0,y1,z0,z1",
+      NULL};
   char **argv = const_cast<char **> (arg);
   int argc = sizeof(arg) / sizeof(const char *) - 1;
   PetscOptionsInsert(NULL, &argc, &argv, NULL);

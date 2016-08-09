@@ -64,6 +64,14 @@ void Options::setOptions() {
     if (! testing) throw std::runtime_error(epre + "--dimension" + epst);
   }
 
+  /********************************************************************************
+                                     Boundaries.
+  ********************************************************************************/
+  char *bounds[PETSC_MAX_PATH_LEN]; PetscInt num_bnd = PETSC_MAX_PATH_LEN;
+  PetscOptionsGetStringArray(NULL, NULL, "--homogeneous-dirichlet", bounds, &num_bnd, &parameter_set);
+  if (parameter_set) {
+    for (PetscInt i = 0; i < num_bnd; i++) { mHomogeneousDirichletBoundaries.push_back(bounds[i]); }
+  }
 
   /********************************************************************************
                                        Movies.
