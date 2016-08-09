@@ -272,6 +272,7 @@ private:
   inline PetscInt NumDofEdg() const { return mNumDofEdg; }
   inline PetscInt NumDofVtx() const { return mNumDofVtx; }
   inline IntVec ClsMap() const { return IntVec(mNumIntPnt); }
+  inline int PlyOrd()      const { return mPlyOrd; }
   inline RealMat VtxCrd() const { return mVtxCrd; }
   inline static PetscInt MaxOrder() { return mMaxOrder; }
   inline void SetVtxPar(const Eigen::Ref<const RealVec> &v, const std::string &par) { mPar[par] = v; }

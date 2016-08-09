@@ -142,6 +142,8 @@ class Element {
   virtual inline int NumIntPnt() const = 0;
   /** What is the closure map on this element. */
   virtual inline Eigen::VectorXi ClsMap() const = 0;
+  /** What is the order of the element */
+  virtual inline int PlyOrd() const = 0;
   /** Vertex coordinates of this element. */
   virtual inline Eigen::MatrixXd VtxCrd() const = 0;
   /** What type of element am I? */

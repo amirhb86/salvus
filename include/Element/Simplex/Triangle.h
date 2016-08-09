@@ -299,15 +299,16 @@ class Triangle: public ConcreteShape {
 
   
   // Getters.
-  inline PetscInt ElmNum() const { return mElmNum; }
-  inline bool BndElm() const { return mBndElm; }
-  inline int NumDim() const { return mNumDim; }
-  inline int NumIntPnt() const { return mNumIntPnt; }
-  inline int NumDofVol() const { return mNumDofVol; }
-  inline int NumDofFac() const { return mNumDofFac; }
-  inline int NumDofEdg() const { return mNumDofEdg; }
-  inline int NumDofVtx() const { return mNumDofVtx; }
+  inline PetscInt ElmNum()        const { return mElmNum; }
+  inline bool BndElm()            const { return mBndElm; }
+  inline int NumDim()             const { return mNumDim; }
+  inline int NumIntPnt()          const { return mNumIntPnt; }
+  inline int NumDofVol()          const { return mNumDofVol; }
+  inline int NumDofFac()          const { return mNumDofFac; }
+  inline int NumDofEdg()          const { return mNumDofEdg; }
+  inline int NumDofVtx()          const { return mNumDofVtx; }
   inline Eigen::MatrixXi ClsMap() const { return mClsMap; }
+  inline int PlyOrd()             const { return mPlyOrd; }
   inline Eigen::MatrixXd VtxCrd() const { return mVtxCrd; }
   std::vector<std::shared_ptr<Source>> Sources() { return mSrc; }
 
