@@ -29,7 +29,6 @@ TensorQuad<ConcreteShape>::TensorQuad(std::unique_ptr<Options> const &options) {
   mNumDofVol = 0;
 
   mGrd = TensorQuad<ConcreteShape>::setupGradientOperator(mPlyOrd);
-  mClsMap = TensorQuad<ConcreteShape>::ClosureMappingForOrder(mPlyOrd);
   mIntCrdR = TensorQuad<ConcreteShape>::GllPointsForOrder(mPlyOrd);
   mIntCrdS = TensorQuad<ConcreteShape>::GllPointsForOrder(mPlyOrd);
   mIntWgtR = TensorQuad<ConcreteShape>::GllIntegrationWeightsForOrder(mPlyOrd);
@@ -38,6 +37,8 @@ TensorQuad<ConcreteShape>::TensorQuad(std::unique_ptr<Options> const &options) {
   mNumIntPtsS = mIntCrdS.size();
   mNumIntPtsR = mIntWgtR.size();
   mNumIntPnt = mNumIntPtsS * mNumIntPtsR;
+  /* Identity closure for tensor basis. */
+  mClsMap = IntVec::LinSpaced(mNumIntPnt, 0, mNumIntPnt - 1);
 
   mDetJac.setZero(mNumIntPnt);
   mParWork.setZero(mNumIntPnt);

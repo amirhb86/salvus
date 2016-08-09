@@ -214,6 +214,7 @@ void Problem::saveSolution(const PetscReal time, const std::vector<std::string> 
   /* Do nothing if we didn't set up a movie save. */
   if (!mViewer) return;
 
+  DMSetOutputSequenceNumber(PetscDM, mOutputFrame++, time);
   for (auto &f: save_fields) {
 
     /* Check to see if the field we want to save makes sense. */
@@ -224,7 +225,6 @@ void Problem::saveSolution(const PetscReal time, const std::vector<std::string> 
     }
 
     /* Else, save. */
-    DMSetOutputSequenceNumber(PetscDM, mOutputFrame++, time);
     VecView(fields[f]->mGlb, mViewer);
   }
 
@@ -263,38 +263,42 @@ void Problem::checkOutField(const std::string &name, DM PETScDM, FieldDict &fiel
 }
 
 void Problem::addFieldOnElement(const std::string &name,
-                                   const PetscInt num,
-                                   const Eigen::Ref<const IntVec> &closure,
-                                   const Eigen::Ref<const RealVec> &field,
-                                   DM PETScDM,
-                                   PetscSection PETScSection,
-                                   FieldDict &fields) {
+                                const PetscInt num,
+                                const Eigen::Ref<const IntVec> &closure,
+                                const Eigen::Ref<const RealVec> &field,
+                                DM PETScDM,
+                                PetscSection PETScSection,
+                                FieldDict &fields) {
 
+  RealVec val(closure.size());
+  for (PetscInt i = 0; i < closure.size(); i++) { val(i) = field(closure(i));   }
   DMPlexVecSetClosure(PETScDM, PETScSection, fields[name]->mLoc,
-                      num, field.data(), ADD_VALUES);
+                      num, val.data(), ADD_VALUES);
 
 }
 
 void Problem::insertElementalFieldIntoMesh(const std::string &name,
-                                              const PetscInt num,
-                                              const Eigen::Ref<const IntVec> &closure,
-                                              const Eigen::Ref<const RealVec> &field,
-                                              DM PETScDM, PetscSection PETScSection,
-                                              FieldDict &fields) {
+                                           const PetscInt num,
+                                           const Eigen::Ref<const IntVec> &closure,
+                                           const Eigen::Ref<const RealVec> &field,
+                                           DM PETScDM, PetscSection PETScSection,
+                                           FieldDict &fields) {
 
+  RealVec val(closure.size());
+  for (PetscInt i = 0; i < closure.size(); i++) { val(i) = field(closure(i)); }
   DMPlexVecSetClosure(PETScDM, PETScSection, fields[name]->mLoc,
-                      num, field.data(), INSERT_VALUES);
+                      num, val.data(), INSERT_VALUES);
   DMLocalToGlobalBegin(PETScDM, fields[name]->mLoc, INSERT_VALUES, fields[name]->mGlb);
   DMLocalToGlobalEnd(PETScDM, fields[name]->mLoc, INSERT_VALUES, fields[name]->mGlb);
 
 }
 
 RealVec Problem::getFieldOnElement(const std::string &name,
-                                      const PetscInt num,
-                                      const Eigen::Ref<const IntVec> &closure,
-                                      DM PETScDM,
-                                      PetscSection PETScSection,
-                                      FieldDict &fields) {
+                                   const PetscInt num,
+                                   const Eigen::Ref<const IntVec> &closure,
+                                   DM PETScDM,
+                                   PetscSection PETScSection,
+                                   FieldDict &fields) {
 
   /* Initialize arrays to get global DOF values. RVO should apply. */
   PetscScalar *val = NULL;
@@ -302,7 +306,7 @@ RealVec Problem::getFieldOnElement(const std::string &name,
 
   /* Populate 'val' with field on element, in PETSc ordering. */
   DMPlexVecGetClosure(PETScDM, PETScSection, fields[name]->mLoc, num, NULL, &val);
-  for (PetscInt i = 0; i < field.size(); i++) { field(i) = val[i]; }
+  for (PetscInt i = 0; i < field.size(); i++) { field(closure(i)) = val[i]; }
   DMPlexVecRestoreClosure(PETScDM, PETScSection, fields[name]->mLoc, num, NULL, &val);
 
   return field;
