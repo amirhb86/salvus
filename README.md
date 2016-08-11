@@ -42,8 +42,14 @@ what you can do for your spectral element wave propagator.
     We recommend the MPICH implementation <https://www.mpich.org>
 
 5. PETSc: <https://www.mcs.anl.gov/petsc>  
-    You need version 3.7.x. Download it from <http://www.mcs.anl.gov/petsc/download>, unpack it, and install it with all the required libraries. 
-    Adjust the `prefix` to where you want it installed.
+    ~~You need version 3.7.x. Download it from <http://www.mcs.anl.gov/petsc/download>, unpack it, and install it with all the required libraries.~~
+    We are currently running off a custom branch of PETSc. To get it:
+    
+        git clone https://bitbucket.org/rietmann/petscfork petsc-src;
+        cd petsc-src
+        git fetch && git checkout rietmann/fix-dualspace-feature-symmetry
+    
+    We install like the standard release. Adjust the `prefix` to where you want it installed.
     Salvus requires the following additional packages be used with PETSc 
 
       * MPI, ExodusII, HDF5, NetCDF
