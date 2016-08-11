@@ -100,7 +100,7 @@ class Mesh {
    * @param [in] vertex_coords The list of vertex coordinates
    */
   void read(int dim, int numCells, int numVerts, int numVertsPerElem,
-       Eigen::MatrixXi cells, Eigen::MatrixXd vertex_coords)
+            int* cells, double* vertex_coords);
   
   /**
    * Reads an exodus mesh from a file defined in options.

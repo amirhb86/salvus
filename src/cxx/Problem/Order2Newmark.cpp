@@ -96,6 +96,9 @@ std::tuple<FieldDict, PetscScalar> Order2Newmark::takeTimeStep(
   const std::vector<std::string> recognized_dsp  {"ux",  "uy",  "ux",  "u"};
 
   /* Advance all recognized fields. */
+  // v_{n+1} = v_n + 1/2*dt*a_{n+1} + 1/2*dt*a_n
+  // u_{n+1} = u_n + dt*v_n + dt^2/2*a_{n+1}
+  // a_n = a_{n+1}
   for (PetscInt i = 0; i < recognized_acl.size(); i++) {
     if (fields.count(recognized_acl[i])) {
       VecAXPBYPCZ(fields[recognized_vel[i]]->mGlb, acl_factor, acl_factor, 1.0,
@@ -105,7 +108,7 @@ std::tuple<FieldDict, PetscScalar> Order2Newmark::takeTimeStep(
       VecCopy(fields[recognized_acl[i]]->mGlb, fields[recognized_acl_[i]]->mGlb);
     } else { continue; }
   }
-
+  
   time += mDt;
   return std::tuple<FieldDict, PetscScalar> (std::move(fields), time);
 

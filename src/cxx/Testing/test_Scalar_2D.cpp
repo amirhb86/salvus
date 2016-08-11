@@ -133,8 +133,8 @@ PetscReal runEigenFunctionTest(std::vector<std::unique_ptr<Element>> test_elemen
     }
 
     // only saves if '--saveMovie' is set in command line options
-    problem->saveSolution(time, {"u"}, fields, mesh->DistributedMesh());
-
+    problem->saveSolution(time, {"u","a"}, fields, mesh->DistributedMesh());
+    
     max_error = element_error.maxCoeff() > max_error ? element_error.maxCoeff() : max_error;
     if (time > cycle_time) break;
     

@@ -79,6 +79,7 @@ void Options::setOptions() {
     PetscOptionsGetString(NULL, NULL, "--movie-file-name", char_buffer, PETSC_MAX_PATH_LEN, &parameter_set);
     if (parameter_set) {
       mMovieFile = std::string(char_buffer);
+      LOG() << "Saving movie to " << mMovieFile;
     } else {
       if (! testing)
         throw std::runtime_error("Movie requested, but no output file specified."

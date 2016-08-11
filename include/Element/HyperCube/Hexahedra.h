@@ -53,7 +53,7 @@ private:
 
   const static PetscInt mNumDim = 3;
   const static PetscInt mNumVtx = 8;
-  const static PetscInt mMaxOrder = 3;
+  const static PetscInt mMaxOrder = 9;
 
   // Workspace.  
   RealVec mParWork;

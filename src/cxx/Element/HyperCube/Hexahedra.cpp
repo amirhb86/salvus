@@ -1,6 +1,7 @@
 #include <Mesh/Mesh.h>
 #include <Source/Source.h>
 #include <Utilities/Options.h>
+#include <Utilities/Logging.h>
 #include <Model/ExodusModel.h>
 #include <Receiver/Receiver.h>
 #include <Element/HyperCube/HexP1.h>
@@ -80,6 +81,18 @@ RealVec Hexahedra<ConcreteHex>::GllPointsForOrder(const PetscInt order) {
     gll_coordinates_order2_square(gll_points.data());
   } else if (order == 3) {
     gll_coordinates_order3_square(gll_points.data());
+  } else if (order == 4) {
+    gll_coordinates_order4_square(gll_points.data());
+  } else if (order == 5) {
+    gll_coordinates_order5_square(gll_points.data());
+  } else if (order == 6) {
+    gll_coordinates_order6_square(gll_points.data());
+  } else if (order == 7) {
+    gll_coordinates_order7_square(gll_points.data());
+  } else if (order == 8) {
+    gll_coordinates_order8_square(gll_points.data());
+  } else if (order == 9) {
+    gll_coordinates_order9_square(gll_points.data());
   }
   return gll_points;
 }
@@ -94,6 +107,18 @@ RealVec Hexahedra<ConcreteHex>::GllIntegrationWeights(const PetscInt order) {
     gll_weights_order2_square(integration_weights.data());
   } else if (order == 3) {
     gll_weights_order3_square(integration_weights.data());
+  } else if (order == 4) {
+    gll_weights_order4_square(integration_weights.data());
+  } else if (order == 5) {
+    gll_weights_order5_square(integration_weights.data());
+  } else if (order == 6) {
+    gll_weights_order6_square(integration_weights.data());
+  } else if (order == 7) {
+    gll_weights_order7_square(integration_weights.data());
+  } else if (order == 8) {
+    gll_weights_order8_square(integration_weights.data());
+  } else if (order == 9) {
+    gll_weights_order9_square(integration_weights.data());
   }
   return integration_weights;
 }
@@ -407,6 +432,20 @@ RealMat  Hexahedra<ConcreteHex>::setupGradientOperator(const PetscInt order) {
       interpolate_eps_derivative_order2_square(r, s, test.data());
     } else if (order == 3) {
       interpolate_eps_derivative_order3_square(r, s, test.data());
+    } else if (order == 4) {
+      interpolate_eps_derivative_order4_square(r, s, test.data());
+    } else if (order == 5) {
+      interpolate_eps_derivative_order5_square(r, s, test.data());
+    } else if (order == 6) {
+      interpolate_eps_derivative_order6_square(r, s, test.data());
+    } else if (order == 7) {
+      interpolate_eps_derivative_order7_square(r, s, test.data());
+    } else if (order == 8) {
+      interpolate_eps_derivative_order8_square(r, s, test.data());
+    } else if (order == 9) {
+      interpolate_eps_derivative_order9_square(r, s, test.data());
+    } else {
+      ERROR() << "Order " << order << " not supported for hex";
     }
     grad.row(i) = test.col(0);
   }
@@ -457,6 +496,13 @@ RealMat  Hexahedra<ConcreteHex>::computeGradient(const Ref<const RealVec> &field
       }
     }
   }
+
+//  std::cout << "JACOBIAN\n\n";
+//  std::cout << invJac << std::endl;
+//  std::cout << "FIELD\n\n";
+//  std::cout << field << std::endl;
+//  std::cout << "DERIVATIVE\n\n";
+//  std::cout << mGradWork << std::endl;
 
   return mGradWork;
 

@@ -3,13 +3,13 @@
 # PETSc
 cd
 # check if petsc has been installed before
-if [ ! -f /home/travis/petsc/include/petsc.h ]; then
+if [ -f /home/travis/petsc/include/petsc.h ]; then
     echo "Installing petsc to $HOME/petsc"    
     git clone -b maint https://bitbucket.org/petsc/petsc petsc-src;
     cd petsc-src
 
-    # Get Matt's new branch.
-    git fetch && git checkout knepley/feature-plex-3d-sem-order
+    # Get Toby's new branch.
+    git fetch && git checkout tisaac/dualspace-feature-symmetry
 
     # Configure and install.
     ./configure --download-exodusii --download-netcdf --download-hdf5 --download-chaco \
