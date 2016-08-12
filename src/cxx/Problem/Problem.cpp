@@ -221,7 +221,7 @@ void Problem::saveSolution(const PetscReal time, const std::vector<std::string> 
     if (fields.find(f) == fields.end()) {
       std::string regs = "{ "; for (auto &fn: fields) { regs += fn.first + " "; } regs += "}.";
       throw std::runtime_error("You are attempting to save field " + f + " which is not registered. "
-          "Registered fields are " + regs); return;
+          "Registered fields are " + regs);
     }
 
     /* Else, save. */
@@ -305,7 +305,7 @@ RealVec Problem::getFieldOnElement(const std::string &name,
   RealVec field(closure.size());
 
   /* Populate 'val' with field on element, in PETSc ordering. */
-  DMPlexVecGetClosure(PETScDM, PETScSection, fields[name]->mLoc, num, NULL, &val);
+  PetscInt size; DMPlexVecGetClosure(PETScDM, PETScSection, fields[name]->mLoc, num, &size, &val);
   for (PetscInt i = 0; i < field.size(); i++) { field(closure(i)) = val[i]; }
   DMPlexVecRestoreClosure(PETScDM, PETScSection, fields[name]->mLoc, num, NULL, &val);
 

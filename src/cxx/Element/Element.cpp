@@ -34,23 +34,23 @@ enum phys_code {
   /* Pure fluid. */
   eFluid,
   /* Pure fluid on mesh boundary. */
-  eFluidBoundary,
+  eFluidBoundaryHomoDirichlet,
   /* Pure 2d elastic. */
   eElastic2D,
   /* 2D elastic boundary. */
-  eElastic2DBoundary,
+  eElastic2DBoundaryHomoDirichlet,
   /* Pure 3d elastic. */
   eElastic3D,
   /* 3D elastic boundary. */
-  eElastic3DBoundary,
+  eElastic3DBoundaryHomoDirichlet,
   /* 2D fluid couple to base solid. */
   eFluidToSolid2D,
   /* 2D solid couple to base fluid. */
   eSolidToFluid2D,
   /* 2D solid couple to base fluid on boundary. */
-  eSolidToFluidBoundary2D,
+  eSolidToFluidBoundary2DHomoDirichlet,
   /* 2D fluid couple to base solid on boundary. */
-  eFluidToSolidBoundary2D,
+  eFluidToSolidBoundary2DHomoDirichlet,
   /* If nothing appropriate was found. */
   eError
 };
@@ -68,13 +68,13 @@ phys_code ptype(const std::vector<std::string> &ptype, const std::vector<std::st
     } else if (cset.size() == 1) {
       if (cset.find("2delastic") != cset.end()) {
         return eSolidToFluid2D;
-      } else if (cset.find("boundary") != cset.end()) {
-        return eFluidBoundary;
+      } else if (cset.find("boundary_homo_dirichlet") != cset.end()) {
+        return eFluidBoundaryHomoDirichlet;
       }
     } else if (cset.size() == 2) {
       if (cset.find("2delastic") != cset.end() &&
-          cset.find("boundary")  != cset.end()) {
-        return eSolidToFluidBoundary2D;
+          cset.find("boundary_homo_dirichlet")  != cset.end()) {
+        return eSolidToFluidBoundary2DHomoDirichlet;
       }
     } else {
       return eError;
@@ -87,13 +87,13 @@ phys_code ptype(const std::vector<std::string> &ptype, const std::vector<std::st
     else if (cset.size() == 1) {
       if (cset.find("fluid") != cset.end()) {
         return eFluidToSolid2D;
-      } else if (cset.find("boundary") != cset.end()) {
-        return eElastic2DBoundary;
+      } else if (cset.find("boundary_homo_dirichlet") != cset.end()) {
+        return eElastic2DBoundaryHomoDirichlet;
       }
     } else if (cset.size() == 2) {
       if ((cset.find("fluid") != cset.end()) &&
-          (cset.find("boundary") != cset.end())) {
-        return eFluidToSolidBoundary2D;
+          (cset.find("boundary_homo_dirichlet") != cset.end())) {
+        return eFluidToSolidBoundary2DHomoDirichlet;
       }
     } else {
       return eError;
@@ -103,8 +103,8 @@ phys_code ptype(const std::vector<std::string> &ptype, const std::vector<std::st
     if (cset.empty()) {
       return eElastic3D;
     } else if (cset.size() == 1) {
-      if (cset.find("boundary") != cset.end()) {
-        return eElastic3DBoundary;
+      if (cset.find("boundary_homo_dirichlet") != cset.end()) {
+        return eElastic3DBoundaryHomoDirichlet;
       }
     } else {
       return eError;
@@ -141,7 +141,7 @@ std::unique_ptr<Element> Element::Factory(const std::string &shape,
                       TensorQuad<
                           QuadP1>>>(options));
 
-        case eFluidBoundary:
+        case eFluidBoundaryHomoDirichlet:
           return std::unique_ptr<Element> (
               new ElementAdapter<
                   HomogeneousDirichlet<
@@ -149,7 +149,7 @@ std::unique_ptr<Element> Element::Factory(const std::string &shape,
                           TensorQuad<
                               QuadP1>>>>(options));
 
-        case eElastic2DBoundary:
+        case eElastic2DBoundaryHomoDirichlet:
           return std::unique_ptr<Element> (
               new ElementAdapter<
                   HomogeneousDirichlet<
@@ -173,7 +173,7 @@ std::unique_ptr<Element> Element::Factory(const std::string &shape,
                           TensorQuad<
                               QuadP1>>>>(options));
 
-        case eSolidToFluidBoundary2D:
+        case eSolidToFluidBoundary2DHomoDirichlet:
           return std::unique_ptr<Element> (
               new ElementAdapter<
                   HomogeneousDirichlet<
@@ -182,7 +182,7 @@ std::unique_ptr<Element> Element::Factory(const std::string &shape,
                               TensorQuad<
                                   QuadP1>>>>>(options));
 
-        case eFluidToSolidBoundary2D:
+        case eFluidToSolidBoundary2DHomoDirichlet:
           return std::unique_ptr<Element> (
               new ElementAdapter<
                   HomogeneousDirichlet<
@@ -207,7 +207,7 @@ std::unique_ptr<Element> Element::Factory(const std::string &shape,
                                            Triangle<
                                            TriP1>>>(options));
           break;
-        case eFluidBoundary:
+        case eFluidBoundaryHomoDirichlet:
           return std::unique_ptr<Element> (
                                            new ElementAdapter<
                                            HomogeneousDirichlet<
@@ -240,7 +240,7 @@ std::unique_ptr<Element> Element::Factory(const std::string &shape,
                       Hexahedra<
                           HexP1>>>(options));
 
-        case eFluidBoundary:
+        case eFluidBoundaryHomoDirichlet:
           return std::unique_ptr<Element> (
               new ElementAdapter<
                   HomogeneousDirichlet<
@@ -248,7 +248,7 @@ std::unique_ptr<Element> Element::Factory(const std::string &shape,
                           Hexahedra<
                               HexP1>>>>(options));
 
-        case eElastic3DBoundary:
+        case eElastic3DBoundaryHomoDirichlet:
           return std::unique_ptr<Element> (
               new ElementAdapter<
                   HomogeneousDirichlet<

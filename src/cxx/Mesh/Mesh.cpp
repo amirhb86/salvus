@@ -240,16 +240,21 @@ void Mesh::setupTopology(const unique_ptr<ExodusModel> &model,
 
   /* Find all the mesh boundaries. */
   DMLabel label; DMGetLabel(mDistributedMesh, "Face Sets", &label);
+  PetscInt boundary_size = 0;
   // label==NULL when there are no side sets, so there are no labeled boundaries
   if (label) {
-    PetscInt size; DMLabelGetNumValues(label, &size);
+    DMLabelGetNumValues(label, &boundary_size);
     IS idIS; DMLabelGetValueIS(label, &idIS);
     const PetscInt *ids; ISGetIndices(idIS, &ids);
-    for (PetscInt i = 0; i < size; i++) {
+    for (PetscInt i = 0; i < boundary_size; i++) {
       PetscInt numFaces; DMLabelGetStratumSize(label, ids[i], &numFaces);
       IS pointIs; DMLabelGetStratumIS(label, ids[i], &pointIs);
       const PetscInt *faces; ISGetIndices(pointIs, &faces);
-      for (PetscInt j = 0; j < numFaces; j++) { mBndPts.insert(faces[j]); }
+      /* Tuple describing boundary set i for face j. */
+      for (PetscInt j = 0; j < numFaces; j++)
+        {
+          mBndPts.push_back(std::tie(i, faces[j]));
+        }
     }
   }
 
@@ -263,24 +268,34 @@ void Mesh::setupTopology(const unique_ptr<ExodusModel> &model,
 
     /* Add the type of element i to all mesh points connected via the Hasse graph. */
     PetscInt num_pts; const PetscInt *pts = NULL;
-    DMPlexGetCone(mDistributedMesh, i, &pts); DMPlexGetConeSize(mDistributedMesh, i, &num_pts);    
+    DMPlexGetCone(mDistributedMesh, i, &pts); DMPlexGetConeSize(mDistributedMesh, i, &num_pts);
+    /* for all d-1 mesh points attached to this element... */
     for (PetscInt j = 0; j < num_pts; j++) {
-      // add element type to point
+      /* insert this element type... */
       mPointFields[pts[j]].insert(type);
-      // if this point `pts[j]` is on a boundary (`mBndPts`), add "boundary" to type of the point
-      if (mBndPts.find(pts[j]) != mBndPts.end()) {
-        mPointFields[pts[j]].insert("boundary");
+      /* for all mesh boundaries... */
+      for (PetscInt k = 0; k < boundary_size; k++) {
+        /* if this particular mesh point is on boundary set k... */
+        if (std::find(mBndPts.begin(), mBndPts.end(), std::tie(k,pts[j]))
+            != mBndPts.end()) {
+          /* if boundary set k is labeled as homogeneous dirichlet... */
+          auto hd = options->HomogeneousDirichlet();
+          if (std::find(hd.begin(), hd.end(), model->SideSetName(k)) != hd.end()) {
+            mPointFields[pts[j]].insert("boundary_homo_dirichlet");
+          }
+          /* default to free surface... insert nothing. */
+        }
       }
     }
 
-    /* Finally, add the type type to the global fields. */
+    /* Finally, add the type to the global fields. */
     mMeshFields.insert(type);
 
   }
 
 }
 
-void Mesh::setupGlobalDof( unique_ptr<Element> const &element,
+void Mesh::setupGlobalDof(unique_ptr<Element> const &element,
                           unique_ptr<Options> const &options) {
 
   /* Mesh topology must be set up first. */
@@ -292,11 +307,15 @@ void Mesh::setupGlobalDof( unique_ptr<Element> const &element,
   /* Use the information extracted above to inform the global DOF layout. */
   PetscInt num_bc = 0;
   PetscInt poly_order = options->PolynomialOrder();
-  PetscInt num_fields = mMeshFields.size();
+  /* Note here we are treating each field component as a separate vector (for now).
+   * mMeshFields.size(); */
+  PetscInt num_fields = 1;
   PetscInt *num_comps; PetscMalloc1(num_fields, &num_comps);
   {
-    PetscInt i = 0;
-    for (auto &f: mMeshFields) { num_comps[i] = numFieldPerPhysics(f); i++; }
+    /* Note here that we are allocating each field component as a separate vector.
+     * This may change in the future.
+     * for (auto &f: mMeshFields) { num_comps[i++] = numFieldPerPhysics(f); } */
+    for(int i=0; i<num_fields; i++) { num_comps[i] = 1; }
   }
   PetscInt *num_dof; PetscMalloc1(num_fields * (mNumDim + 1), &num_dof);
 
@@ -346,10 +365,10 @@ void Mesh::setupGlobalDof( unique_ptr<Element> const &element,
                       num_bc, NULL, NULL, NULL, NULL, &mMeshSection);
   
   /* Attach some meta-information to the section. */
-  {
-    PetscInt i = 0;
-    for (auto &f: mMeshFields) { PetscSectionSetFieldName(mMeshSection, i++, f.c_str()); }
-  }
+//  {
+//    PetscInt i = 0;
+//    for (auto &f: mMeshFields) { PetscSectionSetFieldName(mMeshSection, i++, f.c_str()); }
+//  }
 
   /* Attach the section to our DM */
   DMSetDefaultSection(mDistributedMesh, mMeshSection);

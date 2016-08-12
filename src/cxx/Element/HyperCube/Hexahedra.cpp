@@ -406,6 +406,20 @@ RealVec Hexahedra<ConcreteHex>::interpolateLagrangePolynomials(const PetscReal r
     interpolate_order2_hex(r, s, t, gll_coeffs.data());
   } else if (order == 3) {
     interpolate_order3_hex(r, s, t, gll_coeffs.data());
+  } else if (order == 4) {
+    interpolate_order4_hex(r, s, t, gll_coeffs.data());
+  } else if (order == 5) {
+    interpolate_order5_hex(r, s, t, gll_coeffs.data());
+  } else if (order == 6) {
+    interpolate_order6_hex(r, s, t, gll_coeffs.data());
+  } else if (order == 7) {
+    interpolate_order7_hex(r, s, t, gll_coeffs.data());
+  } else if (order == 8) {
+    interpolate_order8_hex(r, s, t, gll_coeffs.data());
+  } else if (order == 9) {
+    interpolate_order9_hex(r, s, t, gll_coeffs.data());
+  } else {
+    ERROR() << "Order " << order << " not supported for hex";
   }
 
   return gll_coeffs;

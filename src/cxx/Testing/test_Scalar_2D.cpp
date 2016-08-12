@@ -225,7 +225,9 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
       "--mesh-file", e_file.c_str(),
       "--model-file", e_file.c_str(),
       "--time-step", "1e-2",
-      "--polynomial-order", "4", NULL};
+      "--polynomial-order", "4",
+      "--homogeneous-dirichlet", "x0,x1,y0,y1",
+      NULL};
   char **argv = const_cast<char **> (arg);
   int argc = sizeof(arg) / sizeof(const char *) - 1;
   PetscOptionsInsert(NULL, &argc, &argv, NULL);
@@ -266,6 +268,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
 
     l3->setupEigenfunctionTest(mesh, options, problem, fields);
 
+    /* TODO: How does this work?? Static cast magic? Where is the HomogeneousDirichlet? */
     /* Now we have a class with testing, which is still really an element :) */
     test_elements.emplace_back(static_cast<test_insert_quadP1*>(l3));
 
@@ -280,63 +283,64 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
 
 }
 
-TEST_CASE("Test analytic eigenfunction solution for scalar "
-              "equation in 2D with triangles", "[tri_eigenfunction]") {
+// TEST_CASE("Test analytic eigenfunction solution for scalar "
+//               "equation in 2D with triangles", "[tri_eigenfunction]") {
 
-  std::string e_file = "tri_eigenfunction.e";
+//   std::string e_file = "tri_eigenfunction.e";
 
-  PetscOptionsClear(NULL);
-  const char *arg[] = {
-      "salvus_test",
-      "--testing", "true",
-      "--mesh-file", e_file.c_str(),
-      "--model-file", e_file.c_str(),
-      "--time-step", "1e-2",
-      "--polynomial-order", "3", NULL};
-  char **argv = const_cast<char **> (arg);
-  int argc = sizeof(arg) / sizeof(const char *) - 1;
-  PetscOptionsInsert(NULL, &argc, &argv, NULL);
+//   PetscOptionsClear(NULL);
+//   const char *arg[] = {
+//       "salvus_test",
+//       "--testing", "true",
+//       "--mesh-file", e_file.c_str(),
+//       "--model-file", e_file.c_str(),
+//       "--time-step", "1e-2",
+//       "--polynomial-order", "3", NULL};
+//   char **argv = const_cast<char **> (arg);
+//   int argc = sizeof(arg) / sizeof(const char *) - 1;
+//   PetscOptionsInsert(NULL, &argc, &argv, NULL);
 
-  std::unique_ptr<Options> options(new Options);
-  options->setOptions();
+//   std::unique_ptr<Options> options(new Options);
+//   options->setOptions();
 
-  std::unique_ptr<Problem> problem(Problem::Factory(options));
-  std::unique_ptr<ExodusModel> model(new ExodusModel(options));
-  std::unique_ptr<Mesh> mesh(Mesh::Factory(options));
+//   std::unique_ptr<Problem> problem(Problem::Factory(options));
+//   std::unique_ptr<ExodusModel> model(new ExodusModel(options));
+//   std::unique_ptr<Mesh> mesh(Mesh::Factory(options));
 
-  model->read();
-  mesh->read();
+//   model->read();
+//   mesh->read();
 
-  std::vector<std::unique_ptr<Element>> test_elements;
-  auto elements = problem->initializeElements(mesh, model, options);
-  auto fields = problem->initializeGlobalDofs(elements, mesh);
+//   std::vector<std::unique_ptr<Element>> test_elements;
+//   auto elements = problem->initializeElements(mesh, model, options);
+//   auto fields = problem->initializeGlobalDofs(elements, mesh);
 
-  mesh->setupGlobalDof(elements[0], options);
+//   mesh->setupGlobalDof(elements[0], options);
   
-  /* Rip apart elements and insert testing mixin. */
-  for (auto &e: elements) {
+//   /* Rip apart elements and insert testing mixin. */
+//   for (auto &e: elements) {
 
-    /* Rip out the master Element class. */
-    auto l1 = static_cast<unguard_triP1*>(e.release());
+//     /* Rip out the master Element class. */
+//     auto l1 = static_cast<unguard_triP1*>(e.release());
 
-    /* Rip out the Element adapter. */
-    auto l2 = static_cast<raw_triP1*>(l1);
+//     /* Rip out the Element adapter. */
+//     auto l2 = static_cast<raw_triP1*>(l1);
 
-    /* Attach the tester. */
-    auto l3 = static_cast<test_init_triP1*>(l2);
+//     /* Attach the tester. */
+//     auto l3 = static_cast<test_init_triP1*>(l2);
 
-    l3->setupEigenfunctionTest(mesh, options, problem, fields);
+//     l3->setupEigenfunctionTest(mesh, options, problem, fields);
 
-    /* Now we have a class with testing, which is still really an element :) */
-    test_elements.emplace_back(static_cast<test_insert_triP1*>(l3));
+//     /* Now we have a class with testing, which is still really an element :) */
+//     test_elements.emplace_back(static_cast<test_insert_triP1*>(l3));
 
-  }
+//   }
 
-  PetscReal cycle_time = 24.39;
+//   PetscReal cycle_time = 24.39;
   
-  auto max_error = runEigenFunctionTest(std::move(test_elements),mesh,model,options,problem,fields,cycle_time, ElementType::TRIP1);
-  LOG() << "Triangle error: " << max_error;
-  PetscReal regression_error = 0.001288; PetscScalar eps = 0.01;
-  REQUIRE(max_error <= regression_error * (1 + eps));
+//   auto max_error = runEigenFunctionTest(std::move(test_elements),mesh,model,options,problem,fields,cycle_time, ElementType::TRIP1);
+//   LOG() << "Triangle error: " << max_error;
+//   PetscReal regression_error = 0.001288; PetscScalar eps = 0.01;
+//   REQUIRE(max_error <= regression_error * (1 + eps));
 
-}
+// }
+

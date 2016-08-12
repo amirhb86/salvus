@@ -24,6 +24,32 @@ RealMat derivative4order(const PetscReal r, const PetscReal s, const PetscReal t
     interpolate_r_derivative_order3_hex(r, s, t, test_r.data());
     interpolate_s_derivative_order3_hex(r, s, t, test_s.data());
     interpolate_t_derivative_order3_hex(r, s, t, test_t.data());
+  } else if (order == 4) {
+    interpolate_r_derivative_order4_hex(r, s, t, test_r.data());
+    interpolate_s_derivative_order4_hex(r, s, t, test_s.data());
+    interpolate_t_derivative_order4_hex(r, s, t, test_t.data());
+  } else if (order == 5) {
+    interpolate_r_derivative_order5_hex(r, s, t, test_r.data());
+    interpolate_s_derivative_order5_hex(r, s, t, test_s.data());
+    interpolate_t_derivative_order5_hex(r, s, t, test_t.data());
+  } else if (order == 6) {
+    interpolate_r_derivative_order6_hex(r, s, t, test_r.data());
+    interpolate_s_derivative_order6_hex(r, s, t, test_s.data());
+    interpolate_t_derivative_order6_hex(r, s, t, test_t.data());
+  } else if (order == 7) {
+    interpolate_r_derivative_order7_hex(r, s, t, test_r.data());
+    interpolate_s_derivative_order7_hex(r, s, t, test_s.data());
+    interpolate_t_derivative_order7_hex(r, s, t, test_t.data());
+  } else if (order == 8) {
+    interpolate_r_derivative_order8_hex(r, s, t, test_r.data());
+    interpolate_s_derivative_order8_hex(r, s, t, test_s.data());
+    interpolate_t_derivative_order8_hex(r, s, t, test_t.data());
+  } else if (order == 9) {
+    interpolate_r_derivative_order9_hex(r, s, t, test_r.data());
+    interpolate_s_derivative_order9_hex(r, s, t, test_s.data());
+    interpolate_t_derivative_order9_hex(r, s, t, test_t.data());
+  } else {
+    ERROR() << "Order " << order << " not supported";
   }
   RealMat ret(size, 3);
   ret.col(0) = test_r; ret.col(1) = test_s; ret.col(2) = test_t;
@@ -61,9 +87,8 @@ TEST_CASE("Test tensor hex", "[tensor_hex]") {
       +1, +1, +1,
       -1, +1, +1;
 
-  /* Looping over all polynomial orders. */
-  for (PetscInt i = 1; i < Hexahedra<HexP1>::MaxOrder() + 1; i++) {
-
+  /* Looping over polynomial orders < 7. Stop at 6 otherwise it takes too long! */
+  for (PetscInt i = 1; i < 7; i++) {
     /* General derived parameters. */
     PetscInt num_dof_dim = i + 1;
     RealVec weights = Hexahedra<HexP1>::GllIntegrationWeights(i);
@@ -277,7 +302,7 @@ TEST_CASE("Test tensor hex", "[tensor_hex]") {
   }
 
   /* Require that proper errors are thrown. */
-  PetscOptionsSetValue(NULL, "--polynomial-order", "4");
+  PetscOptionsSetValue(NULL, "--polynomial-order", "10");
   options->setOptions();
   REQUIRE_THROWS_AS(new Hexahedra<HexP1>(options), std::runtime_error);
   REQUIRE_THROWS_AS(Hexahedra<HexP1>::GllPointsForOrder(

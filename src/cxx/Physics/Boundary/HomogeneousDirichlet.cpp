@@ -15,8 +15,10 @@ void HomogeneousDirichlet<Base>::setBoundaryConditions(std::unique_ptr<Mesh> con
   auto bnds = mesh->BoundaryPoints();
   PetscInt num_pts; DMPlexGetConeSize(mesh->DistributedMesh(), Base::ElmNum(), &num_pts);
   const PetscInt *pts = NULL; DMPlexGetCone(mesh->DistributedMesh(), Base::ElmNum(), &pts);
-  for (PetscInt i = 0; i < num_pts; i++) {
-    if (bnds.find(pts[i]) != bnds.end()) { mBndEdg.push_back(i); }
+  for (auto &pnt: bnds) {
+    for (PetscInt i = 0; i < num_pts; i++) {
+      if (std::get<1>(pnt) == pts[i]) { mBndEdg.push_back(i); }
+    }
   }
 
   Base::setBoundaryConditions(mesh);

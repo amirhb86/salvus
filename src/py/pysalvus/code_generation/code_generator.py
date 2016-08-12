@@ -3,7 +3,7 @@ import os
 import io
 import sympy as sym
 from sympy.physics.quantum import TensorProduct
-from sympy.utilities.codegen import CCodeGen
+from sympy.utilities.codegen import codegen
 from quadrature_points_weights import \
     gauss_lobatto_legendre_quadruature_points_weights
 
@@ -111,32 +111,11 @@ def tensorized_basis_3D(order):
     basis_gradient_s = sym.Matrix([sym.diff(i, s) for i in basis])
     basis_gradient_t = sym.Matrix([sym.diff(i, t) for i in basis])
 
-    routines = []
-    autocode = CCodeGen()
-    routines.append(autocode.routine(
-        'interpolate_order{}_hex'.format(order), basis,
-        argument_sequence=None))
-
-    routines.append(autocode.routine(
-        'interpolate_r_derivative_order{}_hex'.format(order), basis_gradient_r,
-        argument_sequence=None))
-    routines.append(autocode.routine(
-        'interpolate_s_derivative_order{}_hex'.format(order), basis_gradient_s,
-        argument_sequence=None))
-    routines.append(autocode.routine(
-        'interpolate_t_derivative_order{}_hex'.format(order), basis_gradient_t,
-        argument_sequence=None))
-
-    autocode.write(routines, 'order{}_hex'.format(order), to_files=True)
-    
-    # reformat some code.
-    for code, lend in zip(['order{}_hex.c', 'order{}_hex.h'], [' {', ';']):
-        with io.open(code.format(order), 'rt') as fh:
-            text = fh.readlines()
-            text = [line.replace('double', 'int') if 'closure' in line else line for line in text]
-
-        with io.open(code.format(order), 'wt') as fh:
-            fh.writelines(text)
+    routines = [('interpolate_order{}_hex'.format(order),basis),
+                ('interpolate_r_derivative_order{}_hex'.format(order), basis_gradient_r),
+                ('interpolate_s_derivative_order{}_hex'.format(order), basis_gradient_s),
+                ('interpolate_t_derivative_order{}_hex'.format(order), basis_gradient_t),]
+    codegen(routines, "C", "order{}_hex".format(order), to_files=True, project="SALVUS")
     
 def tensorized_basis_2D(order):
 
