@@ -109,7 +109,9 @@ class QuadP1 {
 
   /// Class name
   const static std::string Name() { return "QuadP1"; }
-
+  
+  /// Class type
+  const static ElementType type() { return ElementType::QUADP1; }
 };
 
 

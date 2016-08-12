@@ -21,11 +21,13 @@
 #include <Utilities/Logging.h>
 #include <Physics/HomogeneousDirichlet.h>
 
-enum elem_code { eQuad, eHex, eTypeError };
+enum elem_code { eQuad, eHex, eTri, eTet, eNotImplemented };
 elem_code etype(const std::string &etype) {
   if (etype == "quad") return eQuad;
   if (etype == "hex")  return eHex;
-  return eTypeError;
+  if (etype == "tri")  return eTri;
+  if (etype == "tet")  return eTet;
+  else return eNotImplemented;
 }
 
 enum phys_code {
@@ -196,7 +198,31 @@ std::unique_ptr<Element> Element::Factory(const std::string &shape,
                                    "Coupling physics: " + couple);
 
       }
+    case eTri:
+      switch (ptype(physics_base, physics_couple)) {
 
+        case eFluid:
+          return std::unique_ptr<Element> (new ElementAdapter<
+                                           Scalar<
+                                           Triangle<
+                                           TriP1>>>(options));
+          break;
+        case eFluidBoundaryHomoDirichlet:
+          return std::unique_ptr<Element> (
+                                           new ElementAdapter<
+                                           HomogeneousDirichlet<
+                                           Scalar<
+                                           Triangle<
+                                           TriP1>>>>(options));
+          break;
+        default:
+          throw std::runtime_error("Element could not be built.\n"
+                                   "Type:             tri\n"
+                                   "Base physics:     " + base +"\n"
+                                   "Coupling physics: " + couple);
+          break;
+      }
+    
     case eHex:
       switch (ptype(physics_base, physics_couple)) {
 
@@ -235,9 +261,14 @@ std::unique_ptr<Element> Element::Factory(const std::string &shape,
                                    "Type:             quad\n"
                                    "Base physics:     " + base +"\n"
                                    "Coupling physics: " + couple);
+          break;
       }
 
-    case eTypeError:
+    default:
+      throw std::runtime_error("Element could not be built.\n"
+                               "Type:             \n" + shape + "\n"
+                               "Base physics:     " + base +"\n"
+                               "Coupling physics: " + couple);
       break;
 
   }

@@ -52,6 +52,8 @@ class HexP1 {
 
   const static std::string Name() { return "HexP1"; }
 
+  /// Class name
+  const static ElementType type() { return ElementType::HEXP1; }
 };
 
 

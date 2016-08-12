@@ -30,7 +30,7 @@ def getExodusCopy(exodus_file_existing,exodus_file_new,parameter_names):
     '''
     
     exo_from = exodus.exodus(exodus_file_existing,"r",array_type='ctype')
-    num_vars_from = exo_from.get_element_variable_number()
+    num_vars_from = exo_from.get_element_variable_number(
     
     if num_vars_from == 0:
         addElementVariables = parameter_names

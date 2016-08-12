@@ -28,6 +28,28 @@ std::unique_ptr<Mesh> Mesh::Factory(const std::unique_ptr<Options> &options) {
   return std::unique_ptr<Mesh> (new Mesh(options));
 }
 
+void Mesh::read(int dim, int numCells, int numVerts, int numVertsPerElem,
+                int* cells, double* vertex_coords) {
+
+  // Class variables.
+  mDistributedMesh = NULL;
+  DM dm = NULL;
+  PetscBool interpolate_edges = PETSC_TRUE;
+  
+  DMPlexCreateFromCellList(PETSC_COMM_WORLD, dim, numCells, numVerts, numVertsPerElem,
+                           interpolate_edges, cells, dim, vertex_coords,&dm);
+  
+  DMPlexDistribute(dm, 0, NULL, &mDistributedMesh);
+
+  // We don't need the serial mesh anymore.
+  if (mDistributedMesh) { DMDestroy(&dm); }
+    // mDistributedMesh == NULL when only 1 proc is used.
+  else { mDistributedMesh = dm; }
+
+  DMGetDimension(mDistributedMesh, &mNumDim);
+  DMPlexGetDepthStratum(mDistributedMesh, mNumDim, NULL, &mNumberElementsLocal);
+}
+
 void Mesh::read() {
 
   // Class variables.
@@ -58,8 +80,156 @@ void Mesh::read() {
   else { mDistributedMesh = dm; }
 
   DMGetDimension(mDistributedMesh, &mNumDim);
+  // Get number of elements (duh.)
   DMPlexGetDepthStratum(mDistributedMesh, mNumDim, NULL, &mNumberElementsLocal);
 
+}
+
+#undef __FUNCT__
+#define __FUNCT__ "FixOrientation"
+PetscErrorCode FixOrientation(DM dm, PetscSection s, int* user_Nc, int user_Nf, int user_k, int user_dim)
+{
+  PetscInt       f, o, i, j, k, c, d;
+  DMLabel        depthLabel;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  ierr = DMGetLabel(dm,"depth",&depthLabel);CHKERRQ(ierr);
+  for (f = 0; f < user_Nf; f++) {
+    PetscSectionSym sym;
+
+    if (user_k < 3) continue; /* No symmetries needed for order < 3, because no cell, facet, edge or vertex has more than one node */
+    ierr = PetscSectionSymCreateLabel(PetscObjectComm((PetscObject)s),depthLabel,&sym);CHKERRQ(ierr);
+
+    for (d = 0; d <= user_dim; d++) {
+      /* Edge. */
+      if (d == 1) {
+        PetscInt        numDof  = user_k - 1;
+        PetscInt        numComp = user_Nc[f];
+        PetscInt        minOrnt = -2;
+        PetscInt        maxOrnt = 2;
+        PetscInt        **perms;
+
+        ierr = PetscCalloc1(maxOrnt - minOrnt,&perms);CHKERRQ(ierr);
+        for (o = minOrnt; o < maxOrnt; o++) {
+          PetscInt *perm;
+
+          if (o == -1 || !o) { /* identity */
+            perms[o - minOrnt] = NULL;
+          } else {
+            ierr = PetscMalloc1(numDof * numComp, &perm);CHKERRQ(ierr);
+            for (i = numDof - 1, k = 0; i >= 0; i--) {
+              for (j = 0; j < numComp; j++, k++) perm[k] = i * numComp + j;
+            }
+            perms[o - minOrnt] = perm;
+          }
+        }
+        ierr = PetscSectionSymLabelSetStratum(sym,d,numDof*numComp,minOrnt,maxOrnt,PETSC_OWN_POINTER,(const PetscInt **) perms,NULL);CHKERRQ(ierr);
+        /* Surface */
+      } else if (d == 2) {
+        PetscInt        perEdge = user_k - 1;
+        PetscInt        numDof  = perEdge * perEdge;
+        PetscInt        numComp = user_Nc[f];
+        PetscInt        minOrnt = -4;
+        PetscInt        maxOrnt = 4;
+        PetscInt        **perms;
+
+        ierr = PetscCalloc1(maxOrnt-minOrnt,&perms);CHKERRQ(ierr);
+        for (o = minOrnt; o < maxOrnt; o++) {
+          PetscInt *perm;
+
+          if (!o) continue; /* identity */
+          ierr = PetscMalloc1(numDof * numComp, &perm);CHKERRQ(ierr);
+          /* We want to perm[k] to list which *localArray* position the *sectionArray* position k should go to for the given orientation*/
+          switch (o) {
+          case 0:
+            break; /* identity */
+          case -4: /* flip along (-1,-1)--( 1, 1), which swaps edges 0 and 3 and edges 1 and 2.  This swaps the i and j variables */
+            for (i = 0, k = 0; i < perEdge; i++) {
+              for (j = 0; j < perEdge; j++, k++) {
+                for (c = 0; c < numComp; c++) {
+                  perm[k * numComp + c] = (perEdge * j + i) * numComp + c; // old
+                }
+              }
+            }
+            break;
+          case -3: /* flip along (-1, 0)--( 1, 0), which swaps edges 0 and 2.  This reverses the i variable */
+            for (i = 0, k = 0; i < perEdge; i++) {
+              for (j = 0; j < perEdge; j++, k++) {
+                for (c = 0; c < numComp; c++) {
+                  perm[k * numComp + c] = (perEdge * (perEdge - 1 - i) + j) * numComp + c;
+                }
+              }
+            }
+            break;
+          case -2: /* flip along ( 1,-1)--(-1, 1), which swaps edges 0 and 1 and edges 2 and 3.  This swaps the i and j variables and reverse both */
+            perm[0] = 2;
+            perm[1] = 0;
+            perm[2] = 3;
+            perm[3] = 1;
+            /* break; */
+            for (i = 0, k = 0; i < perEdge; i++) {
+              for (j = 0; j < perEdge; j++, k++) {
+                for (c = 0; c < numComp; c++) {
+                  perm[k * numComp + c] = (perEdge * (perEdge - 1 - j) + (perEdge - 1 - i)) * numComp + c;
+                }
+              }
+            }
+            break;
+          case -1: /* flip along ( 0,-1)--( 0, 1), which swaps edges 3 and 1.  This reverses the j variable */
+            perm[0] = 0;
+            perm[1] = 1;
+            perm[2] = 2;
+            perm[3] = 3;
+            /* break; */
+            for (i = 0, k = 0; i < perEdge; i++) {
+              for (j = 0; j < perEdge; j++, k++) {
+                for (c = 0; c < numComp; c++) {
+                  perm[k * numComp + c] = (perEdge * i + (perEdge - 1 - j)) * numComp + c;
+                }
+              }
+            }
+            break;
+          case  1: /* rotate section edge 1 to local edge 0.  This swaps the i and j variables and then reverses the j variable */
+            for (i = 0, k = 0; i < perEdge; i++) {
+              for (j = 0; j < perEdge; j++, k++) {
+                for (c = 0; c < numComp; c++) {
+                  perm[k * numComp + c] = (perEdge * (perEdge - 1 - j) + i) * numComp + c;
+                }
+              }
+            }
+            break;
+          case  2: /* rotate section edge 2 to local edge 0.  This reverse both i and j variables */
+            for (i = 0, k = 0; i < perEdge; i++) {
+              for (j = 0; j < perEdge; j++, k++) {
+                for (c = 0; c < numComp; c++) {
+                  perm[k * numComp + c] = (perEdge * (perEdge - 1 - i) + (perEdge - 1 - j)) * numComp + c;
+                }
+              }
+            }
+            break;
+          case  3: /* rotate section edge 3 to local edge 0.  This swaps the i and j variables and then reverses the i variable */
+            for (i = 0, k = 0; i < perEdge; i++) {
+              for (j = 0; j < perEdge; j++, k++) {
+                for (c = 0; c < numComp; c++) {
+                  perm[k * numComp + c] = (perEdge * j + (perEdge - 1 - i)) * numComp + c;
+                }
+              }
+            }
+            break;
+          default:
+            break;
+          }
+          perms[o - minOrnt] = perm;
+        }
+        ierr = PetscSectionSymLabelSetStratum(sym,d,numDof*numComp,minOrnt,maxOrnt,PETSC_OWN_POINTER,(const PetscInt **) perms,NULL);CHKERRQ(ierr);
+      }
+    }
+    ierr = PetscSectionSetFieldSym(s,f,sym);CHKERRQ(ierr);
+    ierr = PetscSectionSymDestroy(&sym);CHKERRQ(ierr);
+  }
+  ierr = PetscSectionViewFromOptions(s,NULL,"-section_with_sym_view");CHKERRQ(ierr);
+  PetscFunctionReturn(0);
 }
 
 void Mesh::setupTopology(const unique_ptr<ExodusModel> &model,
@@ -70,17 +240,21 @@ void Mesh::setupTopology(const unique_ptr<ExodusModel> &model,
 
   /* Find all the mesh boundaries. */
   DMLabel label; DMGetLabel(mDistributedMesh, "Face Sets", &label);
-  PetscInt boundary_size; DMLabelGetNumValues(label, &boundary_size);
-  IS idIS; DMLabelGetValueIS(label, &idIS);
-  const PetscInt *ids; ISGetIndices(idIS, &ids);
-  for (PetscInt i = 0; i < boundary_size; i++) {
-    PetscInt numFaces; DMLabelGetStratumSize(label, ids[i], &numFaces);
-    IS pointIs; DMLabelGetStratumIS(label, ids[i], &pointIs);
-    const PetscInt *faces; ISGetIndices(pointIs, &faces);
-    /* Tuple describing boundary set i for face j. */
-    for (PetscInt j = 0; j < numFaces; j++)
-    {
-      mBndPts.push_back(std::tie(i, faces[j]));
+  PetscInt boundary_size = 0;
+  // label==NULL when there are no side sets, so there are no labeled boundaries
+  if (label) {
+    DMLabelGetNumValues(label, &boundary_size);
+    IS idIS; DMLabelGetValueIS(label, &idIS);
+    const PetscInt *ids; ISGetIndices(idIS, &ids);
+    for (PetscInt i = 0; i < boundary_size; i++) {
+      PetscInt numFaces; DMLabelGetStratumSize(label, ids[i], &numFaces);
+      IS pointIs; DMLabelGetStratumIS(label, ids[i], &pointIs);
+      const PetscInt *faces; ISGetIndices(pointIs, &faces);
+      /* Tuple describing boundary set i for face j. */
+      for (PetscInt j = 0; j < numFaces; j++)
+        {
+          mBndPts.push_back(std::tie(i, faces[j]));
+        }
     }
   }
 
@@ -141,14 +315,12 @@ void Mesh::setupGlobalDof(unique_ptr<Element> const &element,
     /* Note here that we are allocating each field component as a separate vector.
      * This may change in the future.
      * for (auto &f: mMeshFields) { num_comps[i++] = numFieldPerPhysics(f); } */
-    PetscInt i = 0;
-    for (auto &f: mMeshFields) { num_comps[i++] = 1; }
+    for(int i=0; i<num_fields; i++) { num_comps[i] = 1; }
   }
   PetscInt *num_dof; PetscMalloc1(num_fields * (mNumDim + 1), &num_dof);
 
-  /* For each field... */
+  /* This now just allocated the necessary memory per element. */
   for (PetscInt f = 0; f < num_fields; f++) {
-
     /* For each element point... (vertex, edge, face, volume) */
     for (PetscInt d = 0; d < (mNumDim + 1); d++) {
 
@@ -187,26 +359,31 @@ void Mesh::setupGlobalDof(unique_ptr<Element> const &element,
     }
   }
 
-  /* Generate the section which will define the global dofs. */
+  
+  /* Allocate the section. */
   DMPlexCreateSection(mDistributedMesh, mNumDim, num_fields, num_comps, num_dof,
                       num_bc, NULL, NULL, NULL, NULL, &mMeshSection);
-  PetscFree(num_dof); PetscFree(num_comps);
-
+  
   /* Attach some meta-information to the section. */
 //  {
 //    PetscInt i = 0;
 //    for (auto &f: mMeshFields) { PetscSectionSetFieldName(mMeshSection, i++, f.c_str()); }
 //  }
 
-  /* Attach the section to our DM, and set the spectral ordering. */
+  /* Attach the section to our DM */
   DMSetDefaultSection(mDistributedMesh, mMeshSection);
 
   /* Only create a spectral basis if it makes sense. */
   if ((this->baseElementType() == "quad") ||
       (this->baseElementType() == "hex")) {
+    // Fixes edges and surfaces with rotated orientation given by neighboring element
+    FixOrientation(mDistributedMesh, mMeshSection, num_comps, num_fields, poly_order, mNumDim);
+    // Sets up tensorized ordering for quads and hexes
     DMPlexCreateSpectralClosurePermutation(mDistributedMesh, NULL);
   }
 
+  PetscFree(num_dof); 
+  PetscFree(num_comps);
 }
 
 std::vector<PetscInt> Mesh::EdgeNumbers(const PetscInt elm) {
@@ -319,8 +496,10 @@ std::string Mesh::baseElementType() {
     type = "quad";
   } else if (vtx.rows() == 4 && mNumDim == 3) {
     type = "tet";
-  } else {
+  } else if (vtx.rows() == 8 && mNumDim == 3) {
     type = "hex";
+  } else {
+    ERROR() << "Element type not detected: vtx.rows()=" << vtx.rows() << " and dim = " << mNumDim;
   }
   return type;
 }

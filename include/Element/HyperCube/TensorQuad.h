@@ -236,7 +236,10 @@ private:
   void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model, std::string parameter);
 
   /**
-   *
+   * Sets an edge to a particular scalar value (useful for Dirichlet boundaries)
+   * @param [in] edg Edge id 0-3
+   * @param [in] val Value to set
+   * @param [out] f Field to set to `val`
    */
   void setEdgeToValue(const PetscInt edg, const PetscScalar val, Eigen::Ref<RealVec> f);
 
@@ -263,6 +266,7 @@ private:
   inline PetscInt NumDofEdg() const { return mNumDofEdg; }
   inline PetscInt NumDofVtx() const { return mNumDofVtx; }
   inline IntVec ClsMap()      const { return mClsMap; }
+  inline int PlyOrd()         const { return mPlyOrd; }
   inline QuadVtx VtxCrd()     const { return mVtxCrd; }
   const inline std::vector<std::unique_ptr<Source>> &Sources() const { return mSrc; }
   const inline std::vector<std::unique_ptr<Receiver>> &Receivers() const { return mRec; }

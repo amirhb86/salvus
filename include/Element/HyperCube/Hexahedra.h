@@ -53,7 +53,7 @@ private:
 
   const static PetscInt mNumDim = 3;
   const static PetscInt mNumVtx = 8;
-  const static PetscInt mMaxOrder = 3;
+  const static PetscInt mMaxOrder = 9;
 
   // Workspace.  
   RealVec mParWork;
@@ -272,6 +272,7 @@ private:
   inline PetscInt NumDofEdg() const { return mNumDofEdg; }
   inline PetscInt NumDofVtx() const { return mNumDofVtx; }
   inline IntVec ClsMap() const { return mClsMap; }
+  inline int PlyOrd()      const { return mPlyOrd; }
   inline RealMat VtxCrd() const { return mVtxCrd; }
   inline static PetscInt MaxOrder() { return mMaxOrder; }
   inline void SetVtxPar(const Eigen::Ref<const RealVec> &v, const std::string &par) { mPar[par] = v; }

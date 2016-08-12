@@ -1,5 +1,5 @@
 /******************************************************************************
- *                     Code generated with sympy 0.7.6.1                      *
+ *                      Code generated with sympy 0.7.6                       *
  *                                                                            *
  *              See http://www.sympy.org/ for more information.               *
  *                                                                            *

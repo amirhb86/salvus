@@ -16,7 +16,7 @@ enum class LogProc {
     };
 
 enum class LogLevel {
-  STD, DEBUG, VERBOSE
+  STD, DEBUG, VERBOSE, ERROR
     };
 
 enum class LogWhere {
@@ -40,6 +40,7 @@ public:
 #define LOG() Logger().Get(LogLevel::STD)
 #define DEBUG() Logger().Get(LogLevel::DEBUG)
 #define VERBOSE() Logger().Get(LogLevel::VERBOSE)
+#define ERROR() Logger().Get(LogLevel::ERROR)
 
 struct GlobalLoggerState {
   LogProc proc = LogProc::ROOTONLY;

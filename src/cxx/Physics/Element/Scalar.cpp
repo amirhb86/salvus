@@ -88,8 +88,14 @@ MatrixXd Scalar<Element>::computeSourceTerm(const double time) {
 
 #include <Element/HyperCube/TensorQuad.h>
 #include <Element/HyperCube/Hexahedra.h>
+#include <Element/Simplex/Triangle.h>
+#include <Element/Simplex/Tetrahedra.h>
 #include <Element/HyperCube/HexP1.h>
 #include <Element/HyperCube/QuadP1.h>
+#include <Element/Simplex/TriP1.h>
+#include <Element/Simplex/TetP1.h>
+
 template class Scalar<TensorQuad<QuadP1>>;
 template class Scalar<Hexahedra<HexP1>>;
-
+template class Scalar<Triangle<TriP1>>;
+template class Scalar<Tetrahedra<TetP1>>;

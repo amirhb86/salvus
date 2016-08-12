@@ -334,7 +334,7 @@ std::tuple<RealVec,RealVec,RealVec> HexP1::buildNodalPoints(
   PetscInt idx = 0;
   for (PetscInt k = 0; k < num_pts_t; k++) {
     for (PetscInt j = 0; j < num_pts_s; j++) {
-        for (PetscInt i = 0; i < num_pts_r; i++) {
+      for (PetscInt i = 0; i < num_pts_r; i++) {
 
         PetscReal r = intCrdR(i);
         PetscReal s = intCrdS(j);

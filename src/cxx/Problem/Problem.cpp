@@ -153,12 +153,12 @@ std::tuple<ElemVec, FieldDict> Problem::assembleIntoGlobalDof(
     }
   }
 
-  /* Matrices to hold pulled values on each element. */
-  RealMat a(numDofPerElm, maxLocalFields); /// acceleration.
+  /* Matrices to hold computed field values */
+  RealMat u(numDofPerElm, maxLocalFields); /// input field
+  RealMat k(numDofPerElm, maxLocalFields); /// stiffness applied to u.  
   RealMat s(numDofPerElm, maxLocalFields); /// surf/edg integral.
   RealMat f(numDofPerElm, maxLocalFields); /// forcing.
-  RealMat u(numDofPerElm, maxLocalFields); /// vol/face integral.
-  RealMat k(numDofPerElm, maxLocalFields); /// stiffness.
+  RealMat a(numDofPerElm, maxLocalFields); /// final acceleration.
 
   /* Get fields on local partitions. */
   for (auto &field: pullFields) { checkOutField(field, PETScDM, fields); }
@@ -209,7 +209,7 @@ std::tuple<ElemVec, FieldDict> Problem::assembleIntoGlobalDof(
 }
 
 void Problem::saveSolution(const PetscReal time, const std::vector<std::string> &save_fields,
-                              FieldDict &fields, DM PetscDM) {
+                           FieldDict &fields, DM PetscDM) {
 
   /* Do nothing if we didn't set up a movie save. */
   if (!mViewer) return;

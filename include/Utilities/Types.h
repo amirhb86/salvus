@@ -51,3 +51,6 @@ class salvus_warning: public std::exception {
   }
   virtual const char* what() const throw() { return mMsg.c_str(); }
 };
+
+/// Strongly typed Element types
+enum class ElementType {QUADP1, TRIP1, HEXP1, TETP1};

@@ -37,7 +37,7 @@ class Problem {
   Problem(const std::unique_ptr<Options> &options) {
 
     /* Assume we're not going to save a movie. */
-    mViewer = nullptr; mOutputFrame = 1;
+    mViewer = nullptr; mOutputFrame = 0;
 
   };
 

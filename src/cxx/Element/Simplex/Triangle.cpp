@@ -5,6 +5,7 @@
 #include <Model/ExodusModel.h>
 #include <Element/Simplex/TriP1.h>
 #include <Element/Simplex/Triangle.h>
+#include <Utilities/Logging.h>
 
 extern "C" {
 #include <Element/Simplex/Autogen/p3_triangle.h>
@@ -98,7 +99,7 @@ Triangle<ConcreteShape>::Triangle(std::unique_ptr<Options> const &options) {
   mClsMap = Triangle<ConcreteShape>::ClosureMapping(options->PolynomialOrder(), mNumDim);
   setupGradientOperator();
 
-  mDetJac.setZero(mNumIntPnt);
+  mDetJac = 0;
   mParWork.setZero(mNumIntPnt);
   mStiffWork.setZero(mNumIntPnt);
   mGradWork.setZero(mNumIntPnt, mNumDim);
@@ -202,6 +203,12 @@ MatrixXd Triangle<ConcreteShape>::buildStiffnessMatrix(VectorXd velocity) {
   auto drdz = invJ(1,0);
   auto dsdz = invJ(1,1);
 
+  // save for later reuse
+  mInvJac = invJ;
+  mInvJacT_x_invJac = invJ.transpose() * invJ;
+  mInvJacT = invJ.transpose();
+  mDetJac = detJ;
+  
   // build material on all nodes
   MatrixXd elementStiffnessMatrix(mNumIntPnt,mNumIntPnt);
     
@@ -265,6 +272,66 @@ bool Triangle<ConcreteShape>::attachReceiver(std::unique_ptr<Receiver> &receiver
   exit(1);
 }
 
+// P3 reference triangle in PETSc ordering (face,edges,vertices)
+//    11
+//    | \--
+//    |    \--
+//    7       6--
+//    |          \--
+//    |             \-
+//    |     2         \--
+//    8                  5--
+//    |     0    1          \--
+//    |                        \--
+//    9------3---------4--------- 10
+template <typename ConcreteShape>
+void Triangle<ConcreteShape>::setEdgeToValue(const PetscInt edg,
+                                             const PetscScalar val,
+                                             Eigen::Ref<RealVec> f) {
+
+  std::vector<int> edge_ids;
+  if(mPlyOrd == 3) {
+    if      (edg == 0) { edge_ids = {9,3,4,10}; }
+    else if (edg == 1) { edge_ids = {10,5,6,11}; }
+    else if (edg == 2) { edge_ids = {11,7,8,9}; }
+    else { ERROR() << "Only three edges in a triangle"; }
+    for (auto &eid: edge_ids) {
+      f(eid) = val;
+    }
+  }
+  else {
+    ERROR() << "Not Implemented: setEdgeToValue for Polynomials != 3";
+  }
+
+}
+
+
+template <typename ConcreteShape>
+VectorXd Triangle<ConcreteShape>::applyGradTestAndIntegrate(const Ref<const MatrixXd>& f) {
+  Vector2d refGrad;
+  Vector2d phyGrad;
+
+  for(int i=0;i<mNumIntPnt;i++) {
+    refGrad << f(i,0), f(i,1);
+    phyGrad = mInvJacT * refGrad;
+    mGradWork(i,0) = phyGrad(0);
+    mGradWork(i,1) = phyGrad(1);    
+  }
+  
+  for(int i=0;i<mNumIntPnt;i++) {
+
+    mStiffWork(i) = 0;
+    for(int j=0;j<mNumIntPnt;j++) {
+      mStiffWork(i) +=
+        mIntegrationWeights[j] * (mGradWork(j,0) * mGradientPhi_dr(i,j) +
+                                  mGradWork(j,1) * mGradientPhi_ds(i,j));
+    }
+
+    mStiffWork(i) *= mDetJac;
+  }
+  return mStiffWork;  
+}
+
 template <typename ConcreteShape>
 VectorXd Triangle<ConcreteShape>::applyTestAndIntegrate(const Ref<const VectorXd> &f) {
 
@@ -273,6 +340,30 @@ VectorXd Triangle<ConcreteShape>::applyTestAndIntegrate(const Ref<const VectorXd
   std::tie(invJac,detJac) = ConcreteShape::inverseJacobian(mVtxCrd);
   return detJac*mIntegrationWeights.array()*f.array();
 }
+
+template <typename ConcreteShape>
+MatrixXd Triangle<ConcreteShape>::computeGradient(const Ref<const VectorXd>& field) {
+
+  Vector2d phyGrad;
+  Vector2d refGrad;
+  
+  for(int i=0;i<mNumIntPnt;i++) {
+
+    refGrad.setZero(2);
+    for(int j=0;j<mNumIntPnt;j++) {
+      refGrad(0) += mGradientPhi_dr(j,i) * field(j);
+      refGrad(1) += mGradientPhi_ds(j,i) * field(j);
+    }
+    
+    phyGrad = (mInvJac) * refGrad;    
+    mGradWork(i,0) = phyGrad(0);
+    mGradWork(i,1) = phyGrad(1);
+        
+  }
+
+  return mGradWork;
+}
+
 
 template <typename ConcreteShape>
 void Triangle<ConcreteShape>::setBoundaryConditions(std::unique_ptr<Mesh> const &mesh) {
@@ -288,7 +379,7 @@ void Triangle<ConcreteShape>::setBoundaryConditions(std::unique_ptr<Mesh> const 
 }
 
 template <typename ConcreteShape>
-VectorXd Triangle<ConcreteShape>::getDeltaFunctionCoefficients(const double r, const double s) {
+VectorXd Triangle<ConcreteShape>::getDeltaFunctionCoefficients(const Eigen::Ref<RealVec>& pnt) {
   std::cerr << "ERROR: Not implemented getDeltaFunctionCoefficients\n";
   exit(1);
 }

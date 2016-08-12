@@ -2,8 +2,10 @@ import os
 
 import io
 import sympy as sym
+import re
+
 from sympy.physics.quantum import TensorProduct
-from sympy.utilities.codegen import CCodeGen
+from sympy.utilities.codegen import codegen
 from quadrature_points_weights import \
     gauss_lobatto_legendre_quadruature_points_weights
 
@@ -86,6 +88,21 @@ def generate_closure_mapping(N):
 
     return face + edge_0 + edge_1 + edge_2 + edge_3 + vertices
 
+def fixHeader(order,element,location):
+    """
+    fix headers (#include "order4_hex.h" -> #include <Element/HyperCube/Autogen/order3_hex.h>)
+    e.g.: fixHeader(4,"hex","/path/to/file") fixes files called 'order4_hex.c'    
+    """
+    # fix headers (#include "order4_hex.h" -> #include <Element/HyperCube/Autogen/order3_hex.h>)
+    lines = []
+    with open("{}/order{}_{}.c".format(location,order,element)) as infile:
+        for line in infile:
+            newline = re.sub('\"(order\d_\w+.h)\"', r'<Element/HyperCube/Autogen/\1>', line)
+            lines.append(newline)
+    with open("{}/order{}_{}.c".format(location,order,element), 'w') as outfile:
+        for line in lines:
+            outfile.write(line)
+
 def tensorized_basis_3D(order):
     total_integration_points = (order + 1) * (order + 1)
     r,s,t = sym.symbols('r,s,t')
@@ -111,33 +128,15 @@ def tensorized_basis_3D(order):
     basis_gradient_s = sym.Matrix([sym.diff(i, s) for i in basis])
     basis_gradient_t = sym.Matrix([sym.diff(i, t) for i in basis])
 
-    routines = []
-    autocode = CCodeGen()
-    routines.append(autocode.routine(
-        'interpolate_order{}_hex'.format(order), basis,
-        argument_sequence=None))
+    routines = [('interpolate_order{}_hex'.format(order),basis),
+                ('interpolate_r_derivative_order{}_hex'.format(order), basis_gradient_r),
+                ('interpolate_s_derivative_order{}_hex'.format(order), basis_gradient_s),
+                ('interpolate_t_derivative_order{}_hex'.format(order), basis_gradient_t)]
+    codegen(routines, "C", "order{}_hex".format(order), to_files=True, project="SALVUS")
 
-    routines.append(autocode.routine(
-        'interpolate_r_derivative_order{}_hex'.format(order), basis_gradient_r,
-        argument_sequence=None))
-    routines.append(autocode.routine(
-        'interpolate_s_derivative_order{}_hex'.format(order), basis_gradient_s,
-        argument_sequence=None))
-    routines.append(autocode.routine(
-        'interpolate_t_derivative_order{}_hex'.format(order), basis_gradient_t,
-        argument_sequence=None))
-
-    autocode.write(routines, 'order{}_hex'.format(order), to_files=True)
-    
-    # reformat some code.
-    for code, lend in zip(['order{}_hex.c', 'order{}_hex.h'], [' {', ';']):
-        with io.open(code.format(order), 'rt') as fh:
-            text = fh.readlines()
-            text = [line.replace('double', 'int') if 'closure' in line else line for line in text]
-
-        with io.open(code.format(order), 'wt') as fh:
-            fh.writelines(text)
-    
+    # fix headers (#include "order4_hex.h" -> #include <Element/HyperCube/Autogen/order3_hex.h>)
+    fixHeader(order,"hex",".")
+        
 def tensorized_basis_2D(order):
 
     total_integration_points = (order + 1) * (order + 1)

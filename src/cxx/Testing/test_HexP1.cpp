@@ -1,8 +1,137 @@
 #include "catch.h"
 #include <Eigen/Dense>
+#include <Utilities/Types.h>
+#include <Mesh/Mesh.h>
+#include <Model/ExodusModel.h>
+#include <Utilities/Options.h>
+#include <Physics/Scalar.h>
+#include <Element/ElementAdapter.h>
+#include <Problem/Problem.h>
+#include <petscviewerhdf5.h>
 #include <Element/HyperCube/Hexahedra.h>
 #include <Element/HyperCube/HexP1.h>
+
 #include <stdexcept>
+
+TEST_CASE("test closure mapping","[hex/closure]") {
+
+  std::string e_file = "hex_eigenfunction.e";
+
+  PetscOptionsClear(NULL);
+  const char *arg[] = {
+    "salvus_test",
+    "--testing", "true",
+    "--mesh-file", e_file.c_str(),
+    "--model-file", e_file.c_str(),
+    "--time-step", "1e-2",
+    "--polynomial-order", "3", NULL};
+  char **argv = const_cast<char **> (arg);
+  int argc = sizeof(arg) / sizeof(const char *) - 1;
+  PetscOptionsInsert(NULL, &argc, &argv, NULL);
+
+  std::unique_ptr<Options> options(new Options);
+  options->setOptions();
+
+  std::unique_ptr<Problem> problem(Problem::Factory(options));
+  std::unique_ptr<ExodusModel> model(new ExodusModel(options));
+  std::unique_ptr<Mesh> mesh(Mesh::Factory(options));
+
+  model->read();
+  int cells[] =
+    {0,1,2,3,
+     4,5,6,7,
+     // 5,4,7,6, // bottom o:-1
+     // 9,10,11,8 // top o:0
+     // 6,5,4,7, // bottom o:-2
+     // 10,11,8,9 // top o:0
+     // 7,6,5,4, // bottom o:-3
+     // 10,8,9,11 // top o:0
+     4,7,6,5, // bottom o:-4
+     8,9,10,11 // top o:0     
+    };
+  double vertex_coords[] =
+    {0.0,0.0,0.0,
+     0.0,1.0,0.0,
+     1.0,1.0,0.0,
+     1.0,0.0,0.0,
+     0.0,0.0,1.0,
+     1.0,0.0,1.0,
+     1.0,1.0,1.0,
+     0.0,1.0,1.0,
+     0.0,0.0,2.0,
+     1.0,0.0,2.0,
+     1.0,1.0,2.0,
+     0.0,1.0,2.0};
+
+  mesh->read(3,2,12,8,cells,vertex_coords);
+
+  /* Setup topology from model and mesh. */
+  mesh->setupTopology(model, options);
+
+  /* Setup elements from model and topology. */
+  auto elements = problem->initializeElements(mesh, model, options);
+
+  /* Setup global degrees of freedom based on element 0. */
+  mesh->setupGlobalDof(elements[0], options);
+
+  std::vector<std::unique_ptr<Element>> test_elements;
+  auto fields = problem->initializeGlobalDofs(elements, mesh);
+  
+  
+  RealVec pts_x, pts_y, pts_z;
+  Scalar<Hexahedra<HexP1>> *e0 = dynamic_cast<Scalar<Hexahedra<HexP1>>*>(elements[0].get());
+  Scalar<Hexahedra<HexP1>> *e1 = dynamic_cast<Scalar<Hexahedra<HexP1>>*>(elements[1].get());
+  std::tie(pts_x, pts_y, pts_z) = e0->buildNodalPoints();
+
+  PetscScalar x0 = 0.5, y0 = 0.5, z0 = 0.5, L = 1;
+  // RealVec un =
+  //   (M_PI / L * (pts_x.array() - (x0 + L / 2))).sin() *
+  //   (M_PI/ L * (pts_y.array() - (y0 + L / 2))).sin() *
+  //   (M_PI / L * (pts_z.array() - (z0 + L / 2))).sin();
+  
+  RealVec un =
+    (M_PI / L * (pts_x.array() - (x0 + L / 2))).sin();       
+  
+  // for(int i=0;i<un.size();i++) {
+  //   un[i] = pts_y[i];
+  // }
+  
+  RealMat grad_xyz0 = e0->computeGradient(un);
+  RealMat grad_xyz1= e1->computeGradient(un);
+  
+  // problem->insertElementalFieldIntoMesh("u", 0, elements[0]->ClsMap(), un,
+  //                                       mesh->DistributedMesh(), mesh->MeshSection(),
+  //                                       fields);
+
+  un.setZero(pts_x.size());
+  un[53] = 1.0;
+  problem->addFieldOnElement("u",0,elements[0]->ClsMap(), un,
+                             mesh->DistributedMesh(), mesh->MeshSection(),
+                             fields);
+
+  un.setZero(pts_x.size());
+  un[5] = 1.0;
+  problem->addFieldOnElement("u",1,elements[1]->ClsMap(), un,
+                             mesh->DistributedMesh(), mesh->MeshSection(),
+                             fields);
+  
+  RealVec u_1 = problem->getFieldOnElement("u", 1, elements[1]->ClsMap(),
+                                         mesh->DistributedMesh(), mesh->MeshSection(), fields);
+  
+  
+  // for(int i=0;i<64;i++) {
+  // printf("grad_x0[%d]=%f\n",i,grad_xyz0(i,0));
+  // }
+  // for(int i=0;i<64;i++) {
+  // printf("grad_x1[%d]=%f\n",i,grad_xyz1(i,0));
+  // }
+  for(int i=0;i<16;i++) {
+    if(u_1[i] > 0.0) {
+      printf("u_1[%d]=%f\n",i,u_1[i]);
+    }
+  }
+  
+}
 
 TEST_CASE("test functions in HexP1", "[hexP1]") {
 

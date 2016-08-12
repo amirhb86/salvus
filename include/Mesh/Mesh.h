@@ -91,6 +91,18 @@ class Mesh {
   }
 
   /**
+   * Builds a mesh from a list of vertices and cells.
+   * @param [in] dim dimension
+   * @param [in] numCells number of cells
+   * @param [in] numVerts number of vertices
+   * @param [in] numVertsPerElem number of vertices per element
+   * @param [in] cells The list of cell connectivity
+   * @param [in] vertex_coords The list of vertex coordinates
+   */
+  void read(int dim, int numCells, int numVerts, int numVertsPerElem,
+            int* cells, double* vertex_coords);
+  
+  /**
    * Reads an exodus mesh from a file defined in options.
    * By the time this method is finished, the mesh has been
    * read, and parallelized across processors (via a call to Chaco).
