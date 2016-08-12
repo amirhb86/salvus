@@ -5,7 +5,7 @@
  *                                                                            *
  *                       This file is part of 'SALVUS'                        *
  ******************************************************************************/
-#include "order6_hex.h"
+#include <Element/HyperCube/Autogen/order6_hex.h>
 #include <math.h>
 
 void interpolate_order6_hex(double r, double s, double t, double *out_3389759113221083689) {

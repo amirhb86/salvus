@@ -5,7 +5,7 @@
  *                                                                            *
  *                       This file is part of 'SALVUS'                        *
  ******************************************************************************/
-#include "order4_hex.h"
+#include <Element/HyperCube/Autogen/order4_hex.h>
 #include <math.h>
 
 void interpolate_order4_hex(double r, double s, double t, double *out_2810135618052889493) {

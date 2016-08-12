@@ -2,6 +2,8 @@ import os
 
 import io
 import sympy as sym
+import re
+
 from sympy.physics.quantum import TensorProduct
 from sympy.utilities.codegen import codegen
 from quadrature_points_weights import \
@@ -86,6 +88,21 @@ def generate_closure_mapping(N):
 
     return face + edge_0 + edge_1 + edge_2 + edge_3 + vertices
 
+def fixHeader(order,element,location):
+    """
+    fix headers (#include "order4_hex.h" -> #include <Element/HyperCube/Autogen/order3_hex.h>)
+    e.g.: fixHeader(4,"hex","/path/to/file") fixes files called 'order4_hex.c'    
+    """
+    # fix headers (#include "order4_hex.h" -> #include <Element/HyperCube/Autogen/order3_hex.h>)
+    lines = []
+    with open("{}/order{}_{}.c".format(location,order,element)) as infile:
+        for line in infile:
+            newline = re.sub('\"(order\d_\w+.h)\"', r'<Element/HyperCube/Autogen/\1>', line)
+            lines.append(newline)
+    with open("{}/order{}_{}.c".format(location,order,element), 'w') as outfile:
+        for line in lines:
+            outfile.write(line)
+
 def tensorized_basis_3D(order):
     total_integration_points = (order + 1) * (order + 1)
     r,s,t = sym.symbols('r,s,t')
@@ -114,9 +131,12 @@ def tensorized_basis_3D(order):
     routines = [('interpolate_order{}_hex'.format(order),basis),
                 ('interpolate_r_derivative_order{}_hex'.format(order), basis_gradient_r),
                 ('interpolate_s_derivative_order{}_hex'.format(order), basis_gradient_s),
-                ('interpolate_t_derivative_order{}_hex'.format(order), basis_gradient_t),]
+                ('interpolate_t_derivative_order{}_hex'.format(order), basis_gradient_t)]
     codegen(routines, "C", "order{}_hex".format(order), to_files=True, project="SALVUS")
-    
+
+    # fix headers (#include "order4_hex.h" -> #include <Element/HyperCube/Autogen/order3_hex.h>)
+    fixHeader(order,"hex",".")
+        
 def tensorized_basis_2D(order):
 
     total_integration_points = (order + 1) * (order + 1)
