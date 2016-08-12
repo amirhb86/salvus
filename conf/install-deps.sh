@@ -4,6 +4,8 @@
 cd
 # check if petsc has been installed before
 if [ -f /home/travis/petsc/include/petsc.h ]; then
+    echo "Using cached PETSC install"
+else    
     echo "Installing petsc to $HOME/petsc"    
     # git clone -b maint https://bitbucket.org/petsc/petsc petsc-src;
     # currently needed for new closure mapping until it is merged into main
@@ -19,8 +21,6 @@ if [ -f /home/travis/petsc/include/petsc.h ]; then
     make 
     # $HOME/petsc will be cached
     make install
-else
-    echo "Using cached PETSC install"
 fi
 # Eigen 3.2
 cd
