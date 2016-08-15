@@ -209,11 +209,20 @@ TEST_CASE("Unit test model", "[model]") {
     
 
     SECTION("Write exodus model to disk") {
-      std::string output_filename("moep.e");
+      std::string output_filename("quad_eigenfunction_out.e");
+      model->write(output_filename.c_str());
+      std::ifstream f(output_filename.c_str());
+      REQUIRE(f.good());
+    }
+
+    SECTION("Write nodal pars in exodus model to disk") {
+      std::unique_ptr<ExodusModel> model(new ExodusModel());
+      model->setExodusFilename( "nodal_hex.e" );
+      model->read();
+      std::string output_filename("nodal_hex_out.e");
       model->write(output_filename.c_str());
       std::ifstream f(output_filename.c_str());
       REQUIRE(f.good());
     }
   }
-
 }
