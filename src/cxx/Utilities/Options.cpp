@@ -9,7 +9,7 @@ void Options::setOptions() {
 
   /* To hold options. */
   PetscInt  int_buffer;
-  PetscBool parameter_set, testing;
+  PetscBool parameter_set, testing, static_problem;
   PetscReal real_buffer;
   char      char_buffer[PETSC_MAX_PATH_LEN];
 
@@ -21,23 +21,17 @@ void Options::setOptions() {
   } else {
     testing = PETSC_FALSE;
   }
+  /* Set this so that options don't fail if we consider a static (i.e., not time-dependent) problem. */
+  PetscOptionsGetBool(NULL, NULL, "--static-problem", &static_problem, &parameter_set);
+  if (parameter_set) {
+    static_problem = PETSC_TRUE;
+  } else {
+    static_problem = PETSC_FALSE;
+  }
 
   /********************************************************************************
-                               Required options.
+                          Spacial discretization and model.
   ********************************************************************************/
-  PetscOptionsGetReal(NULL, NULL, "--duration", &real_buffer, &parameter_set);
-  if (parameter_set) {
-    mDuration = real_buffer;
-  }
-  else {
-    if (! testing) throw std::runtime_error(epre + "--duration" + epst);
-  }
-  PetscOptionsGetReal(NULL, NULL, "--time-step", &real_buffer, &parameter_set);
-  if (parameter_set) {
-    mTimeStep = real_buffer;
-  } else {
-    if (! testing) throw std::runtime_error(epre + "--time-step" + epst);
-  }
   PetscOptionsGetString(NULL, NULL, "--mesh-file", char_buffer, PETSC_MAX_PATH_LEN, &parameter_set);
   if (parameter_set) {
     mMeshFile = std::string(char_buffer);
@@ -65,6 +59,23 @@ void Options::setOptions() {
   }
 
   /********************************************************************************
+                              Time-dependent problems.
+  ********************************************************************************/
+  PetscOptionsGetReal(NULL, NULL, "--duration", &real_buffer, &parameter_set);
+  if (parameter_set) {
+    mDuration = real_buffer;
+  }
+  else {
+    if (! testing && ! static_problem ) throw std::runtime_error(epre + "--duration" + epst);
+  }
+  PetscOptionsGetReal(NULL, NULL, "--time-step", &real_buffer, &parameter_set);
+  if (parameter_set) {
+    mTimeStep = real_buffer;
+  } else {
+    if (! testing && ! static_problem ) throw std::runtime_error(epre + "--time-step" + epst);
+  }
+
+  /********************************************************************************
                                      Boundaries.
   ********************************************************************************/
   char *bounds[PETSC_MAX_PATH_LEN]; PetscInt num_bnd = PETSC_MAX_PATH_LEN;
@@ -87,7 +98,6 @@ void Options::setOptions() {
     PetscOptionsGetString(NULL, NULL, "--movie-file-name", char_buffer, PETSC_MAX_PATH_LEN, &parameter_set);
     if (parameter_set) {
       mMovieFile = std::string(char_buffer);
-      LOG() << "Saving movie to " << mMovieFile;
     } else {
       if (! testing)
         throw std::runtime_error("Movie requested, but no output file specified."
@@ -158,7 +168,7 @@ void Options::setOptions() {
   }
 
   /********************************************************************************
-                                    Recievers.
+                                    Receivers.
   ********************************************************************************/
   PetscOptionsGetInt(NULL, NULL, "--number-of-receivers", &int_buffer, &parameter_set);
   if (parameter_set) {
