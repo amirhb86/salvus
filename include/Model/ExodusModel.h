@@ -99,9 +99,6 @@ class ExodusModel {
   /** Read Exodus info field. */
   void readInfo();
 
-  /** Set filename to read the model from. */
-  void setExodusFilename(const std::string filename);
-
   /**
    * Throw an error and specify which function has errored.
    * @param [in] retval Value thrown by exodus library function.
@@ -118,6 +115,9 @@ class ExodusModel {
 
   /** Destructor (closes exodus file). */
   ~ExodusModel();
+
+  /** Set filename to read the model from. */
+  void setExodusFilename(const std::string filename);
 
   /**
    * Reads in mesh on rank 0, and populates all necessary model quantities (parameters, etc.).

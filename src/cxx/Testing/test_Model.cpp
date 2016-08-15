@@ -193,4 +193,27 @@ TEST_CASE("Unit test model", "[model]") {
 
   }
 
+  SECTION("Test read/write") {
+
+    PetscOptionsSetValue(NULL, "--model-file", "quad_eigenfunction.e");
+    std::unique_ptr<Options> options(new Options);
+    options->setOptions();
+
+    std::unique_ptr<ExodusModel> model(new ExodusModel());
+    SECTION("Fail if Exodus file name is not specified") {    
+      REQUIRE_THROWS_AS(model->read(), std::runtime_error);
+    }
+
+    model->setExodusFilename( options->ModelFile() );
+    model->read();
+    
+
+    SECTION("Write exodus model to disk") {
+      std::string output_filename("moep.e");
+      model->write(output_filename.c_str());
+      std::ifstream f(output_filename.c_str());
+      REQUIRE(f.good());
+    }
+  }
+
 }
