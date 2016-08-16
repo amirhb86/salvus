@@ -22,6 +22,8 @@ class Utilities;
 
 class ExodusModel {
 
+ protected:
+
   /* Title stored in file. */
   char mExodusTitle[MAX_LINE_LENGTH + 1];
   std::string mExodusFileName;
@@ -36,6 +38,8 @@ class ExodusModel {
   PetscInt mNumberElementBlocks;
   PetscInt mNumberNodalVariables;
   PetscInt mNumberElementalVariables;
+  PetscInt mNumberGlobalVariables;
+  PetscInt mNumberInfo;
 
   /* Version number. */
   float mExodusVersion;
@@ -59,6 +63,13 @@ class ExodusModel {
   std::vector<PetscReal> mNodalVariables;
   std::vector<std::string> mNodalVariableNames;
 
+  /* Vector to hold global mesh variables. */
+  std::vector<PetscReal> mGlobalVariables;
+  std::vector<std::string> mGlobalVariableNames;
+
+  /* Info */
+  std::vector<std::string> mInfo;
+
   /* Nodal locations. */
   std::vector<PetscReal> mNodalX;
   std::vector<PetscReal> mNodalY;
@@ -77,12 +88,16 @@ class ExodusModel {
   void createNodalKdTree();
   /** Read variables defined at nodal locations. */
   void readNodalVariables();
+  /** Read global variables. */
+  void readGlobalVariables();
   /** Create kDtree based on element centers. */
   void createElementalKdTree();
   /** Read variables defined elementwise (i.e. VP_0, VP_1, ... ,VP_n). */
   void readElementalVariables();
   /** Query the sidesets from the exodus file. Save the names present into the mSideSetNames vector. */
   void readSideSets();
+  /** Read Exodus info field. */
+  void readInfo();
 
   /**
    * Throw an error and specify which function has errored.
@@ -91,20 +106,29 @@ class ExodusModel {
    */
   void exodusError(const int retval, std::string func_name);
 
-
  public:
 
+  /** Constructor (without specifying the filename yet). */
+  ExodusModel();
   /** Constructor (sets filename). */
   ExodusModel(std::unique_ptr<Options> const &options);
 
   /** Destructor (closes exodus file). */
   ~ExodusModel();
 
+  /** Set filename to read the model from. */
+  void setExodusFilename(const std::string filename);
+
   /**
    * Reads in mesh on rank 0, and populates all necessary model quantities (parameters, etc.).
    * Broadcasts the necessary parameters to all processors.
    */
   void read();
+
+  /**
+   * Writes out mesh on rank 0, including all necessary model quantities (parameters, etc.).
+   */
+  void write(const std::string filename);
 
   /**
    * Returns the closest parameter to a point (i.e. element node).

@@ -4,12 +4,22 @@
 #include <Utilities/Logging.h>
 #include <Utilities/Types.h>
 #include <algorithm>
+#include <fstream>
+#include <stdio.h>
 
 ExodusModel::ExodusModel(std::unique_ptr<Options> const &options) {
   mNodalKdTree = NULL;
   mElementalKdTree = NULL;
   mExodusId = 0;
   mExodusFileName = options->ModelFile();
+  mNumberInfo=0;
+}
+
+ExodusModel::ExodusModel() {
+  mNodalKdTree = NULL;
+  mElementalKdTree = NULL;
+  mExodusId = 0;
+  mNumberInfo = 0;
 }
 
 ExodusModel::~ExodusModel() {
@@ -19,6 +29,11 @@ ExodusModel::~ExodusModel() {
   if (mNodalKdTree) { kd_free(mNodalKdTree); }
 }
 
+
+void ExodusModel::setExodusFilename(const std::string filename) {
+  mExodusFileName = filename;
+} 
+
 void ExodusModel::read() {
 
   /* Read the model from rank 0. */
@@ -26,12 +41,15 @@ void ExodusModel::read() {
   int rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
   if (!rank)
   {
+    if (mExodusFileName.empty() ) { throw std::runtime_error("Error opening exodus model. No filename specified."); }
     getInitialization();
     readConnectivity();
     readCoordinates();
+    readGlobalVariables();
     readElementalVariables();
     readNodalVariables();
     readSideSets();
+    readInfo();
   }
 
   /* Broadcast all scalars. */
@@ -60,6 +78,101 @@ void ExodusModel::read() {
   createElementalKdTree();
   createNodalKdTree();
 
+}
+
+
+void ExodusModel::write(const std::string filename) {
+
+  /* Read the model from rank 0. */
+  int root = 0;
+  int rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+  if (!rank)
+  {
+    // check if file exists already (and delete it if it does)
+    std::ifstream f(filename.c_str());
+    if (f.good()) { remove(filename.c_str()); }
+
+    int io_ws = 8;
+    int comp_ws = 8;
+    PetscInt exodusOutId = ex_create_int(filename.c_str(), EX_WRITE, &comp_ws, &io_ws, (int)(mExodusVersion*100));
+    if (mExodusId < 0) { throw std::runtime_error("Error writing exodus model file '" + filename  + "'. Missing input file."); }
+    if (exodusOutId < 0) { throw std::runtime_error("Error opening exodus model file '" + filename  + "'."); }
+    exodusError(ex_copy(mExodusId, exodusOutId),"ex_copy");
+
+    PetscReal dummy_time = 0.0;
+    exodusError(ex_put_time(exodusOutId, 1, &dummy_time), "ex_put_time");
+     
+    if (mNumberElementalVariables > 0) { // write elemental variables
+      exodusError(ex_put_variable_param(exodusOutId, EX_ELEM_BLOCK, mNumberElementalVariables), "ex_put_variable_param");
+      char *nm[mNumberElementalVariables];
+      for (auto i = 0; i < mNumberElementalVariables; i++) {
+        nm[i] = (char *) calloc((MAX_STR_LENGTH + 1), sizeof(char));
+        std::copy(mElementalVariableNames.at(i).begin(), mElementalVariableNames.at(i).end(), nm[i]);
+        nm[i][MAX_STR_LENGTH] = '\0';
+      }
+      
+      exodusError(ex_put_variable_names(exodusOutId, EX_ELEM_BLOCK, mNumberElementalVariables, nm),
+                  "ex_put_variable_names");
+      
+      for (int i = 0; i < mNumberElementalVariables; i++) { free (nm[i]); }
+     
+      for (auto i = 0; i < mNumberElementalVariables; i++) {
+        std::vector<double> buffer(mElementalVariables.begin() + i*mNumberElements, mElementalVariables.begin() + (i+1)*mNumberElements);
+        exodusError(ex_put_var(exodusOutId, 1, EX_ELEM_BLOCK, (i + 1), 1, mNumberElements, buffer.data()),
+                    "ex_put_var " + mElementalVariableNames[i]);    
+      }
+    }
+    if (mNumberNodalVariables > 0) { // write nodal fields
+      exodusError(ex_put_variable_param(exodusOutId, EX_NODAL, mNumberNodalVariables), "ex_put_variable_param");
+      
+      char *nm[mNumberNodalVariables];
+      for (auto i = 0; i < mNumberNodalVariables; i++) { 
+        nm[i] = (char *) calloc((MAX_STR_LENGTH + 1), sizeof(char)); 
+        std::copy(mNodalVariableNames.at(i).begin(), mNodalVariableNames.at(i).end(), nm[i]);
+        nm[i][MAX_STR_LENGTH] = '\0';
+      }
+      exodusError(ex_put_variable_names(exodusOutId, EX_NODAL, mNumberNodalVariables, nm),
+                  "ex_put_variable_names");
+      for (int i = 0; i < mNumberNodalVariables; i++) { free(nm[i]); }
+
+      for (auto i = 0; i < mNumberNodalVariables; i++) {
+        int time_step = 1;
+        std::vector<double> buffer(mNodalVariables.begin() + i*mNumberVertices, mNodalVariables.begin() + (i+1)*mNumberVertices);
+        exodusError(ex_put_nodal_var(exodusOutId, time_step, (i + 1), mNumberVertices, buffer.data()),
+                    "ex_put_nodal_var " + mNodalVariableNames[i]);
+        
+      }
+    }
+    if (mNumberGlobalVariables > 0) { // write global variables
+      exodusError(ex_put_variable_param(exodusOutId, EX_GLOBAL, mNumberGlobalVariables), "ex_put_variable_param");
+      
+      char *nm[mNumberGlobalVariables];
+      for (auto i = 0; i < mNumberGlobalVariables; i++) { 
+        nm[i] = (char *) calloc((MAX_STR_LENGTH + 1), sizeof(char)); 
+        std::copy(mGlobalVariableNames.at(i).begin(), mGlobalVariableNames.at(i).end(), nm[i]);
+        nm[i][MAX_STR_LENGTH] = '\0';
+      }
+      exodusError(ex_put_variable_names(exodusOutId, EX_GLOBAL, mNumberGlobalVariables, nm),
+                  "ex_put_variable_names");
+      for (int i = 0; i < mNumberGlobalVariables; i++) { free(nm[i]); }
+      int time_step = 1 ;
+      exodusError(ex_put_var(exodusOutId, time_step, EX_GLOBAL, 1, 0, mNumberGlobalVariables, mGlobalVariables.data()),
+                  "ex_put_var");   
+    }
+    { // write info fields
+      char *nm[mNumberInfo];
+      if ( mNumberInfo > 0 ) {
+        for (auto i = 0; i < mNumberInfo; i++) { 
+          nm[i] = (char *) calloc((MAX_LINE_LENGTH + 1), sizeof(char));
+          std::copy(mInfo.at(i).begin(), mInfo.at(i).end(), nm[i]);
+        }
+        exodusError(ex_put_info (exodusOutId, mNumberInfo, nm),"ex_get_info");
+        for (auto i = 0; i < mNumberInfo; i++) { free(nm[i]); }
+      }
+    }
+
+    exodusError(ex_close(exodusOutId),"ex_close");
+  }
 }
 
 void ExodusModel::exodusError(const int retval, std::string func_name) {
@@ -204,32 +317,34 @@ void ExodusModel::readNodalVariables() {
   exodusError(ex_get_var_param(
       mExodusId, "n", &mNumberNodalVariables),
               "ex_get_var_param");
-  char *nm[mNumberNodalVariables];
-  for (auto i = 0; i < mNumberNodalVariables; i++) { nm[i] = (char *) calloc((MAX_STR_LENGTH + 1), sizeof(char)); }
 
-  try {
-    exodusError(ex_get_variable_names(
-        mExodusId, EX_NODAL, mNumberNodalVariables, nm),
-                "ex_get_var_names");
-    for (auto i = 0; i < mNumberNodalVariables; i++) { mNodalVariableNames.push_back(std::string(nm[i])); }
+  if ( mNumberNodalVariables > 0 ) {
+    char *nm[mNumberNodalVariables];
+    for (auto i = 0; i < mNumberNodalVariables; i++) { nm[i] = (char *) calloc((MAX_STR_LENGTH + 1), sizeof(char)); }
 
-    // Get variable values.
-    int time_step = 1;
-    std::vector<double> buffer(mNumberVertices);
-    for (auto i = 0; i < mNumberNodalVariables; i++) {
-      exodusError(ex_get_nodal_var(
-          mExodusId, time_step, (i + 1), mNumberVertices, buffer.data()),
-                  "ex_get_nodal_var");
-      mNodalVariables.insert(mNodalVariables.end(), buffer.begin(), buffer.end());
+    try {
+      exodusError(ex_get_variable_names(
+          mExodusId, EX_NODAL, mNumberNodalVariables, nm),
+                  "ex_get_var_names");
+      for (auto i = 0; i < mNumberNodalVariables; i++) { mNodalVariableNames.push_back(std::string(nm[i])); }
+
+      // Get variable values.
+      int time_step = 1;
+      std::vector<double> buffer(mNumberVertices);
+      for (auto i = 0; i < mNumberNodalVariables; i++) {
+        exodusError(ex_get_nodal_var(
+            mExodusId, time_step, (i + 1), mNumberVertices, buffer.data()),
+                    "ex_get_nodal_var");
+        mNodalVariables.insert(mNodalVariables.end(), buffer.begin(), buffer.end());
+      }
+    } catch (salvus_warning &e) {
+      LOG() << "Reading nodal variables in file " + mExodusFileName + " raised a warning. \n"
+          "This usually is not a problem, and just means the nodal variables were not defined in "
+          "the file. If you don't specifically require nodal variables, you can ignore this.\n";
     }
-  } catch (salvus_warning &e) {
-    LOG() << "Reading nodal variables in file " + mExodusFileName + " raised a warning. \n"
-        "This usually is not a problem, and just means the nodal variables were not defined in "
-        "the file. If you don't specifically require nodal variables, you can ignore this.\n";
+
+    for (int i = 0; i < mNumberNodalVariables; i++) { free(nm[i]); }
   }
-
-  for (int i = 0; i < mNumberNodalVariables; i++) { free(nm[i]); }
-
 }
 
 void ExodusModel::readElementalVariables() {
@@ -237,29 +352,30 @@ void ExodusModel::readElementalVariables() {
   // Get variable names.
   exodusError(ex_get_var_param(
       mExodusId, "e", &mNumberElementalVariables), "ex_get_var_param");
-  char *nm[mNumberElementalVariables];
-  for (auto i = 0; i < mNumberElementalVariables; i++) {
-    nm[i] = (char *) calloc((MAX_STR_LENGTH + 1), sizeof(char));
-  }
-  try {
-    exodusError(ex_get_variable_names(mExodusId, EX_ELEM_BLOCK, mNumberElementalVariables, nm),
-                "ex_get_variable_names");
-    for (auto i = 0; i < mNumberElementalVariables; i++) { mElementalVariableNames.push_back(std::string(nm[i])); }
-
-    std::vector<double> buffer(mNumberElements);
+  if ( mNumberElementalVariables > 0 ) {
+    char *nm[mNumberElementalVariables];
     for (auto i = 0; i < mNumberElementalVariables; i++) {
-      exodusError(ex_get_var(mExodusId, 1, EX_ELEM_BLOCK, (i + 1), 1, mNumberElements, buffer.data()),
-                  "ex_get_var " + mElementalVariableNames[i]);
-      mElementalVariables.insert(mElementalVariables.end(), buffer.begin(), buffer.end());
+      nm[i] = (char *) calloc((MAX_STR_LENGTH + 1), sizeof(char));
     }
-  } catch (salvus_warning &e) {
-    LOG() << "Reading elemental variables in file " + mExodusFileName + " raised a warning. \n"
-        "This usually is not a problem, and just means the elemental variables were not defined in "
-        "the file. If you don't specifically require elemental variables, you can ignore this.\n";
+    try {
+      exodusError(ex_get_variable_names(mExodusId, EX_ELEM_BLOCK, mNumberElementalVariables, nm),
+                  "ex_get_variable_names");
+      for (auto i = 0; i < mNumberElementalVariables; i++) { mElementalVariableNames.push_back(std::string(nm[i])); }
+
+      std::vector<double> buffer(mNumberElements);
+      for (auto i = 0; i < mNumberElementalVariables; i++) {
+        exodusError(ex_get_var(mExodusId, 1, EX_ELEM_BLOCK, (i + 1), 1, mNumberElements, buffer.data()),
+                    "ex_get_var " + mElementalVariableNames[i]);
+        mElementalVariables.insert(mElementalVariables.end(), buffer.begin(), buffer.end());
+      }
+    } catch (salvus_warning &e) {
+      LOG() << "Reading elemental variables in file " + mExodusFileName + " raised a warning. \n"
+          "This usually is not a problem, and just means the elemental variables were not defined in "
+          "the file. If you don't specifically require elemental variables, you can ignore this.\n";
+    }
+
+    for (int i = 0; i < mNumberElementalVariables; i++) { free (nm[i]); }
   }
-
-  for (int i = 0; i < mNumberElementalVariables; i++) { free (nm[i]); }
-
 }
 
 PetscReal ExodusModel::getNodalParameterAtNode(const Eigen::Ref<const RealVec>& point,
@@ -407,12 +523,13 @@ std::string ExodusModel::getElementType(const Eigen::VectorXd &elem_center) {
 
 void ExodusModel::readSideSets() {
 
-  char *nm[mNumberSideSets];
-  for (int i = 0; i < mNumberSideSets; i++) { nm[i] = (char *) calloc((MAX_STR_LENGTH + 1), sizeof(char)); }
-  exodusError(ex_get_names(mExodusId, EX_SIDE_SET, nm), "ex_get_names");
-  for (int i = 0; i < mNumberSideSets; i++) { mSideSetNames.push_back(std::string(nm[i])); }
-  for (int i = 0; i < mNumberSideSets; i++) { free (nm[i]); }
-
+  if ( mNumberSideSets > 0 ) {
+    char *nm[mNumberSideSets];
+    for (int i = 0; i < mNumberSideSets; i++) { nm[i] = (char *) calloc((MAX_STR_LENGTH + 1), sizeof(char)); }
+    exodusError(ex_get_names(mExodusId, EX_SIDE_SET, nm), "ex_get_names");
+    for (int i = 0; i < mNumberSideSets; i++) { mSideSetNames.push_back(std::string(nm[i])); }
+    for (int i = 0; i < mNumberSideSets; i++) { free (nm[i]); }
+  }
 }
 std::string ExodusModel::SideSetName(const PetscInt side_set_num) {
 
@@ -424,5 +541,56 @@ std::string ExodusModel::SideSetName(const PetscInt side_set_num) {
 
   return mSideSetNames[side_set_num];
 
+}
+
+void ExodusModel::readGlobalVariables() {
+
+  // Get variables names.
+  exodusError(ex_get_var_param(
+      mExodusId, "g", &mNumberGlobalVariables),
+              "ex_get_var_param");
+  if ( mNumberGlobalVariables > 0 ) {
+    char *nm[mNumberGlobalVariables];
+    for (auto i = 0; i < mNumberGlobalVariables; i++) { nm[i] = (char *) calloc((MAX_STR_LENGTH + 1), sizeof(char)); }
+
+    try {
+      exodusError(ex_get_variable_names(
+          mExodusId, EX_GLOBAL, mNumberGlobalVariables, nm),
+                  "ex_get_var_names");
+      for (auto i = 0; i < mNumberGlobalVariables; i++) { mGlobalVariableNames.push_back(std::string(nm[i])); }
+
+      // Get variable values.
+      int time_step = 1;
+      mGlobalVariables.resize(mNumberGlobalVariables);
+      exodusError(ex_get_glob_vars(mExodusId, time_step, mNumberGlobalVariables, mGlobalVariables.data()),
+                    "ex_get_global_vars");
+      
+    } catch (salvus_warning &e) {
+      LOG() << "Reading global variables in file " + mExodusFileName + " raised a warning. \n"
+          "This usually is not a problem, and just means the global variables were not defined in "
+          "the file. If you don't specifically require nodal variables, you can ignore this.\n";
+    }
+
+    for (int i = 0; i < mNumberGlobalVariables; i++) { free(nm[i]); }
+  }
+
+}
+
+void ExodusModel::readInfo() {
+
+  // Get number of info lines.
+  mNumberInfo = ex_inquire_int (mExodusId,EX_INQ_INFO);
+  char *nm[mNumberInfo];
+  if ( mNumberInfo > 0 ) {
+    for (auto i = 0; i < mNumberInfo; i++) { 
+      nm[i] = (char *) calloc((MAX_LINE_LENGTH + 1), sizeof(char));
+    }
+    exodusError(ex_get_info (mExodusId, nm),"ex_get_info");
+     for (auto i = 0; i < mNumberInfo; i++) { 
+      std::string s(nm[i]);
+      mInfo.push_back(s);
+    }
+  }
+  for (auto i = 0; i < mNumberInfo; i++) { free(nm[i]); }
 }
 
