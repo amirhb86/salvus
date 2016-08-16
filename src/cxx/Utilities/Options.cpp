@@ -74,6 +74,15 @@ void Options::setOptions() {
   } else {
     if (! testing && ! static_problem ) throw std::runtime_error(epre + "--time-step" + epst);
   }
+  if (! testing && ! static_problem ) {
+    mNumTimeSteps = std::ceil(mDuration / mTimeStep);
+    mTimeStep = mDuration / (double)(mNumTimeSteps);
+    std::cout << "mDuration " << mDuration << ", mTimeStep " << mTimeStep << ", mNumTimeSteps " << mNumTimeSteps << std::endl;
+  }
+  else {
+    mNumTimeSteps = 0;
+  }
+
 
   /********************************************************************************
                                      Boundaries.
@@ -136,7 +145,7 @@ void Options::setOptions() {
     } else {
       if (! testing)
       throw std::runtime_error("Sources were requested, but source type was not specified. "
-                                   "Possibilities are: --source-type [ ricker ].");
+                                   "Possibilities are: --source-type [ ricker, hdf5 ].");
     }
 
     PetscInt n_par = mNumSrc; std::string err = "Incorrect number of source parameters: ";

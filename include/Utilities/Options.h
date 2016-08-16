@@ -21,6 +21,7 @@ class Options {
 
   PetscReal mDuration;
   PetscReal mTimeStep;
+  PetscInt mNumTimeSteps;
 
   std::string mMeshFile;
   std::string mModelFile;
@@ -60,6 +61,7 @@ class Options {
 
   PetscReal Duration() const { return mDuration; }
   PetscReal TimeStep() const { return mTimeStep; }
+  PetscInt NumTimeSteps() const { return mNumTimeSteps; }
 
   std::string MeshFile() const { return mMeshFile; }
   std::string ReceiverType() const { return "hdf5"; }
