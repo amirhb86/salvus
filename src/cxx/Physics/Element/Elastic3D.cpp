@@ -123,7 +123,7 @@ MatrixXd Elastic3D<Element>::computeSurfaceIntegral(const Eigen::Ref<const Eigen
 }
 
 template <typename Element>
-MatrixXd Elastic3D<Element>::computeSourceTerm(const double time) {
+MatrixXd Elastic3D<Element>::computeSourceTerm(const double time, const PetscInt time_idx) {
   MatrixXd s = MatrixXd::Zero(Element::NumIntPnt(), Element::NumDim());
   for (auto &source : Element::Sources()) {
     RealVec3 pnt(source->LocR(), source->LocS(), source->LocT());

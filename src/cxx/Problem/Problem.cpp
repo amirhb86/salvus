@@ -135,7 +135,7 @@ ElemVec Problem::initializeElements(unique_ptr<Mesh> const &mesh,
 
 }
 std::tuple<ElemVec, FieldDict> Problem::assembleIntoGlobalDof(
-    ElemVec elements, FieldDict fields, const PetscReal time,
+    ElemVec elements, FieldDict fields, const PetscReal time, const PetscInt time_idx, 
     DM PETScDM, PetscSection PETScSection, std::unique_ptr<Options> const &options) {
 
   /* Get some derived quantities. */
@@ -187,7 +187,7 @@ std::tuple<ElemVec, FieldDict> Problem::assembleIntoGlobalDof(
     s.leftCols(NumPushFields) = elm->computeSurfaceIntegral(u.leftCols(NumPullFields));
 
     /* Compute forcing. */
-    f.leftCols(NumPushFields) = elm->computeSourceTerm(time);
+    f.leftCols(NumPushFields) = elm->computeSourceTerm(time, time_idx);
 
     /* Compute acceleration. */
     a.leftCols(NumPushFields) = f.leftCols(NumPushFields).array() -

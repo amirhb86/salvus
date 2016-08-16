@@ -75,7 +75,7 @@ RealMat Scalar<Element>::computeSurfaceIntegral(const Ref<const RealMat> &u) {
 }
 
 template <typename Element>
-MatrixXd Scalar<Element>::computeSourceTerm(const double time) {
+MatrixXd Scalar<Element>::computeSourceTerm(const double time, const PetscInt time_idx) {
   mSource.setZero();
   for (auto &source : Element::Sources()) {
     RealVec pnt;

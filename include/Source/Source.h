@@ -65,18 +65,3 @@ class Source {
   virtual double fire(const double &time) = 0;
 
 };
-
-class Ricker: public Source {
-
-  double mAmplitude;
-  double mTimeDelay;
-  double mCenterFreq;
-
- public:
-
-  Ricker(std::unique_ptr<Options> const &options);
-  ~Ricker() {};
-  double fire(const double &time);
-
-};
-

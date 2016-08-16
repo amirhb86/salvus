@@ -41,11 +41,12 @@ int main(int argc, char *argv[]) {
     /* Compute solution in time. */
     /* TODO: Make this something like problem->solve()? */
     PetscReal time = 0;
+    PetscInt time_idx = 0;
     while (time < options->Duration()) {
 
       /* Sum up all forces. */
       std::tie(elements, fields) = problem->assembleIntoGlobalDof(
-          std::move(elements), std::move(fields), time,
+          std::move(elements), std::move(fields), time, time_idx,
           mesh->DistributedMesh(), mesh->MeshSection(), options);
 
       /* Apply inverse mass matrix. */
@@ -54,6 +55,8 @@ int main(int argc, char *argv[]) {
       /* Advance time. */
       std::tie(fields, time) = problem->takeTimeStep(
           std::move(fields), time, options);
+
+      time_idx++;
 
       problem->saveSolution(
           time, options->MovieFields(), fields, mesh->DistributedMesh());

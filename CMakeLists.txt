@@ -50,6 +50,8 @@ set(SALVUS_SOURCES
         src/cxx/Utilities/Utilities.cpp
         src/cxx/Utilities/Options.cpp
         src/cxx/Source/Source.cpp
+        src/cxx/Source/Ricker.cpp
+        src/cxx/Source/SourceHdf5.cpp
         src/cxx/Receiver/Receiver.cpp
         src/cxx/Receiver/ReceiverHdf5.cpp
         src/cxx/Element/HyperCube/TensorQuad.cpp

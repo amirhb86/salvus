@@ -87,9 +87,10 @@ class ElementAdapter: public Element, public T {
   ///@{
   /** Returns the interpolated source for a given time.
    * @ param [in] time Simulation time.
+   * @ param [in] time_idx Simulation time index.
    */
-  virtual Eigen::MatrixXd computeSourceTerm(const double time) {
-    return T::computeSourceTerm(time);
+  virtual Eigen::MatrixXd computeSourceTerm(const double time, const PetscInt time_idx) {
+    return T::computeSourceTerm(time, time_idx);
   }
   /** Returns the action of the stiffness matrix applied to some field (probably displacement).
    * @param [in] u Displacement field.

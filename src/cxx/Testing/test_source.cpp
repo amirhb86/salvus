@@ -131,14 +131,14 @@ TEST_CASE("Test source functionality", "[source]") {
       SECTION("quad") {
         for (auto &e: elements) {
           if (e->Num() == 0) {
-            REQUIRE(e->computeSourceTerm(ricker_time[0]).sum() == Approx(ricker_amp[0]));
+            REQUIRE(e->computeSourceTerm(ricker_time[0],0).sum() == Approx(ricker_amp[0]));
           }
           else if (e->Num() == 6) {
-            REQUIRE(e->computeSourceTerm(ricker_time[1]).sum() == Approx(ricker_amp[1]));
+            REQUIRE(e->computeSourceTerm(ricker_time[1],0).sum() == Approx(ricker_amp[1]));
           }
           else {
-            REQUIRE(e->computeSourceTerm(ricker_time[0]).sum() == Approx(0.0));
-            REQUIRE(e->computeSourceTerm(ricker_time[1]).sum() == Approx(0.0));
+            REQUIRE(e->computeSourceTerm(ricker_time[0],0).sum() == Approx(0.0));
+            REQUIRE(e->computeSourceTerm(ricker_time[1],0).sum() == Approx(0.0));
           }
         }
       }
@@ -171,14 +171,14 @@ TEST_CASE("Test source functionality", "[source]") {
       SECTION("quad") {
         for (auto &e: elements) {
           if (e->Num() == 0) {
-            REQUIRE(e->computeSourceTerm(ricker_time[0]).sum() == Approx(ricker_amp[0]));
+            REQUIRE(e->computeSourceTerm(ricker_time[0],0).sum() == Approx(ricker_amp[0]));
           }
           else if (e->Num() == 2) {
-            REQUIRE(e->computeSourceTerm(ricker_time[1]).sum() == Approx(ricker_amp[1]));
+            REQUIRE(e->computeSourceTerm(ricker_time[1],0).sum() == Approx(ricker_amp[1]));
           }
           else {
-            REQUIRE(e->computeSourceTerm(ricker_time[0]).sum() == Approx(0.0));
-            REQUIRE(e->computeSourceTerm(ricker_time[1]).sum() == Approx(0.0));
+            REQUIRE(e->computeSourceTerm(ricker_time[0],0).sum() == Approx(0.0));
+            REQUIRE(e->computeSourceTerm(ricker_time[1],0).sum() == Approx(0.0));
           }
         }
       }
