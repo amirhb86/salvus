@@ -81,7 +81,7 @@ MatrixXd Scalar<Element>::computeSourceTerm(const double time, const PetscInt ti
     RealVec pnt;
     if (Element::NumDim() == 2) { pnt.resize(2); pnt << source->LocR(), source->LocS(); }
     if (Element::NumDim() == 3) { pnt.resize(3); pnt << source->LocR(), source->LocS(), source->LocT(); }
-    mSource += (source->fire(time) * Element::getDeltaFunctionCoefficients(pnt));
+    mSource += (Element::getDeltaFunctionCoefficients(pnt) * source->fire(time, time_idx));
   }
   return Element::applyTestAndIntegrate(mSource);
 }

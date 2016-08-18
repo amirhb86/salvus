@@ -1,4 +1,5 @@
 #include <petsc.h>
+#include <Eigen/Dense>
 #include <Utilities/Options.h>
 #include <Source/Source.h>
 #include <Mesh/Mesh.h>
@@ -53,6 +54,7 @@ TEST_CASE("Test source functionality", "[source]") {
       PetscOptionsSetValue(NULL, "--ricker-amplitude", "10,20");
       PetscOptionsSetValue(NULL, "--ricker-time-delay", "0.1,0.01");
       PetscOptionsSetValue(NULL, "--ricker-center-freq", "50,60");
+      PetscOptionsSetValue(NULL, "--ricker-num-components", "1,1");
       std::unique_ptr<Options> options(new Options);
       options->SetDimension(3);
       options->setOptions();
@@ -81,6 +83,7 @@ TEST_CASE("Test source functionality", "[source]") {
       PetscOptionsSetValue(NULL, "--ricker-amplitude", "10,20");
       PetscOptionsSetValue(NULL, "--ricker-time-delay", "0.1,0.01");
       PetscOptionsSetValue(NULL, "--ricker-center-freq", "50,60");
+      PetscOptionsSetValue(NULL, "--ricker-num-components", "1,1");
       std::unique_ptr<Options> options(new Options);
       options->setOptions();
 
@@ -96,7 +99,8 @@ TEST_CASE("Test source functionality", "[source]") {
         REQUIRE(sources[i]->Num() == i);
         for (PetscInt j = 0; j < 1000; j++) {
           PetscReal time = j * 1e-3;
-          REQUIRE(sources[i]->fire(time)
+          Eigen::VectorXd sim_ricker(sources[i]->fire(time, j));
+          REQUIRE( sim_ricker(0) 
                       == true_ricker(time, ricker_freq[i], ricker_time[i], ricker_amp[i]));
         }
       }
@@ -109,6 +113,7 @@ TEST_CASE("Test source functionality", "[source]") {
       PetscOptionsSetValue(NULL, "--mesh-file", e_file.c_str());
       PetscOptionsSetValue(NULL, "--model-file", e_file.c_str());
       PetscOptionsSetValue(NULL, "--polynomial-order", "3");
+      PetscOptionsSetValue(NULL, "--ricker-num-components", "1,1");
       std::unique_ptr<Options> options(new Options);
       options->SetDimension(3);
       options->setOptions();
@@ -150,6 +155,7 @@ TEST_CASE("Test source functionality", "[source]") {
       PetscOptionsSetValue(NULL, "--mesh-file", e_file.c_str());
       PetscOptionsSetValue(NULL, "--model-file", e_file.c_str());
       PetscOptionsSetValue(NULL, "--polynomial-order", "9");
+      PetscOptionsSetValue(NULL, "--ricker-num-components", "2,1");
       std::unique_ptr<Options> options(new Options);
       options->SetDimension(2);
       options->setOptions();
@@ -186,9 +192,9 @@ TEST_CASE("Test source functionality", "[source]") {
 
     SECTION("exceptions") {
 
+      PetscOptionsSetValue(NULL, "--source-type", "ricke");
       std:unique_ptr<Options> options(new Options);
       options->setOptions();
-      options->SetSourceType("ricke");
 
       /* If we put a bad source time in. */
       REQUIRE_THROWS_AS(Source::Factory(options), std::runtime_error);

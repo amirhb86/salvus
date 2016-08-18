@@ -21,9 +21,9 @@ SourceHdf5::SourceHdf5(std::unique_ptr<Options> const &options): Source(options)
 
 }
 
-double SourceHdf5::fire(const double &time) {
+Eigen::VectorXd SourceHdf5::fire(const double &time, const PetscInt &time_idx) {
 
-  double factor = M_PI * M_PI * mCenterFreq * mCenterFreq * (time - mTimeDelay) * (time - mTimeDelay);
-  return mAmplitude * ((1 - 2 * factor) * exp(-1 * factor));
+  Eigen::VectorXd src(mNumComponents);
+  return src;
 
 }

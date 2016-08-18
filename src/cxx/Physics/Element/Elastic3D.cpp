@@ -127,7 +127,7 @@ MatrixXd Elastic3D<Element>::computeSourceTerm(const double time, const PetscInt
   MatrixXd s = MatrixXd::Zero(Element::NumIntPnt(), Element::NumDim());
   for (auto &source : Element::Sources()) {
     RealVec3 pnt(source->LocR(), source->LocS(), source->LocT());
-    s.col(0) += (source->fire(time) * Element::getDeltaFunctionCoefficients(pnt));
+    s += (Element::getDeltaFunctionCoefficients(pnt) * source->fire(time, time_idx).transpose() );
   }
   return s;
 }

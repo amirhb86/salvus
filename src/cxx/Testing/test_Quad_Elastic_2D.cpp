@@ -31,6 +31,7 @@ TEST_CASE("Test elastic in 2D", "[elastic_2d]") {
       "--ricker-amplitude", "100,100",
       "--ricker-time-delay", "1.0,1.5",
       "--ricker-center-freq", "0.5,0.5",
+      "--ricker-num-components", "2,2",
       NULL };
 
   char **argv = const_cast<char **> (arg);

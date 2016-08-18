@@ -115,10 +115,14 @@ template <typename Element>
 MatrixXd Elastic2D<Element>::computeSourceTerm(const double time, const PetscInt time_idx) {
   RealMat s = RealMat::Zero(Element::NumIntPnt(), Element::NumDim());
   for (auto &source : Element::Sources()) {
+    //switch ()
     RealVec2 pnt (source->LocR(), source->LocS());
-    s.col(0) += (source->fire(time) * Element::getDeltaFunctionCoefficients(pnt));
+    //s.col(0) += (source->fire(time, time_idx) * Element::getDeltaFunctionCoefficients(pnt));
+    s += (Element::getDeltaFunctionCoefficients(pnt) * source->fire(time, time_idx).transpose() );
   }
+  // This should be replaced by a single call for vector-valued problems
   s.col(0) = Element::applyTestAndIntegrate(s.col(0));
+  s.col(1) = Element::applyTestAndIntegrate(s.col(1));
   return s;
 }
 

@@ -19,11 +19,19 @@ Ricker::Ricker(std::unique_ptr<Options> const &options): Source(options) {
   mAmplitude = options->SrcRickerAmplitude()[Num()];
   mCenterFreq = options->SrcRickerCenterFreq()[Num()];
 
+  mNumComponents = options->SrcRickerNumComponents()[Num()];
+  
+  mDirection.resize(mNumComponents);
+  for (auto i=0; i<mNumComponents; i++)
+    mDirection(i) = 0.0;
+    mDirection(0) = 1.0;
+
 }
 
-double Ricker::fire(const double &time) {
+Eigen::VectorXd Ricker::fire(const double &time, const PetscInt &time_idx) {
 
-  double factor = M_PI * M_PI * mCenterFreq * mCenterFreq * (time - mTimeDelay) * (time - mTimeDelay);
-  return mAmplitude * ((1 - 2 * factor) * exp(-1 * factor));
+  const double factor = M_PI * M_PI * mCenterFreq * mCenterFreq * (time - mTimeDelay) * (time - mTimeDelay);
+  const double ricker_force = (mAmplitude * ((1 - 2 * factor) * exp(-1 * factor)));
+  return ricker_force * mDirection;
 
 }

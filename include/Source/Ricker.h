@@ -19,11 +19,13 @@ class Ricker: public Source {
   double mTimeDelay;
   double mCenterFreq;
 
+  Eigen::VectorXd mDirection;
+
  public:
 
   Ricker(std::unique_ptr<Options> const &options);
   ~Ricker() {};
-  double fire(const double &time);
+  Eigen::VectorXd fire(const double &time, const PetscInt &time_idx);
 
 };
 

@@ -74,6 +74,8 @@ void Options::setOptions() {
   } else {
     if (! testing && ! static_problem ) throw std::runtime_error(epre + "--time-step" + epst);
   }
+  // compute number of time steps and ensure that it is integer
+  // (i.e., adjust (decrease) mTimeStep if necessary)
   if (! testing && ! static_problem ) {
     mNumTimeSteps = std::ceil(mDuration / mTimeStep);
     mTimeStep = mDuration / (double)(mNumTimeSteps);
@@ -164,12 +166,15 @@ void Options::setOptions() {
       mSrcRickerTimeDelay.resize(mNumSrc);
       mSrcRickerAmplitude.resize(mNumSrc);
       mSrcRickerCenterFreq.resize(mNumSrc);
+      mSrcRickerNumComponents.resize(mNumSrc);
       PetscOptionsGetScalarArray(NULL, NULL, "--ricker-amplitude", mSrcRickerAmplitude.data(), &n_par, NULL);
       if (n_par != mNumSrc) { throw std::runtime_error(err + "--ricker-amplitude."); }
       PetscOptionsGetScalarArray(NULL, NULL, "--ricker-time-delay", mSrcRickerTimeDelay.data(), &n_par, NULL);
       if (n_par != mNumSrc) { throw std::runtime_error(err + "--ricker-time-delay"); }
       PetscOptionsGetScalarArray(NULL, NULL, "--ricker-center-freq", mSrcRickerCenterFreq.data(), &n_par, NULL);
       if (n_par != mNumSrc) { throw std::runtime_error(err + "--ricker-center-freq"); }
+      PetscOptionsGetIntArray(NULL, NULL, "--ricker-num-components", mSrcRickerNumComponents.data(), &n_par, NULL);
+      if (n_par != mNumSrc) { throw std::runtime_error(err + "--ricker-num-components"); }
     } else {
       if (! testing)
       throw std::runtime_error("Source type " + mSourceType + " not recognized.");

@@ -35,6 +35,7 @@ class Options {
   std::vector<PetscReal> mSrcRickerAmplitude;
   std::vector<PetscReal> mSrcRickerCenterFreq;
   std::vector<PetscReal> mSrcRickerTimeDelay;
+  std::vector<PetscInt> mSrcRickerNumComponents;
 
   // Receivers.
   PetscInt mNumRec;
@@ -79,6 +80,7 @@ class Options {
   std::vector<PetscReal> SrcRickerAmplitude() const { return mSrcRickerAmplitude; }
   std::vector<PetscReal> SrcRickerCenterFreq() const { return mSrcRickerCenterFreq; }
   std::vector<PetscReal> SrcRickerTimeDelay() const { return mSrcRickerTimeDelay; }
+  std::vector<PetscInt> SrcRickerNumComponents() const { return mSrcRickerNumComponents; }
 
   std::vector<std::string> RecNames() const { return mRecNames; }
   std::vector<std::string> MovieFields() const { return mMovieFields; }
