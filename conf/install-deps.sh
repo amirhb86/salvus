@@ -13,7 +13,7 @@ else
     cd petsc-src
 
     # Get new branch with fixed spectral closure
-    git fetch && git checkout rietmann/fix-dualspace-feature-symmetry
+    git fetch && git checkout knepley/fix-plex-spectral-order
 
     # Configure and install.
     ./configure --download-exodusii --download-netcdf --download-hdf5 --download-chaco \
