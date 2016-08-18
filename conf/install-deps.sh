@@ -9,7 +9,7 @@ else
     echo "Installing petsc to $HOME/petsc"    
     # git clone -b maint https://bitbucket.org/petsc/petsc petsc-src;
     # currently needed for new closure mapping until it is merged into main
-    git clone https://bitbucket.org/rietmann/petscfork petsc-src;
+    git clone -b maint https://bitbucket.org/petsc/petsc petsc-src
     cd petsc-src
 
     # Get new branch with fixed spectral closure
