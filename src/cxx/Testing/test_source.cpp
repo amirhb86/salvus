@@ -33,6 +33,60 @@ TEST_CASE("Test source functionality", "[source]") {
 
   SECTION("unit") {
 
+    SECTION("source from hdf5") {
+
+      PetscOptionsClear(NULL);
+      const char *arg[] =
+      {"salvus_test", "--testing", "true", "--source-file-name", "source.h5", NULL};
+
+      char **argv = const_cast<char **> (arg);
+      int argc = sizeof(arg) / sizeof(const char *) - 1;
+      PetscOptionsInsert(NULL, &argc, &argv, NULL);
+
+      vector<PetscReal> x{50000, 50000};
+      vector<PetscReal> y{50000, 90000};
+      vector<PetscReal> z{50000, 90000};
+
+      /* True options. */
+      vector<PetscReal> ricker_amp{10, 20};
+      vector<PetscReal> ricker_time{0.1, 0.01};
+      vector<PetscReal> ricker_freq{50, 60};
+
+      /* Need something to complete the source, so we choose ricker. */
+      std::unique_ptr<Options> options(new Options);
+      options->SetDimension(3);
+      options->setOptions();
+      auto sources = Source::Factory(options);
+
+      /* Require that naming worked correctly. */
+      REQUIRE(Source::NumSources() == 2);
+
+      for (PetscInt i = 0; i < Source::NumSources(); i++) {
+        REQUIRE(sources[i]->LocX() == x[i]);
+        REQUIRE(sources[i]->LocY() == y[i]);
+        REQUIRE(sources[i]->LocZ() == z[i]);
+      }
+
+      /* Require ricker source fires properly. */
+      for (PetscInt i = 0; i < Source::NumSources(); i++) {
+        REQUIRE(sources[i]->Num() == i);
+        for (PetscInt j = 0; j < 1000; j++) {
+          PetscReal time = j * 1e-3;
+          Eigen::VectorXd sim_ricker(sources[i]->fire(time, j));
+          REQUIRE( sim_ricker(0) 
+                      == true_ricker(time, ricker_freq[i], ricker_time[i], ricker_amp[i]));
+        }
+      }
+
+      /* Require deletion works properly. */
+      sources.back().reset();
+      REQUIRE(Source::NumSources() == 1);
+      sources[0].reset();
+      REQUIRE(Source::NumSources() == 0);
+
+    }
+
+
     PetscOptionsClear(NULL);
     const char *arg[] =
         {"salvus_test", "--testing", "true", "--number-of-sources", "2", "--source-type", "ricker",

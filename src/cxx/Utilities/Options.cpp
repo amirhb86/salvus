@@ -1,6 +1,9 @@
 #include <salvus.h>
 #include <petsc.h>
 
+#include "hdf5.h"
+#include "hdf5_hl.h"
+
 void Options::setOptions() {
 
   /* Error helpers. */
@@ -130,54 +133,104 @@ void Options::setOptions() {
   /********************************************************************************
                                     Sources.
   ********************************************************************************/
-  PetscOptionsGetInt(NULL, NULL, "--number-of-sources", &int_buffer, &parameter_set);
+  PetscOptionsGetString(NULL, NULL, "--source-file-name", char_buffer, PETSC_MAX_PATH_LEN, &parameter_set);
   if (parameter_set) {
-    mNumSrc = int_buffer;
+    mSourceFileName = std::string(char_buffer);
+    hid_t           file;
+    herr_t          status;
+    H5G_info_t      info_buffer;
+
+    file = H5Fopen (mSourceFileName.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+    status = H5Gget_info (file, &info_buffer);
+
+    mNumSrc = info_buffer.nlinks;
+    std::cout << "nlinks " << info_buffer.nlinks << std::endl;
+
+    H5LTget_attribute_string (file, "/", "type", char_buffer);
+    mSourceType = std::string(char_buffer);
+        
+    for ( auto i = 0; i < info_buffer.nlinks; i++) {
+      H5Gget_objname_by_idx(file, i, char_buffer, PETSC_MAX_PATH_LEN ) ;
+      mSourceNames.push_back(std::string(char_buffer));
+      
+      std::vector<double> loc(mNumDim);
+      H5LTget_attribute_double(file, mSourceNames.at(i).c_str(), "location", loc.data());
+      mSrcLocX.push_back(loc[0]);
+      mSrcLocY.push_back(loc[1]);
+      if (mNumDim == 3) { mSrcLocZ.push_back(loc[2]); }
+
+      if (mSourceType == "ricker") {
+        double double_buffer;
+        int int_buffer;
+        H5LTget_attribute_double(file, mSourceNames.at(i).c_str(), "ricker-amplitude", &double_buffer);
+        mSrcRickerAmplitude.push_back(double_buffer);
+        H5LTget_attribute_double(file, mSourceNames.at(i).c_str(), "ricker-center-freq", &double_buffer);
+        mSrcRickerCenterFreq.push_back(double_buffer);
+        H5LTget_attribute_double(file, mSourceNames.at(i).c_str(), "ricker-time-delay", &double_buffer);
+        mSrcRickerTimeDelay.push_back(double_buffer);
+        H5LTget_attribute_int(file, mSourceNames.at(i).c_str(), "ricker-num-components", &int_buffer);
+        mSrcNumComponents.push_back(int_buffer);
+      }
+    }
+    status = H5Fclose (file);
+
   } else {
-    mNumSrc = 0;
-  }
-
-  if (mNumSrc > 0) {
-
-    mSrcLocX.resize(mNumSrc); mSrcLocY.resize(mNumSrc);
-
-    PetscOptionsGetString(NULL, NULL, "--source-type", char_buffer, PETSC_MAX_PATH_LEN, &parameter_set);
+    PetscOptionsGetInt(NULL, NULL, "--number-of-sources", &int_buffer, &parameter_set);
     if (parameter_set) {
-      mSourceType = std::string(char_buffer);
+      mNumSrc = int_buffer;
     } else {
-      if (! testing)
-      throw std::runtime_error("Sources were requested, but source type was not specified. "
-                                   "Possibilities are: --source-type [ ricker, hdf5 ].");
+      mNumSrc = 0;
     }
 
-    PetscInt n_par = mNumSrc; std::string err = "Incorrect number of source parameters: ";
-    PetscOptionsGetScalarArray(NULL, NULL, "--source-location-x", mSrcLocX.data(), &n_par, NULL);
-    if (n_par != mNumSrc) { throw std::runtime_error(err + "x locations"); }
-    PetscOptionsGetScalarArray(NULL, NULL, "--source-location-y", mSrcLocY.data(), &n_par, NULL);
-    if (n_par != mNumSrc) { throw std::runtime_error(err + "y locations"); }
-    if (mNumDim == 3) {
-      mSrcLocZ.resize(mNumSrc);
-      PetscOptionsGetScalarArray(NULL, NULL, "--source-location-z", mSrcLocZ.data(), &n_par, NULL);
-      if (n_par != mNumSrc) { throw std::runtime_error(err + "z locations"); }
-    }
+    if (mNumSrc > 0) {
 
-    if (mSourceType == "ricker") {
-      n_par = mNumSrc;
-      mSrcRickerTimeDelay.resize(mNumSrc);
-      mSrcRickerAmplitude.resize(mNumSrc);
-      mSrcRickerCenterFreq.resize(mNumSrc);
-      mSrcRickerNumComponents.resize(mNumSrc);
-      PetscOptionsGetScalarArray(NULL, NULL, "--ricker-amplitude", mSrcRickerAmplitude.data(), &n_par, NULL);
-      if (n_par != mNumSrc) { throw std::runtime_error(err + "--ricker-amplitude."); }
-      PetscOptionsGetScalarArray(NULL, NULL, "--ricker-time-delay", mSrcRickerTimeDelay.data(), &n_par, NULL);
-      if (n_par != mNumSrc) { throw std::runtime_error(err + "--ricker-time-delay"); }
-      PetscOptionsGetScalarArray(NULL, NULL, "--ricker-center-freq", mSrcRickerCenterFreq.data(), &n_par, NULL);
-      if (n_par != mNumSrc) { throw std::runtime_error(err + "--ricker-center-freq"); }
-      PetscOptionsGetIntArray(NULL, NULL, "--ricker-num-components", mSrcRickerNumComponents.data(), &n_par, NULL);
-      if (n_par != mNumSrc) { throw std::runtime_error(err + "--ricker-num-components"); }
-    } else {
-      if (! testing)
-      throw std::runtime_error("Source type " + mSourceType + " not recognized.");
+      mSrcLocX.resize(mNumSrc); mSrcLocY.resize(mNumSrc);
+
+      PetscOptionsGetString(NULL, NULL, "--source-type", char_buffer, PETSC_MAX_PATH_LEN, &parameter_set);
+      if (parameter_set) {
+        mSourceType = std::string(char_buffer);
+      } else {
+        if (! testing)
+        throw std::runtime_error("Sources were requested, but source type was not specified. "
+                                     "Possibilities are: --source-type [ ricker, file ].");
+      }
+
+      PetscInt n_par = mNumSrc; std::string err = "Incorrect number of source parameters: ";
+      PetscOptionsGetScalarArray(NULL, NULL, "--source-location-x", mSrcLocX.data(), &n_par, NULL);
+      if (n_par != mNumSrc) { throw std::runtime_error(err + "x locations"); }
+      PetscOptionsGetScalarArray(NULL, NULL, "--source-location-y", mSrcLocY.data(), &n_par, NULL);
+      if (n_par != mNumSrc) { throw std::runtime_error(err + "y locations"); }
+      if (mNumDim == 3) {
+        mSrcLocZ.resize(mNumSrc);
+        PetscOptionsGetScalarArray(NULL, NULL, "--source-location-z", mSrcLocZ.data(), &n_par, NULL);
+        if (n_par != mNumSrc) { throw std::runtime_error(err + "z locations"); }
+      }
+
+      if (mSourceType == "ricker") {
+        n_par = mNumSrc;
+        mSrcRickerTimeDelay.resize(mNumSrc);
+        mSrcRickerAmplitude.resize(mNumSrc);
+        mSrcRickerCenterFreq.resize(mNumSrc);
+        mSrcNumComponents.resize(mNumSrc);
+        PetscOptionsGetScalarArray(NULL, NULL, "--ricker-amplitude", mSrcRickerAmplitude.data(), &n_par, NULL);
+        if (n_par != mNumSrc) { throw std::runtime_error(err + "--ricker-amplitude."); }
+        PetscOptionsGetScalarArray(NULL, NULL, "--ricker-time-delay", mSrcRickerTimeDelay.data(), &n_par, NULL);
+        if (n_par != mNumSrc) { throw std::runtime_error(err + "--ricker-time-delay"); }
+        PetscOptionsGetScalarArray(NULL, NULL, "--ricker-center-freq", mSrcRickerCenterFreq.data(), &n_par, NULL);
+        if (n_par != mNumSrc) { throw std::runtime_error(err + "--ricker-center-freq"); }
+        PetscOptionsGetIntArray(NULL, NULL, "--ricker-num-components", mSrcNumComponents.data(), &n_par, NULL);
+        if (n_par != mNumSrc) { throw std::runtime_error(err + "--ricker-num-components"); }
+      // } else if (mSourceType == "hdf5") {
+      //   PetscOptionsGetString(NULL, NULL, "--source-file-name", char_buffer, PETSC_MAX_PATH_LEN, &parameter_set);
+      //   if (parameter_set) {
+      //     mSourceFileName = std::string(char_buffer);
+      //   } else {
+      //       throw std::runtime_error("Sources from hdf5 file were requested, but no hdf5 file was specfied.");
+      //   }
+      } else {
+        if (! testing)
+        throw std::runtime_error("Source type " + mSourceType + " not recognized.");
+      }
     }
   }
 

@@ -29,13 +29,16 @@ class Options {
   std::string mMovieFile;
 
   // Sources.
+  std::string mSourceFileName;
+  std::vector<std::string> mSourceNames;
   std::vector<PetscReal> mSrcLocX;
   std::vector<PetscReal> mSrcLocY;
   std::vector<PetscReal> mSrcLocZ;
+  std::vector<PetscInt> mSrcNumComponents;
   std::vector<PetscReal> mSrcRickerAmplitude;
   std::vector<PetscReal> mSrcRickerCenterFreq;
   std::vector<PetscReal> mSrcRickerTimeDelay;
-  std::vector<PetscInt> mSrcRickerNumComponents;
+  
 
   // Receivers.
   PetscInt mNumRec;
@@ -74,13 +77,16 @@ class Options {
   std::vector<PetscReal> RecLocX() const { return mRecLocX; }
   std::vector<PetscReal> RecLocY() const { return mRecLocY; }
   std::vector<PetscReal> RecLocZ() const { return mRecLocZ; }
+
+  std::string SourceFileName() const { return mSourceFileName; }
   std::vector<PetscReal> SrcLocX() const { return mSrcLocX; }
   std::vector<PetscReal> SrcLocY() const { return mSrcLocY; }
   std::vector<PetscReal> SrcLocZ() const { return mSrcLocZ; }
+  std::vector<PetscInt> SrcNumComponents() const { return mSrcNumComponents; }
   std::vector<PetscReal> SrcRickerAmplitude() const { return mSrcRickerAmplitude; }
   std::vector<PetscReal> SrcRickerCenterFreq() const { return mSrcRickerCenterFreq; }
   std::vector<PetscReal> SrcRickerTimeDelay() const { return mSrcRickerTimeDelay; }
-  std::vector<PetscInt> SrcRickerNumComponents() const { return mSrcRickerNumComponents; }
+  
 
   std::vector<std::string> RecNames() const { return mRecNames; }
   std::vector<std::string> MovieFields() const { return mMovieFields; }

@@ -15,12 +15,12 @@ Ricker::Ricker(std::unique_ptr<Options> const &options): Source(options) {
     SetLocZ(options->SrcLocZ()[Num()]);
   }
 
+  mNumComponents = options->SrcNumComponents()[Num()];
+
   mTimeDelay = options->SrcRickerTimeDelay()[Num()];
   mAmplitude = options->SrcRickerAmplitude()[Num()];
   mCenterFreq = options->SrcRickerCenterFreq()[Num()];
 
-  mNumComponents = options->SrcRickerNumComponents()[Num()];
-  
   mDirection.resize(mNumComponents);
   for (auto i=0; i<mNumComponents; i++)
     mDirection(i) = 0.0;
