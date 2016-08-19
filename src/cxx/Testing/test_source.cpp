@@ -108,7 +108,7 @@ TEST_CASE("Test source functionality", "[source]") {
       PetscOptionsSetValue(NULL, "--ricker-amplitude", "10,20");
       PetscOptionsSetValue(NULL, "--ricker-time-delay", "0.1,0.01");
       PetscOptionsSetValue(NULL, "--ricker-center-freq", "50,60");
-      PetscOptionsSetValue(NULL, "--ricker-num-components", "1,1");
+      PetscOptionsSetValue(NULL, "--source-num-components", "1,1");
       std::unique_ptr<Options> options(new Options);
       options->SetDimension(3);
       options->setOptions();
@@ -137,7 +137,7 @@ TEST_CASE("Test source functionality", "[source]") {
       PetscOptionsSetValue(NULL, "--ricker-amplitude", "10,20");
       PetscOptionsSetValue(NULL, "--ricker-time-delay", "0.1,0.01");
       PetscOptionsSetValue(NULL, "--ricker-center-freq", "50,60");
-      PetscOptionsSetValue(NULL, "--ricker-num-components", "1,1");
+      PetscOptionsSetValue(NULL, "--source-num-components", "1,1");
       std::unique_ptr<Options> options(new Options);
       options->setOptions();
 
@@ -167,7 +167,7 @@ TEST_CASE("Test source functionality", "[source]") {
       PetscOptionsSetValue(NULL, "--mesh-file", e_file.c_str());
       PetscOptionsSetValue(NULL, "--model-file", e_file.c_str());
       PetscOptionsSetValue(NULL, "--polynomial-order", "3");
-      PetscOptionsSetValue(NULL, "--ricker-num-components", "1,1");
+      PetscOptionsSetValue(NULL, "--source-num-components", "1,1");
       std::unique_ptr<Options> options(new Options);
       options->SetDimension(3);
       options->setOptions();
@@ -209,7 +209,7 @@ TEST_CASE("Test source functionality", "[source]") {
       PetscOptionsSetValue(NULL, "--mesh-file", e_file.c_str());
       PetscOptionsSetValue(NULL, "--model-file", e_file.c_str());
       PetscOptionsSetValue(NULL, "--polynomial-order", "9");
-      PetscOptionsSetValue(NULL, "--ricker-num-components", "2,1");
+      PetscOptionsSetValue(NULL, "--source-num-components", "2,1");
       std::unique_ptr<Options> options(new Options);
       options->SetDimension(2);
       options->setOptions();
@@ -247,6 +247,7 @@ TEST_CASE("Test source functionality", "[source]") {
     SECTION("exceptions") {
 
       PetscOptionsSetValue(NULL, "--source-type", "ricke");
+      PetscOptionsSetValue(NULL, "--source-num-components", "1,1");
       std:unique_ptr<Options> options(new Options);
       options->setOptions();
 

@@ -239,10 +239,10 @@ TEST_CASE("Test tensor hex", "[tensor_hex]") {
   PetscOptionsSetValue(NULL, "--source-location-x", "50000,50000");
   PetscOptionsSetValue(NULL, "--source-location-y", "50000,90000");
   PetscOptionsSetValue(NULL, "--source-location-z", "50000,90000");
+  PetscOptionsSetValue(NULL, "--source-num-components", "3,3");
   PetscOptionsSetValue(NULL, "--ricker-amplitude", "1,1,1");
   PetscOptionsSetValue(NULL, "--ricker-time-delay", "1,1,1");
   PetscOptionsSetValue(NULL, "--ricker-center-freq", "1,1,1");
-  PetscOptionsSetValue(NULL, "--ricker-num-components", "3,3");
   PetscOptionsSetValue(NULL, "--receiver-file-name", "mock.h5");
   PetscOptionsSetValue(NULL, "--number-of-receivers", "2");
   PetscOptionsSetValue(NULL, "--receiver-names", "rec1,rec2");

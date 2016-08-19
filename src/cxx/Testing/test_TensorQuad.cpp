@@ -215,10 +215,10 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
   PetscOptionsSetValue(NULL, "--source-type", "ricker");
   PetscOptionsSetValue(NULL, "--source-location-x", "50000,50000");
   PetscOptionsSetValue(NULL, "--source-location-y", "80000,90000");
+  PetscOptionsSetValue(NULL, "--source-num-components", "2,2");
   PetscOptionsSetValue(NULL, "--ricker-amplitude", "10,20");
   PetscOptionsSetValue(NULL, "--ricker-time-delay", "0.1,0.01");
   PetscOptionsSetValue(NULL, "--ricker-center-freq", "50,60");
-  PetscOptionsSetValue(NULL, "--ricker-num-components", "3,3");
   PetscOptionsSetValue(NULL, "--receiver-file-name", "mock.h5");
   PetscOptionsSetValue(NULL, "--number-of-receivers", "2");
   PetscOptionsSetValue(NULL, "--receiver-names", "rec1,rec2");

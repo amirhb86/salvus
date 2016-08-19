@@ -166,10 +166,10 @@ TEST_CASE("Test point source receiver for scalar equation "
       "--source-type", "ricker",
       "--source-location-x", "50000,90000",
       "--source-location-y", "50000,90000",
+      "--source-num-components", "1,1",
       "--ricker-amplitude", "100,100",
       "--ricker-time-delay", "1.0,1.5",
       "--ricker-center-freq", "0.5,0.5",
-      "--ricker-num-components", "1,1",
       NULL };
 
   char **argv = const_cast<char **> (arg);
