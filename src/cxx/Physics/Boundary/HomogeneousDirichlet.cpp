@@ -40,6 +40,7 @@ RealMat HomogeneousDirichlet<Base>::computeStiffnessTerm(const Ref<const RealMat
 
 
 #include <Physics/Scalar.h>
+#include <Physics/ScalarTri.h>
 #include <Element/HyperCube/TensorQuad.h>
 #include <Element/HyperCube/QuadP1.h>
 #include <Element/HyperCube/Hexahedra.h>
@@ -62,6 +63,12 @@ template class HomogeneousDirichlet<
   Scalar<
   Triangle<
     TriP1>>>;
+
+template class HomogeneousDirichlet<
+  ScalarTri<
+  Scalar<
+  Triangle<
+  TriP1>>>>;
 
 template class HomogeneousDirichlet<
     Elastic2D<

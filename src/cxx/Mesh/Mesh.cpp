@@ -248,6 +248,7 @@ void Mesh::setupTopology(const unique_ptr<ExodusModel> &model,
     const PetscInt *ids; ISGetIndices(idIS, &ids);
     for (PetscInt i = 0; i < boundary_size; i++) {
       PetscInt numFaces; DMLabelGetStratumSize(label, ids[i], &numFaces);
+      printf("numFaces[%i]=%d\n",i,numFaces);
       IS pointIs; DMLabelGetStratumIS(label, ids[i], &pointIs);
       const PetscInt *faces; ISGetIndices(pointIs, &faces);
       /* Tuple describing boundary set i for face j. */
@@ -269,7 +270,7 @@ void Mesh::setupTopology(const unique_ptr<ExodusModel> &model,
     /* Add the type of element i to all mesh points connected via the Hasse graph. */
     PetscInt num_pts; const PetscInt *pts = NULL;
     DMPlexGetCone(mDistributedMesh, i, &pts); DMPlexGetConeSize(mDistributedMesh, i, &num_pts);
-    /* for all d-1 mesh points attached to this element... */
+    /* for all d-1 mesh points attached to this element (i.e., edges/) */
     for (PetscInt j = 0; j < num_pts; j++) {
       /* insert this element type... */
       mPointFields[pts[j]].insert(type);
@@ -375,11 +376,15 @@ void Mesh::setupGlobalDof(unique_ptr<Element> const &element,
 
   /* Only create a spectral basis if it makes sense. */
   if ((this->baseElementType() == "quad") ||
-      (this->baseElementType() == "hex")) {
+      (this->baseElementType() == "hex")  ||
+      (this->baseElementType() == "tri")) {
     // Fixes edges and surfaces with rotated orientation given by neighboring element
     FixOrientation(mDistributedMesh, mMeshSection, num_comps, num_fields, poly_order, mNumDim);
-    // Sets up tensorized ordering for quads and hexes
-    DMPlexCreateSpectralClosurePermutation(mDistributedMesh, NULL);
+    if ((this->baseElementType() == "quad") ||
+        (this->baseElementType() == "hex")) {        
+      // Sets up tensorized ordering for quads and hexes    
+      DMPlexCreateSpectralClosurePermutation(mDistributedMesh, NULL);
+    }
   }
 
   PetscFree(num_dof); 

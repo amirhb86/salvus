@@ -249,8 +249,7 @@ void Triangle<ConcreteShape>::setupGradientOperator() {
     dphi_dr_rsn_p3_triangle(mGradientPhi_dr.data());
     dphi_ds_rsn_p3_triangle(mGradientPhi_ds.data());
   } else {        
-    std::cerr << "NOT implemented yet!\n";
-    MPI::COMM_WORLD.Abort(-1);
+    ERROR() << "NOT implemented yet!\n";
   }
 }
 
@@ -329,7 +328,7 @@ VectorXd Triangle<ConcreteShape>::applyGradTestAndIntegrate(const Ref<const Matr
 
     mStiffWork(i) *= mDetJac;
   }
-  return mStiffWork;  
+  return mStiffWork;
 }
 
 template <typename ConcreteShape>
@@ -339,6 +338,13 @@ VectorXd Triangle<ConcreteShape>::applyTestAndIntegrate(const Ref<const VectorXd
   Matrix2d invJac;
   std::tie(invJac,detJac) = ConcreteShape::inverseJacobian(mVtxCrd);
   return detJac*mIntegrationWeights.array()*f.array();
+}
+
+template <typename ConcreteShape>
+void Triangle<ConcreteShape>::precomputeElementTerms() {
+  std::tie(mInvJac,mDetJac) = ConcreteShape::inverseJacobian(mVtxCrd);
+  mInvJacT = mInvJac.transpose();
+  mElementStiffnessMatrix = buildStiffnessMatrix(ParAtIntPts("VP"));
 }
 
 template <typename ConcreteShape>

@@ -89,11 +89,14 @@ RealVec Hexahedra<ConcreteHex>::GllPointsForOrder(const PetscInt order) {
     gll_coordinates_order6_square(gll_points.data());
   } else if (order == 7) {
     gll_coordinates_order7_square(gll_points.data());
-  } else if (order == 8) {
+  }
+#if HEX_MAX_ORDER > 7
+  else if (order == 8) {
     gll_coordinates_order8_square(gll_points.data());
   } else if (order == 9) {
     gll_coordinates_order9_square(gll_points.data());
   }
+#endif
   return gll_points;
 }
 
@@ -115,11 +118,14 @@ RealVec Hexahedra<ConcreteHex>::GllIntegrationWeights(const PetscInt order) {
     gll_weights_order6_square(integration_weights.data());
   } else if (order == 7) {
     gll_weights_order7_square(integration_weights.data());
-  } else if (order == 8) {
+  }
+#if HEX_MAX_ORDER > 7
+  else if (order == 8) {
     gll_weights_order8_square(integration_weights.data());
   } else if (order == 9) {
     gll_weights_order9_square(integration_weights.data());
   }
+#endif
   return integration_weights;
 }
 
@@ -414,11 +420,15 @@ RealVec Hexahedra<ConcreteHex>::interpolateLagrangePolynomials(const PetscReal r
     interpolate_order6_hex(r, s, t, gll_coeffs.data());
   } else if (order == 7) {
     interpolate_order7_hex(r, s, t, gll_coeffs.data());
-  } else if (order == 8) {
+  }
+#if HEX_MAX_ORDER > 7  
+  else if (order == 8) {
     interpolate_order8_hex(r, s, t, gll_coeffs.data());
   } else if (order == 9) {
     interpolate_order9_hex(r, s, t, gll_coeffs.data());
-  } else {
+  }
+#endif
+  else {
     ERROR() << "Order " << order << " not supported for hex";
   }
 
@@ -454,11 +464,15 @@ RealMat  Hexahedra<ConcreteHex>::setupGradientOperator(const PetscInt order) {
       interpolate_eps_derivative_order6_square(r, s, test.data());
     } else if (order == 7) {
       interpolate_eps_derivative_order7_square(r, s, test.data());
-    } else if (order == 8) {
+    }
+#if HEX_MAX_ORDER > 7    
+    else if (order == 8) {
       interpolate_eps_derivative_order8_square(r, s, test.data());
     } else if (order == 9) {
       interpolate_eps_derivative_order9_square(r, s, test.data());
-    } else {
+    }
+#endif
+    else {
       ERROR() << "Order " << order << " not supported for hex";
     }
     grad.row(i) = test.col(0);

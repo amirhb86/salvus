@@ -8,6 +8,7 @@
 
 // salvus
 #include <Utilities/Types.h>
+#include <Utilities/Logging.h>
 
 // forward decl.
 class Mesh;
@@ -211,7 +212,11 @@ class Triangle: public ConcreteShape {
    */
   void setupGradientOperator();
 
-
+  /** Precompute any terms needed on the element level, e.g.,
+      jacobians, velocities at nodes and the stiffness matrix.
+  */
+  void precomputeElementTerms();
+  
   /**
    * Queries the passed DM for the vertex coordinates of the specific element. These coordinates are saved
    * in mVertexCoordinates.
@@ -310,6 +315,7 @@ class Triangle: public ConcreteShape {
   inline Eigen::MatrixXi ClsMap() const { return mClsMap; }
   inline int PlyOrd()             const { return mPlyOrd; }
   inline Eigen::MatrixXd VtxCrd() const { return mVtxCrd; }
+  inline Eigen::MatrixXd StiffnessMatrix() const { return mElementStiffnessMatrix; }
   std::vector<std::shared_ptr<Source>> Sources() { return mSrc; }
 
   

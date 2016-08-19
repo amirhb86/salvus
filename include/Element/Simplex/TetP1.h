@@ -50,8 +50,7 @@ class TetP1 {
    * @returns (inverse Jacobian matrix,determinant of that matrix) as a `std::tuple`. Tuples can be
    * "destructured" using a `std::tie`.
    */
-  static std::tuple<Eigen::Matrix3d, PetscReal> inverseJacobian(
-                                                                const Eigen::Ref<const Eigen::Matrix<double,mNumVtx,mNumDim>> &vtx);
+  static std::tuple<Eigen::Matrix3d, PetscReal> inverseJacobian(const Eigen::Ref<const Eigen::Matrix<double,mNumVtx,mNumDim>> &vtx);
 
   static std::tuple<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd> buildNodalPoints(
       const Eigen::Ref<const Eigen::VectorXd>& intCrdR,

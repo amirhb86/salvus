@@ -57,6 +57,7 @@ set(SALVUS_SOURCES
         src/cxx/Element/HyperCube/Hexahedra.cpp
         src/cxx/Element/HyperCube/Hex/HexP1.cpp
         src/cxx/Physics/Element/Scalar.cpp
+        src/cxx/Physics/Element/ScalarTri.cpp
         src/cxx/Physics/Element/Elastic2D.cpp
         src/cxx/Physics/Element/Elastic3D.cpp
         src/cxx/Physics/Boundary/HomogeneousDirichlet.cpp
@@ -83,6 +84,7 @@ add_executable(salvus_test
         src/cxx/Testing/test_main.cpp
         src/cxx/Testing/test_QuadP1.cpp
         src/cxx/Testing/test_TensorQuad.cpp
+        src/cxx/Testing/test_TriP1.cpp
         src/cxx/Testing/test_source.cpp
         src/cxx/Testing/test_HexP1.cpp
         src/cxx/Testing/test_Hex_Scalar_3D.cpp

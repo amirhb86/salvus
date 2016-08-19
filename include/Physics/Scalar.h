@@ -41,8 +41,7 @@ class Scalar: public Shape {
   std::vector<std::string> PullElementalFields() const;
   std::vector<std::string> PushElementalFields() const;
 
-  /**** Setup functions ****/
-  void prepareStiffness() {};
+  /**** Setup functions ****/  
   RealMat assembleElementMassMatrix();
   void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model);
 

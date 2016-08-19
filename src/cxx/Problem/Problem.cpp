@@ -75,6 +75,9 @@ ElemVec Problem::initializeElements(unique_ptr<Mesh> const &mesh,
     /* Attach material properties (velocity, Cij, etc...). */
     elements.back()->attachMaterialProperties(model);
 
+    /* Prepares stiffness matrix (if necessary (e.g., tets and tris)) */
+    elements.back()->precomputeElementTerms();
+    
     /* Test for any sources. */
     for (auto &src: srcs) {
       if (srcs_this_partition[src->Num()]) continue; /* Already found. */

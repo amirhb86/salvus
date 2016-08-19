@@ -15,7 +15,6 @@
 #include <petscviewerhdf5.h>
 #include "catch.h"
 
-
 template <typename Element>
 class TestPlugin: public Element {
 
@@ -45,6 +44,19 @@ class TestPlugin: public Element {
                                           mesh->DistributedMesh(), mesh->MeshSection(),
                                           fields);
 
+    // RealMat un_xy = Element::computeGradient(un);
+    // RealVec un_x = M_PI / L * (M_PI / L * (pts_x.array() - (x0 + L / 2))).cos() *
+    //   (M_PI / L * (pts_y.array() - (y0 + L / 2))).sin();
+    // RealVec un_y = M_PI / L * (M_PI / L * (pts_x.array() - (x0 + L / 2))).sin() *
+    //   (M_PI / L * (pts_y.array() - (y0 + L / 2))).cos();
+    // RealMat compare_x(un.size(),2);
+    // RealMat compare_y(un.size(),2);
+    // compare_x.col(0) = un_xy.col(0);
+    // compare_x.col(1) = un_x;
+    // compare_y.col(0) = un_xy.col(1);
+    // compare_y.col(1) = un_y;
+    // LOG() << "x: \n" << compare_x;
+    
   }
 
   PetscReal checkEigenfunctionTestNew(std::unique_ptr<Mesh> const &mesh,
@@ -136,6 +148,7 @@ PetscReal runEigenFunctionTest(std::vector<std::unique_ptr<Element>> test_elemen
     problem->saveSolution(time, {"u","a"}, fields, mesh->DistributedMesh());
     
     max_error = element_error.maxCoeff() > max_error ? element_error.maxCoeff() : max_error;
+    break;
     if (time > cycle_time) break;
     
   }
@@ -225,7 +238,9 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
       "--mesh-file", e_file.c_str(),
       "--model-file", e_file.c_str(),
       "--time-step", "1e-2",
-      "--polynomial-order", "4",
+      "--polynomial-order", "3",
+      "--save-movie", "true",
+      "--movie-file-name","/scratch/salvus/output_files/movie_quad.h5",
       "--homogeneous-dirichlet", "x0,x1,y0,y1",
       NULL};
   char **argv = const_cast<char **> (arg);
@@ -283,64 +298,74 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
 
 }
 
-// TEST_CASE("Test analytic eigenfunction solution for scalar "
-//               "equation in 2D with triangles", "[tri_eigenfunction]") {
+TEST_CASE("Test analytic eigenfunction solution for scalar "
+              "equation in 2D with triangles", "[tri_eigenfunction]") {
 
-//   std::string e_file = "tri_eigenfunction.e";
+  std::string e_file = "tri_eigenfunction.e";
 
-//   PetscOptionsClear(NULL);
-//   const char *arg[] = {
-//       "salvus_test",
-//       "--testing", "true",
-//       "--mesh-file", e_file.c_str(),
-//       "--model-file", e_file.c_str(),
-//       "--time-step", "1e-2",
-//       "--polynomial-order", "3", NULL};
-//   char **argv = const_cast<char **> (arg);
-//   int argc = sizeof(arg) / sizeof(const char *) - 1;
-//   PetscOptionsInsert(NULL, &argc, &argv, NULL);
+  PetscOptionsClear(NULL);
+  const char *arg[] = {
+      "salvus_test",
+      "--testing", "true",
+      "--mesh-file", e_file.c_str(),
+      "--model-file", e_file.c_str(),
+      "--time-step", "1e-2",
+      "--polynomial-order", "3",
+      "--save-movie", "true",
+      "--movie-file-name","/scratch/salvus/output_files/movie_tri.h5",
+      "--homogeneous-dirichlet", "x0,x1,y0,y1",
+      NULL};
+  char **argv = const_cast<char **> (arg);
+  int argc = sizeof(arg) / sizeof(const char *) - 1;
+  PetscOptionsInsert(NULL, &argc, &argv, NULL);
 
-//   std::unique_ptr<Options> options(new Options);
-//   options->setOptions();
+  std::unique_ptr<Options> options(new Options);
+  options->setOptions();
 
-//   std::unique_ptr<Problem> problem(Problem::Factory(options));
-//   std::unique_ptr<ExodusModel> model(new ExodusModel(options));
-//   std::unique_ptr<Mesh> mesh(Mesh::Factory(options));
+  std::unique_ptr<Problem> problem(Problem::Factory(options));
+  std::unique_ptr<ExodusModel> model(new ExodusModel(options));
+  std::unique_ptr<Mesh> mesh(Mesh::Factory(options));
 
-//   model->read();
-//   mesh->read();
+  model->read();
+  mesh->read();
 
-//   std::vector<std::unique_ptr<Element>> test_elements;
-//   auto elements = problem->initializeElements(mesh, model, options);
-//   auto fields = problem->initializeGlobalDofs(elements, mesh);
+  /* Setup topology from model and mesh. */
+  mesh->setupTopology(model, options);
 
-//   mesh->setupGlobalDof(elements[0], options);
+  /* Setup elements from model and topology. */
+  auto elements = problem->initializeElements(mesh, model, options);
   
-//   /* Rip apart elements and insert testing mixin. */
-//   for (auto &e: elements) {
-
-//     /* Rip out the master Element class. */
-//     auto l1 = static_cast<unguard_triP1*>(e.release());
-
-//     /* Rip out the Element adapter. */
-//     auto l2 = static_cast<raw_triP1*>(l1);
-
-//     /* Attach the tester. */
-//     auto l3 = static_cast<test_init_triP1*>(l2);
-
-//     l3->setupEigenfunctionTest(mesh, options, problem, fields);
-
-//     /* Now we have a class with testing, which is still really an element :) */
-//     test_elements.emplace_back(static_cast<test_insert_triP1*>(l3));
-
-//   }
-
-//   PetscReal cycle_time = 24.39;
+  /* Setup global degrees of freedom based on element 0. */
+  mesh->setupGlobalDof(elements[0], options);
   
-//   auto max_error = runEigenFunctionTest(std::move(test_elements),mesh,model,options,problem,fields,cycle_time, ElementType::TRIP1);
-//   LOG() << "Triangle error: " << max_error;
-//   PetscReal regression_error = 0.001288; PetscScalar eps = 0.01;
-//   REQUIRE(max_error <= regression_error * (1 + eps));
+  std::vector<std::unique_ptr<Element>> test_elements;
+  auto fields = problem->initializeGlobalDofs(elements, mesh);
 
-// }
+  /* Rip apart elements and insert testing mixin. */
+  for (auto &e: elements) {
+
+    /* Rip out the master Element class. */
+    auto l1 = static_cast<unguard_triP1*>(e.release());
+
+    /* Rip out the Element adapter. */
+    auto l2 = static_cast<raw_triP1*>(l1);
+
+    /* Attach the tester. */
+    auto l3 = static_cast<test_init_triP1*>(l2);
+
+    l3->setupEigenfunctionTest(mesh, options, problem, fields);
+
+    /* Now we have a class with testing, which is still really an element :) */
+    test_elements.emplace_back(static_cast<test_insert_triP1*>(l3));
+
+  }
+
+  PetscReal cycle_time = 24.39;
+  
+  auto max_error = runEigenFunctionTest(std::move(test_elements),mesh,model,options,problem,fields,cycle_time, ElementType::TRIP1);
+  LOG() << "Triangle error: " << max_error;
+  PetscReal regression_error = 0.001288; PetscScalar eps = 0.01;
+  REQUIRE(max_error <= regression_error * (1 + eps));
+
+}
 

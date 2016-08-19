@@ -40,7 +40,9 @@ RealMat derivative4order(const PetscReal r, const PetscReal s, const PetscReal t
     interpolate_r_derivative_order7_hex(r, s, t, test_r.data());
     interpolate_s_derivative_order7_hex(r, s, t, test_s.data());
     interpolate_t_derivative_order7_hex(r, s, t, test_t.data());
-  } else if (order == 8) {
+  }
+  #if HEX_MAX_ORDER > 7
+  else if (order == 8) {
     interpolate_r_derivative_order8_hex(r, s, t, test_r.data());
     interpolate_s_derivative_order8_hex(r, s, t, test_s.data());
     interpolate_t_derivative_order8_hex(r, s, t, test_t.data());
@@ -48,7 +50,9 @@ RealMat derivative4order(const PetscReal r, const PetscReal s, const PetscReal t
     interpolate_r_derivative_order9_hex(r, s, t, test_r.data());
     interpolate_s_derivative_order9_hex(r, s, t, test_s.data());
     interpolate_t_derivative_order9_hex(r, s, t, test_t.data());
-  } else {
+  }
+  #endif
+  else {
     ERROR() << "Order " << order << " not supported";
   }
   RealMat ret(size, 3);

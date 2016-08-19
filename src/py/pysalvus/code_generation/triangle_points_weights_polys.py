@@ -163,7 +163,7 @@ def genP3code():
     wn_routine  = autocode.routine("quadrature_weights_p3_triangle",wn,
                                    argument_sequence=None)
 
-    # NOTE: writes out in Row Major (so we write the
+    # NOTE: by default, it writes out in Row Major (so we write the
     # transpose). Salvus (via Eigen) assumes Column Major
     dphi_dr_rsn_routine  = autocode.routine("dphi_dr_rsn_p3_triangle",
                                             dphi_dr_rsn.transpose(),

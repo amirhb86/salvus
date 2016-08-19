@@ -9,6 +9,15 @@
 #include <Eigen/Dense>
 #include <Utilities/Types.h>
 
+// Maximum order for Hexahedra. Order 8 and 9 have generated code, but
+// take quite a long time to compile, which is quite annoying for
+// day-to-day use and development. Compile with -DHEX_MAX_ORDER 9 to
+// set otherwise.
+#ifndef HEX_MAX_ORDER
+#define HEX_MAX_ORDER 7
+#endif
+
+
 // forward decl.
 class Mesh;
 class Source;
@@ -53,7 +62,8 @@ private:
 
   const static PetscInt mNumDim = 3;
   const static PetscInt mNumVtx = 8;
-  const static PetscInt mMaxOrder = 9;
+
+  const static PetscInt mMaxOrder = HEX_MAX_ORDER; // defined above
 
   // Workspace.  
   RealVec mParWork;
@@ -215,6 +225,11 @@ private:
    */
   void attachVertexCoordinates(std::unique_ptr<Mesh> const &mesh);
 
+  /** Precompute any terms needed on the element level, e.g.,
+      jacobians or velocities at nodes.
+  */
+  void precomputeElementTerms() {}
+  
   /**
    * Attach some abstract source instance to the element.
    * Test to see whether or not the source exists in the current element. If it does,

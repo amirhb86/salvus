@@ -204,6 +204,11 @@ private:
    */
   void attachVertexCoordinates(std::unique_ptr<Mesh> const &mesh);
 
+  /** Precompute any terms needed on the element level, e.g.,
+      jacobians or velocities at nodes.
+  */
+  void precomputeElementTerms() {}
+  
   /**
    * Attach some abstract source instance to the element.
    * Test to see whether or not the source exists in the current element. If it does,

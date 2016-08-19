@@ -13,6 +13,7 @@
 #include <Element/HyperCube/HexP1.h>
 
 #include <Physics/Scalar.h>
+#include <Physics/ScalarTri.h>
 #include <Physics/Elastic2D.h>
 #include <Physics/Elastic3D.h>
 #include <Physics/AcousticElastic2D.h>
@@ -203,17 +204,18 @@ std::unique_ptr<Element> Element::Factory(const std::string &shape,
 
         case eFluid:
           return std::unique_ptr<Element> (new ElementAdapter<
-                                           Scalar<
-                                           Triangle<
-                                           TriP1>>>(options));
-          break;
-        case eFluidBoundaryHomoDirichlet:
-          return std::unique_ptr<Element> (
-                                           new ElementAdapter<
-                                           HomogeneousDirichlet<
+                                           ScalarTri<
                                            Scalar<
                                            Triangle<
                                            TriP1>>>>(options));
+          break;
+        case eFluidBoundaryHomoDirichlet:
+          return std::unique_ptr<Element> (new ElementAdapter<
+                                           HomogeneousDirichlet<
+                                           ScalarTri<
+                                           Scalar<
+                                           Triangle<
+                                           TriP1>>>>>(options));
           break;
         default:
           throw std::runtime_error("Element could not be built.\n"

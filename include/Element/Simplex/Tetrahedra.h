@@ -227,6 +227,11 @@ class Tetrahedra: public ConcreteShape {
    */
   void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model,
                                 std::string parameter_name);
+
+  /** Precompute any terms needed on the element level, e.g.,
+      jacobians, velocities at nodes and the stiffness matrix.
+  */
+  void precomputeElementTerms() { LOG() << "Hello from Tet"; }
   
   /**
    * Utility function to integrate a field over the element. This could probably be made static, but for now I'm
