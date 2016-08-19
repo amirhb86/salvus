@@ -240,7 +240,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
       "--time-step", "1e-2",
       "--polynomial-order", "3",
       "--save-movie", "true",
-      "--movie-file-name","/scratch/salvus/output_files/movie_quad.h5",
+      "--movie-file-name","./movie_quad.h5",
       "--homogeneous-dirichlet", "x0,x1,y0,y1",
       NULL};
   char **argv = const_cast<char **> (arg);
@@ -312,7 +312,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
       "--time-step", "1e-2",
       "--polynomial-order", "3",
       "--save-movie", "true",
-      "--movie-file-name","/scratch/salvus/output_files/movie_tri.h5",
+      "--movie-file-name","./movie_tri.h5",
       "--homogeneous-dirichlet", "x0,x1,y0,y1",
       NULL};
   char **argv = const_cast<char **> (arg);

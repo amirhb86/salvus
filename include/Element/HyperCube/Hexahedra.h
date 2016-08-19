@@ -199,8 +199,11 @@ private:
    */
   void precomputeConstants();
 
+  void setFaceToValue(const PetscInt face, const PetscReal val, Eigen::Ref<RealVec> f);
   void setEdgeToValue(const PetscInt edg, const PetscReal val, Eigen::Ref<RealVec> f);
-  
+  void setVertexToValue(const PetscInt vtx, const PetscReal val, Eigen::Ref<RealVec> f);
+  std::vector<PetscInt> getDofsOnFace(const PetscInt face);
+
   
   /**
    * Test the full stiffness routine for acoustic

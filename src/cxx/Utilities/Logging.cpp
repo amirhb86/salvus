@@ -8,7 +8,7 @@ Logger::~Logger() {
   // catch error case
   if (level == LogLevel::ERROR) {
     std::cerr << "ERROR: " << os.str() << std::endl;
-    MPI_Abort(PETSC_COMM_WORLD,-1);      
+    MPI_Abort(PETSC_COMM_WORLD,-1);
   }
   
   int rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);

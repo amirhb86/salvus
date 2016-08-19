@@ -220,7 +220,7 @@ TEST_CASE("Test tensor hex", "[tensor_hex]") {
     /* Test that faces are set properly. */
     for (int edge: {0, 1, 2, 3, 4, 5}) {
       RealVec test_face = RealVec::Zero(test_hex.NumIntPnt());
-      test_hex.setEdgeToValue(edge, 1.0, test_face);
+      test_hex.setFaceToValue(edge, 1.0, test_face);
       REQUIRE(test_hex.applyTestAndIntegrateEdge(test_face, edge).sum() == Approx(4.0));
     }
 
@@ -319,3 +319,209 @@ TEST_CASE("Test tensor hex", "[tensor_hex]") {
       0, 0, 0, Hexahedra<HexP1>::MaxOrder()+1), std::runtime_error);
 
 }
+
+TEST_CASE("test closure mapping","[hex/closure]") {
+
+  std::string e_file = "hex_eigenfunction.e";
+
+  PetscOptionsClear(NULL);
+  const char *arg[] = {
+      "salvus_test",
+      "--testing", "true",
+      "--mesh-file", e_file.c_str(),
+      "--model-file", e_file.c_str(),
+      "--time-step", "1e-2",
+      "--polynomial-order", "3", NULL};
+  char **argv = const_cast<char **> (arg);
+  int argc = sizeof(arg) / sizeof(const char *) - 1;
+  PetscOptionsInsert(NULL, &argc, &argv, NULL);
+
+  std::unique_ptr<Options> options(new Options);
+  options->setOptions();
+
+  std::unique_ptr<Problem> problem(Problem::Factory(options));
+  std::unique_ptr<ExodusModel> model(new ExodusModel(options));
+  std::unique_ptr<Mesh> mesh(Mesh::Factory(options));
+
+  model->read();
+  PetscInt cells[] =
+      {0, 1, 2, 3,
+       4, 5, 6, 7,
+
+       12, 13, 14, 15, // element below
+       0, 3, 2, 1,
+
+       4, 7, 6, 5,    // element above
+       8, 9, 10, 11,
+
+       16, 0, 3, 19,  // element front
+       17, 18, 5, 4,
+
+       1, 20, 23, 2,  // element back
+       7, 6, 22, 21,
+
+       3, 2, 25, 24,  // element right
+       5, 27, 26, 6,
+
+       28, 29, 1, 0,  // element left
+       31, 4, 7, 30 };
+
+  // 4,7,6,5, // bottom o:-4
+  // 8,9,10,11 // top o:0
+  // 5,4,7,6, // bottom o:-1
+  // 9,10,11,8 // top o:0
+  // 6,5,4,7, // bottom o:-2
+  // 10,11,8,9 // top o:0
+  // 7,6,5,4, // bottom o:-3
+  // 10,8,9,11 // top o:0
+
+  PetscReal vertex_coords[] =
+      {+0.0, +0.0, +0.0, //0
+       +0.0, +1.0, +0.0,
+       +1.0, +1.0, +0.0,
+       +1.0, +0.0, +0.0,
+
+       +0.0, +0.0, +1.0, // 4
+       +1.0, +0.0, +1.0,
+       +1.0, +1.0, +1.0,
+       +0.0, +1.0, +1.0,
+
+       +0.0, +0.0, +2.0, // 8
+       +1.0, +0.0, +2.0,
+       +1.0, +1.0, +2.0,
+       +0.0, +1.0, +2.0,
+
+       +0.0, +0.0, -1.0, // 12
+       +0.0, +1.0, -1.0,
+       +1.0, +1.0, -1.0,
+       +1.0, +0.0, -1.0,
+
+       +0.0, -1.0, +0.0, // 16
+       +0.0, -1.0, +1.0,
+       +1.0, -1.0, +1.0,
+       +1.0, -1.0, +0.0,
+
+       +0.0, +2.0, +0.0, // 20
+       +0.0, +2.0, +1.0,
+       +1.0, +2.0, +1.0,
+       +1.0, +2.0, +0.0,
+
+       +2.0, +0.0, +0.0, // 24
+       +2.0, +1.0, +0.0,
+       +2.0, +1.0, +1.0,
+       +2.0, +0.0, +1.0,
+
+       -1.0, +0.0, +0.0, // 28
+       -1.0, +1.0, +0.0,
+       -1.0, +1.0, +1.0,
+       -1.0, +0.0, +1.0 };
+
+  /* Creat a mesh with the vertices defined above. */
+  PetscInt dimen = 3, num_cells = 7, num_verts = 32, verts_per_cell = 8;
+  mesh->read(dimen, num_cells, num_verts, verts_per_cell, cells, vertex_coords);
+
+  /* Setup topology from model and mesh. */
+  mesh->setupTopology(model, options);
+
+  /* Setup elements from model and topology. */
+  auto elements = problem->initializeElements(mesh, model, options);
+
+  /* Setup global degrees of freedom based on element 0. */
+  mesh->setupGlobalDof(elements[0], options);
+
+  auto fields = problem->initializeGlobalDofs(elements, mesh);
+  auto test_hex = dynamic_cast<Hexahedra<HexP1>*> (elements[0].get());
+
+  SECTION("Ensure face closure is set properly") {
+
+    std::vector<PetscInt> insert_element {1, 2, 3, 4, 5, 6};
+    std::vector<PetscInt> insert_faces   {1, 0, 3, 2, 5, 4};
+
+    RealVec un = RealVec::Zero(elements[0]->NumIntPnt());
+
+    RealVec bot(un.size()), top(un.size()), lft(un.size()), rgt(un.size()),
+        fnt(un.size()), bck(un.size());
+    bot << 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0;
+    top << 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1;
+    fnt << 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0;
+    bck << 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+        1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 1, 1, 1, 1;
+    rgt << 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0,
+        0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0,
+        1, 0, 0, 0, 1;
+    lft << 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1,
+        0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0,
+        0, 1, 0, 0, 0;
+
+    for (PetscInt i = 0; i < insert_element.size(); i++) {
+
+      /* Insert a vector of ones of some face of a neighbouring element. */
+      test_hex->setFaceToValue(insert_faces[i], 1.0, un);
+      problem->insertElementalFieldIntoMesh("u", insert_element[i], elements[0]->ClsMap(), un,
+                                            mesh->DistributedMesh(), mesh->MeshSection(),
+                                            fields);
+
+      switch (insert_element[i]) {
+
+        /* Get field on central element (number 0), one face of which should be set
+         * to one (others to zero). */
+        case 1:
+          REQUIRE(problem->getFieldOnElement("u", 0, elements[0]->ClsMap(),
+                                             mesh->DistributedMesh(),
+                                             mesh->MeshSection(), fields).isApprox(bot));
+          break;
+        case 2:
+          REQUIRE(problem->getFieldOnElement("u", 0, elements[0]->ClsMap(),
+                                             mesh->DistributedMesh(),
+                                             mesh->MeshSection(), fields).isApprox(top));
+          break;
+        case 3:
+          REQUIRE(problem->getFieldOnElement("u", 0, elements[0]->ClsMap(),
+                                             mesh->DistributedMesh(),
+                                             mesh->MeshSection(), fields).isApprox(fnt));
+          break;
+        case 4:
+          REQUIRE(problem->getFieldOnElement("u", 0, elements[0]->ClsMap(),
+                                             mesh->DistributedMesh(),
+                                             mesh->MeshSection(), fields).isApprox(bck));
+          break;
+        case 5:
+          REQUIRE(problem->getFieldOnElement("u", 0, elements[0]->ClsMap(),
+                                             mesh->DistributedMesh(),
+                                             mesh->MeshSection(), fields).isApprox(rgt));
+          break;
+        case 6:
+          REQUIRE(problem->getFieldOnElement("u", 0, elements[0]->ClsMap(),
+                                             mesh->DistributedMesh(),
+                                             mesh->MeshSection(), fields).isApprox(lft));
+        default:
+          break;
+
+      }
+
+      /* Reset that face to zero. */
+      test_hex->setFaceToValue(insert_faces[i], 0.0, un);
+      problem->insertElementalFieldIntoMesh("u", insert_element[i], elements[0]->ClsMap(), un,
+                                            mesh->DistributedMesh(), mesh->MeshSection(),
+                                            fields);
+    }
+  }
+
+  SECTION("Closure routines throw on bad values") {
+
+    RealVec dum(1);
+    REQUIRE_THROWS_AS(test_hex->applyTestAndIntegrateEdge(dum, 6), std::runtime_error);
+    REQUIRE_THROWS_AS(test_hex->getDofsOnFace(6), std::runtime_error);
+
+  }
+
+
+}
+

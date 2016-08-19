@@ -62,6 +62,8 @@ ElemVec Problem::initializeElements(unique_ptr<Mesh> const &mesh,
                                         mesh->ElementFields(i),
                                         mesh->TotalCouplingFields(i),
                                         options));
+    std::cout << "HI I AM NUMBER: " << i << " AND I AM A: " << elements.back()->Name() <<
+                                                                                       std::endl;
 
     /* Assign a (processor-specific) number to this element. */
     elements.back()->SetNum(i);

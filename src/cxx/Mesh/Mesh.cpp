@@ -163,11 +163,6 @@ PetscErrorCode FixOrientation(DM dm, PetscSection s, int* user_Nc, int user_Nf, 
             }
             break;
           case -2: /* flip along ( 1,-1)--(-1, 1), which swaps edges 0 and 1 and edges 2 and 3.  This swaps the i and j variables and reverse both */
-            perm[0] = 2;
-            perm[1] = 0;
-            perm[2] = 3;
-            perm[3] = 1;
-            /* break; */
             for (i = 0, k = 0; i < perEdge; i++) {
               for (j = 0; j < perEdge; j++, k++) {
                 for (c = 0; c < numComp; c++) {
@@ -177,11 +172,6 @@ PetscErrorCode FixOrientation(DM dm, PetscSection s, int* user_Nc, int user_Nf, 
             }
             break;
           case -1: /* flip along ( 0,-1)--( 0, 1), which swaps edges 3 and 1.  This reverses the j variable */
-            perm[0] = 0;
-            perm[1] = 1;
-            perm[2] = 2;
-            perm[3] = 3;
-            /* break; */
             for (i = 0, k = 0; i < perEdge; i++) {
               for (j = 0; j < perEdge; j++, k++) {
                 for (c = 0; c < numComp; c++) {
@@ -283,6 +273,16 @@ void Mesh::setupTopology(const unique_ptr<ExodusModel> &model,
           auto hd = options->HomogeneousDirichlet();
           if (std::find(hd.begin(), hd.end(), model->SideSetName(k)) != hd.end()) {
             mPointFields[pts[j]].insert("boundary_homo_dirichlet");
+            /* If we're on a boundary, it's important to the entire graph. */
+            PetscInt num_closure; PetscInt *pts_closure = NULL;
+            DMPlexGetTransitiveClosure(mDistributedMesh, pts[j], PETSC_TRUE, &num_closure,
+                                       &pts_closure);
+            /* Remember closure includes orientations (k += 2) */
+            for (PetscInt l = 0; l < 2*num_closure; l += 2) {
+              mPointFields[pts_closure[l]].insert("boundary_homo_dirichlet");
+            }
+            DMPlexRestoreTransitiveClosure(mDistributedMesh, pts[j], PETSC_TRUE, &num_closure,
+                                           &pts_closure);
           }
           /* default to free surface... insert nothing. */
         }
@@ -424,6 +424,9 @@ std::vector<std::tuple<PetscInt,std::vector<std::string>>> Mesh::CouplingFields(
   /* Step one level up in graph (reduce dim). */
   PetscInt csize; DMPlexGetConeSize(mDistributedMesh, elm, &csize);
   const PetscInt *cone; DMPlexGetCone(mDistributedMesh, elm, &cone);
+  /*---------------------------------------------------------------------------
+                    Get physics of neighbouring element.
+   *--------------------------------------------------------------------------*/
   for (PetscInt i = 0; i < csize; i++) {
     /* Step through the support of each point (increase dim to element). */
     PetscInt ssize; DMPlexGetSupportSize(mDistributedMesh, cone[i], &ssize);
@@ -442,15 +445,16 @@ std::vector<std::tuple<PetscInt,std::vector<std::string>>> Mesh::CouplingFields(
 std::vector<std::string> Mesh::TotalCouplingFields(const PetscInt elm) {
 
   std::set<std::string> coupling_fields;
-  PetscInt num_pts; const PetscInt *pts = NULL;
-  DMPlexGetCone(mDistributedMesh, elm, &pts); DMPlexGetConeSize(mDistributedMesh, elm, &num_pts);
-  for (PetscInt j = 0; j < num_pts; j++) {
-    for (auto &f: mPointFields[pts[j]]) {
+  PetscInt num_pts; PetscInt *pts = NULL;
+  DMPlexGetTransitiveClosure(mDistributedMesh, elm, PETSC_TRUE, &num_pts, &pts);
+  for (PetscInt i = 0; i < 2*num_pts; i += 2) {
+    for (auto &f: mPointFields[pts[i]]) {
       if (mPointFields[elm].find(f) == mPointFields[elm].end()) {
         coupling_fields.insert(f);
       }
     }
   }
+  DMPlexRestoreTransitiveClosure(mDistributedMesh, elm, PETSC_TRUE, &num_pts, &pts);
   return std::vector<std::string> (coupling_fields.begin(), coupling_fields.end());
 
 }
