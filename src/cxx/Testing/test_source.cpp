@@ -39,19 +39,7 @@ TEST_CASE("Test source functionality", "[source]") {
 
       // write hdf5 source file
       std::string source_file("source.h5");
-      hid_t           file;
-      hid_t           group;
-      herr_t          status;
-    
-      file =  H5Fcreate(source_file.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-      group = H5Gcreate2(file, "/source1", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-      status = H5Gclose (group);
-      group = H5Gcreate2(file, "/source2", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-      status = H5Gclose (group);
-      std::string source_type("ricker");
-
-      H5LTset_attribute_string(file, "/", "type", source_type.c_str());
-
+      PetscInt rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
       std::vector<double> loc1{50000, 50000, 50000};
       std::vector<double> loc2{50000, 90000, 90000};
 
@@ -65,19 +53,35 @@ TEST_CASE("Test source functionality", "[source]") {
       vector<double> ricker_time{0.1, 0.01};
       vector<double> ricker_freq{50.0, 60.0};
 
-      H5LTset_attribute_double(file, "/source1", "location", loc1.data(), 3);
-      H5LTset_attribute_int(file, "/source1", "num-components", &(source_components[0]), 1);
-      H5LTset_attribute_double(file, "/source1", "ricker-amplitude", &(ricker_amp[0]), 1);
-      H5LTset_attribute_double(file, "/source1", "ricker-center-freq", &(ricker_freq[0]), 1);
-      H5LTset_attribute_double(file, "/source1", "ricker-time-delay", &(ricker_time[0]), 1);
+      if ( !rank ) {
+        hid_t           file;
+        hid_t           group;
+        herr_t          status;
+      
+        file =  H5Fcreate(source_file.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+        group = H5Gcreate2(file, "/source1", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        status = H5Gclose (group);
+        group = H5Gcreate2(file, "/source2", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        status = H5Gclose (group);
+        std::string source_type("ricker");
 
-      H5LTset_attribute_double(file, "/source2", "location", loc2.data(), 3);
-      H5LTset_attribute_int(file, "/source2", "num-components", &(source_components[1]), 1);
-      H5LTset_attribute_double(file, "/source2", "ricker-amplitude", &(ricker_amp[1]), 1);
-      H5LTset_attribute_double(file, "/source2", "ricker-center-freq", &(ricker_freq[1]), 1);
-      H5LTset_attribute_double(file, "/source2", "ricker-time-delay", &(ricker_time[1]), 1);
+        H5LTset_attribute_string(file, "/", "type", source_type.c_str());
 
-      status = H5Fclose (file);
+        H5LTset_attribute_double(file, "/source1", "location", loc1.data(), 3);
+        H5LTset_attribute_int(file, "/source1", "num-components", &(source_components[0]), 1);
+        H5LTset_attribute_double(file, "/source1", "ricker-amplitude", &(ricker_amp[0]), 1);
+        H5LTset_attribute_double(file, "/source1", "ricker-center-freq", &(ricker_freq[0]), 1);
+        H5LTset_attribute_double(file, "/source1", "ricker-time-delay", &(ricker_time[0]), 1);
+
+        H5LTset_attribute_double(file, "/source2", "location", loc2.data(), 3);
+        H5LTset_attribute_int(file, "/source2", "num-components", &(source_components[1]), 1);
+        H5LTset_attribute_double(file, "/source2", "ricker-amplitude", &(ricker_amp[1]), 1);
+        H5LTset_attribute_double(file, "/source2", "ricker-center-freq", &(ricker_freq[1]), 1);
+        H5LTset_attribute_double(file, "/source2", "ricker-time-delay", &(ricker_time[1]), 1);
+
+        status = H5Fclose (file);
+        MPI_Barrier(PETSC_COMM_WORLD);
+      }
 
       PetscOptionsClear(NULL);
       const char *arg[] =
@@ -125,17 +129,6 @@ TEST_CASE("Test source functionality", "[source]") {
 
       // write hdf5 source file
       std::string source_file("source.h5");
-      hid_t           file;
-      hid_t           group;
-      herr_t          status;
-    
-      file =  H5Fcreate(source_file.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-      group = H5Gcreate2(file, "/source1", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-      group = H5Gcreate2(file, "/source2", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-      std::string source_type("file");
-
-      H5LTset_attribute_string(file, "/", "type", source_type.c_str());
-
       std::vector<double> loc1{50000, 50000, 50000};
       std::vector<double> loc2{50000, 90000, 90000};
 
@@ -149,29 +142,42 @@ TEST_CASE("Test source functionality", "[source]") {
       vector<double> ricker_time{0.1, 0.01};
       vector<double> ricker_freq{50.0, 60.0};
 
-      H5LTset_attribute_double(file, "/source1", "location", loc1.data(), 3);
-      H5LTset_attribute_int(file, "/source1", "num-components", &(source_components[0]), 1);
-
-      H5LTset_attribute_double(file, "/source2", "location", loc2.data(), 3);
-      H5LTset_attribute_int(file, "/source2", "num-components", &(source_components[1]), 1);
-
       const hsize_t nTimeSteps = 1000;
-      std::vector<PetscReal> source_time_function(nTimeSteps);
-      for (PetscInt j = 0; j < nTimeSteps; j++) {
-        PetscReal time = j * 1e-3;
-        source_time_function[j] = true_ricker(time, ricker_freq[0], ricker_time[0], ricker_amp[0]);
-      }
-      
-      H5LTmake_dataset_double (file, "/source1/data", 1, &nTimeSteps, source_time_function.data());
-      
-      for (PetscInt j = 0; j < nTimeSteps; j++) {
-        PetscReal time = j * 1e-3;
-        source_time_function[j] = true_ricker(time, ricker_freq[1], ricker_time[1], ricker_amp[1]);
-      }
-      H5LTmake_dataset_double (file, "/source2/data", 1, &nTimeSteps, source_time_function.data());
 
-      status = H5Fclose (file);
+      PetscInt rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+      if ( !rank ) {
+        hid_t           file;
+        hid_t           group;
+        herr_t          status;
+      
+        file =  H5Fcreate(source_file.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+        group = H5Gcreate2(file, "/source1", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        group = H5Gcreate2(file, "/source2", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        std::string source_type("file");
 
+        H5LTset_attribute_string(file, "/", "type", source_type.c_str());
+        H5LTset_attribute_double(file, "/source1", "location", loc1.data(), 3);
+        H5LTset_attribute_int(file, "/source1", "num-components", &(source_components[0]), 1);
+
+        H5LTset_attribute_double(file, "/source2", "location", loc2.data(), 3);
+        H5LTset_attribute_int(file, "/source2", "num-components", &(source_components[1]), 1);
+
+        std::vector<PetscReal> source_time_function(nTimeSteps);
+        for (PetscInt j = 0; j < nTimeSteps; j++) {
+          PetscReal time = j * 1e-3;
+          source_time_function[j] = true_ricker(time, ricker_freq[0], ricker_time[0], ricker_amp[0]);
+        }
+        
+        H5LTmake_dataset_double (file, "/source1/data", 1, &nTimeSteps, source_time_function.data());
+        
+        for (PetscInt j = 0; j < nTimeSteps; j++) {
+          PetscReal time = j * 1e-3;
+          source_time_function[j] = true_ricker(time, ricker_freq[1], ricker_time[1], ricker_amp[1]);
+        }
+        H5LTmake_dataset_double (file, "/source2/data", 1, &nTimeSteps, source_time_function.data());
+
+        status = H5Fclose (file);
+      }
       PetscOptionsClear(NULL);
       const char *arg[] =
       {"salvus_test", "--testing", "true", "--duration", "1",
