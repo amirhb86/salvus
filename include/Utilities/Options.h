@@ -86,6 +86,7 @@ class Options {
   std::vector<PetscReal> SrcRickerAmplitude() const { return mSrcRickerAmplitude; }
   std::vector<PetscReal> SrcRickerCenterFreq() const { return mSrcRickerCenterFreq; }
   std::vector<PetscReal> SrcRickerTimeDelay() const { return mSrcRickerTimeDelay; }
+  std::vector<std::string> SrcName() const { return mSourceNames; }
   
 
   std::vector<std::string> RecNames() const { return mRecNames; }

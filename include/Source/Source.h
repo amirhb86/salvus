@@ -74,4 +74,6 @@ class Source {
    */
   virtual Eigen::VectorXd fire(const double &time, const PetscInt &time_idx) = 0;
 
+  virtual void loadData();
+
 };

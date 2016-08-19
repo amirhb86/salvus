@@ -112,8 +112,11 @@ ElemVec Problem::initializeElements(unique_ptr<Mesh> const &mesh,
   /* Finally, go back and ensure that everything has been added as expected. */
   for (auto &src: srcs) {
     /* Was there a source that should have been added by this processor that wasn't? */
-    if (src && srcs_this_partition[src->Num()] == rank) {
-      throw std::runtime_error("Error. One or more sources were not added properly.");
+    if (src) {
+      src->loadData();
+      if (srcs_this_partition[src->Num()] == rank) {
+        throw std::runtime_error("Error. One or more sources were not added properly.");
+      }
     }
   }
   for (auto &rec: recs) {

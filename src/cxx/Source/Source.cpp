@@ -13,7 +13,7 @@ PetscInt Source::number = 0;
 enum source_type { sRicker, sHDF5, sTypeError };
 source_type stype(const std::string &stype) {
   if (stype == "ricker") return sRicker;
-  if (stype == "hdf5")  return sHDF5;
+  if (stype == "file")  return sHDF5;
   return sTypeError;
 }
 
@@ -33,6 +33,7 @@ std::vector<std::unique_ptr<Source>> Source::Factory(std::unique_ptr<Options> co
         for (PetscInt i = 0; i < options->NumberSources(); i++) {
           sources.push_back(std::unique_ptr<SourceHdf5>(new SourceHdf5(options)));
         }
+        return sources;
 
       case sTypeError:
         break;
@@ -51,3 +52,5 @@ Source::Source(std::unique_ptr<Options> const &options) {
 }
 
 Source::~Source() { --number; }
+
+void Source::loadData() {}

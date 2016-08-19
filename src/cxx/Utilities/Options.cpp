@@ -69,24 +69,24 @@ void Options::setOptions() {
     mDuration = real_buffer;
   }
   else {
+    mDuration = -1.0;
     if (! testing && ! static_problem ) throw std::runtime_error(epre + "--duration" + epst);
   }
   PetscOptionsGetReal(NULL, NULL, "--time-step", &real_buffer, &parameter_set);
   if (parameter_set) {
     mTimeStep = real_buffer;
-  } else {
+    
+    // compute number of time steps and ensure that it is integer
+    // (i.e., adjust (decrease) mTimeStep if necessary)
+    if ( mDuration > 0) {
+      mNumTimeSteps = std::ceil(mDuration / mTimeStep);
+      mTimeStep = mDuration / (double)(mNumTimeSteps);
+    }
+   } else {
+    mNumTimeSteps = 0;
     if (! testing && ! static_problem ) throw std::runtime_error(epre + "--time-step" + epst);
   }
-  // compute number of time steps and ensure that it is integer
-  // (i.e., adjust (decrease) mTimeStep if necessary)
-  if (! testing && ! static_problem ) {
-    mNumTimeSteps = std::ceil(mDuration / mTimeStep);
-    mTimeStep = mDuration / (double)(mNumTimeSteps);
-    std::cout << "mDuration " << mDuration << ", mTimeStep " << mTimeStep << ", mNumTimeSteps " << mNumTimeSteps << std::endl;
-  }
-  else {
-    mNumTimeSteps = 0;
-  }
+  
 
 
   /********************************************************************************
@@ -170,6 +170,12 @@ void Options::setOptions() {
         mSrcRickerCenterFreq.push_back(double_buffer);
         H5LTget_attribute_double(file, mSourceNames.at(i).c_str(), "ricker-time-delay", &double_buffer);
         mSrcRickerTimeDelay.push_back(double_buffer);
+      } else if (mSourceType == "file") {
+
+
+      } else {
+        if (! testing)
+        throw std::runtime_error("Source type " + mSourceType + " not recognized.");
       }
     }
     status = H5Fclose (file);
