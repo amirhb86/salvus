@@ -75,7 +75,7 @@ void Options::setOptions() {
   PetscOptionsGetReal(NULL, NULL, "--time-step", &real_buffer, &parameter_set);
   if (parameter_set) {
     mTimeStep = real_buffer;
-    
+
     // compute number of time steps and ensure that it is integer
     // (i.e., adjust (decrease) mTimeStep if necessary)
     if ( mDuration > 0) {
@@ -140,43 +140,50 @@ void Options::setOptions() {
     herr_t          status;
     H5G_info_t      info_buffer;
 
+    H5Eset_auto(H5E_DEFAULT, NULL, NULL);
     file = H5Fopen (mSourceFileName.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+    if ( file < 0 ) throw std::runtime_error("Can't open source file '" + mSourceFileName + "'.");
     status = H5Gget_info (file, &info_buffer);
-
+    if ( status < 0 ) throw std::runtime_error("Can't read group info from file '" + mSourceFileName + "'.");
     mNumSrc = info_buffer.nlinks;
 
-    H5LTget_attribute_string (file, "/", "type", char_buffer);
+    status = H5LTget_attribute_string (file, "/", "type", char_buffer);
+    if ( status < 0 ) throw std::runtime_error("Can't read attribute 'type' from file '" + mSourceFileName + "'.");
     mSourceType = std::string(char_buffer);
+    if ( !(mSourceType == "file") || !(mSourceType == "ricker") ) {
+      if (! testing)
+        throw std::runtime_error("Source type " + mSourceType + " not recognized.");
+    }
         
     for ( auto i = 0; i < info_buffer.nlinks; i++) {
-      H5Gget_objname_by_idx(file, i, char_buffer, PETSC_MAX_PATH_LEN ) ;
+      status = H5Gget_objname_by_idx(file, i, char_buffer, PETSC_MAX_PATH_LEN ) ;
+      if ( status < 0 ) throw std::runtime_error("Can't read source name from file '" + mSourceNames.at(i) + "'.");
       mSourceNames.push_back(std::string(char_buffer));
       
       std::vector<double> loc(mNumDim);
-      H5LTget_attribute_double(file, mSourceNames.at(i).c_str(), "location", loc.data());
+      status = H5LTget_attribute_double(file, mSourceNames.at(i).c_str(), "location", loc.data());
+      if ( status < 0 ) throw std::runtime_error("Can't read attribute 'location' of source '" + mSourceNames.at(i) + "'.");
       mSrcLocX.push_back(loc[0]);
       mSrcLocY.push_back(loc[1]);
       if (mNumDim == 3) { mSrcLocZ.push_back(loc[2]); }
 
-      H5LTget_attribute_int(file, mSourceNames.at(i).c_str(), "num-components", &int_buffer);
+      status = H5LTget_attribute_int(file, mSourceNames.at(i).c_str(), "num-components", &int_buffer);
+      if ( status < 0 ) throw std::runtime_error("Can't read attribute 'num-components' of source '" + mSourceNames.at(i) + "'.");
       mSrcNumComponents.push_back(int_buffer);
 
       if (mSourceType == "ricker") {
         double double_buffer;
         int int_buffer;
-        H5LTget_attribute_double(file, mSourceNames.at(i).c_str(), "ricker-amplitude", &double_buffer);
+        status = H5LTget_attribute_double(file, mSourceNames.at(i).c_str(), "ricker-amplitude", &double_buffer);
+        if ( status < 0 ) throw std::runtime_error("Can't read attribute 'ricker-amplitude' of source '" + mSourceNames.at(i) + "'.");
         mSrcRickerAmplitude.push_back(double_buffer);
-        H5LTget_attribute_double(file, mSourceNames.at(i).c_str(), "ricker-center-freq", &double_buffer);
+        status = H5LTget_attribute_double(file, mSourceNames.at(i).c_str(), "ricker-center-freq", &double_buffer);
+        if ( status < 0 ) throw std::runtime_error("Can't read attribute 'ricker-center-freq' of source '" + mSourceNames.at(i) + "'.");
         mSrcRickerCenterFreq.push_back(double_buffer);
-        H5LTget_attribute_double(file, mSourceNames.at(i).c_str(), "ricker-time-delay", &double_buffer);
+        status = H5LTget_attribute_double(file, mSourceNames.at(i).c_str(), "ricker-time-delay", &double_buffer);
+        if ( status < 0 ) throw std::runtime_error("Can't read attribute 'ricker-time-delay' of source '" + mSourceNames.at(i) + "'.");
         mSrcRickerTimeDelay.push_back(double_buffer);
-      } else if (mSourceType == "file") {
-
-
-      } else {
-        if (! testing)
-        throw std::runtime_error("Source type " + mSourceType + " not recognized.");
-      }
+      } 
     }
     status = H5Fclose (file);
 

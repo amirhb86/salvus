@@ -45,7 +45,7 @@ void SourceHdf5::loadData() {
   std::string dataset_name = mSourceName + "/data";
   source_time_function.setZero(mNumTimeSteps,mNumComponents);
   
-  H5LTread_dataset_double(file, dataset_name.c_str(), source_time_function.data());
-  
+  status = H5LTread_dataset_double(file, dataset_name.c_str(), source_time_function.data());
+  if ( status < 0 ) throw std::runtime_error("Can't read data for source '" + mSourceName + " from file '" + mSourceFileName + "'.");
   H5Fclose (file);
 }
