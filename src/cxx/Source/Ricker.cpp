@@ -20,12 +20,8 @@ Ricker::Ricker(std::unique_ptr<Options> const &options): Source(options) {
   mTimeDelay = options->SrcRickerTimeDelay()[Num()];
   mAmplitude = options->SrcRickerAmplitude()[Num()];
   mCenterFreq = options->SrcRickerCenterFreq()[Num()];
-
-  mDirection.resize(mNumComponents);
-  for (auto i=0; i<mNumComponents; i++)
-    mDirection(i) = 0.0;
-    mDirection(0) = 1.0;
-
+  mDirection = options->SrcRickerDirection(Num());
+  
 }
 
 Eigen::VectorXd Ricker::fire(const double &time, const PetscInt &time_idx) {

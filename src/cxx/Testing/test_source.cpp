@@ -48,10 +48,11 @@ TEST_CASE("Test source functionality", "[source]") {
       vector<PetscReal> z{50000, 90000};
 
       /* True options. */
-      vector<int> source_components{1,1};
+      vector<int> source_components{1,2};
       vector<double> ricker_amp{10.0, 20.0};
       vector<double> ricker_time{0.1, 0.01};
       vector<double> ricker_freq{50.0, 60.0};
+      vector<double> ricker_dir{0.0, 1.0};
 
       if ( !rank ) {
         hid_t           file;
@@ -78,6 +79,7 @@ TEST_CASE("Test source functionality", "[source]") {
         H5LTset_attribute_double(file, "/source2", "ricker-amplitude", &(ricker_amp[1]), 1);
         H5LTset_attribute_double(file, "/source2", "ricker-center-freq", &(ricker_freq[1]), 1);
         H5LTset_attribute_double(file, "/source2", "ricker-time-delay", &(ricker_time[1]), 1);
+        H5LTset_attribute_double(file, "/source2", "ricker-direction", ricker_dir.data(), 2);
 
         status = H5Fclose (file);
         MPI_Barrier(PETSC_COMM_WORLD);
@@ -112,7 +114,7 @@ TEST_CASE("Test source functionality", "[source]") {
         for (PetscInt j = 0; j < 1000; j++) {
           PetscReal time = j * 1e-3;
           Eigen::VectorXd sim_ricker(sources[i]->fire(time, j));
-          REQUIRE( sim_ricker(0)
+          REQUIRE( sim_ricker.sum()
                       == Approx(true_ricker(time, ricker_freq[i], ricker_time[i], ricker_amp[i])));
         }
       }
@@ -202,13 +204,11 @@ TEST_CASE("Test source functionality", "[source]") {
 
       /* Require ricker source fires properly. */
       for (PetscInt i = 0; i < Source::NumSources(); i++) {
-      //PetscInt i = 1; {
         REQUIRE(sources[i]->Num() == i);
         sources[i]->loadData();
         for (PetscInt j = 0; j < nTimeSteps; j++) {
           PetscReal time = j * 1e-3;
           Eigen::VectorXd sim_ricker(sources[i]->fire(time, j));
-          //std::cout << j << "\t" << sim_ricker << "\t" << true_ricker(time, ricker_freq[i], ricker_time[i], ricker_amp[i]) << std::endl;
           REQUIRE( sim_ricker.sum()
                       == Approx((i+1.0) * true_ricker(time, ricker_freq[i], ricker_time[i], ricker_amp[i])));
         }

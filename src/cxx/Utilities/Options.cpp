@@ -129,7 +129,6 @@ void Options::setOptions() {
     if (!parameter_set) { mSaveFrameEvery = 1; }
   }
 
-  /* TODO: Add options so that sources can be parsed from a file. */
   /********************************************************************************
                                     Sources.
   ********************************************************************************/
@@ -170,7 +169,6 @@ void Options::setOptions() {
       status = H5LTget_attribute_int(file, mSourceNames.at(i).c_str(), "num-components", &int_buffer);
       if ( status < 0 ) throw std::runtime_error("Can't read attribute 'num-components' of source '" + mSourceNames.at(i) + "'.");
       mSrcNumComponents.push_back(int_buffer);
-
       if (mSourceType == "ricker") {
         double double_buffer;
         int int_buffer;
@@ -183,6 +181,19 @@ void Options::setOptions() {
         status = H5LTget_attribute_double(file, mSourceNames.at(i).c_str(), "ricker-time-delay", &double_buffer);
         if ( status < 0 ) throw std::runtime_error("Can't read attribute 'ricker-time-delay' of source '" + mSourceNames.at(i) + "'.");
         mSrcRickerTimeDelay.push_back(double_buffer);
+        if ( mSrcNumComponents.back() > 1 ) {
+          Eigen::VectorXd direction;
+          direction.setZero(mSrcNumComponents.back());
+          status = H5LTget_attribute_double(file, mSourceNames.at(i).c_str(), "ricker-direction", direction.data());
+          if ( status < 0 ) { throw std::runtime_error("Can't read attribute 'ricker-direction' of source '" + mSourceNames.at(i) + "'."); }
+          mSrcRickerDirection.push_back(direction);
+        }
+        else {
+          Eigen::VectorXd direction(1);
+          direction(0) = 1.0;
+          mSrcRickerDirection.push_back(direction);
+        }
+
       } 
     }
     status = H5Fclose (file);
@@ -198,14 +209,13 @@ void Options::setOptions() {
     if (mNumSrc > 0) {
 
       mSrcLocX.resize(mNumSrc); mSrcLocY.resize(mNumSrc);
-
       PetscOptionsGetString(NULL, NULL, "--source-type", char_buffer, PETSC_MAX_PATH_LEN, &parameter_set);
       if (parameter_set) {
         mSourceType = std::string(char_buffer);
       } else {
         if (! testing)
         throw std::runtime_error("Sources were requested, but source type was not specified. "
-                                     "Possibilities are: --source-type [ ricker, file ].");
+                                     "Possibilities are: --source-type [ ricker ].");
       }
 
       PetscInt n_par = mNumSrc; std::string err = "Incorrect number of source parameters: ";
@@ -234,6 +244,27 @@ void Options::setOptions() {
         if (n_par != mNumSrc) { throw std::runtime_error(err + "--ricker-time-delay"); }
         PetscOptionsGetScalarArray(NULL, NULL, "--ricker-center-freq", mSrcRickerCenterFreq.data(), &n_par, NULL);
         if (n_par != mNumSrc) { throw std::runtime_error(err + "--ricker-center-freq"); }
+        
+        for ( auto i = 0; i < mNumSrc; i++) {
+          if (mSrcNumComponents[i] > 1 ) {
+            try {
+              Eigen::VectorXd direction;
+              direction.setZero(mSrcNumComponents[i]);
+              direction(0) = 1.0;
+              mSrcRickerDirection.push_back(direction);
+              throw salvus_warning("Warning: Directivity for multi-component Ricker sources is currently not supported as a command line option.\n         Force will be applied only in first component.");
+            } catch (salvus_warning &e) {
+              LOG() << e.what();
+            }  
+          }
+          else {
+            Eigen::VectorXd direction(1);
+            direction(0) = 1.0;
+            mSrcRickerDirection.push_back(direction);
+          }
+
+        }
+         
       } else {
         if (! testing)
         throw std::runtime_error("Source type " + mSourceType + " not recognized.");

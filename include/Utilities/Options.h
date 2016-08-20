@@ -8,6 +8,7 @@
 
 // 3rd party.
 #include <petsc.h>
+#include <Eigen/Dense>
 
 class Options {
 
@@ -38,7 +39,7 @@ class Options {
   std::vector<PetscReal> mSrcRickerAmplitude;
   std::vector<PetscReal> mSrcRickerCenterFreq;
   std::vector<PetscReal> mSrcRickerTimeDelay;
-  
+  std::vector<Eigen::VectorXd > mSrcRickerDirection;
 
   // Receivers.
   PetscInt mNumRec;
@@ -86,6 +87,7 @@ class Options {
   std::vector<PetscReal> SrcRickerAmplitude() const { return mSrcRickerAmplitude; }
   std::vector<PetscReal> SrcRickerCenterFreq() const { return mSrcRickerCenterFreq; }
   std::vector<PetscReal> SrcRickerTimeDelay() const { return mSrcRickerTimeDelay; }
+  Eigen::VectorXd SrcRickerDirection(const PetscInt Num) const { return mSrcRickerDirection[Num]; }
   std::vector<std::string> SrcName() const { return mSourceNames; }
   
 
