@@ -49,7 +49,7 @@ class Scalar: public Shape {
   RealMat computeStress(const Eigen::Ref<const RealMat>& strain);
   RealMat computeStiffnessTerm(const Eigen::Ref<const RealMat>& u);
   RealMat computeSurfaceIntegral(const Eigen::Ref<const RealMat>& u);
-  RealMat computeSourceTerm(const double time);
+  RealMat computeSourceTerm(const double time, const PetscInt time_idx);
   void recordField(const Eigen::Ref<const RealMat>& u) {};
 
   const static std::string Name() { return "Scalar_" + Shape::Name(); }

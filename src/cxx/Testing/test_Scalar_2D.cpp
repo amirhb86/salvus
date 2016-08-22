@@ -109,13 +109,16 @@ PetscReal runEigenFunctionTest(std::vector<std::unique_ptr<Element>> test_elemen
                                ElementType element_type
                                ) {
 
-  RealVec element_error(test_elements.size()); PetscScalar time = 0;
+  RealVec element_error(test_elements.size()); 
+  PetscScalar time = 0;
+  PetscInt time_idx = 0;
   PetscReal max_error = 0.0;
   while (true) {
 
     std::tie(test_elements, fields) =
       problem->assembleIntoGlobalDof(std::move(test_elements),
-                                     std::move(fields),time,
+                                     std::move(fields),
+                                     time, time_idx,
                                      mesh->DistributedMesh(),
                                      mesh->MeshSection(),
                                      options);
@@ -123,6 +126,8 @@ PetscReal runEigenFunctionTest(std::vector<std::unique_ptr<Element>> test_elemen
     fields = problem->applyInverseMassMatrix(std::move(fields));
     std::tie(fields, time) = problem->takeTimeStep
         (std::move(fields), time, options);
+
+    time_idx++;
 
     PetscInt i = 0;
     for (auto &elm: test_elements) {
@@ -174,6 +179,7 @@ TEST_CASE("Test point source receiver for scalar equation "
       "--source-type", "ricker",
       "--source-location-x", "50000,90000",
       "--source-location-y", "50000,90000",
+      "--source-num-components", "1,1",
       "--ricker-amplitude", "100,100",
       "--ricker-time-delay", "1.0,1.5",
       "--ricker-center-freq", "0.5,0.5",
@@ -205,15 +211,18 @@ TEST_CASE("Test point source receiver for scalar equation "
   auto fields = problem->initializeGlobalDofs(elements, mesh);
 
   PetscReal time = 0;
+  PetscInt time_idx = 0;
   while (time < options->Duration()) {
 
     std::tie(elements, fields) = problem->assembleIntoGlobalDof(
-        std::move(elements), std::move(fields), time,
+        std::move(elements), std::move(fields), time, time_idx,
         mesh->DistributedMesh(), mesh->MeshSection(), options);
 
     fields = problem->applyInverseMassMatrix(std::move(fields));
     std::tie(fields, time) = problem->takeTimeStep
         (std::move(fields), time, options);
+
+    time_idx++;
 
   }
 
