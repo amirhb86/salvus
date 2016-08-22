@@ -239,11 +239,12 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
     std::string e_file = "fluid_layer_over_elastic_cartesian_2D_50s.e";
     // Mock sources and receivers.
     PetscOptionsSetValue(NULL, "--testing", "true");
+    // Mock sources and receivers.
     PetscOptionsSetValue(NULL, "--number-of-sources", "2");
-    PetscOptionsSetValue(NULL, "--polynomial-order", "4");
     PetscOptionsSetValue(NULL, "--source-type", "ricker");
     PetscOptionsSetValue(NULL, "--source-location-x", "50000,50000");
     PetscOptionsSetValue(NULL, "--source-location-y", "80000,90000");
+    PetscOptionsSetValue(NULL, "--source-num-components", "2,2");
     PetscOptionsSetValue(NULL, "--ricker-amplitude", "10,20");
     PetscOptionsSetValue(NULL, "--ricker-time-delay", "0.1,0.01");
     PetscOptionsSetValue(NULL, "--ricker-center-freq", "50,60");

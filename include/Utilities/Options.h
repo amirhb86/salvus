@@ -8,6 +8,7 @@
 
 // 3rd party.
 #include <petsc.h>
+#include <Eigen/Dense>
 
 class Options {
 
@@ -21,6 +22,7 @@ class Options {
 
   PetscReal mDuration;
   PetscReal mTimeStep;
+  PetscInt mNumTimeSteps;
 
   std::string mMeshFile;
   std::string mModelFile;
@@ -28,12 +30,16 @@ class Options {
   std::string mMovieFile;
 
   // Sources.
+  std::string mSourceFileName;
+  std::vector<std::string> mSourceNames;
   std::vector<PetscReal> mSrcLocX;
   std::vector<PetscReal> mSrcLocY;
   std::vector<PetscReal> mSrcLocZ;
+  std::vector<PetscInt> mSrcNumComponents;
   std::vector<PetscReal> mSrcRickerAmplitude;
   std::vector<PetscReal> mSrcRickerCenterFreq;
   std::vector<PetscReal> mSrcRickerTimeDelay;
+  std::vector<Eigen::VectorXd > mSrcRickerDirection;
 
   // Receivers.
   PetscInt mNumRec;
@@ -60,6 +66,7 @@ class Options {
 
   PetscReal Duration() const { return mDuration; }
   PetscReal TimeStep() const { return mTimeStep; }
+  PetscInt NumTimeSteps() const { return mNumTimeSteps; }
 
   std::string MeshFile() const { return mMeshFile; }
   std::string ReceiverType() const { return "hdf5"; }
@@ -71,12 +78,18 @@ class Options {
   std::vector<PetscReal> RecLocX() const { return mRecLocX; }
   std::vector<PetscReal> RecLocY() const { return mRecLocY; }
   std::vector<PetscReal> RecLocZ() const { return mRecLocZ; }
+
+  std::string SourceFileName() const { return mSourceFileName; }
   std::vector<PetscReal> SrcLocX() const { return mSrcLocX; }
   std::vector<PetscReal> SrcLocY() const { return mSrcLocY; }
   std::vector<PetscReal> SrcLocZ() const { return mSrcLocZ; }
+  std::vector<PetscInt> SrcNumComponents() const { return mSrcNumComponents; }
   std::vector<PetscReal> SrcRickerAmplitude() const { return mSrcRickerAmplitude; }
   std::vector<PetscReal> SrcRickerCenterFreq() const { return mSrcRickerCenterFreq; }
   std::vector<PetscReal> SrcRickerTimeDelay() const { return mSrcRickerTimeDelay; }
+  Eigen::VectorXd SrcRickerDirection(const PetscInt Num) const { return mSrcRickerDirection[Num]; }
+  std::vector<std::string> SrcName() const { return mSourceNames; }
+  
 
   std::vector<std::string> RecNames() const { return mRecNames; }
   std::vector<std::string> MovieFields() const { return mMovieFields; }

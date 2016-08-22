@@ -33,9 +33,13 @@ install:
   # Install salvus_data as well.
   - cd; cd build
   - git clone https://github.com/SalvusHub/salvus_data.git
-
+  # check whether branch exists on salvus_data
+  - echo $TRAVIS_BRANCH
+  - cd salvus_data
+  - if [[ $(git ls-remote --heads https://github.com/SalvusHub/salvus_data.git $TRAVIS_BRANCH | wc -l) ]]; then git checkout $TRAVIS_BRANCH; fi 
+  
 script:
-  - cd salvus_data/new_unit_tests
+  - cd ./new_unit_tests
   - sh ./run_travis.sh
   - cd /home/travis/build/SalvusHub/salvus/build
 

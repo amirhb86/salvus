@@ -28,6 +28,7 @@ TEST_CASE("Test elastic in 2D", "[elastic_2d]") {
       "--source-type", "ricker",
       "--source-location-x", "50000,90000",
       "--source-location-y", "50000,90000",
+      "--source-num-components", "2,2",
       "--ricker-amplitude", "100,100",
       "--ricker-time-delay", "1.0,1.5",
       "--ricker-center-freq", "0.5,0.5",
@@ -59,16 +60,18 @@ TEST_CASE("Test elastic in 2D", "[elastic_2d]") {
   auto fields = problem->initializeGlobalDofs(elements, mesh);
 
   PetscReal time = 0;
+  PetscInt time_idx = 0;
   while (time < options->Duration()) {
 
     std::tie(elements, fields) = problem->assembleIntoGlobalDof(
-        std::move(elements), std::move(fields), time,
+        std::move(elements), std::move(fields), time, time_idx,
         mesh->DistributedMesh(), mesh->MeshSection(), options);
 
     fields = problem->applyInverseMassMatrix(std::move(fields));
     std::tie(fields, time) = problem->takeTimeStep
         (std::move(fields), time, options);
 
+    time_idx++;
     std::cout << "TIME:      " << time << "\r"; std::cout.flush();
 
   }

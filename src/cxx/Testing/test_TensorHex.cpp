@@ -282,6 +282,26 @@ TEST_CASE("Test tensor hex", "[tensor_hex]") {
 
   }
 
+  // Mock sources and receivers.
+  std::string e_file = "small_hex_mesh_to_test_sources.e";
+  PetscOptionsSetValue(NULL, "--mesh-file", e_file.c_str());
+  PetscOptionsSetValue(NULL, "--model-file", e_file.c_str());
+  PetscOptionsSetValue(NULL, "--number-of-sources", "2");
+  PetscOptionsSetValue(NULL, "--source-type", "ricker");
+  PetscOptionsSetValue(NULL, "--source-location-x", "50000,50000");
+  PetscOptionsSetValue(NULL, "--source-location-y", "50000,90000");
+  PetscOptionsSetValue(NULL, "--source-location-z", "50000,90000");
+  PetscOptionsSetValue(NULL, "--source-num-components", "3,3");
+  PetscOptionsSetValue(NULL, "--ricker-amplitude", "1,1,1");
+  PetscOptionsSetValue(NULL, "--ricker-time-delay", "1,1,1");
+  PetscOptionsSetValue(NULL, "--ricker-center-freq", "1,1,1");
+  PetscOptionsSetValue(NULL, "--receiver-file-name", "mock.h5");
+  PetscOptionsSetValue(NULL, "--number-of-receivers", "2");
+  PetscOptionsSetValue(NULL, "--receiver-names", "rec1,rec2");
+  PetscOptionsSetValue(NULL, "--receiver-location-x", "50000,50000");
+  PetscOptionsSetValue(NULL, "--receiver-location-y", "50000,90000");
+  PetscOptionsSetValue(NULL, "--receiver-location-z", "50000,90000");
+
   SECTION("Integration with a simple mesh") {
 
     // Mock sources and receivers.
@@ -370,7 +390,6 @@ TEST_CASE("Test tensor hex", "[tensor_hex]") {
         0, 0, 0, Hexahedra<HexP1>::MaxOrder()+1), std::runtime_error);
 
     }
-
 }
 
 TEST_CASE("test closure mapping","[hex/closure]") {
