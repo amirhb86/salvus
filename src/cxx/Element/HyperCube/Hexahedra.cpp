@@ -329,14 +329,6 @@ std::vector<PetscInt> Hexahedra<ConcreteHex>::getDofsOnFace(const PetscInt face)
 }
 
 template <typename ConcreteHex>
-void Hexahedra<ConcreteHex>::setFaceToValue(
-    const PetscInt face, const PetscReal val, Eigen::Ref<RealVec> f) {
-
-  for (PetscInt i: getDofsOnFace(face)) { f(i) = val; }
-
-}
-
-template <typename ConcreteHex>
 RealVec Hexahedra<ConcreteHex>::applyTestAndIntegrateEdge(const Eigen::Ref<const RealVec> &f,
                                                           const PetscInt edg) {
 

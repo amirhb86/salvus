@@ -220,7 +220,8 @@ TEST_CASE("Test tensor hex", "[tensor_hex]") {
     /* Test that faces are set properly. */
     for (int edge: {0, 1, 2, 3, 4, 5}) {
       RealVec test_face = RealVec::Zero(test_hex.NumIntPnt());
-      test_hex.setFaceToValue(edge, 1.0, test_face);
+      for (PetscInt j: test_hex.getDofsOnFace(edge)) { test_face(j) = 1.0; }
+//      test_hex.setFaceToValue(edge, 1.0, test_face);
       REQUIRE(test_hex.applyTestAndIntegrateEdge(test_face, edge).sum() == Approx(4.0));
     }
 
@@ -463,7 +464,8 @@ TEST_CASE("test closure mapping","[hex/closure]") {
     for (PetscInt i = 0; i < insert_element.size(); i++) {
 
       /* Insert a vector of ones of some face of a neighbouring element. */
-      test_hex->setFaceToValue(insert_faces[i], 1.0, un);
+      for (PetscInt j: test_hex->getDofsOnFace(insert_faces[i])) { un(j) = 1.0; }
+//      test_hex->setFaceToValue(insert_faces[i], 1.0, un);
       problem->insertElementalFieldIntoMesh("u", insert_element[i], elements[0]->ClsMap(), un,
                                             mesh->DistributedMesh(), mesh->MeshSection(),
                                             fields);
@@ -507,7 +509,8 @@ TEST_CASE("test closure mapping","[hex/closure]") {
       }
 
       /* Reset that face to zero. */
-      test_hex->setFaceToValue(insert_faces[i], 0.0, un);
+//      test_hex->setFaceToValue(insert_faces[i], 0.0, un);
+      for (PetscInt j: test_hex->getDofsOnFace(insert_faces[i])) { un(j) = 0.0; }
       problem->insertElementalFieldIntoMesh("u", insert_element[i], elements[0]->ClsMap(), un,
                                             mesh->DistributedMesh(), mesh->MeshSection(),
                                             fields);

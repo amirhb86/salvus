@@ -284,7 +284,11 @@ class Triangle: public ConcreteShape {
    * @return The CFL estimate
    */
   double estimatedElementRadius();
-  
+
+  std::vector<PetscInt> getDofsOnFace(const PetscInt face);
+  std::vector<PetscInt> getDofsOnEdge(const PetscInt edge);
+  std::vector<PetscInt> getDofsOnVtx(const PetscInt vtx);
+
   
   // Setters
   inline void SetNumNew(const PetscInt num) { mElmNum = num; }

@@ -203,6 +203,8 @@ private:
   void setEdgeToValue(const PetscInt edg, const PetscReal val, Eigen::Ref<RealVec> f);
   void setVertexToValue(const PetscInt vtx, const PetscReal val, Eigen::Ref<RealVec> f);
   std::vector<PetscInt> getDofsOnFace(const PetscInt face);
+  std::vector<PetscInt> getDofsOnEdge(const PetscInt edge);
+  std::vector<PetscInt> getDofsOnVtx(const PetscInt vtx);
 
   
   /**

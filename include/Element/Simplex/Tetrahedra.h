@@ -216,7 +216,12 @@ class Tetrahedra: public ConcreteShape {
    * @param [in] par Parameter to interpolate (i.e. VP, VS).
    */
   Eigen::VectorXd ParAtIntPts(const std::string& par);
-  
+
+
+  std::vector<PetscInt> getDofsOnFace(const PetscInt face);
+  std::vector<PetscInt> getDofsOnEdge(const PetscInt edge);
+  std::vector<PetscInt> getDofsOnVtx(const PetscInt vtx);
+
   /**
    * Attaches a material parameter to the vertices on the current element.
    * Given an exodus model object, we use a kD-tree to find the closest parameter to a vertex. In practice, this
