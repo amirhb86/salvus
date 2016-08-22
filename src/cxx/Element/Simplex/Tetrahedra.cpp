@@ -893,7 +893,7 @@ std::vector<PetscInt> Tetrahedra<ConcreteShape>::getDofsOnEdge(const PetscInt ed
 
   std::vector<int> edge_ids;
   if(mPlyOrd == 3) {
-    switch(face) {
+    switch(edge) {
       // See BuildNodesTetrahedraP3(True) to visualize edge_ids
     case 0: edge_ids = {46,34,35,47}; break;
     case 1: edge_ids = {47,36,37,48}; break;
@@ -910,7 +910,7 @@ std::vector<PetscInt> Tetrahedra<ConcreteShape>::getDofsOnEdge(const PetscInt ed
 }
 
 template <typename ConcreteShape>
-PetscInt Tetrahedra<ConcreteShape>::getDofsVertex(const PetscInt vtx) {
+PetscInt Tetrahedra<ConcreteShape>::getDofsOnVtx(const PetscInt vtx) {
 
   PetscInt vtx_id = -1;
   if(mPlyOrd == 3) {

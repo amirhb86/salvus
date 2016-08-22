@@ -292,7 +292,7 @@ std::vector<PetscInt> Triangle<ConcreteShape>::getDofsOnEdge(const PetscInt edge
     if      (edge == 0) { edge_ids = {9,3,4,10}; }
     else if (edge == 1) { edge_ids = {10,5,6,11}; }
     else if (edge == 2) { edge_ids = {11,7,8,9}; }
-    else { ERROR() << "Only three edges in a triangle"; }
+    else { ERROR() << "Only three edges in a triangle (edge = " << edge << ")"; }
   }
   else {
     ERROR() << "Not Implemented: getDofsOnEdge for Polynomials != 3";
