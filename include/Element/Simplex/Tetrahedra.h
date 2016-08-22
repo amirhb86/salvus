@@ -217,10 +217,26 @@ class Tetrahedra: public ConcreteShape {
    */
   Eigen::VectorXd ParAtIntPts(const std::string& par);
 
-
+  /**
+   * Gets the indices on an edge.
+   * @param [in] edg Edge id 0-2
+   * @param [out] vector of nodal indices for an edge.
+   */
   std::vector<PetscInt> getDofsOnFace(const PetscInt face);
+
+  /**
+   * Gets the indices on an edge.
+   * @param [in] edg Edge id 0-2
+   * @param [out] vector of nodal indices for an edge.
+   */
   std::vector<PetscInt> getDofsOnEdge(const PetscInt edge);
-  std::vector<PetscInt> getDofsOnVtx(const PetscInt vtx);
+
+  /**
+   * Gets the index of a vertex
+   * @param [in] vtx Vertex id 0-2
+   * @param [out] index of the vertex
+   */
+  PetscInt getDofsOnVtx(const PetscInt vtx);
 
   /**
    * Attaches a material parameter to the vertices on the current element.

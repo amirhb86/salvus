@@ -283,27 +283,36 @@ bool Triangle<ConcreteShape>::attachReceiver(std::unique_ptr<Receiver> &receiver
 //    |     0    1          \--
 //    |                        \--
 //    9------3---------4--------- 10
+
 template <typename ConcreteShape>
-void Triangle<ConcreteShape>::setEdgeToValue(const PetscInt edg,
-                                             const PetscScalar val,
-                                             Eigen::Ref<RealVec> f) {
+std::vector<PetscInt> Triangle<ConcreteShape>::getDofsOnEdge(const PetscInt edge) {
 
   std::vector<int> edge_ids;
   if(mPlyOrd == 3) {
-    if      (edg == 0) { edge_ids = {9,3,4,10}; }
-    else if (edg == 1) { edge_ids = {10,5,6,11}; }
-    else if (edg == 2) { edge_ids = {11,7,8,9}; }
+    if      (edge == 0) { edge_ids = {9,3,4,10}; }
+    else if (edge == 1) { edge_ids = {10,5,6,11}; }
+    else if (edge == 2) { edge_ids = {11,7,8,9}; }
     else { ERROR() << "Only three edges in a triangle"; }
-    for (auto &eid: edge_ids) {
-      f(eid) = val;
-    }
   }
   else {
-    ERROR() << "Not Implemented: setEdgeToValue for Polynomials != 3";
+    ERROR() << "Not Implemented: getDofsOnEdge for Polynomials != 3";
   }
 
+  return edge_ids;
 }
 
+template <typename ConcreteShape>
+PetscInt Triangle<ConcreteShape>::getDofsOnVtx(const PetscInt vtx) {
+  int vtxid = -1;
+  switch(vtx) {
+  case 0: vtxid = 9; break;
+  case 1: vtxid = 10; break;
+  case 2: vtxid = 11; break;
+  default: ERROR() << "Unrecognized vertex id " << vtx << " in getDofsOnVtx(vtx)";
+    break;
+  }
+  return vtxid;
+}
 
 template <typename ConcreteShape>
 VectorXd Triangle<ConcreteShape>::applyGradTestAndIntegrate(const Ref<const MatrixXd>& f) {

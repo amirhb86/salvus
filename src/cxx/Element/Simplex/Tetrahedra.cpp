@@ -836,6 +836,97 @@ void Tetrahedra<ConcreteShape>::setBoundaryConditions(std::unique_ptr<Mesh> cons
   }
 }
 
+/*
+ *              (v3)
+ *                +--
+ *                | \----
+ *                |   \--\----
+ *                |      \--  \----
+ *                |         \-     \---  (v1)
+ *                |           \--      \--
+ *  ^             |              \--/---  \
+ *  |             |             /---\-     \
+ *  | (t)         |         /---      \--   \
+ *  |             |     /---             \-- \
+ *  |      (s)    | /---                    \-\
+ *  |       /-    +---------------------------\--
+ *  |    /--     (v0)                        (v2)
+ *  | /--
+ *  +-----------------> (r)
+ * 
+ * Faces are organized like: bottom (r-s), left (s-t), front (r-t), right (r-s-t)
+  * More precisely, faces are composed of vertices and ordered
+  * 0: 0 1 2
+  * 1: 0 3 1
+  * 2: 0 2 3
+  * 3: 2 1 3
+  * Edge ordering
+  * (v0,v1)
+  * (v1,v2)
+  * (v2,v0)
+  * (v0,v3)
+  * (v3,v1)
+  * (v2,v3)
+  */
+
+template <typename ConcreteShape>
+std::vector<PetscInt> Tetrahedra<ConcreteShape>::getDofsOnFace(const PetscInt face) {
+
+  std::vector<int> face_ids;
+  if(mPlyOrd == 3) {
+    switch(face) {
+      // see BuildNodesTetrahedraP3() to get surface ids
+    case 0: face_ids = {10, 11, 12, 13, 14, 15, 34, 35, 36, 37, 38, 39, 46, 47, 48}; break;
+    case 1: face_ids = {16, 17, 18, 19, 20, 21, 34, 35, 40, 41, 42, 43, 46, 47, 49}; break;
+    case 3: face_ids = {22, 23, 24, 25, 26, 27, 38, 39, 40, 41, 44, 45, 46, 48, 49}; break;
+    case 4: face_ids = {28, 29, 30, 31, 32, 33, 36, 37, 42, 43, 44, 45, 47, 48, 49}; break;
+    default: ERROR() << "Only four face on a tetrahedra"; break;
+    }
+  } else {
+    ERROR() << "Not Implemented: getDofsOnFace for Polynomials != 3";
+  }
+  return face_ids;
+}
+
+template <typename ConcreteShape>
+std::vector<PetscInt> Tetrahedra<ConcreteShape>::getDofsOnEdge(const PetscInt edge) {
+
+  std::vector<int> edge_ids;
+  if(mPlyOrd == 3) {
+    switch(face) {
+      // See BuildNodesTetrahedraP3(True) to visualize edge_ids
+    case 0: edge_ids = {46,34,35,47}; break;
+    case 1: edge_ids = {47,36,37,48}; break;
+    case 3: edge_ids = {48,38,39,46}; break;
+    case 4: edge_ids = {46,40,41,49}; break;
+    case 5: edge_ids = {49,42,43,47}; break;
+    case 6: edge_ids = {48,44,45,49}; break;
+    default: ERROR() << "Only sixe edges in a tetrahedra"; break;
+    }
+  } else {
+    ERROR() << "Not Implemented: getDofsOnEdge for Polynomials != 3";
+  }
+  return edge_ids;
+}
+
+template <typename ConcreteShape>
+PetscInt Tetrahedra<ConcreteShape>::getDofsVertex(const PetscInt vtx) {
+
+  PetscInt vtx_id = -1;
+  if(mPlyOrd == 3) {
+    switch(vtx) {
+    case 0: vtx_id = 46; break;
+    case 1: vtx_id = 47; break;
+    case 3: vtx_id = 48; break;
+    case 4: vtx_id = 49; break;
+    default: ERROR() << "Only four vertices in a Tetrahedra"; break;
+    }
+  } else {
+    ERROR() << "Not Implemented: getDofsOnVertex for Polynomials != 3";
+  }
+  return vtx_id;
+}
+
 
 //template <typename ConcreteShape>
 //void Tetrahedra<ConcreteShape>::applyDirichletBoundaries(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options,
