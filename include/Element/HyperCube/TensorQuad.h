@@ -209,9 +209,9 @@ private:
   */
   void precomputeElementTerms() {}
 
-  std::vector<PetscInt> getDofsOnFace(const PetscInt face);
-  std::vector<PetscInt> getDofsOnEdge(const PetscInt edge);
-  std::vector<PetscInt> getDofsOnVtx(const PetscInt vtx);
+  std::vector<PetscInt> getDofsOnFace(const PetscInt face) { return {1};};
+  std::vector<PetscInt> getDofsOnEdge(const PetscInt edge) { return {1};};
+  PetscInt getDofsOnVtx(const PetscInt vtx) { return 1;};
 
   /**
    * Attach some abstract source instance to the element.
