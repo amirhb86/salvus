@@ -266,13 +266,42 @@ def BuildNodesTetrahedraP3(plot):
     all_points_y = int_y + facepoints_y + edgepoints_y + corners_y
     all_points_z = int_z + facepoints_z + edgepoints_z + corners_z
 
+    
+    surface0_id = [] # bottom (r-s)
+    surface1_id = [] # left (s-t)
+    surface2_id = [] # front (r-t)
+    surface3_id = [] # right (r-s-t)
+    for (i,(x,y,z)) in enumerate(zip(all_points_x,all_points_y,all_points_z)):
+        if z == 0:
+            surface0_id.append(i)
+        if x == 0:
+            surface1_id.append(i)
+        if y == 0:
+            surface2_id.append(i)
+        if abs(1.0-x-y-z) < 1e-8:
+            surface3_id.append(i)            
+
+    assert(len(surface0_id) == 15)
+    assert(len(surface1_id) == 15)
+    assert(len(surface2_id) == 15)
+    assert(len(surface3_id) == 15)
+    
+    print("surface 0 = {}".format(surface0_id))
+    print("surface 1 = {}".format(surface1_id))
+    print("surface 2 = {}".format(surface2_id))
+    print("surface 3 = {}".format(surface3_id))
+    
     if plot:
         
         # plot tetrahedral frame
         plotTet(ax)
         for (i,(x,y,z)) in enumerate(zip(all_points_x,all_points_y,all_points_z)):
-            if i>=34 and i < 50:
+            if i>=10 and i < 34: # faces (plus vertices)
+                ax.text(x,y,z,"{}".format(i))                
+
+            if i>=34 and i < 50: # edges (plus vertices)
                 ax.text(x,y,z,"{}".format(i))
+                
             # ax.plot(all_points_x,all_points_y,all_points_z,marker="o",color="black",linestyle='None')
         plt.xlabel("x")
         plt.ylabel("y")

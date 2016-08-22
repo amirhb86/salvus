@@ -6,6 +6,7 @@ cd
 if [ -f /home/travis/petsc/include/petsc.h ]; then
     echo "Using cached PETSC install"
 else    
+    # petsc not in cache, needs installing (or reinstalling)
     echo "Installing petsc to $HOME/petsc"    
     # git clone -b maint https://bitbucket.org/petsc/petsc petsc-src;
     # currently needed for new closure mapping until it is merged into main

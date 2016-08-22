@@ -119,13 +119,19 @@ TEST_CASE("Unit test mesh", "[mesh]") {
     REQUIRE(mesh->NumberElementsLocal() == 16);
 
     /* Ensure that we get a correct listing of all the boundary points. */
-    std::vector<std::tuple<PetscInt,PetscInt>> all_boundaries_true {
-        std::make_tuple(0, 44), std::make_tuple(0, 56), std::make_tuple(0, 65),
-        std::make_tuple(0, 74), std::make_tuple(1, 52), std::make_tuple(1, 61),
-        std::make_tuple(1, 70), std::make_tuple(1, 79), std::make_tuple(2, 41),
+    std::set<std::tuple<PetscInt,PetscInt>> all_boundaries_true {
+        std::make_tuple(0, 16), std::make_tuple(0, 17), std::make_tuple(0, 18),
+        std::make_tuple(0, 19), std::make_tuple(0, 20), std::make_tuple(0, 44),
+        std::make_tuple(0, 56), std::make_tuple(0, 65), std::make_tuple(0, 74),
+        std::make_tuple(1, 36), std::make_tuple(1, 37), std::make_tuple(1, 38),
+        std::make_tuple(1, 39), std::make_tuple(1, 40), std::make_tuple(1, 52),
+        std::make_tuple(1, 61), std::make_tuple(1, 70), std::make_tuple(1, 79),
+        std::make_tuple(2, 16), std::make_tuple(2, 21), std::make_tuple(2, 26),
+        std::make_tuple(2, 31), std::make_tuple(2, 36), std::make_tuple(2, 41),
         std::make_tuple(2, 45), std::make_tuple(2, 48), std::make_tuple(2, 51),
-        std::make_tuple(3, 73), std::make_tuple(3, 76), std::make_tuple(3, 78),
-        std::make_tuple(3, 80) };
+        std::make_tuple(3, 20), std::make_tuple(3, 25), std::make_tuple(3, 30),
+        std::make_tuple(3, 35), std::make_tuple(3, 40), std::make_tuple(3, 73),
+        std::make_tuple(3, 76), std::make_tuple(3, 78), std::make_tuple(3, 80) };
 
     REQUIRE(mesh->BoundaryPoints() == all_boundaries_true);
 
@@ -208,15 +214,58 @@ TEST_CASE("Unit test mesh", "[mesh]") {
     REQUIRE(mesh->NumberElementsLocal() == 8);
 
     /* Ensure that we get a correct listing of all the boundary points. */
-    std::vector<std::tuple<PetscInt,PetscInt>> all_boundaries_true {
+
+    std::set<std::tuple<PetscInt,PetscInt>> all_boundaries_true {
+        std::make_tuple(0, 8), std::make_tuple(0, 9), std::make_tuple(0, 10),
+        std::make_tuple(0, 11), std::make_tuple(0, 12), std::make_tuple(0, 13),
+        std::make_tuple(0, 14), std::make_tuple(0, 15), std::make_tuple(0, 16),
         std::make_tuple(0, 35), std::make_tuple(0, 46), std::make_tuple(0, 55),
-        std::make_tuple(0, 64), std::make_tuple(1, 41), std::make_tuple(1, 51),
-        std::make_tuple(1, 60), std::make_tuple(1, 68), std::make_tuple(2, 40),
+        std::make_tuple(0, 64), std::make_tuple(0, 71), std::make_tuple(0, 72),
+        std::make_tuple(0, 73), std::make_tuple(0, 74), std::make_tuple(0, 91),
+        std::make_tuple(0, 92), std::make_tuple(0, 93), std::make_tuple(0, 104),
+        std::make_tuple(0, 105), std::make_tuple(0, 106), std::make_tuple(0, 117),
+        std::make_tuple(0, 118), std::make_tuple(1, 26), std::make_tuple(1, 27),
+        std::make_tuple(1, 28), std::make_tuple(1, 29), std::make_tuple(1, 30),
+        std::make_tuple(1, 31), std::make_tuple(1, 32), std::make_tuple(1, 33),
+        std::make_tuple(1, 34), std::make_tuple(1, 41), std::make_tuple(1, 51),
+        std::make_tuple(1, 60), std::make_tuple(1, 68), std::make_tuple(1, 83),
+        std::make_tuple(1, 84), std::make_tuple(1, 85), std::make_tuple(1, 86),
+        std::make_tuple(1, 99), std::make_tuple(1, 100), std::make_tuple(1, 101),
+        std::make_tuple(1, 112), std::make_tuple(1, 113), std::make_tuple(1, 114),
+        std::make_tuple(1, 122), std::make_tuple(1, 123), std::make_tuple(2, 8),
+        std::make_tuple(2, 9), std::make_tuple(2, 10), std::make_tuple(2, 17),
+        std::make_tuple(2, 18), std::make_tuple(2, 19), std::make_tuple(2, 26),
+        std::make_tuple(2, 27), std::make_tuple(2, 28), std::make_tuple(2, 40),
         std::make_tuple(2, 45), std::make_tuple(2, 59), std::make_tuple(2, 63),
+        std::make_tuple(2, 71), std::make_tuple(2, 78), std::make_tuple(2, 80),
+        std::make_tuple(2, 81), std::make_tuple(2, 86), std::make_tuple(2, 88),
+        std::make_tuple(2, 89), std::make_tuple(2, 104), std::make_tuple(2, 109),
+        std::make_tuple(2, 110), std::make_tuple(2, 114), std::make_tuple(2, 115),
+        std::make_tuple(3, 14), std::make_tuple(3, 15), std::make_tuple(3, 16),
+        std::make_tuple(3, 23), std::make_tuple(3, 24), std::make_tuple(3, 25),
+        std::make_tuple(3, 32), std::make_tuple(3, 33), std::make_tuple(3, 34),
         std::make_tuple(3, 50), std::make_tuple(3, 54), std::make_tuple(3, 67),
-        std::make_tuple(3, 70), std::make_tuple(4, 37), std::make_tuple(4, 42),
-        std::make_tuple(4, 48), std::make_tuple(4, 52), std::make_tuple(5, 57),
-        std::make_tuple(5, 61), std::make_tuple(5, 66), std::make_tuple(5, 69) };
+        std::make_tuple(3, 70), std::make_tuple(3, 92), std::make_tuple(3, 95),
+        std::make_tuple(3, 97), std::make_tuple(3, 98), std::make_tuple(3, 100),
+        std::make_tuple(3, 102), std::make_tuple(3, 103), std::make_tuple(3, 118),
+        std::make_tuple(3, 119), std::make_tuple(3, 121), std::make_tuple(3, 122),
+        std::make_tuple(3, 124), std::make_tuple(4, 8), std::make_tuple(4, 11),
+        std::make_tuple(4, 14), std::make_tuple(4, 17), std::make_tuple(4, 20),
+        std::make_tuple(4, 23), std::make_tuple(4, 26), std::make_tuple(4, 29),
+        std::make_tuple(4, 32), std::make_tuple(4, 37), std::make_tuple(4, 42),
+        std::make_tuple(4, 48), std::make_tuple(4, 52), std::make_tuple(4, 74),
+        std::make_tuple(4, 75), std::make_tuple(4, 79), std::make_tuple(4, 80),
+        std::make_tuple(4, 83), std::make_tuple(4, 87), std::make_tuple(4, 88),
+        std::make_tuple(4, 93), std::make_tuple(4, 94), std::make_tuple(4, 97),
+        std::make_tuple(4, 99), std::make_tuple(4, 102), std::make_tuple(5, 10),
+        std::make_tuple(5, 13), std::make_tuple(5, 16), std::make_tuple(5, 19),
+        std::make_tuple(5, 22), std::make_tuple(5, 25), std::make_tuple(5, 28),
+        std::make_tuple(5, 31), std::make_tuple(5, 34), std::make_tuple(5, 57),
+        std::make_tuple(5, 61), std::make_tuple(5, 66), std::make_tuple(5, 69),
+        std::make_tuple(5, 105), std::make_tuple(5, 108), std::make_tuple(5, 110),
+        std::make_tuple(5, 111), std::make_tuple(5, 113), std::make_tuple(5, 115),
+        std::make_tuple(5, 116), std::make_tuple(5, 117), std::make_tuple(5, 120),
+        std::make_tuple(5, 121), std::make_tuple(5, 123), std::make_tuple(5, 124) };
 
     REQUIRE(mesh->BoundaryPoints() == all_boundaries_true);
 

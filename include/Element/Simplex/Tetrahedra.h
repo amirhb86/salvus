@@ -216,7 +216,28 @@ class Tetrahedra: public ConcreteShape {
    * @param [in] par Parameter to interpolate (i.e. VP, VS).
    */
   Eigen::VectorXd ParAtIntPts(const std::string& par);
-  
+
+  /**
+   * Gets the indices on an edge.
+   * @param [in] edg Edge id 0-2
+   * @param [out] vector of nodal indices for an edge.
+   */
+  std::vector<PetscInt> getDofsOnFace(const PetscInt face);
+
+  /**
+   * Gets the indices on an edge.
+   * @param [in] edg Edge id 0-2
+   * @param [out] vector of nodal indices for an edge.
+   */
+  std::vector<PetscInt> getDofsOnEdge(const PetscInt edge);
+
+  /**
+   * Gets the index of a vertex
+   * @param [in] vtx Vertex id 0-2
+   * @param [out] index of the vertex
+   */
+  PetscInt getDofsOnVtx(const PetscInt vtx);
+
   /**
    * Attaches a material parameter to the vertices on the current element.
    * Given an exodus model object, we use a kD-tree to find the closest parameter to a vertex. In practice, this
@@ -227,6 +248,11 @@ class Tetrahedra: public ConcreteShape {
    */
   void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model,
                                 std::string parameter_name);
+
+  /** Precompute any terms needed on the element level, e.g.,
+      jacobians, velocities at nodes and the stiffness matrix.
+  */
+  void precomputeElementTerms() { LOG() << "Hello from Tet"; }
   
   /**
    * Utility function to integrate a field over the element. This could probably be made static, but for now I'm

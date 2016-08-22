@@ -11,7 +11,7 @@ class HomogeneousDirichlet: public Base {
 
  private:
 
-  std::vector<PetscInt> mBndEdg;
+  std::vector<PetscInt> mBndDofs;
 
  public:
 

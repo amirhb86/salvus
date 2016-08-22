@@ -204,6 +204,15 @@ private:
    */
   void attachVertexCoordinates(std::unique_ptr<Mesh> const &mesh);
 
+  /** Precompute any terms needed on the element level, e.g.,
+      jacobians or velocities at nodes.
+  */
+  void precomputeElementTerms() {}
+
+  std::vector<PetscInt> getDofsOnFace(const PetscInt face);
+  std::vector<PetscInt> getDofsOnEdge(const PetscInt edge);
+  PetscInt getDofsOnVtx(const PetscInt vtx);
+
   /**
    * Attach some abstract source instance to the element.
    * Test to see whether or not the source exists in the current element. If it does,
@@ -234,14 +243,6 @@ private:
    * @param [in] parameter The parameter to save.
    */
   void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model, std::string parameter);
-
-  /**
-   * Sets an edge to a particular scalar value (useful for Dirichlet boundaries)
-   * @param [in] edg Edge id 0-3
-   * @param [in] val Value to set
-   * @param [out] f Field to set to `val`
-   */
-  void setEdgeToValue(const PetscInt edg, const PetscScalar val, Eigen::Ref<RealVec> f);
 
   /**
    * Given some field at the GLL points, interpolate the field to some general point.
