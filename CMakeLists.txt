@@ -50,6 +50,8 @@ set(SALVUS_SOURCES
         src/cxx/Utilities/Utilities.cpp
         src/cxx/Utilities/Options.cpp
         src/cxx/Source/Source.cpp
+        src/cxx/Source/Ricker.cpp
+        src/cxx/Source/SourceHdf5.cpp
         src/cxx/Receiver/Receiver.cpp
         src/cxx/Receiver/ReceiverHdf5.cpp
         src/cxx/Element/HyperCube/TensorQuad.cpp
@@ -96,7 +98,7 @@ add_executable(salvus_test
         src/cxx/Testing/test_Quad_Elastic_2D.cpp)
 
 # run `make` (or `make -j5`) to build `salvus` executable
-target_link_libraries(salvus salvusCommon ${MPI_LIBRARIES} petsc exodus netcdf hdf5)
+target_link_libraries(salvus salvusCommon ${MPI_LIBRARIES} petsc exodus netcdf hdf5 hdf5_hl)
 # run `make salvus_test` to build testing executable.
-target_link_libraries(salvus_test salvusCommon ${MPI_LIBRARIES} petsc exodus netcdf hdf5)
+target_link_libraries(salvus_test salvusCommon ${MPI_LIBRARIES} petsc exodus netcdf hdf5 hdf5_hl)
 set_target_properties(salvus_test PROPERTIES EXCLUDE_FROM_ALL TRUE) # doesn't get built by `make`

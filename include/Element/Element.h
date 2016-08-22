@@ -82,8 +82,9 @@ class Element {
   ///@{
   /** Returns the interpolated source for a given time.
    * @ param [in] time Simulation time.
+   * @ param [in] time_idx Simulation time index.
    */
-  virtual Eigen::MatrixXd computeSourceTerm(const double time) = 0;
+  virtual Eigen::MatrixXd computeSourceTerm(const double time, const PetscInt time_idx) = 0;
   /** Returns the action of the stiffness matrix applied to some field (probably displacement).
    * @param [in] u Displacement field.
    */

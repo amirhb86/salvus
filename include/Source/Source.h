@@ -7,10 +7,14 @@
 // 3rd party.
 #include <petsc.h>
 
+#include <Eigen/Dense>
+
 // forward decl.
 class Options;
 
 class Source {
+
+ protected:
 
   double mLocX;
   double mLocY;
@@ -22,6 +26,8 @@ class Source {
 
   PetscInt mNum;
   static PetscInt number;
+
+  PetscInt mNumComponents;
 
  public:
 
@@ -57,26 +63,17 @@ class Source {
   inline double LocS() { return mLocS; }
   inline double LocT() { return mLocT; }
 
+  inline void SetNumComponents(PetscInt numComponents ) { mNumComponents = numComponents; };  
+  inline PetscInt GetNumComponents() { return mNumComponents; };  
+
   /**
-   * Returns a value for the force, given a certain time. This needs to be implemented by each derived class. For
+   * Returns a vector of length mSourceComponents for the force, given a certain time. 
+   * This needs to be implemented by each derived class. For
    * instance, a Ricker source will need to implement the source time characteristics of a ricker source time
    * function.
    */
-  virtual double fire(const double &time) = 0;
+  virtual Eigen::VectorXd fire(const double &time, const PetscInt &time_idx) = 0;
+
+  virtual void loadData();
 
 };
-
-class Ricker: public Source {
-
-  double mAmplitude;
-  double mTimeDelay;
-  double mCenterFreq;
-
- public:
-
-  Ricker(std::unique_ptr<Options> const &options);
-  ~Ricker() {};
-  double fire(const double &time);
-
-};
-

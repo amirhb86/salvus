@@ -84,6 +84,7 @@ class Problem {
   std::tuple<ElemVec, FieldDict> assembleIntoGlobalDof(ElemVec elements,
                                                        FieldDict fields,
                                                        const PetscReal time,
+                                                       const PetscInt time_idx, 
                                                        DM PETScDM,
                                                        PetscSection PETScSection,
                                                        std::unique_ptr<Options> const &options);

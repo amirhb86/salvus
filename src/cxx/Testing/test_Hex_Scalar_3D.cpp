@@ -149,7 +149,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
 
       std::tie(test_elements, fields) = problem->assembleIntoGlobalDof(std::move(test_elements),
                                                                        std::move(fields),
-                                                                       0,
+                                                                       0, 0,
                                                                        mesh->DistributedMesh(),
                                                                        mesh->MeshSection(),
                                                                        options);

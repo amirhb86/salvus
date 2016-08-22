@@ -112,8 +112,11 @@ ElemVec Problem::initializeElements(unique_ptr<Mesh> const &mesh,
   /* Finally, go back and ensure that everything has been added as expected. */
   for (auto &src: srcs) {
     /* Was there a source that should have been added by this processor that wasn't? */
-    if (src && srcs_this_partition[src->Num()] == rank) {
-      throw std::runtime_error("Error. One or more sources were not added properly.");
+    if (src) {
+      src->loadData();
+      if (srcs_this_partition[src->Num()] == rank) {
+        throw std::runtime_error("Error. One or more sources were not added properly.");
+      }
     }
   }
   for (auto &rec: recs) {
@@ -135,7 +138,7 @@ ElemVec Problem::initializeElements(unique_ptr<Mesh> const &mesh,
 
 }
 std::tuple<ElemVec, FieldDict> Problem::assembleIntoGlobalDof(
-    ElemVec elements, FieldDict fields, const PetscReal time,
+    ElemVec elements, FieldDict fields, const PetscReal time, const PetscInt time_idx, 
     DM PETScDM, PetscSection PETScSection, std::unique_ptr<Options> const &options) {
 
   /* Get some derived quantities. */
@@ -187,7 +190,7 @@ std::tuple<ElemVec, FieldDict> Problem::assembleIntoGlobalDof(
     s.leftCols(NumPushFields) = elm->computeSurfaceIntegral(u.leftCols(NumPullFields));
 
     /* Compute forcing. */
-    f.leftCols(NumPushFields) = elm->computeSourceTerm(time);
+    f.leftCols(NumPushFields) = elm->computeSourceTerm(time, time_idx);
 
     /* Compute acceleration. */
     a.leftCols(NumPushFields) = f.leftCols(NumPushFields).array() -
