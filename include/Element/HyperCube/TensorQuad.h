@@ -209,9 +209,9 @@ private:
   */
   void precomputeElementTerms() {}
 
-  std::vector<PetscInt> getDofsOnFace(const PetscInt face) { return {1};};
-  std::vector<PetscInt> getDofsOnEdge(const PetscInt edge) { return {1};};
-  PetscInt getDofsOnVtx(const PetscInt vtx) { return 1;};
+  std::vector<PetscInt> getDofsOnFace(const PetscInt face);
+  std::vector<PetscInt> getDofsOnEdge(const PetscInt edge);
+  PetscInt getDofsOnVtx(const PetscInt vtx);
 
   /**
    * Attach some abstract source instance to the element.
@@ -243,14 +243,6 @@ private:
    * @param [in] parameter The parameter to save.
    */
   void attachMaterialProperties(std::unique_ptr<ExodusModel> const &model, std::string parameter);
-
-  /**
-   * Sets an edge to a particular scalar value (useful for Dirichlet boundaries)
-   * @param [in] edg Edge id 0-3
-   * @param [in] val Value to set
-   * @param [out] f Field to set to `val`
-   */
-  void setEdgeToValue(const PetscInt edg, const PetscScalar val, Eigen::Ref<RealVec> f);
 
   /**
    * Given some field at the GLL points, interpolate the field to some general point.

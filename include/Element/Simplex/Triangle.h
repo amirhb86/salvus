@@ -245,9 +245,8 @@ class Triangle: public ConcreteShape {
    */
   bool attachReceiver(std::unique_ptr<Receiver> &receiver, const bool finalize);
 
-  std::vector<PetscInt> getDofsOnFace(const PetscInt face) 
-  { ERROR() << "Triangles don't have faces for use at boundaries. This function should not be called."; }
-  
+  std::vector<PetscInt> getDofsOnFace(const PetscInt face);
+
   /**
    * Gets the indices on an edge.
    * @param [in] edg Edge id 0-2

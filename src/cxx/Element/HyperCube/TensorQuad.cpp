@@ -417,23 +417,60 @@ RealVec2 TensorQuad<ConcreteShape>::getEdgeNormal(const PetscInt edg) {
 
 }
 
+template <typename ConcreateShape>
+std::vector<PetscInt> TensorQuad<ConcreateShape>::getDofsOnEdge(const PetscInt edge) {
+
+  /* Get proper position in the tensor basis. */
+  PetscInt start, stride, num;
+  switch (edge) {
+    case 0: /* bottom */
+      start = 0; stride = 1; num = mNumIntPtsR;
+      break;
+    case 1: /* right */
+      start = mNumIntPtsR - 1; stride = mNumIntPtsR; num = mNumIntPtsS;
+      break;
+    case 2: /* top */
+      start = mNumIntPtsR * (mNumIntPtsS - 1); stride = 1; num = mNumIntPtsR;
+      break;
+    case 3: /* left */
+      start = 0; stride = mNumIntPtsR; num = mNumIntPtsS;
+      break;
+    default:
+      throw std::runtime_error("Edge " + std::to_string(edge) + " does not exist on "
+          " element " + std::to_string(mElmNum));
+  }
+
+  std::vector<PetscInt> ed(num);
+  for (PetscInt i = start, c = 0; c < num; i+= stride, c++) {
+    ed[c] = i;
+  }
+  return ed;
+
+}
+
 template <typename ConcreteShape>
-void TensorQuad<ConcreteShape>::setEdgeToValue(
-    const PetscInt edg, const PetscScalar val, Eigen::Ref<RealVec> f) {
+PetscInt TensorQuad<ConcreteShape>::getDofsOnVtx(const PetscInt vtx) {
 
-  /* Get proper dofs in the tensor basis. */
-  PetscInt start, stride;
-  if      (edg == 0) { start = 0;                               stride = 1; }
-  else if (edg == 1) { start = mNumIntPtsR - 1;                 stride = mNumIntPtsR; }
-  else if (edg == 2) { start = mNumIntPtsR * mNumIntPtsS - 1;   stride = -1; }
-  else if (edg == 3) { start = mNumIntPtsR * (mNumIntPtsS - 1); stride = -1 * mNumIntPtsR; }
-
-  for (PetscInt i = start, j = 0; j < mNumIntPtsR; i += stride, j++) {
-    f(i) = val;
+  switch (vtx) {
+    case 0: /* bottom left */
+      return 0;
+    case 1: /* bottom right */
+      return mNumIntPtsR - 1;
+    case 2: /* top right */
+      return mNumIntPtsR * mNumIntPtsS - 1;
+    case 3: /* top left */
+      return mNumIntPtsR * (mNumIntPtsS - 1);
+    default:
+      throw std::runtime_error("Vertex " + std::to_string(vtx) + " does not exist on "
+          " element " + std::to_string(mElmNum));
   }
 
 }
 
+template <typename ConcreteShape>
+std::vector<PetscInt> TensorQuad<ConcreteShape>::getDofsOnFace(const PetscInt face) {
+  throw std::runtime_error("Face doesn't exist on 2D element. Only edge/vtx.");
+}
 
 template<typename ConcreteShape>
 RealVec TensorQuad<ConcreteShape>::applyTestAndIntegrateEdge(const Eigen::Ref<const RealVec> &f,

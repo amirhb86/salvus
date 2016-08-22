@@ -315,6 +315,11 @@ PetscInt Triangle<ConcreteShape>::getDofsOnVtx(const PetscInt vtx) {
 }
 
 template <typename ConcreteShape>
+std::vector<PetscInt> Triangle<ConcreteShape>::getDofsOnFace(const PetscInt face) {
+  throw std::runtime_error("Face doesn't exist on 2D element. Only edge/vtx.");
+}
+
+template <typename ConcreteShape>
 VectorXd Triangle<ConcreteShape>::applyGradTestAndIntegrate(const Ref<const MatrixXd>& f) {
   Vector2d refGrad;
   Vector2d phyGrad;

@@ -162,118 +162,107 @@ void Hexahedra<ConcreteHex>::attachVertexCoordinates(std::unique_ptr<Mesh> const
 }
 
 template <typename ConcreteHex>
-void Hexahedra<ConcreteHex>::setVertexToValue(
-    const PetscInt vtx, const PetscReal val, Eigen::Ref<RealVec> f) {
+PetscInt Hexahedra<ConcreteHex>::getDofsOnVtx(const PetscInt vtx) {
 
+  PetscInt dof;
   /* Get proper dofs in the tensor basis. */
   switch (vtx) {
     case 0: /* front left bottom */
-      f(0) = val;
+      dof = 0;
       break;
     case 1: /* back left bottom */
-      f(mNumIntPtsR * (mNumIntPtsS - 1));
+      dof = mNumIntPtsR * (mNumIntPtsS - 1);
       break;
     case 2: /* back right bottom */
-      f(mNumIntPtsR * mNumIntPtsS - 1);
+      dof = mNumIntPtsR * mNumIntPtsS - 1;
       break;
     case 3: /* front right bottom */
-      f(mNumIntPtsR - 1);
+      dof = mNumIntPtsR - 1;
       break;
     case 4: /* front left top */
-      f(mNumIntPtsR * mNumIntPtsS * (mNumIntPtsT - 1));
+      dof = mNumIntPtsR * mNumIntPtsS * (mNumIntPtsT - 1);
       break;
     case 5: /* front right top */
-      f(mNumIntPtsR * (mNumIntPtsS * (mNumIntPtsT - 1) + 1) - 1);
+      dof = mNumIntPtsR * (mNumIntPtsS * (mNumIntPtsT - 1) + 1) - 1;
       break;
     case 6: /* back right top */
-      f(mNumIntPnt - 1);
+      dof = mNumIntPnt - 1;
       break;
     case 7: /* back left top */
-      f(mNumIntPnt - mNumIntPtsR);
+      dof = mNumIntPnt - mNumIntPtsR;
       break;
     default:
-      ERROR() << "Unknown vertex " << vtx << " on hexahedra " << mElmNum;
-      break;
-
+      throw std::runtime_error("Unknown vtx " + std::to_string(vtx) + " on hexahedra " +
+          std::to_string(mElmNum));
   }
+
+  return dof;
 
 }
 
 template <typename ConcreteHex>
-void Hexahedra<ConcreteHex>::setEdgeToValue(
-    const PetscInt edg, const PetscReal val, Eigen::Ref<RealVec> f) {
+std::vector<PetscInt> Hexahedra<ConcreteHex>::getDofsOnEdge(const PetscInt edge) {
 
   PetscInt start, stride, num_pts;
-  switch (edg) {
+  switch (edge) {
     case 0: /* bottom left */
-      start = 0;
-      stride = mNumIntPtsR;
+      start = 0; stride = mNumIntPtsR;
       num_pts = mNumIntPtsS;
       break;
     case 1: /* bottom back */
-      start = mNumIntPtsR * (mNumIntPtsS - 1);
-      stride = 1;
+      start = mNumIntPtsR * (mNumIntPtsS - 1); stride = 1;
       num_pts = mNumIntPtsR;
       break;
     case 2: /* bottom right */
-      start = mNumIntPtsR - 1;
-      stride = mNumIntPtsR;
+      start = mNumIntPtsR - 1; stride = mNumIntPtsR;
       num_pts = mNumIntPtsS;
       break;
     case 3: /* bottom front */
-      start = 0;
-      stride = 1;
+      start = 0; stride = 1;
       num_pts = mNumIntPtsR;
       break;
     case 4: /* top front */
-      start = mNumIntPtsR * mNumIntPtsS * (mNumIntPtsT - 1);
-      stride = 1;
+      start = mNumIntPtsR * mNumIntPtsS * (mNumIntPtsT - 1); stride = 1;
       num_pts = mNumIntPtsR;
       break;
     case 5: /* top right */
-      start = mNumIntPtsR * (mNumIntPtsS * (mNumIntPtsT - 1) + 1) - 1;
-      stride = mNumIntPtsR;
+      start = mNumIntPtsR * (mNumIntPtsS * (mNumIntPtsT - 1) + 1) - 1; stride = mNumIntPtsR;
       num_pts = mNumIntPtsS;
       break;
     case 6: /* top back */
-      start = mNumIntPnt - mNumIntPtsR;
-      stride = 1;
+      start = mNumIntPnt - mNumIntPtsR; stride = 1;
       num_pts = mNumIntPtsR;
       break;
     case 7: /* top left */
-      start = mNumIntPtsR * mNumIntPtsS * (mNumIntPtsT - 1);
-      stride = mNumIntPtsR;
+      start = mNumIntPtsR * mNumIntPtsS * (mNumIntPtsT - 1); stride = mNumIntPtsR;
       num_pts = mNumIntPtsS;
       break;
     case 8: /* right front */
-      start = mNumIntPtsR - 1;
-      stride = mNumIntPtsR * mNumIntPtsS;
+      start = mNumIntPtsR - 1; stride = mNumIntPtsR * mNumIntPtsS;
       num_pts = mNumIntPtsT;
       break;
     case 9: /* left front */
       start = 0;
-      stride = mNumIntPtsR * mNumIntPtsS;
-      num_pts = mNumIntPtsT;
+      stride = mNumIntPtsR * mNumIntPtsS; num_pts = mNumIntPtsT;
       break; /* left back */
     case 10:
-      start = mNumIntPtsR * (mNumIntPtsS - 1);
-      stride = mNumIntPtsR * mNumIntPtsS;
+      start = mNumIntPtsR * (mNumIntPtsS - 1); stride = mNumIntPtsR * mNumIntPtsS;
       num_pts = mNumIntPtsT;
       break;
     case 11: /* right back */
-      start = mNumIntPtsR * mNumIntPtsS - 1;
-      stride = mNumIntPtsR * mNumIntPtsS;
+      start = mNumIntPtsR * mNumIntPtsS - 1; stride = mNumIntPtsR * mNumIntPtsS;
       num_pts = mNumIntPtsT;
       break;
     default:
-      throw std::runtime_error("Unknown face " + std::to_string(edg) + " on hexahedra " +
+      throw std::runtime_error("Unknown edge " + std::to_string(edge) + " on hexahedra " +
           std::to_string(mElmNum));
   }
 
+  std::vector<PetscInt> edge_dofs(num_pts);
   for (PetscInt i = start, icnt = 0; icnt < num_pts; i += stride, icnt++) {
-    f(i) = val;
+    edge_dofs[icnt] = i;
   }
-
+  return edge_dofs;
 }
 
 template <typename ConcreteHex>
@@ -317,13 +306,12 @@ std::vector<PetscInt> Hexahedra<ConcreteHex>::getDofsOnFace(const PetscInt face)
   }
 
   /* Set the proper dofs. */
-  std::vector<PetscInt> face_dofs(num_r * num_s); PetscInt totcnt = 0;
-  for (PetscInt s = s_sta, icnt = 0; icnt < num_r; s += s_str, icnt++) {
-    for (PetscInt r = r_sta, jcnt = 0; jcnt < num_s; r += r_str, jcnt++) {
-      face_dofs[totcnt++] = r + s;
+  std::vector<PetscInt> face_dofs(num_r * num_s);
+  for (PetscInt s = s_sta, icnt = 0; icnt < num_s; s += s_str, icnt++) {
+    for (PetscInt r = r_sta, jcnt = 0; jcnt < num_r; r += r_str, jcnt++) {
+      face_dofs[jcnt + icnt * num_r] = r + s;
     }
   }
-
   return face_dofs;
 
 }

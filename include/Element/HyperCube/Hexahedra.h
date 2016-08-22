@@ -199,12 +199,12 @@ private:
    */
   void precomputeConstants();
 
-  void setFaceToValue(const PetscInt face, const PetscReal val, Eigen::Ref<RealVec> f);
-  void setEdgeToValue(const PetscInt edg, const PetscReal val, Eigen::Ref<RealVec> f);
-  void setVertexToValue(const PetscInt vtx, const PetscReal val, Eigen::Ref<RealVec> f);
+//  void setFaceToValue(const PetscInt face, const PetscReal val, Eigen::Ref<RealVec> f);
+//  void setEdgeToValue(const PetscInt edg, const PetscReal val, Eigen::Ref<RealVec> f);
+//  void setVertexToValue(const PetscInt vtx, const PetscReal val, Eigen::Ref<RealVec> f);
   std::vector<PetscInt> getDofsOnFace(const PetscInt face);
-  std::vector<PetscInt> getDofsOnEdge(const PetscInt edge) {return {1};};
-  PetscInt getDofsOnVtx(const PetscInt vtx) {};
+  std::vector<PetscInt> getDofsOnEdge(const PetscInt edge);
+  PetscInt getDofsOnVtx(const PetscInt vtx);
 
   
   /**
