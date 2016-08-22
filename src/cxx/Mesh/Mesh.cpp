@@ -238,13 +238,12 @@ void Mesh::setupTopology(const unique_ptr<ExodusModel> &model,
     const PetscInt *ids; ISGetIndices(idIS, &ids);
     for (PetscInt i = 0; i < boundary_size; i++) {
       PetscInt numFaces; DMLabelGetStratumSize(label, ids[i], &numFaces);
-      printf("numFaces[%i]=%d\n",i,numFaces);
       IS pointIs; DMLabelGetStratumIS(label, ids[i], &pointIs);
       const PetscInt *faces; ISGetIndices(pointIs, &faces);
       /* Tuple describing boundary set i for face j. */
       for (PetscInt j = 0; j < numFaces; j++)
         {
-          mBndPts.push_back(std::tie(i, faces[j]));
+          mBndPts.insert(std::tie(i, faces[j]));
         }
     }
   }
@@ -280,6 +279,7 @@ void Mesh::setupTopology(const unique_ptr<ExodusModel> &model,
             /* Remember closure includes orientations (k += 2) */
             for (PetscInt l = 0; l < 2*num_closure; l += 2) {
               mPointFields[pts_closure[l]].insert("boundary_homo_dirichlet");
+              mBndPts.insert(std::tie(k, pts_closure[l]));
             }
             DMPlexRestoreTransitiveClosure(mDistributedMesh, pts[j], PETSC_TRUE, &num_closure,
                                            &pts_closure);

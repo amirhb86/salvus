@@ -18,7 +18,7 @@ void HomogeneousDirichlet<Base>::setBoundaryConditions(std::unique_ptr<Mesh> con
   PetscInt num, *pts = NULL;
   DMPlexGetTransitiveClosure(mesh->DistributedMesh(), Base::ElmNum(), PETSC_TRUE,
                              &num, &pts);
-  for (PetscInt dep = 0, dep_c = 0; dep < Base::NumDim(); dep++) {
+  for (PetscInt dep = 0, dep_c = 0; dep <= Base::NumDim(); dep++, dep_c = 0) {
     for (PetscInt i = 2; i < 2 * num; i += 2) {
       PetscInt p_beg, p_end;
       DMPlexGetDepthStratum(mesh->DistributedMesh(), dep, &p_beg, &p_end);

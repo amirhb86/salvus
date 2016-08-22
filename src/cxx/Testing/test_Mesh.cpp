@@ -119,7 +119,7 @@ TEST_CASE("Unit test mesh", "[mesh]") {
     REQUIRE(mesh->NumberElementsLocal() == 16);
 
     /* Ensure that we get a correct listing of all the boundary points. */
-    std::vector<std::tuple<PetscInt,PetscInt>> all_boundaries_true {
+    std::set<std::tuple<PetscInt,PetscInt>> all_boundaries_true {
         std::make_tuple(0, 44), std::make_tuple(0, 56), std::make_tuple(0, 65),
         std::make_tuple(0, 74), std::make_tuple(1, 52), std::make_tuple(1, 61),
         std::make_tuple(1, 70), std::make_tuple(1, 79), std::make_tuple(2, 41),
@@ -208,7 +208,7 @@ TEST_CASE("Unit test mesh", "[mesh]") {
     REQUIRE(mesh->NumberElementsLocal() == 8);
 
     /* Ensure that we get a correct listing of all the boundary points. */
-    std::vector<std::tuple<PetscInt,PetscInt>> all_boundaries_true {
+    std::set<std::tuple<PetscInt,PetscInt>> all_boundaries_true {
         std::make_tuple(0, 35), std::make_tuple(0, 46), std::make_tuple(0, 55),
         std::make_tuple(0, 64), std::make_tuple(1, 41), std::make_tuple(1, 51),
         std::make_tuple(1, 60), std::make_tuple(1, 68), std::make_tuple(2, 40),
