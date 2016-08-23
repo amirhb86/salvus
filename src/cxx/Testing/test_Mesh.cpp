@@ -271,6 +271,36 @@ TEST_CASE("Unit test mesh", "[mesh]") {
 
   }
 
+  SECTION("Mesh with only some vertices on a dirichlet boundary") {
+
+    PetscOptionsSetValue(NULL, "--polynomial-order", "3");
+    PetscOptionsSetValue(NULL, "--mesh-file", "tri_eigenfunction.e");
+    PetscOptionsSetValue(NULL, "--model-file", "tri_eigenfunction.e");
+    PetscOptionsSetValue(NULL, "--homogeneous-dirichlet", "x0,x1,y0,y1");
+    std::unique_ptr<Options> options(new Options);
+    options->setOptions();
+    auto mesh = Mesh::Factory(options);
+    mesh->read();
+    std::unique_ptr<ExodusModel> model(new ExodusModel(options));
+    model->read();
+    mesh->setupTopology(model, options);
+    std::unique_ptr<Problem> problem(Problem::Factory(options));
+    auto elements = problem->initializeElements(mesh, model, options);
+
+    std::string bnd("HomogeneousDirichlet_ScalarTri_Scalar_TriP1");
+    /* Ensure that the proper element types are pushed back. */
+    std::string normal("ScalarTri_Scalar_TriP1");
+    PetscInt cnt = 0; for (auto &e: elements) {
+      if (cnt < 10 || cnt >= 14 && cnt < 18 || cnt >= 22) {
+        REQUIRE(e->Name() == bnd);
+      } else {
+        REQUIRE(e->Name() == normal);
+      }
+      cnt++;
+    }
+
+  }
+
   SECTION("Mesh with at least some multi physics") {
 
     PetscOptionsSetValue(NULL, "--mesh-file", "fluid_layer_over_elastic_cartesian_2D_50s.e");
