@@ -282,10 +282,14 @@ void Mesh::setupTopology(const unique_ptr<ExodusModel> &model,
             mPointFields[pts[j]].insert("boundary_homo_dirichlet");
             /* If we're on a boundary, it's important to the entire graph. */
             PetscInt num_closure; PetscInt *pts_closure = NULL;
+            DMPlexGetTransitiveClosure(mDistributedMesh, pts[j], PETSC_TRUE, &num_closure,
+                                       &pts_closure);
             /* Remember closure includes orientations (k += 2) */
-            for (PetscInt l = 0; l < 2*num_closure; l += 2) {
+            for (PetscInt l = 0; l < 2 * num_closure; l += 2) {
               mPointFields[pts_closure[l]].insert("boundary_homo_dirichlet");
             }
+            DMPlexRestoreTransitiveClosure(mDistributedMesh, pts[j], PETSC_TRUE, &num_closure,
+                                           &pts_closure);
           }
           /* default to free surface... insert nothing. */
         }
