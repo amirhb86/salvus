@@ -78,6 +78,14 @@ class ElementAdapter: public Element, public T {
   virtual void attachVertexCoordinates(std::unique_ptr<Mesh> const &mesh) {
     T::attachVertexCoordinates(mesh);
   }
+
+  /** Precompute any terms needed on the element level, e.g.,
+      jacobians, velocities at nodes, stiffness matrices for triangles
+      and tetrahedra.
+  */
+  virtual void precomputeElementTerms() {
+    T::precomputeElementTerms();
+  }
   ///@}
 
   /** @name Time loop (pure functions).

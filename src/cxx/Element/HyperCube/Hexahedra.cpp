@@ -89,11 +89,14 @@ RealVec Hexahedra<ConcreteHex>::GllPointsForOrder(const PetscInt order) {
     gll_coordinates_order6_square(gll_points.data());
   } else if (order == 7) {
     gll_coordinates_order7_square(gll_points.data());
-  } else if (order == 8) {
+  }
+#if HEX_MAX_ORDER > 7
+  else if (order == 8) {
     gll_coordinates_order8_square(gll_points.data());
   } else if (order == 9) {
     gll_coordinates_order9_square(gll_points.data());
   }
+#endif
   return gll_points;
 }
 
@@ -115,11 +118,14 @@ RealVec Hexahedra<ConcreteHex>::GllIntegrationWeights(const PetscInt order) {
     gll_weights_order6_square(integration_weights.data());
   } else if (order == 7) {
     gll_weights_order7_square(integration_weights.data());
-  } else if (order == 8) {
+  }
+#if HEX_MAX_ORDER > 7
+  else if (order == 8) {
     gll_weights_order8_square(integration_weights.data());
   } else if (order == 9) {
     gll_weights_order9_square(integration_weights.data());
   }
+#endif
   return integration_weights;
 }
 
@@ -156,56 +162,157 @@ void Hexahedra<ConcreteHex>::attachVertexCoordinates(std::unique_ptr<Mesh> const
 }
 
 template <typename ConcreteHex>
-void Hexahedra<ConcreteHex>::setEdgeToValue(
-    const PetscInt edg, const PetscReal val, Eigen::Ref<RealVec> f) {
+PetscInt Hexahedra<ConcreteHex>::getDofsOnVtx(const PetscInt vtx) {
 
+  PetscInt dof;
   /* Get proper dofs in the tensor basis. */
-  PetscInt s_sta, s_str, r_sta, r_str;
-  switch (edg) {
+  switch (vtx) {
+    case 0: /* front left bottom */
+      dof = 0;
+      break;
+    case 1: /* back left bottom */
+      dof = mNumIntPtsR * (mNumIntPtsS - 1);
+      break;
+    case 2: /* back right bottom */
+      dof = mNumIntPtsR * mNumIntPtsS - 1;
+      break;
+    case 3: /* front right bottom */
+      dof = mNumIntPtsR - 1;
+      break;
+    case 4: /* front left top */
+      dof = mNumIntPtsR * mNumIntPtsS * (mNumIntPtsT - 1);
+      break;
+    case 5: /* front right top */
+      dof = mNumIntPtsR * (mNumIntPtsS * (mNumIntPtsT - 1) + 1) - 1;
+      break;
+    case 6: /* back right top */
+      dof = mNumIntPnt - 1;
+      break;
+    case 7: /* back left top */
+      dof = mNumIntPnt - mNumIntPtsR;
+      break;
+    default:
+      throw std::runtime_error("Unknown vtx " + std::to_string(vtx) + " on hexahedra " +
+          std::to_string(mElmNum));
+  }
+
+  return dof;
+
+}
+
+template <typename ConcreteHex>
+std::vector<PetscInt> Hexahedra<ConcreteHex>::getDofsOnEdge(const PetscInt edge) {
+
+  PetscInt start, stride, num_pts;
+  switch (edge) {
+    case 0: /* bottom left */
+      start = 0; stride = mNumIntPtsR;
+      num_pts = mNumIntPtsS;
+      break;
+    case 1: /* bottom back */
+      start = mNumIntPtsR * (mNumIntPtsS - 1); stride = 1;
+      num_pts = mNumIntPtsR;
+      break;
+    case 2: /* bottom right */
+      start = mNumIntPtsR - 1; stride = mNumIntPtsR;
+      num_pts = mNumIntPtsS;
+      break;
+    case 3: /* bottom front */
+      start = 0; stride = 1;
+      num_pts = mNumIntPtsR;
+      break;
+    case 4: /* top front */
+      start = mNumIntPtsR * mNumIntPtsS * (mNumIntPtsT - 1); stride = 1;
+      num_pts = mNumIntPtsR;
+      break;
+    case 5: /* top right */
+      start = mNumIntPtsR * (mNumIntPtsS * (mNumIntPtsT - 1) + 1) - 1; stride = mNumIntPtsR;
+      num_pts = mNumIntPtsS;
+      break;
+    case 6: /* top back */
+      start = mNumIntPnt - mNumIntPtsR; stride = 1;
+      num_pts = mNumIntPtsR;
+      break;
+    case 7: /* top left */
+      start = mNumIntPtsR * mNumIntPtsS * (mNumIntPtsT - 1); stride = mNumIntPtsR;
+      num_pts = mNumIntPtsS;
+      break;
+    case 8: /* right front */
+      start = mNumIntPtsR - 1; stride = mNumIntPtsR * mNumIntPtsS;
+      num_pts = mNumIntPtsT;
+      break;
+    case 9: /* left front */
+      start = 0;
+      stride = mNumIntPtsR * mNumIntPtsS; num_pts = mNumIntPtsT;
+      break; /* left back */
+    case 10:
+      start = mNumIntPtsR * (mNumIntPtsS - 1); stride = mNumIntPtsR * mNumIntPtsS;
+      num_pts = mNumIntPtsT;
+      break;
+    case 11: /* right back */
+      start = mNumIntPtsR * mNumIntPtsS - 1; stride = mNumIntPtsR * mNumIntPtsS;
+      num_pts = mNumIntPtsT;
+      break;
+    default:
+      throw std::runtime_error("Unknown edge " + std::to_string(edge) + " on hexahedra " +
+          std::to_string(mElmNum));
+  }
+
+  std::vector<PetscInt> edge_dofs(num_pts);
+  for (PetscInt i = start, icnt = 0; icnt < num_pts; i += stride, icnt++) {
+    edge_dofs[icnt] = i;
+  }
+  return edge_dofs;
+}
+
+template <typename ConcreteHex>
+std::vector<PetscInt> Hexahedra<ConcreteHex>::getDofsOnFace(const PetscInt face) {
+
+  PetscInt s_sta, s_str, r_sta, r_str, num_s, num_r;
+  switch (face) {
     case 0: /* bottom */
-      s_sta = 0;
-      r_sta = 0;
-      s_str = 1;
-      r_str = 1;
+      r_sta = 0; s_sta = 0;
+      s_str = mNumIntPtsR; r_str = 1;
+      num_r = mNumIntPtsR; num_s = mNumIntPtsS;
       break;
     case 1: /* top */
-      s_sta = 0;
-      r_sta = mNumIntPnt - mNumIntPtsR * mNumIntPtsS;
-      s_str = 1;
-      r_str = 1;
+      r_sta = mNumIntPnt - mNumIntPtsR * mNumIntPtsS; s_sta = 0;
+      r_str = 1; s_str = mNumIntPtsR;
+      num_r = mNumIntPtsR; num_s = mNumIntPtsS;
       break;
-    case 2: /* left */
-      s_sta = 0;
-      r_sta = 0;
-      r_str = 1;
-      s_str = mNumIntPtsS;
+    case 2: /* front */
+      r_sta = 0; s_sta = 0;
+      r_str = 1; s_str = mNumIntPtsS * mNumIntPtsR;
+      num_r = mNumIntPtsR; num_s = mNumIntPtsT;
       break;
-    case 3: /* right */
-      r_sta = mNumIntPtsR * mNumIntPtsS - mNumIntPtsS;
-      s_sta = 0;
-      r_str = 1;
-      s_str = mNumIntPtsR;
+    case 3: /* back */
+      r_sta = mNumIntPtsR * mNumIntPtsS - 1; s_sta = 0;
+      r_str = -1; s_str = mNumIntPtsR * mNumIntPtsS;
+      num_r = mNumIntPtsR; num_s = mNumIntPtsT;
       break;
-    case 4: /* back */
-      r_sta = mNumIntPtsR - 1;
-      s_sta = 0;
-      r_str = mNumIntPtsS;
-      s_str = mNumIntPtsR;
+    case 4: /* right */
+      r_sta = mNumIntPtsR - 1; s_sta = 0;
+      r_str = mNumIntPtsS; s_str = mNumIntPtsR * mNumIntPtsS;
+      num_r = mNumIntPtsS; num_s = mNumIntPtsT;
       break;
-    case 5: /* front */
-      r_sta = 0;
-      s_sta = 0;
-      r_str = mNumIntPtsS;
-      s_str = mNumIntPtsR;
+    case 5: /* left */
+      r_sta = mNumIntPtsS * (mNumIntPtsR - 1); s_sta = 0;
+      r_str = -1 * mNumIntPtsS; s_str = mNumIntPtsR * mNumIntPtsS;
+      num_r = mNumIntPtsS; num_s = mNumIntPtsT;
       break;
+    default:
+      throw std::runtime_error("Unknown face " + std::to_string(face) + " on hexahedra " +
+          std::to_string(mElmNum));
   }
 
   /* Set the proper dofs. */
-  for (PetscInt s = s_sta, icnt = 0; icnt < mNumIntPtsR; s += s_str, icnt++) {
-    for (PetscInt r = r_sta, jcnt = 0; jcnt < mNumIntPtsS; r += r_str, jcnt++) {
-      f(r + s * mNumIntPtsS) = val;
+  std::vector<PetscInt> face_dofs(num_r * num_s);
+  for (PetscInt s = s_sta, icnt = 0; icnt < num_s; s += s_str, icnt++) {
+    for (PetscInt r = r_sta, jcnt = 0; jcnt < num_r; r += r_str, jcnt++) {
+      face_dofs[jcnt + icnt * num_r] = r + s;
     }
   }
+  return face_dofs;
 
 }
 
@@ -213,59 +320,50 @@ template <typename ConcreteHex>
 RealVec Hexahedra<ConcreteHex>::applyTestAndIntegrateEdge(const Eigen::Ref<const RealVec> &f,
                                                           const PetscInt edg) {
 
-  PetscInt s_sta, r_sta, s_str, r_str;
   RealVec3 q0, q1, q2, q3;
+  RealVec int_crd_r, int_crd_s, int_wgt_r, int_wgt_s;
 
   /* Get vertices defining edge. */
   switch (edg) {
     case 0: /* bottom */
       q0 = mVtxCrd.row(0); q1 = mVtxCrd.row(1);
       q2 = mVtxCrd.row(2); q3 = mVtxCrd.row(3);
-      s_sta = 0;
-      r_sta = 0;
-      s_str = 1;
-      r_str = 1;
+      int_crd_r = mIntCrdR; int_crd_s = mIntCrdS;
+      int_wgt_r = mIntWgtR; int_wgt_s = mIntWgtS;
       break;
     case 1: /* top */
       q0 = mVtxCrd.row(4); q1 = mVtxCrd.row(5);
       q2 = mVtxCrd.row(6); q3 = mVtxCrd.row(7);
-      s_sta = 0;
-      r_sta = mNumIntPnt - mNumIntPtsR * mNumIntPtsS;
-      s_str = 1;
-      r_str = 1;
+      int_crd_r = mIntCrdR; int_crd_s = mIntCrdS;
+      int_wgt_r = mIntWgtR; int_wgt_s = mIntWgtS;
       break;
-    case 2: /* left */
-      q0 = mVtxCrd.row(0); q1 = mVtxCrd.row(4);
-      q2 = mVtxCrd.row(7); q3 = mVtxCrd.row(1);
-      s_sta = 0;
-      r_sta = 0;
-      r_str = 1;
-      s_str = mNumIntPtsS;
-      break;
-    case 3: /* right */
-      q0 = mVtxCrd.row(3); q1 = mVtxCrd.row(2);
-      q2 = mVtxCrd.row(6); q3 = mVtxCrd.row(5);
-      r_sta = mNumIntPtsR * mNumIntPtsS - mNumIntPtsS;
-      s_sta = 0;
-      r_str = 1;
-      s_str = mNumIntPtsR;
-      break;
-    case 4: /* back */
-      q0 = mVtxCrd.row(1); q1 = mVtxCrd.row(7);
-      q2 = mVtxCrd.row(6); q3 = mVtxCrd.row(2);
-      r_sta = mNumIntPtsR - 1;
-      s_sta = 0;
-      r_str = mNumIntPtsS;
-      s_str = mNumIntPtsR;
-      break;
-    case 5: /* front */
+    case 2: /* front */
       q0 = mVtxCrd.row(0); q1 = mVtxCrd.row(3);
       q2 = mVtxCrd.row(5); q3 = mVtxCrd.row(4);
-      r_sta = 0;
-      s_sta = 0;
-      r_str = mNumIntPtsS;
-      s_str = mNumIntPtsR;
+      int_crd_r = mIntCrdR; int_crd_s = mIntCrdT;
+      int_wgt_r = mIntWgtR; int_wgt_s = mIntWgtT;
       break;
+    case 3: /* back */
+      q0 = mVtxCrd.row(2); q1 = mVtxCrd.row(1);
+      q2 = mVtxCrd.row(7); q3 = mVtxCrd.row(6);
+      int_crd_r = mIntCrdR; int_crd_s = mIntCrdT;
+      int_wgt_r = mIntWgtR; int_wgt_s = mIntWgtT;
+      break;
+    case 4: /* right */
+      q0 = mVtxCrd.row(3); q1 = mVtxCrd.row(2);
+      q2 = mVtxCrd.row(6); q3 = mVtxCrd.row(5);
+      int_crd_r = mIntCrdS; int_crd_s = mIntCrdT;
+      int_wgt_r = mIntWgtS; int_wgt_s = mIntWgtT;
+      break;
+    case 5: /* left */
+      q0 = mVtxCrd.row(1); q1 = mVtxCrd.row(0);
+      q2 = mVtxCrd.row(4); q3 = mVtxCrd.row(7);
+      int_crd_r = mIntCrdS; int_crd_s = mIntCrdT;
+      int_wgt_r = mIntWgtS; int_wgt_s = mIntWgtT;
+      break;
+    default:
+      throw std::runtime_error("Unknown face " + std::to_string(edg) + " on hexahedra " +
+          std::to_string(mElmNum));
   }
 
   /* Vectors defining face plane. */
@@ -290,17 +388,20 @@ RealVec Hexahedra<ConcreteHex>::applyTestAndIntegrateEdge(const Eigen::Ref<const
   eVtx(2, 1) = e1.dot(q2 - q0);
   eVtx(3, 1) = e1.dot(q3 - q0);
 
+  PetscInt i = 0;
+  std::vector<PetscInt> face_closure = getDofsOnFace(edg);
   mParWork.setZero();
-  for (PetscInt s_ind = s_sta, s_cnt = 0; s_cnt < mNumIntPtsR; s_ind += s_str, s_cnt++) {
-    for (PetscInt r_ind = r_sta, r_cnt = 0; r_cnt < mNumIntPtsS; r_ind += r_str, r_cnt++) {
+  for (PetscInt s_ind = 0; s_ind < int_crd_s.size(); s_ind++) {
+    for (PetscInt r_ind = 0; r_ind < int_crd_r.size(); r_ind++) {
 
       PetscReal detJac;
-      PetscReal r = mIntCrdR(r_cnt);
-      PetscReal s = mIntCrdS(s_cnt);
-      PetscInt ind = r_ind + s_ind * mNumIntPtsS;
+      PetscReal r = mIntCrdR(r_ind);
+      PetscReal s = mIntCrdS(s_ind);
 
       ConcreteHex::faceJacobianAtPoint(r, s, eVtx, detJac);
-      mParWork(ind) = f(ind) * detJac * mIntWgtR(r_cnt) * mIntWgtS(s_cnt);
+      mParWork(face_closure[i]) = f(face_closure[i]) * detJac * int_wgt_r(r_ind) *
+          int_wgt_s(s_ind);
+      i++;
 
     }
   }
@@ -391,9 +492,9 @@ RealVec Hexahedra<ConcreteHex>::getDeltaFunctionCoefficients(const Eigen::Ref<Re
   
 template <typename ConcreteHex>
 RealVec Hexahedra<ConcreteHex>::interpolateLagrangePolynomials(const PetscReal r,
-                                                                   const PetscReal s,
-                                                                   const PetscReal t,
-                                                                   const PetscInt order)
+                                                               const PetscReal s,
+                                                               const PetscReal t,
+                                                               const PetscInt order)
 
 {
 
@@ -414,11 +515,15 @@ RealVec Hexahedra<ConcreteHex>::interpolateLagrangePolynomials(const PetscReal r
     interpolate_order6_hex(r, s, t, gll_coeffs.data());
   } else if (order == 7) {
     interpolate_order7_hex(r, s, t, gll_coeffs.data());
-  } else if (order == 8) {
+  }
+#if HEX_MAX_ORDER > 7  
+  else if (order == 8) {
     interpolate_order8_hex(r, s, t, gll_coeffs.data());
   } else if (order == 9) {
     interpolate_order9_hex(r, s, t, gll_coeffs.data());
-  } else {
+  }
+#endif
+  else {
     ERROR() << "Order " << order << " not supported for hex";
   }
 
@@ -454,11 +559,15 @@ RealMat  Hexahedra<ConcreteHex>::setupGradientOperator(const PetscInt order) {
       interpolate_eps_derivative_order6_square(r, s, test.data());
     } else if (order == 7) {
       interpolate_eps_derivative_order7_square(r, s, test.data());
-    } else if (order == 8) {
+    }
+#if HEX_MAX_ORDER > 7    
+    else if (order == 8) {
       interpolate_eps_derivative_order8_square(r, s, test.data());
     } else if (order == 9) {
       interpolate_eps_derivative_order9_square(r, s, test.data());
-    } else {
+    }
+#endif
+    else {
       ERROR() << "Order " << order << " not supported for hex";
     }
     grad.row(i) = test.col(0);

@@ -36,7 +36,9 @@ install:
   # check whether branch exists on salvus_data
   - echo $TRAVIS_BRANCH
   - cd salvus_data
-  - if [[ $(git ls-remote --heads https://github.com/SalvusHub/salvus_data.git $TRAVIS_BRANCH | wc -l) ]]; then git checkout $TRAVIS_BRANCH; fi 
+  - branch="$(git ls-remote --heads https://github.com/SalvusHub/salvus_data.git $TRAVIS_BRANCH | wc -l)"
+  - echo $branch
+  - if [ "$branch" -eq 1 ]; then git checkout $TRAVIS_BRANCH; fi 
   
 script:
   - cd ./new_unit_tests

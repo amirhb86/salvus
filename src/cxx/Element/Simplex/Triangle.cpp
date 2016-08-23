@@ -249,8 +249,7 @@ void Triangle<ConcreteShape>::setupGradientOperator() {
     dphi_dr_rsn_p3_triangle(mGradientPhi_dr.data());
     dphi_ds_rsn_p3_triangle(mGradientPhi_ds.data());
   } else {        
-    std::cerr << "NOT implemented yet!\n";
-    MPI::COMM_WORLD.Abort(-1);
+    ERROR() << "NOT implemented yet!\n";
   }
 }
 
@@ -284,27 +283,41 @@ bool Triangle<ConcreteShape>::attachReceiver(std::unique_ptr<Receiver> &receiver
 //    |     0    1          \--
 //    |                        \--
 //    9------3---------4--------- 10
+
 template <typename ConcreteShape>
-void Triangle<ConcreteShape>::setEdgeToValue(const PetscInt edg,
-                                             const PetscScalar val,
-                                             Eigen::Ref<RealVec> f) {
+std::vector<PetscInt> Triangle<ConcreteShape>::getDofsOnEdge(const PetscInt edge) {
 
   std::vector<int> edge_ids;
   if(mPlyOrd == 3) {
-    if      (edg == 0) { edge_ids = {9,3,4,10}; }
-    else if (edg == 1) { edge_ids = {10,5,6,11}; }
-    else if (edg == 2) { edge_ids = {11,7,8,9}; }
-    else { ERROR() << "Only three edges in a triangle"; }
-    for (auto &eid: edge_ids) {
-      f(eid) = val;
-    }
+    if      (edge == 0) { edge_ids = {9,3,4,10}; }
+    else if (edge == 1) { edge_ids = {10,5,6,11}; }
+    else if (edge == 2) { edge_ids = {11,7,8,9}; }
+    else { ERROR() << "Only three edges in a triangle (edge = " << edge << ")"; }
   }
   else {
-    ERROR() << "Not Implemented: setEdgeToValue for Polynomials != 3";
+    ERROR() << "Not Implemented: getDofsOnEdge for Polynomials != 3";
   }
 
+  return edge_ids;
 }
 
+template <typename ConcreteShape>
+PetscInt Triangle<ConcreteShape>::getDofsOnVtx(const PetscInt vtx) {
+  int vtxid = -1;
+  switch(vtx) {
+  case 0: vtxid = 9; break;
+  case 1: vtxid = 10; break;
+  case 2: vtxid = 11; break;
+  default: ERROR() << "Unrecognized vertex id " << vtx << " in getDofsOnVtx(vtx)";
+    break;
+  }
+  return vtxid;
+}
+
+template <typename ConcreteShape>
+std::vector<PetscInt> Triangle<ConcreteShape>::getDofsOnFace(const PetscInt face) {
+  throw std::runtime_error("Face doesn't exist on 2D element. Only edge/vtx.");
+}
 
 template <typename ConcreteShape>
 VectorXd Triangle<ConcreteShape>::applyGradTestAndIntegrate(const Ref<const MatrixXd>& f) {
@@ -329,7 +342,7 @@ VectorXd Triangle<ConcreteShape>::applyGradTestAndIntegrate(const Ref<const Matr
 
     mStiffWork(i) *= mDetJac;
   }
-  return mStiffWork;  
+  return mStiffWork;
 }
 
 template <typename ConcreteShape>
@@ -339,6 +352,13 @@ VectorXd Triangle<ConcreteShape>::applyTestAndIntegrate(const Ref<const VectorXd
   Matrix2d invJac;
   std::tie(invJac,detJac) = ConcreteShape::inverseJacobian(mVtxCrd);
   return detJac*mIntegrationWeights.array()*f.array();
+}
+
+template <typename ConcreteShape>
+void Triangle<ConcreteShape>::precomputeElementTerms() {
+  std::tie(mInvJac,mDetJac) = ConcreteShape::inverseJacobian(mVtxCrd);
+  mInvJacT = mInvJac.transpose();
+  mElementStiffnessMatrix = buildStiffnessMatrix(ParAtIntPts("VP"));
 }
 
 template <typename ConcreteShape>

@@ -66,204 +66,257 @@ RealMat derivative4order(const PetscReal r, const PetscReal s, const PetscInt or
 
 TEST_CASE("Test tensor quad", "[tensor_quad]") {
 
-  std::string e_file = "fluid_layer_over_elastic_cartesian_2D_50s.e";
 
-  PetscOptionsClear(NULL);
-  const char *arg[] = {
-      "salvus_test",
-      "--testing", "true",
-      "--mesh-file", e_file.c_str(),
-      "--model-file", e_file.c_str(),
-      "--polynomial-order", "4",
-      NULL
-  };
+  SECTION("Mathematical operations") {
 
-  // Fake setting via command line.
-  char **argv = const_cast<char **> (arg);
-  int argc = sizeof(arg) / sizeof(const char *) - 1;
-  PetscOptionsInsert(NULL, &argc, &argv, NULL);
+    PetscOptionsClear(NULL);
+    const char *arg[] = {"salvus_test",
+                         "--testing", "true",
+                         "--polynomial-order", "4",
+                         NULL};
 
-  // Default vertices.
-  QuadVtx vtx;
-  vtx << -1, -1, +1, -1, +1, +1, -1, +1;
+    // Fake setting via command line.
+    char **argv = const_cast<char **> (arg);
+    int argc = sizeof(arg) / sizeof(const char *) - 1;
+    PetscOptionsInsert(NULL, &argc, &argv, NULL);
 
-  // Initialize dummy mesh and model.
-  std::unique_ptr<Options> options(new Options);
-  options->setOptions();
+    // Default vertices.
+    QuadVtx vtx;
+    vtx << -1, -1, +1, -1, +1, +1, -1, +1;
 
-  std::unique_ptr<Problem>      problem(Problem::Factory(options));
-  std::unique_ptr<ExodusModel>  model(new ExodusModel(options));
-  std::unique_ptr<Mesh>         mesh(new Mesh(options));
+    // Initialize dummy mesh and model.
+    std::unique_ptr<Options> options(new Options);
+    options->setOptions();
 
-  mesh->read();
-  model->read();
-  mesh->setupTopology(model, options);
-  auto elements = problem->initializeElements(mesh, model, options);
-  mesh->setupGlobalDof(elements[0], options);
+    /* Loop over all polynomial orders. */
+    for (PetscInt i = 1; i < TensorQuad<QuadP1>::MaxOrder() + 1; i++) {
 
-  /* Loop over all polynomial orders. */
-  for (PetscInt i = 1; i < TensorQuad<QuadP1>::MaxOrder() + 1; i++) {
+      /* General derived parameters. */
+      PetscInt num_dof_dim = i + 1;
+      RealVec weights = TensorQuad<QuadP1>::GllIntegrationWeightsForOrder(i);
+      RealVec points = TensorQuad<QuadP1>::GllPointsForOrder(i);
 
-    /* General derived parameters. */
-    PetscInt num_dof_dim = i + 1;
-    RealVec weights = TensorQuad<QuadP1>::GllIntegrationWeightsForOrder(i);
-    RealVec points  = TensorQuad<QuadP1>::GllPointsForOrder(i);
+      /* Mock constructing an element with some order. */
+      PetscOptionsSetValue(NULL, "--polynomial-order", std::to_string(i).c_str());
+      options->setOptions();
+      TensorQuad<QuadP1> test_quad(options);
+      test_quad.SetVtxCrd(vtx);
+      test_quad.SetCplEdg({0, 1, 2, 3});
 
-    /* Mock constructing an element with some order. */
-    PetscOptionsSetValue(NULL, "--polynomial-order", std::to_string(i).c_str());
+      /* Allocate vectors to hold approximate solutions. */
+      RealMat test_field_grad(test_quad.NumIntPnt(), 2);
+
+      /* Keep track of where we are in the tensor basis. */
+      PetscInt rp = 0, sp = 0;
+
+      /* Loop over every integration point. */
+      for (PetscInt p = 0; p < test_quad.NumIntPnt(); p++) {
+
+        /* Loop over the tensor basis. */
+        for (PetscInt s = 0; s < num_dof_dim; s++) {
+          for (PetscInt r = 0; r < num_dof_dim; r++) {
+
+            /* Turn on one polynomial (dof) at a time. This is the polynomial that centered at this integration point. */
+            RealVec dummy_actual = RealVec::Zero(test_quad.NumIntPnt());
+            dummy_actual(r + s * num_dof_dim) = 1;
+
+            /* Compute the gradient of this polynomial at the integration point p. */
+            test_field_grad(r + s * num_dof_dim, 0) =
+                test_quad.computeGradient(dummy_actual).col(0)(p);
+            test_field_grad(r + s * num_dof_dim, 1) =
+                test_quad.computeGradient(dummy_actual).col(1)(p);
+
+          }
+        }
+
+        /* Get the analytical sympy generated derivative of lagrange polynomial r + s * num_dof_dim at point p. */
+        RealMat analytic_grad = derivative4order(points(rp), points(sp), i);
+
+        /* "Turn on" this the derivative belonging to integration point p. */
+        RealMat test_grad_field = RealMat::Zero(test_quad.NumIntPnt(), 2);
+        test_grad_field(p, 0) = 1;
+        test_grad_field(p, 1) = 1;
+
+
+        /********************************/
+        /********** ASSERTIONS **********/
+        /********************************/
+
+        /* Require that the gradient of all lagrange polynomials tabulated at point p is correct. */
+        REQUIRE(test_field_grad.isApprox(analytic_grad));
+
+        /* Require that \grad test \times \grad field = 0. */
+        REQUIRE(test_quad.applyGradTestAndIntegrate(test_grad_field).sum() == Approx(0.0));
+
+        /* Require that integrals along appropriate coupling edges are correct. Since we're integrating against
+         * 1, we just expect the integration weights back if an edge is hit. */
+        for (int edge: {0, 1, 2, 3}) {
+          PetscReal
+              edge_val = test_quad.applyTestAndIntegrateEdge(test_grad_field.col(0), edge).sum();
+          if (sp == 0 && edge == 0) {
+            REQUIRE(edge_val == Approx(weights(rp)));
+          } else if (rp == 0 && edge == 3) {
+            REQUIRE(edge_val == Approx(weights(sp)));
+          } else if (sp == (num_dof_dim - 1) && edge == 2) {
+            REQUIRE(edge_val == Approx(weights(rp)));
+          } else if (rp == (num_dof_dim - 1) && edge == 1) {
+            REQUIRE(edge_val == Approx(weights(sp)));
+          } else {
+            REQUIRE(edge_val == 0.0);
+          }
+
+        }
+
+        /* Advance through the tensor basis. */
+        rp++;
+        if (rp == num_dof_dim) {
+          rp = 0;
+          sp++;
+        }
+
+      }
+
+      /*
+       * Interpolate of delta function. We place a delta function at the center of
+       * the reference element, and ensure that, when the test functions are applied and
+       * integrated against, the correct value of 1.0 is returned. This has the added
+       * value of also testing applyTestAndIntegrate().
+       */
+      RealVec2 pnt(0.0, 0.0);
+      RealVec coefficients = test_quad.getDeltaFunctionCoefficients(pnt);
+      REQUIRE(test_quad.applyTestAndIntegrate(coefficients).sum() == Approx(1.0));
+
+      /* Test that edges integrate to zero if they are set to zero (dirichlet). */
+      for (int edge: {0, 1, 2, 3}) {
+        RealVec test_edge = RealVec::Zero(test_quad.NumIntPnt());
+        for (PetscInt i: test_quad.getDofsOnEdge(edge)) { test_edge(i) = 1.0; }
+        REQUIRE(test_quad.applyTestAndIntegrateEdge(test_edge, edge).sum() == Approx(2.0));
+      }
+
+      /* TODO: Make this test tighter. */
+      /* Test that the parameters interpolate. */
+      RealVec4 par(1.0, 1.0, 1.0, 1.0);
+      test_quad.SetVtxPar(par, "test");
+      REQUIRE(test_quad.ParAtIntPts("test").sum() == Approx(test_quad.NumIntPnt()));
+
+    }
+  }
+
+  SECTION("Test closure for order 4") {
+
+    PetscOptionsSetValue(NULL, "--polynomial-order", "4");
+    std::unique_ptr<Options> options(new Options);
     options->setOptions();
     TensorQuad<QuadP1> test_quad(options);
-    test_quad.SetVtxCrd(vtx);
-    test_quad.SetCplEdg({0, 1, 2, 3});
-
-    /* Allocate vectors to hold approximate solutions. */
-    RealMat test_field_grad(test_quad.NumIntPnt(), 2);
-
-    /* Keep track of where we are in the tensor basis. */
-    PetscInt rp = 0, sp = 0;
-
-    /* Loop over every integration point. */
-    for (PetscInt p = 0; p < test_quad.NumIntPnt(); p++) {
-
-      /* Loop over the tensor basis. */
-      for (PetscInt s = 0; s < num_dof_dim; s++) {
-        for (PetscInt r = 0; r < num_dof_dim; r++) {
-
-          /* Turn on one polynomial (dof) at a time. This is the polynomial that centered at this integration point. */
-          RealVec dummy_actual = RealVec::Zero(test_quad.NumIntPnt());
-          dummy_actual(r + s * num_dof_dim) = 1;
-
-          /* Compute the gradient of this polynomial at the integration point p. */
-          test_field_grad(r + s * num_dof_dim, 0) = test_quad.computeGradient(dummy_actual).col(0)(p);
-          test_field_grad(r + s * num_dof_dim, 1) = test_quad.computeGradient(dummy_actual).col(1)(p);
-
-        }
-      }
-
-      /* Get the analytical sympy generated derivative of lagrange polynomial r + s * num_dof_dim at point p. */
-      RealMat analytic_grad = derivative4order(points(rp), points(sp), i);
-
-      /* "Turn on" this the derivative belonging to integration point p. */
-      RealMat test_grad_field = RealMat::Zero(test_quad.NumIntPnt(), 2);
-      test_grad_field(p, 0) = 1; test_grad_field(p, 1) = 1;
-
-
-      /********************************/
-      /********** ASSERTIONS **********/
-      /********************************/
-
-      /* Require that the gradient of all lagrange polynomials tabulated at point p is correct. */
-      REQUIRE(test_field_grad.isApprox(analytic_grad));
-
-      /* Require that \grad test \times \grad field = 0. */
-      REQUIRE(test_quad.applyGradTestAndIntegrate(test_grad_field).sum() == Approx(0.0));
-
-      /* Require that integrals along appropriate coupling edges are correct. Since we're integrating against
-       * 1, we just expect the integration weights back if an edge is hit. */
-      for (int edge: {0, 1, 2, 3}) {
-        PetscReal edge_val = test_quad.applyTestAndIntegrateEdge(test_grad_field.col(0), edge).sum();
-        if      (sp == 0 && edge == 0) {
-          REQUIRE(edge_val == Approx(weights(rp)));
-        }
-        else if (rp == 0 && edge == 3) {
-          REQUIRE(edge_val == Approx(weights(sp)));
-        }
-        else if (sp == (num_dof_dim - 1) && edge == 2) {
-          REQUIRE(edge_val == Approx(weights(rp)));
-        }
-        else if (rp == (num_dof_dim - 1) && edge == 1) {
-          REQUIRE(edge_val == Approx(weights(sp)));
-        }
-        else {
-          REQUIRE(edge_val == 0.0);
-        }
-
-      }
-
-      /* Advance through the tensor basis. */
-      rp++; if (rp == num_dof_dim) { rp = 0; sp++; }
-
+    SECTION("Edges") {
+      std::vector<PetscInt> edge_0{0, 1, 2, 3, 4};
+      REQUIRE(test_quad.getDofsOnEdge(0) == edge_0);
+      std::vector<PetscInt> edge_1{4, 9, 14, 19, 24};
+      REQUIRE(test_quad.getDofsOnEdge(1) == edge_1);
+      std::vector<PetscInt> edge_2{20, 21, 22, 23, 24};
+      REQUIRE(test_quad.getDofsOnEdge(2) == edge_2);
+      std::vector<PetscInt> edge_3{0, 5, 10, 15, 20};
+      REQUIRE(test_quad.getDofsOnEdge(3) == edge_3);
+      REQUIRE_THROWS_AS(test_quad.getDofsOnEdge(4), std::runtime_error);
+    }
+    SECTION("Vertices") {
+      REQUIRE(test_quad.getDofsOnVtx(0) == 0);
+      REQUIRE(test_quad.getDofsOnVtx(1) == 4);
+      REQUIRE(test_quad.getDofsOnVtx(2) == 24);
+      REQUIRE(test_quad.getDofsOnVtx(3) == 20);
+      REQUIRE_THROWS_AS(test_quad.getDofsOnVtx(4), std::runtime_error);
+    }
+    SECTION("Faces") {
+      /* there's no face on a 2d element silly! */
+      REQUIRE_THROWS_AS(test_quad.getDofsOnFace(0), std::runtime_error);
     }
 
-    /*
-     * Interpolate of delta function. We place a delta function at the center of
-     * the reference element, and ensure that, when the test functions are applied and
-     * integrated against, the correct value of 1.0 is returned. This has the added
-     * value of also testing applyTestAndIntegrate().
-     */
-    RealVec2 pnt (0.0, 0.0);
-    RealVec coefficients = test_quad.getDeltaFunctionCoefficients(pnt);
-    REQUIRE(test_quad.applyTestAndIntegrate(coefficients).sum() == Approx(1.0));
 
-    /* Test that edges integrate to zero if they are set to zero (dirichlet). */
-    for (int edge: {0, 1, 2, 3}) {
-      RealVec test_edge = RealVec::Zero(test_quad.NumIntPnt());
-      test_quad.setEdgeToValue(edge, 1.0, test_edge);
-      REQUIRE(test_quad.applyTestAndIntegrateEdge(test_edge, edge).sum() == Approx(2.0));
+  }
+
+  SECTION("Integration with simple mesh") {
+
+    std::string e_file = "fluid_layer_over_elastic_cartesian_2D_50s.e";
+    // Mock sources and receivers.
+    PetscOptionsSetValue(NULL, "--testing", "true");
+    // Mock sources and receivers.
+    PetscOptionsSetValue(NULL, "--number-of-sources", "2");
+    PetscOptionsSetValue(NULL, "--source-type", "ricker");
+    PetscOptionsSetValue(NULL, "--source-location-x", "50000,50000");
+    PetscOptionsSetValue(NULL, "--source-location-y", "80000,90000");
+    PetscOptionsSetValue(NULL, "--source-num-components", "2,2");
+    PetscOptionsSetValue(NULL, "--ricker-amplitude", "10,20");
+    PetscOptionsSetValue(NULL, "--ricker-time-delay", "0.1,0.01");
+    PetscOptionsSetValue(NULL, "--ricker-center-freq", "50,60");
+    PetscOptionsSetValue(NULL, "--receiver-file-name", "mock.h5");
+    PetscOptionsSetValue(NULL, "--number-of-receivers", "2");
+    PetscOptionsSetValue(NULL, "--receiver-names", "rec1,rec2");
+    PetscOptionsSetValue(NULL, "--receiver-location-x", "50000,50000");
+    PetscOptionsSetValue(NULL, "--receiver-location-y", "80000,90000");
+    PetscOptionsSetValue(NULL, "--mesh-file", e_file.c_str());
+    PetscOptionsSetValue(NULL, "--model-file", e_file.c_str());
+
+    // Initialize dummy mesh and model.
+    std::unique_ptr<Options> options(new Options);
+    options->setOptions();
+
+    std::unique_ptr<Problem> problem(Problem::Factory(options));
+    std::unique_ptr<ExodusModel> model(new ExodusModel(options));
+    std::unique_ptr<Mesh> mesh(new Mesh(options));
+
+    mesh->read();
+    model->read();
+    mesh->setupTopology(model, options);
+    auto elements = problem->initializeElements(mesh, model, options);
+    mesh->setupGlobalDof(elements[0], options);
+
+    // Vertex coordiantes.
+    std::vector<QuadVtx> true_vtx(4);
+    true_vtx[0] << 0, 0, 5e4, 0, 5e4, 8e4, 0, 8e4;
+    true_vtx[1] << 5e4, 0, 1e5, 0, 1e5, 8e4, 5e4, 8e4;
+    true_vtx[2] << 0, 8e4, 5e4, 8e4, 5e4, 1e5, 0, 1e5;
+    true_vtx[3] << 5e4, 8e4, 1e5, 8e4, 1e5, 1e5, 5e4, 1e5;
+
+    // True source locations.
+    vector<PetscInt> locations{1, 0, 1, 0};
+
+    std::vector<TensorQuad<QuadP1> *> p1_test;
+    for (auto &e: elements) { p1_test.push_back(dynamic_cast<TensorQuad<QuadP1> *> (e.get())); }
+    for (PetscInt i = 0; i < true_vtx.size(); i++) {
+      REQUIRE(p1_test[i]->VtxCrd().isApprox(true_vtx[i]));
+      REQUIRE(p1_test[i]->Sources().size() == locations[i]);
+      REQUIRE(p1_test[i]->Receivers().size() == locations[i]);
     }
 
-    /* TODO: Make this test tighter. */
-    /* Test that the parameters interpolate. */
-    RealVec4 par(1.0, 1.0, 1.0, 1.0);
-    test_quad.SetVtxPar(par, "test");
-    REQUIRE(test_quad.ParAtIntPts("test").sum() == Approx(test_quad.NumIntPnt()));
-
+    // test for outward edge normals.
+    vector<RealVec2> normals(4);
+    vector<PetscInt> edg_elm_zero{13, 14, 15, 16};
+    normals[0] << 0, -1;
+    normals[1] << 1, 0;
+    normals[2] << 0, 1;
+    normals[3] << -1, 0;
+    for (PetscInt i = 0; i < edg_elm_zero.size(); i++) {
+      REQUIRE(p1_test[0]->getEdgeNormal(edg_elm_zero[i]).isApprox(normals[i]));
+    }
   }
 
-  // Mock sources and receivers.
-  PetscOptionsSetValue(NULL, "--number-of-sources", "2");
-  PetscOptionsSetValue(NULL, "--source-type", "ricker");
-  PetscOptionsSetValue(NULL, "--source-location-x", "50000,50000");
-  PetscOptionsSetValue(NULL, "--source-location-y", "80000,90000");
-  PetscOptionsSetValue(NULL, "--source-num-components", "2,2");
-  PetscOptionsSetValue(NULL, "--ricker-amplitude", "10,20");
-  PetscOptionsSetValue(NULL, "--ricker-time-delay", "0.1,0.01");
-  PetscOptionsSetValue(NULL, "--ricker-center-freq", "50,60");
-  PetscOptionsSetValue(NULL, "--receiver-file-name", "mock.h5");
-  PetscOptionsSetValue(NULL, "--number-of-receivers", "2");
-  PetscOptionsSetValue(NULL, "--receiver-names", "rec1,rec2");
-  PetscOptionsSetValue(NULL, "--receiver-location-x", "50000,50000");
-  PetscOptionsSetValue(NULL, "--receiver-location-y", "80000,90000");
+  SECTION("Exceptions") {
 
-  options->setOptions();
+    /* Require that proper errors are thrown. */
+    std::unique_ptr<Options> options(new Options);
+    PetscOptionsSetValue(NULL, "--polynomial-order", "11");
+    options->setOptions();
+    REQUIRE_THROWS_AS(new TensorQuad<QuadP1>(options), std::runtime_error);
+    REQUIRE_THROWS_AS(TensorQuad<QuadP1>::GllPointsForOrder(TensorQuad<QuadP1>::MaxOrder() + 1),
+                      std::runtime_error);
+    REQUIRE_THROWS_AS(TensorQuad<QuadP1>::GllIntegrationWeightsForOrder(
+        TensorQuad<QuadP1>::MaxOrder() + 1), std::runtime_error);
+    REQUIRE_THROWS_AS(TensorQuad<QuadP1>::setupGradientOperator(TensorQuad<QuadP1>::MaxOrder() + 1),
+                      std::runtime_error);
+    REQUIRE_THROWS_AS(TensorQuad<QuadP1>::interpolateLagrangePolynomials(
+        0, 0, TensorQuad<QuadP1>::MaxOrder() + 1),
+                      std::runtime_error);
 
-  // Vertex coordiantes.
-  std::vector<QuadVtx> true_vtx(4);
-  true_vtx[0] << 0,   0,   5e4, 0,   5e4, 8e4, 0,   8e4;
-  true_vtx[1] << 5e4, 0,   1e5, 0,   1e5, 8e4, 5e4, 8e4;
-  true_vtx[2] << 0,   8e4, 5e4, 8e4, 5e4, 1e5, 0,   1e5;
-  true_vtx[3] << 5e4, 8e4, 1e5, 8e4, 1e5, 1e5, 5e4, 1e5;
-
-  // True source locations.
-  vector<PetscInt> locations {1, 0, 1, 0};
-
-  elements = problem->initializeElements(mesh, model, options);
-  std::vector<TensorQuad<QuadP1>*> p1_test;
-  for (auto &e: elements) { p1_test.push_back(dynamic_cast<TensorQuad<QuadP1>*> (e.get())); }
-  for (PetscInt i = 0; i < true_vtx.size(); i++) {
-    REQUIRE(p1_test[i]->VtxCrd().isApprox(true_vtx[i]));
-    REQUIRE(p1_test[i]->Sources().size() == locations[i]);
-    REQUIRE(p1_test[i]->Receivers().size() == locations[i]);
   }
-
-  // test for outward edge normals.
-  vector<RealVec2> normals(4); vector<PetscInt> edg_elm_zero {13, 14, 15, 16};
-  normals[0] << 0, -1; normals[1] << 1, 0; normals[2] << 0, 1; normals[3] << -1, 0;
-  for (PetscInt i = 0; i < edg_elm_zero.size(); i++) {
-    REQUIRE(p1_test[0]->getEdgeNormal(edg_elm_zero[i]).isApprox(normals[i]));
-  }
-
-  /* Require that proper errors are thrown. */
-  PetscOptionsSetValue(NULL, "--polynomial-order", "11");
-  options->setOptions();
-  REQUIRE_THROWS_AS(new TensorQuad<QuadP1>(options), std::runtime_error);
-  REQUIRE_THROWS_AS(TensorQuad<QuadP1>::GllPointsForOrder(
-      TensorQuad<QuadP1>::MaxOrder()+1), std::runtime_error);
-  REQUIRE_THROWS_AS(TensorQuad<QuadP1>::GllIntegrationWeightsForOrder(
-      TensorQuad<QuadP1>::MaxOrder()+1), std::runtime_error);
-  REQUIRE_THROWS_AS(TensorQuad<QuadP1>::setupGradientOperator(
-      TensorQuad<QuadP1>::MaxOrder()+1), std::runtime_error);
-  REQUIRE_THROWS_AS(TensorQuad<QuadP1>::interpolateLagrangePolynomials(
-      0, 0, TensorQuad<QuadP1>::MaxOrder()+1), std::runtime_error);
 
 }

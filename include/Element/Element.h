@@ -73,8 +73,16 @@ class Element {
    * @param [in] distributed_mesh The parallel DM provided by PETSc.
    */
   virtual void attachVertexCoordinates(std::unique_ptr<Mesh> const &mesh) = 0;
+
+  /** Precompute any terms needed on the element level, e.g.,
+      jacobians, velocities at nodes, stiffness matrices for triangles
+      and tetrahedra.
+   */
+  virtual void precomputeElementTerms() = 0;
   ///@}
 
+  
+  
   /** @name Time loop (pure functions).
    * These functions are called from within the time loop. At this point, the element is a fully constructed
    * function.

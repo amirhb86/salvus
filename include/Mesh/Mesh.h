@@ -23,7 +23,7 @@ using std::unique_ptr;
 
 class Mesh {
 
-  std::vector<std::tuple<PetscInt,PetscInt>> mBndPts;
+  std::set<std::tuple<PetscInt,PetscInt>> mBndPts;
 
   /** Keeps track of all the fields defined in the mesh. **/
   std::set<std::string> mMeshFields;
@@ -201,7 +201,7 @@ class Mesh {
 
   std::map<PetscInt, std::string> &BoundaryIds() { return mBoundaryIds; }
 
-  inline std::vector<std::tuple<PetscInt,PetscInt>> BoundaryPoints() { return mBndPts; }
+  inline std::set<std::tuple<PetscInt,PetscInt>> BoundaryPoints() { return mBndPts; }
 
   inline int NumberSideSets() { return mNumberSideSets; }
   inline int NumberDimensions() { return mNumDim; }

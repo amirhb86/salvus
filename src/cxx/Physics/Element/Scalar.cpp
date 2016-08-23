@@ -2,6 +2,7 @@
 #include <Source/Source.h>
 #include <Physics/Scalar.h>
 #include <Utilities/Options.h>
+#include <Utilities/Logging.h>
 #include <Model/ExodusModel.h>
 
 using namespace Eigen;
@@ -55,7 +56,7 @@ RealMat Scalar<Element>::computeStress(const Ref<const RealMat> &strain) {
 
 template <typename Element>
 RealMat Scalar<Element>::computeStiffnessTerm(const Ref<const RealMat>& u) {
-
+  
   // Calculate gradient from displacement.
   mStrain = Element::computeGradient(u.col(0));
 

@@ -8,6 +8,7 @@
 
 // salvus
 #include <Utilities/Types.h>
+#include <Utilities/Logging.h>
 
 // forward decl.
 class Mesh;
@@ -211,7 +212,11 @@ class Triangle: public ConcreteShape {
    */
   void setupGradientOperator();
 
-
+  /** Precompute any terms needed on the element level, e.g.,
+      jacobians, velocities at nodes and the stiffness matrix.
+  */
+  void precomputeElementTerms();
+  
   /**
    * Queries the passed DM for the vertex coordinates of the specific element. These coordinates are saved
    * in mVertexCoordinates.
@@ -240,16 +245,21 @@ class Triangle: public ConcreteShape {
    */
   bool attachReceiver(std::unique_ptr<Receiver> &receiver, const bool finalize);
 
+  std::vector<PetscInt> getDofsOnFace(const PetscInt face);
+
   /**
-   * Sets an edge to a particular scalar value (useful for Dirichlet boundaries)
+   * Gets the indices on an edge.
    * @param [in] edg Edge id 0-2
-   * @param [in] val Value to set
-   * @param [out] f Field to set to `val`
+   * @param [out] vector of nodal indices for an edge.
    */
-  void setEdgeToValue(const PetscInt edg,
-                      const PetscScalar val,
-                      Eigen::Ref<RealVec> f);
-  
+  std::vector<PetscInt> getDofsOnEdge(const PetscInt edge);
+
+  /**
+   * Gets the index of a vertex
+   * @param [in] vtx Vertex id 0-2
+   * @param [out] index of the vertex
+   */
+  PetscInt getDofsOnVtx(const PetscInt vtx);
   
   /**
    * If an element is detected to be on a boundary, apply the Dirichlet condition to the
@@ -278,8 +288,7 @@ class Triangle: public ConcreteShape {
   /** Return the estimated element radius
    * @return The CFL estimate
    */
-  double estimatedElementRadius();
-  
+  double estimatedElementRadius();  
   
   // Setters
   inline void SetNumNew(const PetscInt num) { mElmNum = num; }
@@ -310,6 +319,7 @@ class Triangle: public ConcreteShape {
   inline Eigen::MatrixXi ClsMap() const { return mClsMap; }
   inline int PlyOrd()             const { return mPlyOrd; }
   inline Eigen::MatrixXd VtxCrd() const { return mVtxCrd; }
+  inline Eigen::MatrixXd StiffnessMatrix() const { return mElementStiffnessMatrix; }
   std::vector<std::shared_ptr<Source>> Sources() { return mSrc; }
 
   
