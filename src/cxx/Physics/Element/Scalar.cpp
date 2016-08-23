@@ -78,11 +78,24 @@ RealMat Scalar<Element>::computeSurfaceIntegral(const Ref<const RealMat> &u) {
 template <typename Element>
 MatrixXd Scalar<Element>::computeSourceTerm(const double time, const PetscInt time_idx) {
   mSource.setZero();
-  for (auto &source : Element::Sources()) {
-    RealVec pnt;
-    if (Element::NumDim() == 2) { pnt.resize(2); pnt << source->LocR(), source->LocS(); }
-    if (Element::NumDim() == 3) { pnt.resize(3); pnt << source->LocR(), source->LocS(), source->LocT(); }
-    mSource += (Element::getDeltaFunctionCoefficients(pnt) * source->fire(time, time_idx));
+  for (auto &source: Element::Sources()) {
+    switch (Element::NumDim()) {
+      case 2:
+      {
+        RealVec2 pnt(source->LocR(), source->LocS());
+        mSource += (Element::getDeltaFunctionCoefficients(pnt) * source->fire(time, time_idx));
+        break;
+      }
+      case 3:
+      {
+        RealVec3 pnt(source->LocR(), source->LocS(), source->LocT());
+        mSource += (Element::getDeltaFunctionCoefficients(pnt) * source->fire(time, time_idx));
+        break;
+      }
+      default:
+        throw std::runtime_error("Dimension " + std::to_string(Element::NumDim()) + " not"
+            "recogized for element " + std::to_string(Element::ElmNum()));
+    }
   }
   return Element::applyTestAndIntegrate(mSource);
 }
