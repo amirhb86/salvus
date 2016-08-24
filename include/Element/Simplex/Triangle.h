@@ -306,7 +306,12 @@ class Triangle: public ConcreteShape {
    */
   void setBoundaryConditions(std::unique_ptr<Mesh> const &mesh);
 
-  
+  /**
+   * In the general case, we don't need to save anything.
+   * @param field
+   */
+  void recordDynamicFields(const Eigen::Ref<const RealMat>& field) {};
+
   // Getters.
   inline PetscInt ElmNum()        const { return mElmNum; }
   inline bool BndElm()            const { return mBndElm; }

@@ -1,6 +1,7 @@
 #include <mpi.h>
 #include <petsc.h>
 #include <Utilities/Utilities.h>
+#include <Utilities/Types.h>
 
 /* Template specifications for different MPI datatypes. */
 namespace utilities {
@@ -12,6 +13,9 @@ namespace utilities {
 
   template<>
   MPI_Datatype mpitype<PetscInt>() { return MPIU_INT; }
+
+  std::set<std::tuple<std::string, std::vector<PetscInt>>> global_parallel_tags;
+
 }
 
 template <typename T>
@@ -94,9 +98,43 @@ std::string utilities::broadcastStringFromRank(std::string &buf, int rank) {
   return ret_string;
 
 }
+
 bool ::utilities::stringHasExtension(const std::string &str, const std::string &ext) {
   return str.size() >= ext.size() &&
       str.compare(str.size() - ext.size(), ext.size(), ext) == 0;
+}
+
+std::vector<PetscInt> utilities::getRanksForMixin(ElemVec &elements,
+                                                  const std::string &tag) {
+
+  PetscInt size; MPI_Comm_size(PETSC_COMM_WORLD, &size);
+  PetscInt rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+  std::vector<PetscInt> ranks(size, 0);
+  for (auto &elm: elements) {
+    std::string name = elm->Name();
+    if (name.find(tag) != std::string::npos) { ranks[rank] = 1; }
+  }
+  MPI_Allreduce(MPI_IN_PLACE, ranks.data(), ranks.size(), MPIU_INT, MPI_MAX,
+                PETSC_COMM_WORLD);
+  PetscInt num = std::count_if(ranks.begin(), ranks.end(), [](PetscInt i) { return i == 1; });
+  PetscInt j = 0, k = 0; std::vector<PetscInt> found_ranks(num);
+  std::for_each(ranks.begin(), ranks.end(),
+                [&found_ranks, &j, &k]
+                    (PetscInt i) { if (i) found_ranks[k++] = j; j++; });
+  return found_ranks;
+
+}
+
+void utilities::appendToGlobalRankTags(const std::vector<PetscInt> ranks, const std::string &tag) {
+  utilities::global_parallel_tags.insert(
+      std::tuple<std::string, std::vector<PetscInt>>(tag, ranks));
+}
+
+std::vector<PetscInt> utilities::GetWorldRanksForTag(const std::string &tag) {
+  for (auto &tags: global_parallel_tags) {
+    if (std::get<0>(tags) == tag) { return std::get<1>(tags); }
+  }
+  throw std::runtime_error("Tag " + tag + " not found in global database.");
 }
 
 template PetscInt utilities::broadcastNumberFromRank(PetscInt send_buffer, int rank);

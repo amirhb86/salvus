@@ -2,6 +2,7 @@
 
 #include <Element/Element.h>
 #include <Utilities/Options.h>
+#include <Utilities/Types.h>
 
 template <typename T>
 class ElementAdapter: public Element, public T {
@@ -144,6 +145,15 @@ class ElementAdapter: public Element, public T {
   virtual void recordField(const Eigen::Ref<const Eigen::MatrixXd>& field) {
     T::recordField(field);
   }
+  /**
+   * Saves dynamical quantities required for further processing. This can include wavefields for
+   * the gradient calcuation, surface fields for noise tomography, among other things.
+   * @param field The field to record.
+   */
+  virtual void recordDynamicFields( const Eigen::Ref<const RealMat>& field) {
+    T::recordDynamicFields(field);
+  }
+  ///@}
 
   /** @name Setters/Getters.
    * The time loop occasionally needs access to some instance variables stored in the derived classes. These functions

@@ -5,6 +5,7 @@
 #include <Mesh/Mesh.h>
 #include <stdexcept>
 #include <petscviewerhdf5.h>
+#include <Physics/SaveSurfaceGreenFunction.h>
 
 using namespace Eigen;
 
@@ -94,11 +95,24 @@ ElemVec Problem::initializeElements(unique_ptr<Mesh> const &mesh,
 
   }
 
-  /* Check sources and receivers across all parallel partitions. */
-  MPI_Allreduce(MPI_IN_PLACE, srcs_this_partition.data(), srcs_this_partition.size(),
-                MPIU_INT, MPI_MAX, PETSC_COMM_WORLD);
-  MPI_Allreduce(MPI_IN_PLACE, recs_this_partition.data(), recs_this_partition.size(),
-                MPIU_INT, MPI_MAX, PETSC_COMM_WORLD);
+  /*--------------------------------------------------------------------------------
+   *                       COLLECTIVE MPI COMMUNICATIONS.
+   *------------------------------------------------------------------------------*/
+  {
+    /* Make sure everyone is here. */
+    MPI_Barrier(PETSC_COMM_WORLD);
+    PetscInt size; MPI_Comm_size(PETSC_COMM_WORLD, &size);
+    PetscInt rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+
+    /* Check sources and receivers across all parallel partitions. */
+    MPI_Allreduce(MPI_IN_PLACE, srcs_this_partition.data(), srcs_this_partition.size(),
+                  MPIU_INT, MPI_MAX, PETSC_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, recs_this_partition.data(), recs_this_partition.size(),
+                  MPIU_INT, MPI_MAX, PETSC_COMM_WORLD);
+  }
+  /*--------------------------------------------------------------------------------
+   *                       END COLLECTIVE MPI COMMUNICATIONS.
+   *------------------------------------------------------------------------------*/
 
   /* Finish up adding parallel-aware sources and receivers. */
   for (auto &elm: elements) {

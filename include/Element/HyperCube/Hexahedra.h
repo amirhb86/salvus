@@ -278,6 +278,12 @@ private:
    */
   RealMat interpolateFieldAtPoint(const RealVec &pnt) { return Eigen::MatrixXd(1, 1); }
 
+  /**
+   * In the general case, we don't need to save anything.
+   * @param field
+   */
+  void recordDynamicFields(const Eigen::Ref<const RealMat>& field) {};
+
   // Setters.
   inline void SetNumNew(const PetscInt num) { mElmNum = num; }
   inline void SetVtxCrd(const Eigen::Ref<const HexVtx> &v) { mVtxCrd = v; }

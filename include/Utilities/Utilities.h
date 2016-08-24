@@ -12,8 +12,15 @@
 #include <mpi.h>
 #include <Eigen/Dense>
 #include <set>
+#include <Element/Element.h>
+#include "Types.h"
 
 namespace utilities {
+
+  /**
+   * Database of (tag, {ranks}) pairs. Used to identify which ranks a certain mixin resides on.
+   */
+  extern std::set<std::tuple<std::string, std::vector<PetscInt>>> global_parallel_tags;
 
   /**
    * Small function to return whenter or not a string has a certain suffix.
@@ -64,6 +71,31 @@ namespace utilities {
    * @returns Vector of strings broadcasted to all processors.
    */
   std::vector<std::string> broadcastStringVecFromRank(std::vector<std::string> &send_buffer, int rank);
+
+  /**
+   * Given some tag (i.e. "SaveSurface"), returns the MPI ranks which contain elements containing
+   * the tag in their name (SaveSurface_TensorQuad_QuadP1).
+   * @param elements List of all elements.
+   * @param tag Identifying tag.
+   * @return Integer vector of ranks.
+   */
+  std::vector<PetscInt> getRanksForMixin(ElemVec &elements, const std::string &tag);
+
+  /**
+   * Insert an integer vector of MPI ranks into a global database which can be queried with
+   * GetGlobalRankTags();
+   * @param ranks Vector of ranks on which elements with `tag` reside.
+   * @param tag Identifying tag.
+   */
+  void appendToGlobalRankTags(const std::vector<PetscInt> ranks, const std::string &tag);
+
+  /**
+   * Query the global database for the MPI ranks corresponding to a particular tag.
+   * @param tag Identifyihng tag.
+   * @return Integer vector of ranks corresponding to tag.
+   */
+  std::vector<PetscInt> GetWorldRanksForTag(const std::string &tag);
+
 
 }
 

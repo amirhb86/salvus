@@ -9,6 +9,12 @@
 #include <Element/HyperCube/QuadP1.h>
 #include <Element/HyperCube/Autogen/quad_autogen.h>
 
+/* Physics. */
+#include <Physics/Scalar.h>
+#include <Physics/Elastic2D.h>
+#include <Physics/Elastic3D.h>
+#include <Physics/SaveSurfaceGreenFunction.h>
+
 /* Utilities. */
 #include <Utilities/kdtree.h>
 #include <Utilities/Logging.h>

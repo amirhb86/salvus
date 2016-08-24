@@ -99,7 +99,8 @@ add_executable(salvus_test
         src/cxx/Testing/test_Model.cpp
         src/cxx/Testing/test_Options.cpp
         src/cxx/Testing/test_Quad_Elastic_2D.cpp
-        src/cxx/Testing/test_Save_Surface_Green_Function.cpp)
+        src/cxx/Testing/test_Save_Surface_Green_Function.cpp
+        src/cxx/Testing/test_Utilities.cpp)
 
 # run `make` (or `make -j5`) to build `salvus` executable
 target_link_libraries(salvus salvusCommon ${MPI_LIBRARIES} petsc exodus netcdf hdf5 hdf5_hl)

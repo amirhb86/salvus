@@ -342,7 +342,13 @@ class Tetrahedra: public ConcreteShape {
    * @return The CFL estimate
    */
   double estimatedElementRadius();
-  
+
+  /**
+   * In the general case, we don't need to save anything.
+   * @param field
+   */
+  void recordDynamicFields(const Eigen::Ref<const RealMat>& field) {};
+
   /**
    * Simple function to set the (remembered) element number.
    */

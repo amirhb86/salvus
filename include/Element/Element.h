@@ -123,6 +123,13 @@ class Element {
    * @param [in] field The field to record.
    */
   virtual void recordField(const Eigen::Ref<const Eigen::MatrixXd>& field) = 0;
+  /**
+   * Saves dynamical quantities required for further processing. This can include wavefields for
+   * the gradient calcuation, surface fields for noise tomography, among other things.
+   * @param field The field to record.
+   */
+  virtual void recordDynamicFields(
+      const Eigen::Ref<const Eigen::Matrix<PetscReal, Eigen::Dynamic, Eigen::Dynamic>>& field) = 0;
   ///@}
 
   /** @name Setters/Getters.
