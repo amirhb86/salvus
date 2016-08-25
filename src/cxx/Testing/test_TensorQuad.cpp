@@ -17,6 +17,7 @@
 
 #include <Utilities/Types.h>
 #include <Utilities/Options.h>
+#include <Utilities/Logging.h>
 
 extern "C" {
 #include <Element/HyperCube/Autogen/quad_autogen.h>
@@ -68,7 +69,6 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
 
 
   SECTION("Mathematical operations") {
-
     PetscOptionsClear(NULL);
     const char *arg[] = {"salvus_test",
                          "--testing", "true",
@@ -89,8 +89,11 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
     options->setOptions();
 
     /* Loop over all polynomial orders. */
+#ifdef NDEBUG
     for (PetscInt i = 1; i < TensorQuad<QuadP1>::MaxOrder() + 1; i++) {
-
+#else
+    for (PetscInt i = 3; i < 3 + 1; i++) {
+#endif
       /* General derived parameters. */
       PetscInt num_dof_dim = i + 1;
       RealVec weights = TensorQuad<QuadP1>::GllIntegrationWeightsForOrder(i);
@@ -203,7 +206,6 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
   }
 
   SECTION("Test closure for order 4") {
-
     PetscOptionsSetValue(NULL, "--polynomial-order", "4");
     std::unique_ptr<Options> options(new Options);
     options->setOptions();
@@ -235,7 +237,6 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
   }
 
   SECTION("Integration with simple mesh") {
-
     std::string e_file = "fluid_layer_over_elastic_cartesian_2D_50s.e";
     // Mock sources and receivers.
     PetscOptionsSetValue(NULL, "--testing", "true");
@@ -301,7 +302,6 @@ TEST_CASE("Test tensor quad", "[tensor_quad]") {
   }
 
   SECTION("Exceptions") {
-
     /* Require that proper errors are thrown. */
     std::unique_ptr<Options> options(new Options);
     PetscOptionsSetValue(NULL, "--polynomial-order", "11");

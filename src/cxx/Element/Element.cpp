@@ -266,6 +266,30 @@ std::unique_ptr<Element> Element::Factory(const std::string &shape,
           break;
       }
 
+    case eTet:
+      switch (ptype(physics_base, physics_couple)) {
+
+        case eFluid:
+          return std::unique_ptr<Element> (new ElementAdapter<
+                                           Scalar<
+                                           Tetrahedra<
+                                           TetP1>>>(options));
+          break;
+        case eFluidBoundaryHomoDirichlet:
+          return std::unique_ptr<Element> (new ElementAdapter<
+                                           HomogeneousDirichlet<
+                                           Scalar<
+                                           Tetrahedra<
+                                           TetP1>>>>(options));
+          break;
+        default:
+          throw std::runtime_error("Element could not be built.\n"
+                                   "Type:             tri\n"
+                                   "Base physics:     " + base +"\n"
+                                   "Coupling physics: " + couple);
+          break;
+      }
+      
     default:
       throw std::runtime_error("Element could not be built.\n"
                                "Type:             \n" + shape + "\n"

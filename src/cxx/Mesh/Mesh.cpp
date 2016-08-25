@@ -87,7 +87,7 @@ void Mesh::read() {
 
 #undef __FUNCT__
 #define __FUNCT__ "FixOrientation"
-PetscErrorCode FixOrientation(DM dm, PetscSection s, int* user_Nc, int user_Nf, int user_k, int user_dim)
+PetscErrorCode FixOrientation(DM dm, PetscSection s, int* user_Nc, int user_Nf, int user_k, int user_dim, std::string elm_type)
 {
   PetscInt       f, o, i, j, k, c, d;
   DMLabel        depthLabel;
@@ -101,7 +101,7 @@ PetscErrorCode FixOrientation(DM dm, PetscSection s, int* user_Nc, int user_Nf, 
     if (user_k < 3) continue; /* No symmetries needed for order < 3, because no cell, facet, edge or vertex has more than one node */
     ierr = PetscSectionSymCreateLabel(PetscObjectComm((PetscObject)s),depthLabel,&sym);CHKERRQ(ierr);
 
-    for (d = 0; d <= user_dim; d++) {
+    for (d = 0; d < user_dim; d++) {
       /* Edge. */
       if (d == 1) {
         PetscInt        numDof  = user_k - 1;
@@ -127,91 +127,146 @@ PetscErrorCode FixOrientation(DM dm, PetscSection s, int* user_Nc, int user_Nf, 
         ierr = PetscSectionSymLabelSetStratum(sym,d,numDof*numComp,minOrnt,maxOrnt,PETSC_OWN_POINTER,(const PetscInt **) perms,NULL);CHKERRQ(ierr);
         /* Surface */
       } else if (d == 2) {
+
         PetscInt        perEdge = user_k - 1;
-        PetscInt        numDof  = perEdge * perEdge;
+        PetscInt        numDof;
         PetscInt        numComp = user_Nc[f];
-        PetscInt        minOrnt = -4;
-        PetscInt        maxOrnt = 4;
+        PetscInt        minOrnt;
+        PetscInt        maxOrnt;
         PetscInt        **perms;
+        if(elm_type == "tet") {
+          if(user_k != 3) { ERROR() << "Polynomial order not supported for tet order != 3 (FixOrientation)"; }
+          numDof = 6;
+          minOrnt = -3;
+          maxOrnt = 3;
+          ierr = PetscCalloc1(maxOrnt-minOrnt,&perms);CHKERRQ(ierr);
+          for (o = minOrnt; o < maxOrnt; o++) {
+            PetscInt *perm;
 
-        ierr = PetscCalloc1(maxOrnt-minOrnt,&perms);CHKERRQ(ierr);
-        for (o = minOrnt; o < maxOrnt; o++) {
-          PetscInt *perm;
-
-          if (!o) continue; /* identity */
-          ierr = PetscMalloc1(numDof * numComp, &perm);CHKERRQ(ierr);
-          /* We want to perm[k] to list which *localArray* position the *sectionArray* position k should go to for the given orientation*/
-          switch (o) {
-          case 0:
-            break; /* identity */
-          case -4: /* flip along (-1,-1)--( 1, 1), which swaps edges 0 and 3 and edges 1 and 2.  This swaps the i and j variables */
-            for (i = 0, k = 0; i < perEdge; i++) {
-              for (j = 0; j < perEdge; j++, k++) {
-                for (c = 0; c < numComp; c++) {
-                  perm[k * numComp + c] = (perEdge * j + i) * numComp + c; // old
-                }
-              }
+            if (!o) continue; /* identity */
+            ierr = PetscMalloc1(numDof * numComp, &perm);CHKERRQ(ierr);
+            /* We want to perm[k] to list which *localArray* position the *sectionArray* position k should go to for the given orientation*/
+            switch (o) {
+            case 0:
+              break; /* identity */
+            case -3:
+              perm[0] = 0;
+              perm[1] = 2;
+              perm[2] = 1;
+              perm[3] = 3;
+              perm[4] = 5;
+              perm[5] = 4;
+              break;              
+            case -2:
+              perm[0] = 2;
+              perm[1] = 1;
+              perm[2] = 0;
+              perm[3] = 5;
+              perm[4] = 4;
+              perm[5] = 3;
+              break;
+            case -1:
+              perm[0] = 1;
+              perm[1] = 0;
+              perm[2] = 2;
+              perm[3] = 4;
+              perm[4] = 3;
+              perm[5] = 5;
+              break;
+            case 1:
+              break;
+            case 2:
+              break;
+            default:
+              ERROR() << "Orientation " << o << " not supported";
+              break;
             }
-            break;
-          case -3: /* flip along (-1, 0)--( 1, 0), which swaps edges 0 and 2.  This reverses the i variable */
-            for (i = 0, k = 0; i < perEdge; i++) {
-              for (j = 0; j < perEdge; j++, k++) {
-                for (c = 0; c < numComp; c++) {
-                  perm[k * numComp + c] = (perEdge * (perEdge - 1 - i) + j) * numComp + c;
-                }
-              }
-            }
-            break;
-          case -2: /* flip along ( 1,-1)--(-1, 1), which swaps edges 0 and 1 and edges 2 and 3.  This swaps the i and j variables and reverse both */
-            for (i = 0, k = 0; i < perEdge; i++) {
-              for (j = 0; j < perEdge; j++, k++) {
-                for (c = 0; c < numComp; c++) {
-                  perm[k * numComp + c] = (perEdge * (perEdge - 1 - j) + (perEdge - 1 - i)) * numComp + c;
-                }
-              }
-            }
-            break;
-          case -1: /* flip along ( 0,-1)--( 0, 1), which swaps edges 3 and 1.  This reverses the j variable */
-            for (i = 0, k = 0; i < perEdge; i++) {
-              for (j = 0; j < perEdge; j++, k++) {
-                for (c = 0; c < numComp; c++) {
-                  perm[k * numComp + c] = (perEdge * i + (perEdge - 1 - j)) * numComp + c;
-                }
-              }
-            }
-            break;
-          case  1: /* rotate section edge 1 to local edge 0.  This swaps the i and j variables and then reverses the j variable */
-            for (i = 0, k = 0; i < perEdge; i++) {
-              for (j = 0; j < perEdge; j++, k++) {
-                for (c = 0; c < numComp; c++) {
-                  perm[k * numComp + c] = (perEdge * (perEdge - 1 - j) + i) * numComp + c;
-                }
-              }
-            }
-            break;
-          case  2: /* rotate section edge 2 to local edge 0.  This reverse both i and j variables */
-            for (i = 0, k = 0; i < perEdge; i++) {
-              for (j = 0; j < perEdge; j++, k++) {
-                for (c = 0; c < numComp; c++) {
-                  perm[k * numComp + c] = (perEdge * (perEdge - 1 - i) + (perEdge - 1 - j)) * numComp + c;
-                }
-              }
-            }
-            break;
-          case  3: /* rotate section edge 3 to local edge 0.  This swaps the i and j variables and then reverses the i variable */
-            for (i = 0, k = 0; i < perEdge; i++) {
-              for (j = 0; j < perEdge; j++, k++) {
-                for (c = 0; c < numComp; c++) {
-                  perm[k * numComp + c] = (perEdge * j + (perEdge - 1 - i)) * numComp + c;
-                }
-              }
-            }
-            break;
-          default:
-            break;
+            perms[o - minOrnt] = perm;
           }
-          perms[o - minOrnt] = perm;
-        }
+        }        
+        else if(elm_type == "hex") {
+          minOrnt = -4;
+          maxOrnt = 4;
+          numDof = perEdge * perEdge;
+          ierr = PetscCalloc1(maxOrnt-minOrnt,&perms);CHKERRQ(ierr);
+          for (o = minOrnt; o < maxOrnt; o++) {
+            PetscInt *perm;
+
+            if (!o) continue; /* identity */
+            ierr = PetscMalloc1(numDof * numComp, &perm);CHKERRQ(ierr);
+            /* We want to perm[k] to list which *localArray* position the *sectionArray* position k should go to for the given orientation*/
+            switch (o) {
+            case 0:
+              break; /* identity */
+            case -4: /* flip along (-1,-1)--( 1, 1), which swaps edges 0 and 3 and edges 1 and 2.  This swaps the i and j variables */
+              for (i = 0, k = 0; i < perEdge; i++) {
+                for (j = 0; j < perEdge; j++, k++) {
+                  for (c = 0; c < numComp; c++) {
+                    perm[k * numComp + c] = (perEdge * j + i) * numComp + c; // old
+                  }
+                }
+              }
+              break;
+            case -3: /* flip along (-1, 0)--( 1, 0), which swaps edges 0 and 2.  This reverses the i variable */
+              for (i = 0, k = 0; i < perEdge; i++) {
+                for (j = 0; j < perEdge; j++, k++) {
+                  for (c = 0; c < numComp; c++) {
+                    perm[k * numComp + c] = (perEdge * (perEdge - 1 - i) + j) * numComp + c;
+                  }
+                }
+              }
+              break;
+            case -2: /* flip along ( 1,-1)--(-1, 1), which swaps edges 0 and 1 and edges 2 and 3.  This swaps the i and j variables and reverse both */
+              for (i = 0, k = 0; i < perEdge; i++) {
+                for (j = 0; j < perEdge; j++, k++) {
+                  for (c = 0; c < numComp; c++) {
+                    perm[k * numComp + c] = (perEdge * (perEdge - 1 - j) + (perEdge - 1 - i)) * numComp + c;
+                  }
+                }
+              }
+              break;
+            case -1: /* flip along ( 0,-1)--( 0, 1), which swaps edges 3 and 1.  This reverses the j variable */
+              for (i = 0, k = 0; i < perEdge; i++) {
+                for (j = 0; j < perEdge; j++, k++) {
+                  for (c = 0; c < numComp; c++) {
+                    perm[k * numComp + c] = (perEdge * i + (perEdge - 1 - j)) * numComp + c;
+                  }
+                }
+              }
+              break;
+            case  1: /* rotate section edge 1 to local edge 0.  This swaps the i and j variables and then reverses the j variable */
+              for (i = 0, k = 0; i < perEdge; i++) {
+                for (j = 0; j < perEdge; j++, k++) {
+                  for (c = 0; c < numComp; c++) {
+                    perm[k * numComp + c] = (perEdge * (perEdge - 1 - j) + i) * numComp + c;
+                  }
+                }
+              }
+              break;
+            case  2: /* rotate section edge 2 to local edge 0.  This reverse both i and j variables */
+              for (i = 0, k = 0; i < perEdge; i++) {
+                for (j = 0; j < perEdge; j++, k++) {
+                  for (c = 0; c < numComp; c++) {
+                    perm[k * numComp + c] = (perEdge * (perEdge - 1 - i) + (perEdge - 1 - j)) * numComp + c;
+                  }
+                }
+              }
+              break;
+            case  3: /* rotate section edge 3 to local edge 0.  This swaps the i and j variables and then reverses the i variable */
+              for (i = 0, k = 0; i < perEdge; i++) {
+                for (j = 0; j < perEdge; j++, k++) {
+                  for (c = 0; c < numComp; c++) {
+                    perm[k * numComp + c] = (perEdge * j + (perEdge - 1 - i)) * numComp + c;
+                  }
+                }
+              }
+              break;
+            default:
+              break;
+            }
+            perms[o - minOrnt] = perm;
+          }
+        }        
         ierr = PetscSectionSymLabelSetStratum(sym,d,numDof*numComp,minOrnt,maxOrnt,PETSC_OWN_POINTER,(const PetscInt **) perms,NULL);CHKERRQ(ierr);
       }
     }
@@ -381,19 +436,17 @@ void Mesh::setupGlobalDof(unique_ptr<Element> const &element,
   /* Attach the section to our DM */
   DMSetDefaultSection(mDistributedMesh, mMeshSection);
 
-  /* Only create a spectral basis if it makes sense. */
+  /* Fix orientation of edges and surfaces when rotated compared to neighboring element */
+  FixOrientation(mDistributedMesh, mMeshSection, num_comps, num_fields, poly_order, mNumDim,this->baseElementType());
+  /* Only create a spectral basis for quads and hexes with a tensor basis */
   if ((this->baseElementType() == "quad") ||
-      (this->baseElementType() == "hex")  ||
-      (this->baseElementType() == "tri")) {
-    // Fixes edges and surfaces with rotated orientation given by neighboring element
-    FixOrientation(mDistributedMesh, mMeshSection, num_comps, num_fields, poly_order, mNumDim);
-    if ((this->baseElementType() == "quad") ||
-        (this->baseElementType() == "hex")) {        
-      // Sets up tensorized ordering for quads and hexes    
-      DMPlexCreateSpectralClosurePermutation(mDistributedMesh, NULL);
-    }
+      (this->baseElementType() == "hex")) {        
+    // Sets up tensorized ordering for quads and hexes    
+    DMPlexCreateSpectralClosurePermutation(mDistributedMesh, NULL);
   }
 
+  DMPlexCreateClosureIndex(mDistributedMesh,mMeshSection);
+  
   PetscFree(num_dof); 
   PetscFree(num_comps);
 }

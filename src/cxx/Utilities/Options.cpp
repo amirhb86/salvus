@@ -32,6 +32,15 @@ void Options::setOptions() {
     static_problem = PETSC_FALSE;
   }
 
+  PetscBool verbose;
+  PetscOptionsGetBool(NULL, NULL, "--verbose", &verbose, &parameter_set);
+  if (parameter_set) {
+    verbose = PETSC_TRUE;
+    GLOBAL_LOGGER_STATE.level = LogLevel::VERBOSE;
+  } else {
+    verbose = PETSC_FALSE;
+  }
+  
   /********************************************************************************
                           Spacial discretization and model.
   ********************************************************************************/
@@ -102,12 +111,10 @@ void Options::setOptions() {
                                        Movies.
   ********************************************************************************/
   PetscOptionsGetBool(NULL, NULL, "--save-movie", &mSaveMovie, &parameter_set);
-  if (parameter_set) {
-    mSaveMovie = PETSC_TRUE;
-  } else {
+  if (!parameter_set) {
     mSaveMovie = PETSC_FALSE;
   }
-
+  
   if (mSaveMovie) {
     PetscOptionsGetString(NULL, NULL, "--movie-file-name", char_buffer, PETSC_MAX_PATH_LEN, &parameter_set);
     if (parameter_set) {
@@ -126,7 +133,7 @@ void Options::setOptions() {
                                      " Set --movie-field. Exiting.");
     }
     PetscOptionsGetInt(NULL, NULL, "--save-frame-every", &mSaveFrameEvery, &parameter_set);
-    if (!parameter_set) { mSaveFrameEvery = 1; }
+    if (!parameter_set) { mSaveFrameEvery = 10; }
   }
 
   /********************************************************************************

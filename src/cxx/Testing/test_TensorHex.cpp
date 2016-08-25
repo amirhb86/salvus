@@ -84,7 +84,11 @@ TEST_CASE("Test tensor hex", "[tensor_hex]") {
         << -1, -1, -1, -1, +1, -1, +1, +1, -1, +1, -1, -1, -1, -1, +1, +1, -1, +1, +1, +1, +1, -1, +1, +1;
 
     /* Looping over polynomial orders < 7. Stop at 6 otherwise it takes too long! */
+#ifdef NDEBUG    
     for (PetscInt i = 1; i < 7; i++) {
+#else
+      for (PetscInt i = 3; i < 3 + 1; i++) {
+#endif      
       /* General derived parameters. */
       PetscInt num_dof_dim = i + 1;
       RealVec weights = Hexahedra<HexP1>::GllIntegrationWeights(i);
@@ -322,6 +326,7 @@ TEST_CASE("Test tensor hex", "[tensor_hex]") {
     PetscOptionsSetValue(NULL, "--receiver-location-x", "50000,50000");
     PetscOptionsSetValue(NULL, "--receiver-location-y", "50000,90000");
     PetscOptionsSetValue(NULL, "--receiver-location-z", "50000,90000");
+    PetscOptionsSetValue(NULL, "--polynomial-order", "5");
 
     /* TODO: Fix this. */
     std::unique_ptr<Options> options(new Options);

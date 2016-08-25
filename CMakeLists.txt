@@ -87,9 +87,10 @@ add_executable(salvus_test
         src/cxx/Testing/test_QuadP1.cpp
         src/cxx/Testing/test_TensorQuad.cpp
         src/cxx/Testing/test_TriP1.cpp
+        src/cxx/Testing/test_Tetrahedra.cpp
         src/cxx/Testing/test_source.cpp
         src/cxx/Testing/test_HexP1.cpp
-        src/cxx/Testing/test_Hex_Scalar_3D.cpp
+        src/cxx/Testing/test_Scalar_3D.cpp
         src/cxx/Testing/test_Scalar_2D.cpp
         src/cxx/Testing/test_TensorHex.cpp
         src/cxx/Testing/test_receiver.cpp

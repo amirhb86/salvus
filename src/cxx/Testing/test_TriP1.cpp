@@ -52,9 +52,9 @@ TEST_CASE("test closure mapping triangle","[tri/closure]") {
   PetscInt numPoints;
   // elemnts are 0,1?
   DMPlexGetTransitiveClosure(mesh->DistributedMesh(),1,PETSC_TRUE,&numPoints,&points);
-  for(int i=0;i<numPoints;i++) {
-    printf("p[%d]=(%d,o:%d)\n",i,points[2*i],points[2*i+1]);
-  }
+  // for(int i=0;i<numPoints;i++) {
+  //   printf("p[%d]=(%d,o:%d)\n",i,points[2*i],points[2*i+1]);
+  // }
   DMPlexRestoreTransitiveClosure(mesh->DistributedMesh(),1,PETSC_TRUE,&numPoints,&points);
      
   /* Setup topology from model and mesh. */

@@ -1,5 +1,6 @@
 #include <Mesh/Mesh.h>
 #include <Physics/HomogeneousDirichlet.h>
+#include <Utilities/Logging.h>
 
 using namespace Eigen;
 
@@ -102,6 +103,11 @@ template class HomogeneousDirichlet<
   Scalar<
   Triangle<
     TriP1>>>;
+
+template class HomogeneousDirichlet<
+  Scalar<
+  Tetrahedra<
+    TetP1>>>;
 
 template class HomogeneousDirichlet<
   ScalarTri<

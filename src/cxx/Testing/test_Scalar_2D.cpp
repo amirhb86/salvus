@@ -153,7 +153,7 @@ PetscReal runEigenFunctionTest(std::vector<std::unique_ptr<Element>> test_elemen
     problem->saveSolution(time, {"u","a"}, fields, mesh->DistributedMesh());
     
     max_error = element_error.maxCoeff() > max_error ? element_error.maxCoeff() : max_error;
-    break;
+    
     if (time > cycle_time) break;
     
   }
@@ -248,7 +248,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
       "--model-file", e_file.c_str(),
       "--time-step", "1e-2",
       "--polynomial-order", "3",
-      "--save-movie", "true",
+      "--save-movie", "false",
       "--movie-file-name","./movie_quad.h5",
       "--homogeneous-dirichlet", "x0,x1,y0,y1",
       NULL};
@@ -320,8 +320,8 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
       "--model-file", e_file.c_str(),
       "--time-step", "1e-2",
       "--polynomial-order", "3",
-      "--save-movie", "true",
-      "--movie-file-name","./movie_tri.h5",
+      "--save-movie", "false",
+      "--movie-file-name","movie_tri.h5",
       "--homogeneous-dirichlet", "x0,x1,y0,y1",
       NULL};
   char **argv = const_cast<char **> (arg);
@@ -373,7 +373,7 @@ TEST_CASE("Test analytic eigenfunction solution for scalar "
   
   auto max_error = runEigenFunctionTest(std::move(test_elements),mesh,model,options,problem,fields,cycle_time, ElementType::TRIP1);
   LOG() << "Triangle error: " << max_error;
-  PetscReal regression_error = 0.001288; PetscScalar eps = 0.01;
+  PetscReal regression_error = 0.0019361136; PetscScalar eps = 0.01;
   REQUIRE(max_error <= regression_error * (1 + eps));
 
 }

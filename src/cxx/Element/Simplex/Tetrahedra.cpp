@@ -98,350 +98,21 @@ VectorXd Tetrahedra<ConcreteShape>::QuadratureIntegrationWeights(const int order
   return wn;
 }
 
-void tetEdgeHandler(std::vector<std::vector<int>> canonical_edges,
-                    std::vector<std::vector<int>> edge_verts,
-                    std::vector<int> o,
-                 std::vector<std::vector<int>> std_layout,
-                    int &dof_counter,
-                    VectorXi &element_dof_map
-                 ) {
-  
-  int num_edges = canonical_edges.size();
-    
-  for(int i=0;i<num_edges;i++) {
-    std::vector<int> oriented_edge_verts(2);
-    auto this_edge_verts = edge_verts[i];    
-    if(o[i] < 0 ) {
-      oriented_edge_verts = {this_edge_verts[0],this_edge_verts[1]};
-    }
-    else {
-      oriented_edge_verts = {this_edge_verts[1],this_edge_verts[0]};      
-    }
-    std::vector<int> reverse_oriented_edge_verts = {oriented_edge_verts[1],oriented_edge_verts[0]};
-    // forward match
-    if(oriented_edge_verts == canonical_edges[i]) {
-      for(int j=0;j<2;j++) {
-        element_dof_map[dof_counter] = std_layout[i][j];
-        dof_counter++;
-      }
-    }
-    // reverse match
-    else if(canonical_edges[i] == reverse_oriented_edge_verts) {
-      element_dof_map[dof_counter] = std_layout[i][1];
-      dof_counter++;
-      element_dof_map[dof_counter] = std_layout[i][0];
-      dof_counter++;      
-    }
-    else {
-      std::cerr << "ERROR: vertices don't match at all, canonical:\n["
-                << canonical_edges[i]
-                << "], oriented_edge:[\n" << oriented_edge_verts << "]\n";
-      exit(1);
-    }
-  }
-}
-
-void tetSurfRemap(int o,
-                  int &dof_counter, // current dof count
-                  VectorXi &element_dof_map // final dof layout (output)) {
-                  ) {
-  VectorXi remap(6);
-  switch(o) {
-  case -3:
-    remap << 4, 5, 3, 1, 2, 0;
-    break;
-  case -2:
-    remap << 3, 4, 5, 0, 1, 2;
-    break;
-  case -1:
-    remap << 5, 3, 4, 2, 0, 1;
-    break;
-  case 0:
-    remap << 0, 1, 2, 3, 4, 5;
-    break;
-  default:
-    std::cerr << "Surface orientation not implemented!\n";
-    exit(1);    
-  }
-  for(int i=0;i<6;i++) {
-    element_dof_map[dof_counter+i] = dof_counter+remap[i];    
-  }
-  dof_counter += 6;
-  
-}
-
-void tetSurfHandler(std::vector<int> canonical_verts, // the vertices as we expect them
-                        std::vector<int> surf_verts, // vertices given from actual surface
-                        int o, // mesh given orientation of this surface
-                        std::vector<int> std_layout, // expected degrees of freedom layout for this surface
-                        int &dof_counter, // current dof count
-                        VectorXi &element_dof_map // final dof layout (output)
-                        ) {
-
-  std::vector<int> oriented_surf_verts;
-  if(o < 0) {
-    oriented_surf_verts = {surf_verts[2],surf_verts[1],surf_verts[0]};    
-  }
-  else {
-    oriented_surf_verts = {surf_verts[0],surf_verts[1],surf_verts[2]};
-  }  
-  std::vector<int> map_orig_to_desired(3);
-  for(int i=0;i<3;i++) {   
-    auto it = std::find(canonical_verts.begin(),canonical_verts.end(),oriented_surf_verts[i]);
-    int found_loc = it-canonical_verts.begin();
-    // map_orig_to_desired[found_loc] = i;
-    map_orig_to_desired[i] = found_loc;
-  }
-  // std::cout << "surface mapping=" << map_orig_to_desired << "\n";
-  // alpha points
-  for(int i=0;i<3;i++) {
-    element_dof_map[dof_counter] = std_layout[map_orig_to_desired[i]];
-    dof_counter++;
-  }
-  // beta points
-  for(int i=0;i<3;i++) {
-    element_dof_map[dof_counter] = std_layout[map_orig_to_desired[i]];
-    dof_counter++;
-  }
-}
-
-VectorXi internalTetMapping(int element, DM &distributed_mesh) {
-
-  auto canonical_element_vertices = getVertsFromPoint(element,4,distributed_mesh);
-  VectorXi element_dof_map(50);
-  element_dof_map.setZero();
-  std::vector<std::tuple<int,int>> surfaces(4); //(point_id,orientation)
-  std::vector<std::tuple<int,int>> edges(6); //(point_id,orientation)
-  int* points = NULL;
-  int numPoints;    
-  std::vector<std::vector<int>> std_layout = {
-    {0,1,2,3,4,5,6,7,8,9},// internal dofs
-    // --- surfaces ---
-    {10,11,12,13,14,15}, // bottom (r-s)
-    {16,17,18,19,20,21}, // "left" (s-t)
-    {22,23,24,25,26,27}, // front (r-t)
-    {28,29,30,31,32,33}, // "right" (r-s-t)
-    // --- edges --- (split into edge components)
-    {34,35},{36,37},{38,39}, // bottom (clockwise from inside)
-    {40,41},{42,43}, // top t-axis,t-s-slant
-    {44,45}, // front r-t-slant
-    // --- vertices ---
-    {46,47,48,49} // outward normals
-  };
-  DMPlexGetTransitiveClosure(distributed_mesh,element,PETSC_TRUE,&numPoints,&points);  
-  // get surfaces
-  for(int i=1;i<5;i++) {
-    surfaces[i-1] = std::make_tuple(points[2*i],points[2*i+1]);
-  }
-  // get edges
-  for(int i=5;i<11;i++) {
-    edges[i-5] = std::make_tuple(points[2*i],points[2*i+1]);
-  }
-  DMPlexRestoreTransitiveClosure(distributed_mesh, element, PETSC_TRUE, &numPoints, &points);
-
-  int dof_counter = 0;
-  // 0-9 are internal points
-  for(int i=0;i<10;i++) { element_dof_map[dof_counter] = std_layout[0][i]; dof_counter++; }
-
-  int surf_bottom_id = 1; int surf_left_id = 2; int surf_front_id = 3;
-  int surf_right_id = 4;
-  int edge_bottom_0 = 5;
-  int edge_left_0 = 8;
-  int edge_front_0 = 10;
-  int vertices_id = 11;
-
-  // assign surface ids
-  int id,o;
-  // -------------------------
-  // ------- bottom ----------
-  // -------------------------
-  // std:: cout << "computing bottom surface mapping\n";
-  
-  // std::vector<int> canonical_bottom_verts =
-  //   {canonical_element_vertices[0], canonical_element_vertices[1],
-  //    canonical_element_vertices[2]};
-  std::tie(id,o) = surfaces[0];
-  tetSurfRemap(o,dof_counter,element_dof_map);
-  // auto bottom_surf_verts = getVertsFromPoint(id,3,distributed_mesh);
-  // tetSurfHandler(canonical_bottom_verts,
-  //             bottom_surf_verts,
-  //             o,
-  //             std_layout[surf_bottom_id],
-  //             dof_counter,
-  //             element_dof_map);
-  
-  // -------------------------
-  // ------- left ----------
-  // -------------------------
-  // std:: cout << "computing left surface mapping\n";
-  // std::vector<int> canonical_left_verts =
-  //   {canonical_element_vertices[0], canonical_element_vertices[3],
-  //    canonical_element_vertices[1]};
-  std::tie(id,o) = surfaces[1];
-  tetSurfRemap(o,dof_counter,element_dof_map);
-  // auto left_surf_verts = getVertsFromPoint(id,3,distributed_mesh);
-  // tetSurfHandler(canonical_left_verts,
-  //                left_surf_verts,
-  //                o,
-  //                std_layout[surf_left_id],
-  //                dof_counter,
-  //                element_dof_map);
-  
-  // -------------------------
-  // ------- front ----------
-  // -------------------------
-  // std:: cout << "computing front surface mapping\n";
-  // std::vector<int> canonical_front_verts =
-  //   {canonical_element_vertices[0], canonical_element_vertices[2],
-  //    canonical_element_vertices[3]};
-  std::tie(id,o) = surfaces[2];
-  tetSurfRemap(o,dof_counter,element_dof_map);
-  // auto front_surf_verts = getVertsFromPoint(id,3,distributed_mesh);
-  // tetSurfHandler(canonical_front_verts,
-  //                front_surf_verts,
-  //                o,
-  //                std_layout[surf_front_id],
-  //                dof_counter,
-  //                element_dof_map);
-  
-  // -------------------------
-  // ------- right ----------
-  // -------------------------
-  // std:: cout << "computing right surface mapping\n";
-  // std::vector<int> canonical_right_verts =
-  //   {canonical_element_vertices[2], canonical_element_vertices[1],
-  //    canonical_element_vertices[3]};
-  std::tie(id,o) = surfaces[3];
-  tetSurfRemap(o,dof_counter,element_dof_map);
-  // auto right_surf_verts = getVertsFromPoint(id,3,distributed_mesh);
-  // tetSurfHandler(canonical_right_verts,
-  //                right_surf_verts,
-  //                o,
-  //                std_layout[surf_right_id],
-  //                dof_counter,
-  //                element_dof_map);
-  
-  // --------------------------------------------------
-  // --------------------- edges ----------------------
-  // --------------------------------------------------
-
-  // --------------------------
-  // ------ bottom edges ------
-  // --------------------------
-  // std::cout << "computing bottom edge mapping\n";
-  std::vector<std::vector<int>> canonical_bottom_edges =
-    {{canonical_element_vertices[0],canonical_element_vertices[1]},
-     {canonical_element_vertices[1],canonical_element_vertices[2]},
-     {canonical_element_vertices[2],canonical_element_vertices[0]}};               
-  std::vector<std::tuple<int,int>> bottom_edge_id_and_orientation =
-    {edges[0],edges[1],edges[2]};
-  std::vector<int> o_bottom(3);
-  std::vector<std::vector<int>> bottom_edge_verts(3);
-  std::vector<std::vector<int>> std_layout_edge_bottom(3);
-  for(int i=0;i<3;i++) {
-    int id,o;
-    std::tie(id,o) = bottom_edge_id_and_orientation[i];
-    bottom_edge_verts[i] = getVertsFromPoint(id,2,distributed_mesh);
-    o_bottom[i] = o;
-    std_layout_edge_bottom[i] = std_layout[edge_bottom_0+i];
-  }
-
-  tetEdgeHandler(canonical_bottom_edges,
-                 bottom_edge_verts,
-                 o_bottom,
-                 std_layout_edge_bottom,
-                 dof_counter,
-                 element_dof_map);
-
-
-  // --------------------------
-  // ------ left edges ------
-  // --------------------------
-  // std::cout << "computing left edge mapping\n";
-  std::vector<std::vector<int>> canonical_left_edges =
-    {{canonical_element_vertices[0],canonical_element_vertices[3]},
-     {canonical_element_vertices[3],canonical_element_vertices[1]}};
-  std::vector<std::tuple<int,int>> left_edge_id_and_orientation =
-    {edges[3],edges[4]};
-  std::vector<int> o_left(2);
-  std::vector<std::vector<int>> left_edge_verts(2);
-  std::vector<std::vector<int>> std_layout_edge_left(2);
-  for(int i=0;i<2;i++) {
-    int id,o;
-    std::tie(id,o) = left_edge_id_and_orientation[i];
-    left_edge_verts[i] = getVertsFromPoint(id,2,distributed_mesh);
-    o_left[i] = o;
-    std_layout_edge_left[i] = std_layout[edge_left_0+i];
-  }
-  
-  tetEdgeHandler(canonical_left_edges,
-                 left_edge_verts,
-                 o_left,
-                 std_layout_edge_left,
-                 dof_counter,
-                 element_dof_map);
-
-  // --------------------------
-  // ------ front edges ------
-  // --------------------------
-  // std::cout << "computing front edge mapping\n";
-  std::vector<std::vector<int>> canonical_front_edges =
-    {{canonical_element_vertices[2],canonical_element_vertices[3]}};
-  std::vector<std::tuple<int,int>> front_edge_id_and_orientation =
-    {edges[5]};
-  std::vector<int> o_front(1);
-  std::vector<std::vector<int>> front_edge_verts(1);
-  std::vector<std::vector<int>> std_layout_edge_front(1);
-  for(int i=0;i<1;i++) {
-    int id,o;
-    std::tie(id,o) = front_edge_id_and_orientation[i];
-    front_edge_verts[i] = getVertsFromPoint(id,2,distributed_mesh);
-    o_front[i] = o;
-    std_layout_edge_front[i] = std_layout[edge_front_0+i];
-  }
-  
-  tetEdgeHandler(canonical_front_edges,
-                 front_edge_verts,
-                 o_front,
-                 std_layout_edge_front,
-                 dof_counter,
-                 element_dof_map);
-
-  // vertices
-  for(int i=0;i<4;i++) {
-    element_dof_map[dof_counter] = std_layout[vertices_id][i];
-    dof_counter++;
-  }
-  return element_dof_map;
-}
-
 template <typename ConcreteShape>
 VectorXi Tetrahedra<ConcreteShape>::ClosureMapping(const int order, const int dimension,
                                                    DM &distributed_mesh) {
 
-  VectorXi new_mapping;
+  VectorXi linear_mapping;
   if(order == 3) {
 
-    VectorXi linear_mapping(50);
+    linear_mapping.resize(50);
     for(int i=0;i<50;i++) { linear_mapping[i] = i; }
-
-    auto petsc_mapping = internalTetMapping(mElmNum,distributed_mesh);
-    // printf("mapping:\n");
-    // for(int i=0;i<25;i++) {
-    //   printf("%d:%d\n",i,petsc_mapping[i]);
-    // }
-
-    new_mapping.setZero(50);
-    for(int i=0;i<50;i++) {
-      new_mapping[i] = petsc_mapping[i];
-    }
-    // return linear_mapping;
 
   } else {
     ERROR() << "Order " << order << " tetrahedra closure mapping not implemented!";
   }
-  return new_mapping;
-    
+  return linear_mapping;
+  
 }
 
 template <typename ConcreteShape>
@@ -565,23 +236,11 @@ MatrixXd Tetrahedra<ConcreteShape>::computeGradient(const Ref<const VectorXd>& f
 
   Vector3d phyGrad;
   Vector3d refGrad;
+
+  mGradWork.col(0) = mGradientPhi_dx*field;
+  mGradWork.col(1) = mGradientPhi_dy*field;
+  mGradWork.col(2) = mGradientPhi_dz*field;
   
-  for(int i=0;i<mNumIntPnt;i++) {
-
-    refGrad.setZero(3);
-    for(int j=0;j<mNumIntPnt;j++) {
-      refGrad(0) += mGradientPhi_dr(j,i) * field(j);
-      refGrad(1) += mGradientPhi_ds(j,i) * field(j);
-      refGrad(2) += mGradientPhi_dt(j,i) * field(j);
-    }
-    
-    phyGrad = (mInvJac) * refGrad;
-    mGradWork(i,0) = phyGrad(0);
-    mGradWork(i,1) = phyGrad(1);
-    mGradWork(i,2) = phyGrad(2);
-        
-  }
-
   return mGradWork;
 }
 
@@ -675,15 +334,23 @@ VectorXd Tetrahedra<ConcreteShape>::computeStiffnessFull(const Ref<const VectorX
 }
 
 template <typename ConcreteShape>
+void Tetrahedra<ConcreteShape>::precomputeElementTerms()
+ {
+   std::tie(mInvJac,mDetJac) = ConcreteShape::inverseJacobian(mVtxCrd);
+   mInvJacT = mInvJac.transpose();
+   mElementStiffnessMatrix = buildStiffnessMatrix(ParAtIntPts("VP"));    
+ }
+
+template <typename ConcreteShape>
 MatrixXd Tetrahedra<ConcreteShape>::buildStiffnessMatrix(const Ref<const VectorXd>& vp2) {
   
   Eigen::Matrix3d invJ;
   double detJ;
   std::tie(invJ,detJ) = ConcreteShape::inverseJacobian(mVtxCrd);
 
-  mGradientPhi_dr_t = mGradientPhi_dr.transpose();
-  mGradientPhi_ds_t = mGradientPhi_ds.transpose();
-  mGradientPhi_dt_t = mGradientPhi_dt.transpose();
+  // mGradientPhi_dr_t = mGradientPhi_dr.transpose();
+  // mGradientPhi_ds_t = mGradientPhi_ds.transpose();
+  // mGradientPhi_dt_t = mGradientPhi_dt.transpose();
   
   // save for later
   mInvJac = invJ;
@@ -715,51 +382,52 @@ MatrixXd Tetrahedra<ConcreteShape>::buildStiffnessMatrix(const Ref<const VectorX
   mWiDPhi_x.resize(mNumIntPnt,mNumIntPnt);
   mWiDPhi_y.resize(mNumIntPnt,mNumIntPnt);
   mWiDPhi_z.resize(mNumIntPnt,mNumIntPnt);
+
+  // Stiffness Matrix
+  // Dx = rx*Dr + sx*Ds + tx*Dt;
+  // Dy = ry*Dr + sy*Ds + ty*Dt;
+  // Dz = rz*Dr + sz*Ds + tz*Dt;
+  // Kxx = detJ*Dx'*Me*Dx
+  // Kyy = detJ*Dy'*Me*Dy
+  // Kzz = detJ*Dz'*Me*Dz
+  // K = Kxx+Kyy+Kzz
+
+  // alternate method
+  mGradientPhi_dx =
+    (drdx*mGradientPhi_dr +
+    dsdx*mGradientPhi_ds +
+     dtdx*mGradientPhi_dt).transpose();
+  mGradientPhi_dy =
+    (drdy*mGradientPhi_dr +
+    dsdy*mGradientPhi_ds +
+     dtdy*mGradientPhi_dt).transpose();
+  mGradientPhi_dz =
+    (drdz*mGradientPhi_dr +
+    dsdz*mGradientPhi_ds +
+     dtdz*mGradientPhi_dt).transpose();
   
-  // loop over matrix(i,j)
-  for(int i=0;i<mNumIntPnt;i++) {
-      
-    Eigen::VectorXd dPhi_dr_i = mGradientPhi_dr.row(i);
-    Eigen::VectorXd dPhi_ds_i = mGradientPhi_ds.row(i);
-    Eigen::VectorXd dPhi_dt_i = mGradientPhi_dt.row(i);
-    auto dPhi_dx_i = dPhi_dr_i*drdx + dPhi_ds_i*dsdx + dPhi_dt_i*dtdx;
-    auto dPhi_dy_i = dPhi_dr_i*drdy + dPhi_ds_i*dsdy + dPhi_dt_i*dtdy;
-    auto dPhi_dz_i = dPhi_dr_i*drdz + dPhi_ds_i*dsdz + dPhi_dt_i*dtdz;
-    mGradientPhi_dx.row(i) = dPhi_dx_i;
-    mGradientPhi_dy.row(i) = dPhi_dy_i;
-    mGradientPhi_dz.row(i) = dPhi_dz_i;
-
-    mWiDPhi_x.row(i) = detJ * dPhi_dx_i.array() * mIntegrationWeights.array();
-    mWiDPhi_y.row(i) = detJ * dPhi_dy_i.array() * mIntegrationWeights.array();
-    mWiDPhi_z.row(i) = detJ * dPhi_dz_i.array() * mIntegrationWeights.array();
+  // Me*Dx, Me*Dy, Me*Dz
+  RealVec wi_vp2 = mIntegrationWeights * vp2;
+  mWiDPhi_x = (wi_vp2).asDiagonal() * mGradientPhi_dx;
+  mWiDPhi_y = (wi_vp2).asDiagonal() * mGradientPhi_dy;
+  mWiDPhi_z = (wi_vp2).asDiagonal() * mGradientPhi_dz;
+  
+  // for(int i=0;i<mNumIntPnt;i++) {
+  //   mWiDPhi_x.row(i) = mGradientPhi_dx.row(i)*mIntegrationWeights[i];
+  //   mWiDPhi_y.row(i) = mGradientPhi_dy.row(i)*mIntegrationWeights[i];
+  //   mWiDPhi_z.row(i) = mGradientPhi_dz.row(i)*mIntegrationWeights[i];
+  // }
     
-    for(int j=0;j<mNumIntPnt;j++) {
-      Eigen::VectorXd dPhi_dr_j = mGradientPhi_dr.row(j);
-      Eigen::VectorXd dPhi_ds_j = mGradientPhi_ds.row(j);
-      Eigen::VectorXd dPhi_dt_j = mGradientPhi_dt.row(j);
-      auto dPhi_dx_j = dPhi_dr_j*drdx + dPhi_ds_j*dsdx + dPhi_dt_j*dtdx;
-      auto dPhi_dy_j = dPhi_dr_j*drdy + dPhi_ds_j*dsdy + dPhi_dt_j*dtdy;
-      auto dPhi_dz_j = dPhi_dr_j*drdz + dPhi_ds_j*dsdz + dPhi_dt_j*dtdz;
-      
-      elementStiffnessMatrix(i,j) =
-        // with velocity according to model
-        detJ*mIntegrationWeights.dot((vp2.array() * dPhi_dx_i.array() * dPhi_dx_j.array()).matrix()) +
-        detJ*mIntegrationWeights.dot((vp2.array() * dPhi_dy_i.array() * dPhi_dy_j.array()).matrix()) +
-        detJ*mIntegrationWeights.dot((vp2.array() * dPhi_dz_i.array() * dPhi_dz_j.array()).matrix());
-
-      
-      
-    }
-  }
-
+  elementStiffnessMatrix = (detJ*mGradientPhi_dx.transpose()*mWiDPhi_x) + (detJ*mGradientPhi_dy.transpose()*mWiDPhi_y) + (detJ*mGradientPhi_dz.transpose()*mWiDPhi_z);
+  
   // build transpose as well
-  mGradientPhi_dx_t = mGradientPhi_dx.transpose();
-  mGradientPhi_dy_t = mGradientPhi_dy.transpose();
-  mGradientPhi_dz_t = mGradientPhi_dz.transpose();
+  // mGradientPhi_dx_t = mGradientPhi_dx.transpose();
+  // mGradientPhi_dy_t = mGradientPhi_dy.transpose();
+  // mGradientPhi_dz_t = mGradientPhi_dz.transpose();
   
   return elementStiffnessMatrix;
-    
 }
+
 
 
 template <typename ConcreteShape>
@@ -897,11 +565,11 @@ std::vector<PetscInt> Tetrahedra<ConcreteShape>::getDofsOnEdge(const PetscInt ed
       // See BuildNodesTetrahedraP3(True) to visualize edge_ids
     case 0: edge_ids = {46,34,35,47}; break;
     case 1: edge_ids = {47,36,37,48}; break;
-    case 3: edge_ids = {48,38,39,46}; break;
-    case 4: edge_ids = {46,40,41,49}; break;
-    case 5: edge_ids = {49,42,43,47}; break;
-    case 6: edge_ids = {48,44,45,49}; break;
-    default: ERROR() << "Only sixe edges in a tetrahedra"; break;
+    case 2: edge_ids = {48,38,39,46}; break;
+    case 3: edge_ids = {46,40,41,49}; break;
+    case 4: edge_ids = {49,42,43,47}; break;
+    case 5: edge_ids = {48,44,45,49}; break;
+    default: ERROR() << "Only six edges in a tetrahedra"; break;
     }
   } else {
     ERROR() << "Not Implemented: getDofsOnEdge for Polynomials != 3";
@@ -917,8 +585,8 @@ PetscInt Tetrahedra<ConcreteShape>::getDofsOnVtx(const PetscInt vtx) {
     switch(vtx) {
     case 0: vtx_id = 46; break;
     case 1: vtx_id = 47; break;
-    case 3: vtx_id = 48; break;
-    case 4: vtx_id = 49; break;
+    case 2: vtx_id = 48; break;
+    case 3: vtx_id = 49; break;
     default: ERROR() << "Only four vertices in a Tetrahedra"; break;
     }
   } else {
@@ -926,27 +594,6 @@ PetscInt Tetrahedra<ConcreteShape>::getDofsOnVtx(const PetscInt vtx) {
   }
   return vtx_id;
 }
-
-
-//template <typename ConcreteShape>
-//void Tetrahedra<ConcreteShape>::applyDirichletBoundaries(std::unique_ptr<Mesh> const &mesh, std::unique_ptr<Options> const &options,
-//                                                         const std::string &fieldname) {
-//
-//  if (! mBndElm) return;
-//
-//  double value = 0;
-//  auto dirchlet_boundary_names = options->DirichletBoundaries();
-//  for (auto &bndry: dirchlet_boundary_names) {
-//    auto faceids = mBnd[bndry];
-//    for (auto &faceid: faceids) {
-//      auto field = mesh->getFieldOnFace(fieldname, faceid);
-//      field = 0 * field.array() + value;
-//      mesh->setFieldFromFace(fieldname, faceid, field);
-//    }
-//  }
-//}
-
-
 
 // Instantiate combinatorical cases.
 template class Tetrahedra<TetP1>;

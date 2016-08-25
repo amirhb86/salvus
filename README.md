@@ -136,3 +136,23 @@ Describe how a test suite can be executed following installation
 ## Running it
 
 We aim to collect a number of examples including all required data here: <https://github.com/SalvusHub/salvus_data>
+
+
+## Profiling
+
+The following `cmake` command will build with profiling
+
+    env CC=gcc-5 CXX=g++-5 cmake ../ -DPETSC_DIR=/opt/petsc \
+    -DEIGEN_INCLUDE=/usr/include/eigen3 \
+    -DCMAKE_CXX_FLAGS="-Wno-literal-suffix -Wno-deprecated-declarations -pg" \
+    -DCMAKE_EXE_LINKER_FLAGS="-pg" \
+    -DCMAKE_SHARED_LINKER_FLAGS="-pg" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DMPI_C_COMPILER=/opt/petsc/bin/mpicc \
+    -DMPI_CXX_COMPILER=/opt/petsc/bin/mpicxx
+
+View the resulting profile:
+
+    gprof ../../salvus/Profile/salvus_test | gprof2dot | dot -Tpng -o profile.png
+    
+which will create a png for viewing.

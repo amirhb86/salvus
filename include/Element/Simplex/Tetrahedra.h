@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Utilities/Logging.h>
+
 // stl.
 #include <map>
 #include <vector>
@@ -252,7 +254,7 @@ class Tetrahedra: public ConcreteShape {
   /** Precompute any terms needed on the element level, e.g.,
       jacobians, velocities at nodes and the stiffness matrix.
   */
-  void precomputeElementTerms() { LOG() << "Hello from Tet"; }
+  void precomputeElementTerms();
   
   /**
    * Utility function to integrate a field over the element. This could probably be made static, but for now I'm
