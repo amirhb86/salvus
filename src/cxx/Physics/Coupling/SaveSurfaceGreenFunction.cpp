@@ -35,14 +35,13 @@ SaveSurfaceGreenFunction<Element>::SaveSurfaceGreenFunction(
 template <typename Element>
 SaveSurfaceGreenFunction<Element>::~SaveSurfaceGreenFunction() {
   write();
-  if (mFileId) { H5Fclose(mFileId); }
   mNumMixins--;
 }
 
 template <typename Element>
 void SaveSurfaceGreenFunction<Element>::write() {
 
-  if (!mFileId && mMixNum == 0) {
+  if (!mFileId) {
 
     if (!container.size()) return;
 
@@ -52,6 +51,15 @@ void SaveSurfaceGreenFunction<Element>::write() {
     MPI_Comm_group(PETSC_COMM_WORLD, &world_group);
     MPI_Group_incl(world_group, ranks.size(), ranks.data(), &mMpiGroup);
     MPI_Comm_create_group(PETSC_COMM_WORLD, mMpiGroup, 0, &mMpiComm);
+
+    /* Get total number of elements. */
+    PetscInt num_all_mixins;
+    MPI_Allreduce(&mNumMixins, &num_all_mixins, 1, MPIU_INT, MPI_SUM, mMpiComm);
+    int rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+
+    /* Get element offsets. */
+    PetscInt mixin_offest;
+    MPI_Scan(&mNumMixins, &mixin_offest, 1, MPIU_INT, MPI_SUM, mMpiComm);
 
     /* Create file with communicator. */
     std::string fname = "./test.h5";
@@ -63,17 +71,17 @@ void SaveSurfaceGreenFunction<Element>::write() {
     }
 
     const hsize_t dim = 4;
-    const hsize_t siz[dim] = {(hsize_t) container.elm(), (hsize_t) container.tsp(),
+    const hsize_t size[dim] = {(hsize_t) container.tsp(), (hsize_t) num_all_mixins,
                               (hsize_t) container.cmp(), (hsize_t) container.pnt()};
 
     {
-      hid_t filespace = H5Screate_simple(dim, siz, NULL);
+      hid_t filespace = H5Screate_simple(dim, size, NULL);
       hid_t dset_id = H5Dcreate(mFileId, "wavefield_data", container.Hdf5Datatype(),
                                 filespace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
       H5DSset_scale(dset_id, Element::Name().c_str());
-      H5DSset_label(dset_id, 0, "element");
-      H5DSset_label(dset_id, 1, "time_step");
+      H5DSset_label(dset_id, 0, "time_step");
+      H5DSset_label(dset_id, 1, "element");
       std::string components = "[";
       for (auto &f: Element::PullElementalFields()) { components += " " + f + " "; }
       components += "]";
@@ -81,10 +89,11 @@ void SaveSurfaceGreenFunction<Element>::write() {
       H5DSset_label(dset_id, 3, "point");
 
       H5Sclose(filespace);
-      hid_t memspace = H5Screate_simple(dim, siz, NULL);
-      const hsize_t off[dim] = {0, 0, 0, 0};
+      const hsize_t off[dim] = {0, (hsize_t) mixin_offest-mNumMixins, 0, 0};
       filespace = H5Dget_space(dset_id);
-      H5Sselect_hyperslab(filespace, H5S_SELECT_SET, off, NULL, siz, NULL);
+      const hsize_t size_this_proc[dim] = {size[0], (hsize_t) mNumMixins, size[2], size[3] };
+      hid_t memspace = H5Screate_simple(dim, size_this_proc, NULL);
+      H5Sselect_hyperslab(filespace, H5S_SELECT_SET, off, NULL, size_this_proc, NULL);
       hid_t plist_id = H5Pcreate(H5P_DATASET_XFER);
       H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
       H5Dwrite(dset_id, container.Hdf5Datatype(), memspace, filespace, plist_id, &container.data());
@@ -92,7 +101,10 @@ void SaveSurfaceGreenFunction<Element>::write() {
       H5Sclose(filespace);
       H5Sclose(memspace);
       H5Pclose(plist_id);
+
     }
+
+    H5Fclose(mFileId);
   }
 
 }
@@ -103,7 +115,7 @@ void SaveSurfaceGreenFunction<Element>::recordDynamicFields
 
   /* Initialize the container only once. */
   if (!container.size() && mMixNum == 0) {
-    container.resize(mNumMixins, mNumTimeStep, mNumComponents, Element::NumIntPnt());
+    container.resize(mNumTimeStep, mNumMixins, mNumComponents, Element::NumIntPnt());
   }
 
   /* Save the component. */

@@ -65,12 +65,15 @@ class UncompressedWavefieldContainer {
   T &operator()(PetscInt tsp, PetscInt elm, PetscInt cmp, PetscInt pnt) {
     return _data[tsp*nElm*nCmp*nPnt + elm*nCmp*nPnt + cmp*nPnt + pnt];
   }
+  T &operator()(PetscInt i) {
+    return _data[i];
+  }
   T &data() { return _data[0]; }
   void resize(PetscInt nTsp_, PetscInt nElm_, PetscInt nCmp_, PetscInt nPnt_) {
     nElm = nElm_; nTsp = nTsp_; nCmp = nCmp_; nPnt = nPnt_;
     _data.resize(nElm*nTsp*nCmp*nPnt);
   };
-  PetscInt size() { return nElm*nTsp*nTsp; }
+  PetscInt size() { return nElm*nTsp*nCmp*nPnt; }
   PetscInt elm() { return nElm; }
   PetscInt tsp() { return nTsp; }
   PetscInt cmp() { return nCmp; }
