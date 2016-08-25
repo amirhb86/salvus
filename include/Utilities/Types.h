@@ -1,5 +1,6 @@
 #pragma once
 
+#include <hdf5.h>
 #include <petsc.h>
 #include <Eigen/Dense>
 #include <Element/Element.h>
@@ -51,6 +52,37 @@ class salvus_warning: public std::exception {
   }
   virtual const char* what() const throw() { return mMsg.c_str(); }
 };
+
+/// Wavefield container
+template <typename T>
+class UncompressedWavefieldContainer {
+  PetscInt nElm, nPnt, nTsp, nCmp;
+  std::vector<T> _data;
+ public:
+  UncompressedWavefieldContainer(PetscInt nTsp=0, PetscInt nElm=0,
+                                 PetscInt nCmp=0, PetscInt nPnt=0) :
+      nTsp(nTsp), nElm(nElm), nCmp(nCmp), nPnt(nPnt), _data(nTsp*nElm*nCmp*nPnt) {}
+  T &operator()(PetscInt tsp, PetscInt elm, PetscInt cmp, PetscInt pnt) {
+    return _data[tsp*nElm*nCmp*nPnt + elm*nCmp*nPnt + cmp*nPnt + pnt];
+  }
+  T &data() { return _data[0]; }
+  void resize(PetscInt nTsp_, PetscInt nElm_, PetscInt nCmp_, PetscInt nPnt_) {
+    nElm = nElm_; nTsp = nTsp_; nCmp = nCmp_; nPnt = nPnt_;
+    _data.resize(nElm*nTsp*nCmp*nPnt);
+  };
+  PetscInt size() { return nElm*nTsp*nTsp; }
+  PetscInt elm() { return nElm; }
+  PetscInt tsp() { return nTsp; }
+  PetscInt cmp() { return nCmp; }
+  PetscInt pnt() { return nPnt; }
+  static hid_t Hdf5Datatype();
+};
+
+template<>
+inline hid_t UncompressedWavefieldContainer<double>::Hdf5Datatype() { return H5T_NATIVE_DOUBLE; }
+
+
+
 
 /// Strongly typed Element types
 enum class ElementType {QUADP1, TRIP1, HEXP1, TETP1};
